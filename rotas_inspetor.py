@@ -81,6 +81,19 @@ from seguranca import (
 )
 from nucleo.cliente_ia import ClienteIA
 from nucleo.gerador_laudos import GeradorLaudos
+from nucleo.inspetor.comandos_chat import (
+    analisar_comando_finalizacao,
+    analisar_comando_rapido_chat,
+    mensagem_para_mesa,
+    remover_mencao_mesa,
+)
+from nucleo.inspetor.confianca_ia import (
+    CONFIANCA_MEDIA,
+    _resumo_texto_curto,
+    _titulo_confianca_humano,
+    analisar_confianca_resposta_ia,
+    normalizar_payload_confianca_ia,
+)
 from templates_ia import RelatorioCBMGO
 
 try:
@@ -265,83 +278,13 @@ REGEX_DATA_URI_IMAGEM = re.compile(
     flags=re.IGNORECASE,
 )
 
-REGEX_PREFIXO_MESA = re.compile(
-    r"^@?(?:insp|inspetor|eng|engenharia|revisor|mesa|avaliador|avaliacao)\b\s*[:\-]?\s*",
-    flags=re.IGNORECASE,
-)
-
-REGEX_COMANDO_FINALIZAR_NOVO = re.compile(
-    r"^COMANDO_SISTEMA\s+FINALIZARLAUDOAGORA(?:\s+TIPO\s+([a-zA-Z0-9_]+))?\s*$",
-    flags=re.IGNORECASE,
-)
-
-REGEX_COMANDO_FINALIZAR_LEGADO = re.compile(
-    r"^\[COMANDO_SISTEMA\]:\s*FINALIZAR_LAUDO_AGORA(?:\s*\|\s*TIPO:\s*([a-zA-Z0-9_]+))?\s*$",
-    flags=re.IGNORECASE,
-)
-
 REGEX_ARQUIVO_DOCUMENTO = re.compile(r"\.(?:pdf|docx?)\b", flags=re.IGNORECASE)
-
-COMANDOS_RAPIDOS_CHAT = frozenset(
-    {
-        "/pendencias",
-        "/resumo",
-        "/enviar_mesa",
-        "/gerar_previa",
-    }
-)
 
 MAPA_FILTRO_PENDENCIAS_LABEL = {
     "abertas": "Abertas",
     "resolvidas": "Resolvidas",
     "todas": "Todas",
 }
-
-CONFIANCA_ALTA = "alta"
-CONFIANCA_MEDIA = "media"
-CONFIANCA_BAIXA = "baixa"
-CONFIANCAS_VALIDAS = {CONFIANCA_ALTA, CONFIANCA_MEDIA, CONFIANCA_BAIXA}
-MAX_SECOES_CONFIANCA = 8
-MAX_PONTOS_VALIDACAO_HUMANA = 5
-
-TERMOS_EVIDENCIA_CONFIANCA = (
-    "nr-",
-    "nr ",
-    "nbr",
-    "item ",
-    "art.",
-    "artigo",
-    "anexo",
-    "foto",
-    "evidencia",
-    "medi",
-    "laudo",
-    "checklist",
-    "avcb",
-    "spda",
-    "rti",
-    "pie",
-    "loto",
-)
-
-TERMOS_INCERTEZA_CONFIANCA = (
-    "talvez",
-    "aparente",
-    "aparentemente",
-    "possivel",
-    "hipotese",
-    "estimado",
-    "sugere",
-    "pode ser",
-    "necessario validar",
-    "validacao humana",
-    "nao foi possivel confirmar",
-    "sem evidencia",
-    "sem confirmacao",
-)
-
-REGEX_CABECALHO_SECAO_MD = re.compile(r"^\s{0,3}#{1,6}\s+(.+?)\s*$")
-REGEX_NUMERACAO_ESTRUTURADA = re.compile(r"\b(?:\d+[.,]?\d*|nr[-\s]?\d+|nbr\s?\d+)\b", flags=re.IGNORECASE)
 
 try:
     import pypdf as leitor_pdf
@@ -1186,27 +1129,6 @@ def estado_relatorio_sanitizado(
     }
 
 
-def mensagem_para_mesa(texto: str) -> bool:
-    return bool(REGEX_PREFIXO_MESA.match((texto or "").strip()))
-
-
-def remover_mencao_mesa(texto: str) -> str:
-    return REGEX_PREFIXO_MESA.sub("", (texto or "").strip(), count=1).strip()
-
-
-def analisar_comando_rapido_chat(texto: str) -> tuple[str, str]:
-    bruto = (texto or "").strip()
-    if not bruto.startswith("/"):
-        return "", ""
-
-    comando_bruto, _, restante = bruto.partition(" ")
-    comando = comando_bruto.strip().lower()
-    if comando not in COMANDOS_RAPIDOS_CHAT:
-        return "", ""
-
-    return comando.lstrip("/"), restante.strip()
-
-
 def formatar_data_humana(valor: Optional[datetime]) -> str:
     if not valor:
         return "-"
@@ -1225,197 +1147,6 @@ def descrever_status_revisao(status: str) -> str:
         StatusRevisao.APROVADO.value: "Aprovado",
     }
     return mapa.get(status_normalizado, status_normalizado or "Indefinido")
-
-
-def _resumo_texto_curto(texto: str, limite: int = 220) -> str:
-    conteudo = " ".join((texto or "").split()).strip()
-    if not conteudo:
-        return ""
-    if len(conteudo) <= limite:
-        return conteudo
-    return conteudo[: limite - 3].rstrip() + "..."
-
-
-def _extrair_secoes_confianca(texto: str) -> list[dict[str, str]]:
-    bruto = str(texto or "").strip()
-    if not bruto:
-        return []
-
-    secoes: list[dict[str, str]] = []
-    titulo_atual = "Síntese geral"
-    linhas_atuais: list[str] = []
-
-    for linha in bruto.splitlines():
-        match = REGEX_CABECALHO_SECAO_MD.match(linha)
-        if match:
-            conteudo_secao = "\n".join(linhas_atuais).strip()
-            if conteudo_secao:
-                secoes.append({"titulo": titulo_atual, "conteudo": conteudo_secao})
-            titulo_atual = _resumo_texto_curto(match.group(1), limite=80) or "Seção técnica"
-            linhas_atuais = []
-            continue
-
-        linhas_atuais.append(linha)
-
-    conteudo_final = "\n".join(linhas_atuais).strip()
-    if conteudo_final:
-        secoes.append({"titulo": titulo_atual, "conteudo": conteudo_final})
-
-    if not secoes:
-        return [{"titulo": "Síntese geral", "conteudo": bruto}]
-
-    return secoes[:MAX_SECOES_CONFIANCA]
-
-
-def _score_confianca_secao(conteudo: str) -> tuple[float, list[str], list[str]]:
-    texto = str(conteudo or "").strip()
-    texto_lower = texto.lower()
-    score = 0.0
-    evidencias: list[str] = []
-    incertezas: list[str] = []
-
-    if len(texto) >= 160:
-        score += 1.0
-    elif len(texto) >= 80:
-        score += 0.5
-
-    if REGEX_NUMERACAO_ESTRUTURADA.search(texto):
-        score += 1.0
-        evidencias.append("dados numericos ou referencia normativa")
-
-    for termo in TERMOS_EVIDENCIA_CONFIANCA:
-        if termo in texto_lower:
-            score += 0.25
-            evidencias.append(termo)
-            if len(evidencias) >= 3:
-                break
-
-    for termo in TERMOS_INCERTEZA_CONFIANCA:
-        if termo in texto_lower:
-            score -= 0.8
-            incertezas.append(termo)
-            if len(incertezas) >= 3:
-                break
-
-    return score, evidencias, incertezas
-
-
-def _nivel_confianca_por_score(score: float) -> str:
-    if score >= 1.9:
-        return CONFIANCA_ALTA
-    if score >= 0.7:
-        return CONFIANCA_MEDIA
-    return CONFIANCA_BAIXA
-
-
-def normalizar_payload_confianca_ia(payload: Any) -> dict[str, Any]:
-    if not isinstance(payload, dict):
-        return {}
-    if not payload:
-        return {}
-
-    geral = str(payload.get("geral", "")).strip().lower()
-    if geral not in CONFIANCAS_VALIDAS:
-        geral = CONFIANCA_MEDIA
-
-    secoes_brutas = payload.get("secoes", [])
-    secoes_normalizadas: list[dict[str, Any]] = []
-    if isinstance(secoes_brutas, list):
-        for secao in secoes_brutas[:MAX_SECOES_CONFIANCA]:
-            if not isinstance(secao, dict):
-                continue
-            nivel = str(secao.get("confianca", "")).strip().lower()
-            if nivel not in CONFIANCAS_VALIDAS:
-                nivel = CONFIANCA_MEDIA
-
-            titulo = _resumo_texto_curto(str(secao.get("titulo", "") or ""), limite=90) or "Seção"
-            trecho = _resumo_texto_curto(str(secao.get("trecho", "") or ""), limite=180)
-
-            secoes_normalizadas.append(
-                {
-                    "titulo": titulo,
-                    "confianca": nivel,
-                    "trecho": trecho,
-                    "requer_validacao_humana": bool(secao.get("requer_validacao_humana", False)),
-                    "justificativa": _resumo_texto_curto(str(secao.get("justificativa", "") or ""), limite=160),
-                }
-            )
-
-    pontos_brutos = payload.get("pontos_validacao_humana", [])
-    pontos = []
-    if isinstance(pontos_brutos, list):
-        for item in pontos_brutos[:MAX_PONTOS_VALIDACAO_HUMANA]:
-            texto = _resumo_texto_curto(str(item or ""), limite=160)
-            if texto:
-                pontos.append(texto)
-
-    return {
-        "geral": geral,
-        "secoes": secoes_normalizadas,
-        "pontos_validacao_humana": pontos,
-        "gerado_em": str(payload.get("gerado_em", "") or agora_utc().isoformat()),
-    }
-
-
-def analisar_confianca_resposta_ia(texto: str) -> dict[str, Any]:
-    secoes = _extrair_secoes_confianca(texto)
-    if not secoes:
-        return {}
-
-    secoes_resultado: list[dict[str, Any]] = []
-    pontuacoes: list[float] = []
-    pontos_validacao: list[str] = []
-
-    for secao in secoes:
-        titulo = secao.get("titulo", "Seção")
-        conteudo = secao.get("conteudo", "")
-        score, evidencias, incertezas = _score_confianca_secao(conteudo)
-        nivel = _nivel_confianca_por_score(score)
-        pontuacoes.append(score)
-
-        justificativas: list[str] = []
-        if evidencias:
-            justificativas.append("com evidencias textuais")
-        if incertezas:
-            justificativas.append("com pontos de incerteza")
-        justificativa = ", ".join(justificativas) if justificativas else "analise textual automatica"
-
-        requer_validacao_humana = nivel == CONFIANCA_BAIXA or bool(incertezas)
-        if requer_validacao_humana and len(pontos_validacao) < MAX_PONTOS_VALIDACAO_HUMANA:
-            razao = incertezas[0] if incertezas else "baixo nivel de confianca"
-            pontos_validacao.append(f"{titulo}: validar '{razao}'.")
-
-        secoes_resultado.append(
-            {
-                "titulo": titulo,
-                "confianca": nivel,
-                "score": round(score, 2),
-                "trecho": _resumo_texto_curto(conteudo, limite=180),
-                "justificativa": justificativa,
-                "requer_validacao_humana": requer_validacao_humana,
-            }
-        )
-
-    score_medio = (sum(pontuacoes) / len(pontuacoes)) if pontuacoes else 0.0
-    geral = _nivel_confianca_por_score(score_medio)
-
-    return normalizar_payload_confianca_ia(
-        {
-            "geral": geral,
-            "secoes": secoes_resultado,
-            "pontos_validacao_humana": pontos_validacao,
-            "gerado_em": agora_utc().isoformat(),
-        }
-    )
-
-
-def _titulo_confianca_humano(nivel: str) -> str:
-    mapa = {
-        CONFIANCA_ALTA: "Alta",
-        CONFIANCA_MEDIA: "Média",
-        CONFIANCA_BAIXA: "Baixa",
-    }
-    return mapa.get(str(nivel or "").strip().lower(), "Média")
 
 
 def _obter_ultima_revisao_laudo(banco: Session, laudo_id: int) -> LaudoRevisao | None:
@@ -1755,22 +1486,6 @@ def registrar_comando_rapido_historico(
         )
     )
     laudo.atualizado_em = agora_utc()
-
-
-def analisar_comando_finalizacao(texto: str) -> tuple[bool, str]:
-    bruto = (texto or "").strip()
-    if not bruto:
-        return False, "padrao"
-
-    match_novo = REGEX_COMANDO_FINALIZAR_NOVO.match(bruto)
-    if match_novo:
-        return True, normalizar_tipo_template(match_novo.group(1) or "padrao")
-
-    match_legado = REGEX_COMANDO_FINALIZAR_LEGADO.match(bruto)
-    if match_legado:
-        return True, normalizar_tipo_template(match_legado.group(1) or "padrao")
-
-    return False, "padrao"
 
 
 def montar_limites_para_template(banco: Session) -> dict[str, Any]:
@@ -2600,7 +2315,10 @@ async def rota_chat(
 
     historico_dict = [msg.model_dump() for msg in dados.historico]
 
-    eh_comando_finalizar, tipo_template_finalizacao = analisar_comando_finalizacao(mensagem_limpa)
+    eh_comando_finalizar, tipo_template_finalizacao = analisar_comando_finalizacao(
+        mensagem_limpa,
+        normalizar_tipo_template=normalizar_tipo_template,
+    )
 
     eh_whisper_para_mesa = mensagem_para_mesa(mensagem_limpa)
 
