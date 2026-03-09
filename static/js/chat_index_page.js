@@ -63,6 +63,14 @@
         },
     };
 
+    const CONFIG_CONEXAO_MESA_WIDGET = {
+        conectado: "Conectado",
+        reconectando: "Reconectando",
+        offline: "Offline",
+    };
+
+    const LIMITE_RECONEXAO_SSE_OFFLINE = 3;
+
     // =========================================================
     // ESTADO LOCAL DA PÁGINA
     // =========================================================
@@ -91,6 +99,9 @@
         mesaWidgetTemMais: false,
         mesaWidgetReferenciaAtiva: null,
         mesaWidgetNaoLidas: 0,
+        mesaWidgetConexao: "conectado",
+        tentativasReconexaoSSE: 0,
+        timerFecharMesaWidget: null,
     };
 
     // Compatibilidade com trechos legados do projeto.
@@ -151,6 +162,8 @@
         badgeMesaWidget: document.getElementById("badge-mesa-widget"),
         painelMesaWidget: document.getElementById("painel-mesa-widget"),
         btnFecharMesaWidget: document.getElementById("btn-fechar-mesa-widget"),
+        statusConexaoMesaWidget: document.getElementById("status-conexao-mesa-widget"),
+        textoConexaoMesaWidget: document.getElementById("texto-conexao-mesa-widget"),
         mesaWidgetLista: document.getElementById("mesa-widget-lista"),
         mesaWidgetInput: document.getElementById("mesa-widget-input"),
         mesaWidgetEnviar: document.getElementById("mesa-widget-enviar"),
@@ -245,6 +258,12 @@
         estado.timerReconexaoSSE = null;
     }
 
+    function limparTimerFecharMesaWidget() {
+        if (!estado.timerFecharMesaWidget) return;
+        window.clearTimeout(estado.timerFecharMesaWidget);
+        estado.timerFecharMesaWidget = null;
+    }
+
     function fecharSSE() {
         if (!estado.fonteSSE) return;
 
@@ -294,16 +313,69 @@
         return base.length > limite ? `${base.slice(0, limite)}...` : base;
     }
 
+    function normalizarConexaoMesaWidget(valor) {
+        const status = String(valor || "").trim().toLowerCase();
+        if (status === "reconectando") return "reconectando";
+        if (status === "offline") return "offline";
+        return "conectado";
+    }
+
+    function atualizarEstadoVisualBotaoMesaWidget() {
+        if (!el.btnMesaWidgetToggle) return;
+
+        const naoLidas = Number(estado.mesaWidgetNaoLidas || 0);
+        const aberto = !!estado.mesaWidgetAberto;
+        const conexao = normalizarConexaoMesaWidget(estado.mesaWidgetConexao);
+        const alerta = naoLidas > 0 || aberto;
+
+        el.btnMesaWidgetToggle.classList.toggle("is-open", aberto);
+        el.btnMesaWidgetToggle.classList.toggle("is-alert", alerta);
+        el.btnMesaWidgetToggle.classList.toggle("is-reconnecting", conexao === "reconectando");
+        el.btnMesaWidgetToggle.classList.toggle("is-offline", conexao === "offline");
+
+        const partes = [aberto ? "Fechar chat da mesa avaliadora" : "Abrir chat da mesa avaliadora"];
+        if (naoLidas > 0) {
+            partes.push(`${Math.min(naoLidas, 99)} mensagem(ns) não lida(s)`);
+        }
+        if (conexao !== "conectado") {
+            partes.push(CONFIG_CONEXAO_MESA_WIDGET[conexao] || "Conexão indisponível");
+        }
+        el.btnMesaWidgetToggle.setAttribute("aria-label", partes.join(". "));
+    }
+
+    function atualizarConexaoMesaWidget(status = "conectado", detalhe = "") {
+        const conexao = normalizarConexaoMesaWidget(status);
+        estado.mesaWidgetConexao = conexao;
+
+        if (el.statusConexaoMesaWidget) {
+            el.statusConexaoMesaWidget.dataset.conexao = conexao;
+            const textoEstado = CONFIG_CONEXAO_MESA_WIDGET[conexao] || CONFIG_CONEXAO_MESA_WIDGET.conectado;
+            const detalheLimpo = String(detalhe || "").trim();
+            el.statusConexaoMesaWidget.title = detalheLimpo
+                ? `${textoEstado} — ${detalheLimpo.slice(0, 120)}`
+                : textoEstado;
+        }
+
+        if (el.textoConexaoMesaWidget) {
+            el.textoConexaoMesaWidget.textContent =
+                CONFIG_CONEXAO_MESA_WIDGET[conexao] || CONFIG_CONEXAO_MESA_WIDGET.conectado;
+        }
+
+        atualizarEstadoVisualBotaoMesaWidget();
+    }
+
     function atualizarBadgeMesaWidget() {
         if (!el.badgeMesaWidget) return;
         const total = Number(estado.mesaWidgetNaoLidas || 0);
         if (total <= 0) {
             el.badgeMesaWidget.hidden = true;
             el.badgeMesaWidget.textContent = "0";
+            atualizarEstadoVisualBotaoMesaWidget();
             return;
         }
         el.badgeMesaWidget.hidden = false;
-        el.badgeMesaWidget.textContent = String(Math.min(total, 99));
+        el.badgeMesaWidget.textContent = total > 99 ? "99+" : String(total);
+        atualizarEstadoVisualBotaoMesaWidget();
     }
 
     function limparReferenciaMesaWidget() {
@@ -550,16 +622,22 @@
     }
 
     async function abrirMesaWidget() {
+        limparTimerFecharMesaWidget();
         estado.mesaWidgetAberto = true;
         estado.mesaWidgetNaoLidas = 0;
         atualizarBadgeMesaWidget();
 
         if (el.painelMesaWidget) {
             el.painelMesaWidget.hidden = false;
+            el.painelMesaWidget.classList.remove("fechando");
+            requestAnimationFrame(() => {
+                el.painelMesaWidget?.classList.add("aberto");
+            });
         }
         if (el.btnMesaWidgetToggle) {
             el.btnMesaWidgetToggle.setAttribute("aria-expanded", "true");
         }
+        atualizarEstadoVisualBotaoMesaWidget();
 
         await carregarMensagensMesaWidget({ silencioso: true });
         el.mesaWidgetInput?.focus();
@@ -567,12 +645,22 @@
 
     function fecharMesaWidget() {
         estado.mesaWidgetAberto = false;
+        limparTimerFecharMesaWidget();
         if (el.painelMesaWidget) {
-            el.painelMesaWidget.hidden = true;
+            el.painelMesaWidget.classList.remove("aberto");
+            el.painelMesaWidget.classList.add("fechando");
+            estado.timerFecharMesaWidget = window.setTimeout(() => {
+                if (el.painelMesaWidget) {
+                    el.painelMesaWidget.hidden = true;
+                    el.painelMesaWidget.classList.remove("fechando");
+                }
+                estado.timerFecharMesaWidget = null;
+            }, 220);
         }
         if (el.btnMesaWidgetToggle) {
             el.btnMesaWidgetToggle.setAttribute("aria-expanded", "false");
         }
+        atualizarEstadoVisualBotaoMesaWidget();
     }
 
     async function toggleMesaWidget() {
@@ -1571,11 +1659,25 @@
     }
 
     function inicializarNotificacoesSSE() {
-        if (!("EventSource" in window)) return;
+        if (!("EventSource" in window)) {
+            atualizarConexaoMesaWidget("offline", "Navegador sem suporte a SSE");
+            return;
+        }
 
         fecharSSE();
+        atualizarConexaoMesaWidget(
+            estado.tentativasReconexaoSSE > 0 ? "reconectando" : "conectado"
+        );
 
         estado.fonteSSE = new EventSource(ROTA_SSE_NOTIFICACOES);
+
+        estado.fonteSSE.onopen = () => {
+            estado.tentativasReconexaoSSE = 0;
+            atualizarConexaoMesaWidget("conectado");
+            if (estado.statusMesa === "offline") {
+                atualizarStatusMesa("pronta");
+            }
+        };
 
         estado.fonteSSE.onmessage = (event) => {
             try {
@@ -1593,8 +1695,12 @@
                     return;
                 }
 
-                if (dados?.tipo === "conectado" && estado.statusMesa === "offline") {
-                    atualizarStatusMesa("pronta");
+                if (dados?.tipo === "conectado") {
+                    estado.tentativasReconexaoSSE = 0;
+                    atualizarConexaoMesaWidget("conectado");
+                    if (estado.statusMesa === "offline") {
+                        atualizarStatusMesa("pronta");
+                    }
                 }
             } catch (erro) {
                 console.error("[TARIEL][CHAT_INDEX_PAGE] Falha ao decodificar SSE:", erro);
@@ -1604,7 +1710,16 @@
         estado.fonteSSE.onerror = () => {
             fecharSSE();
             limparTimerReconexaoSSE();
-            atualizarStatusMesa("offline");
+
+            estado.tentativasReconexaoSSE += 1;
+            const excedeuLimite = estado.tentativasReconexaoSSE > LIMITE_RECONEXAO_SSE_OFFLINE;
+
+            if (excedeuLimite) {
+                atualizarConexaoMesaWidget("offline");
+                atualizarStatusMesa("offline");
+            } else {
+                atualizarConexaoMesaWidget("reconectando");
+            }
 
             if (document.visibilityState === "hidden") {
                 return;
@@ -1878,7 +1993,9 @@
         window.addEventListener("pagehide", () => {
             fecharSSE();
             limparTimerReconexaoSSE();
+            limparTimerFecharMesaWidget();
             limparTimerBanner();
+            atualizarConexaoMesaWidget("offline");
         });
 
         document.addEventListener("visibilitychange", () => {
@@ -1901,6 +2018,7 @@
         atualizarStatusMesa("pronta");
         atualizarBotoesFiltroPendencias();
         atualizarBadgeMesaWidget();
+        atualizarConexaoMesaWidget("conectado");
         aplicarHighlightComposer(el.campoMensagem?.value || "");
         atualizarVisualComposer(el.campoMensagem?.value || "");
         sincronizarScrollBackdrop();

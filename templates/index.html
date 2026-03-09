@@ -437,8 +437,26 @@
         aria-controls="painel-mesa-widget"
         aria-expanded="false"
     >
-        <span class="material-symbols-rounded" aria-hidden="true">support_agent</span>
-        <span class="label-btn-mesa-widget">Mesa</span>
+        <span class="mesa-widget-bot" aria-hidden="true">
+            <svg class="mesa-widget-bot-svg" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+                <line class="bot-antena-haste" x1="36" y1="9" x2="36" y2="19" />
+                <circle class="bot-antena-topo" cx="36" cy="6" r="3.5" />
+                <rect class="bot-orelha esquerda" x="8" y="31" width="7" height="14" rx="2.5" />
+                <rect class="bot-orelha direita" x="57" y="31" width="7" height="14" rx="2.5" />
+                <rect class="bot-cabeca" x="16" y="19" width="40" height="40" rx="11" />
+                <g class="bot-olhos-abertos">
+                    <circle cx="28" cy="35" r="4.5" />
+                    <circle cx="44" cy="35" r="4.5" />
+                </g>
+                <g class="bot-olhos-fechados">
+                    <rect x="23" y="34.5" width="10" height="2.4" rx="1.2" />
+                    <rect x="39" y="34.5" width="10" height="2.4" rx="1.2" />
+                </g>
+                <rect class="bot-boca-borda" x="24" y="43" width="24" height="10" rx="3.6" />
+                <rect class="bot-boca-miolo" x="26" y="45" width="20" height="6" rx="2.4" />
+            </svg>
+        </span>
+        <span class="label-btn-mesa-widget sr-only">Mesa avaliadora</span>
         <span id="badge-mesa-widget" class="badge-mesa-widget" hidden>0</span>
     </button>
 
@@ -449,9 +467,18 @@
         hidden
     >
         <header class="cabecalho-mesa-widget">
-            <div>
+            <div class="cabecalho-mesa-widget-texto">
                 <strong>Mesa Avaliadora</strong>
-                <p>Canal direto com engenharia</p>
+                <p class="mesa-widget-subtitulo">Canal direto com engenharia</p>
+                <div
+                    id="status-conexao-mesa-widget"
+                    class="status-conexao-mesa-widget"
+                    data-conexao="conectado"
+                    aria-live="polite"
+                >
+                    <span class="ponto-conexao-mesa-widget" aria-hidden="true"></span>
+                    <span id="texto-conexao-mesa-widget">Conectado</span>
+                </div>
             </div>
             <button
                 type="button"
