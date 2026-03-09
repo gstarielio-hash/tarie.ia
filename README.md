@@ -12,7 +12,7 @@ Backlog mestre da etapa antiga (priorizado e com status):
 
 - Python 3.14
 - FastAPI + Uvicorn
-- SQLAlchemy (SQLite por padrão)
+- SQLAlchemy + Alembic (SQLite por padrão)
 - Integrações opcionais: Google Gemini e Google Vision
 - Qualidade: Ruff, Mypy, Pytest
 
@@ -86,6 +86,18 @@ python -m ruff check .
 python -m mypy
 python -m pytest -q
 python -m compileall -q .
+```
+
+## Migrações de banco (Alembic)
+
+Comandos principais:
+
+```powershell
+# aplicar migrações até o head
+python -m alembic upgrade head
+
+# criar nova revisão autogerada
+python -m alembic revision --autogenerate -m "descricao_da_mudanca"
 ```
 
 ## Start

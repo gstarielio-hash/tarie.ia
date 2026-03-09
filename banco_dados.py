@@ -4,7 +4,7 @@
 # - engine SQLAlchemy
 # - session factory
 # - models centrais do ecossistema
-# - seeds e migração incremental SQLite
+# - seeds e migração versionada via Alembic
 # ==========================================
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Generator
 
 from dotenv import load_dotenv
@@ -36,6 +37,7 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     event,
+    inspect,
     text,
 )
 from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker, validates
@@ -51,6 +53,8 @@ logger = logging.getLogger("tariel.banco_dados")
 _DIR_BASE = os.path.dirname(os.path.abspath(__file__))
 _URL_PADRAO = f"sqlite:///{os.path.join(_DIR_BASE, 'tariel_admin.db')}"
 URL_BANCO = os.getenv("DATABASE_URL", _URL_PADRAO)
+_ALEMBIC_INI = Path(_DIR_BASE) / "alembic.ini"
+_ALEMBIC_DIR = Path(_DIR_BASE) / "alembic"
 
 _AMBIENTE_BRUTO = os.getenv("AMBIENTE", "").strip()
 if not _AMBIENTE_BRUTO:
@@ -970,10 +974,50 @@ def obter_banco() -> Generator[Session, None, None]:
 # =========================================================
 
 
+def _aplicar_migracoes_versionadas() -> None:
+    try:
+        from alembic import command
+        from alembic.config import Config as AlembicConfig
+    except ModuleNotFoundError as erro:
+        raise RuntimeError(
+            "Alembic não está instalado. Execute 'pip install -r requirements.txt'."
+        ) from erro
+
+    if not _ALEMBIC_INI.exists() or not _ALEMBIC_DIR.exists():
+        raise RuntimeError(
+            "Estrutura do Alembic não encontrada. Esperado: alembic.ini e pasta alembic/."
+        )
+
+    config = AlembicConfig(str(_ALEMBIC_INI))
+    config.set_main_option("script_location", _ALEMBIC_DIR.as_posix())
+    config.set_main_option("sqlalchemy.url", URL_BANCO)
+
+    with motor_banco.begin() as conn:
+        inspetor = inspect(conn)
+        tabelas_existentes = set(inspetor.get_table_names())
+        tabelas_esperadas = set(Base.metadata.tables.keys())
+        sem_versionamento = "alembic_version" not in tabelas_existentes
+        versao_vazia = False
+
+        if not sem_versionamento:
+            versao_vazia = conn.execute(text("SELECT COUNT(1) FROM alembic_version")).scalar_one() == 0
+
+        tabelas_sem_versionamento = tabelas_existentes - {"alembic_version"}
+        schema_legado_pronto = tabelas_esperadas.issubset(tabelas_sem_versionamento)
+
+        config.attributes["connection"] = conn
+        if schema_legado_pronto and (sem_versionamento or versao_vazia):
+            logger.warning(
+                "Schema legado detectado sem versionamento Alembic. Aplicando stamp no head."
+            )
+            command.stamp(config, "head")
+        else:
+            command.upgrade(config, "head")
+
+
 def inicializar_banco() -> None:
     try:
-        Base.metadata.create_all(bind=motor_banco)
-        _migrar_colunas_novas()
+        _aplicar_migracoes_versionadas()
         seed_limites_plano()
 
         if not _EM_PRODUCAO and _SEED_DEV_BOOTSTRAP:
@@ -1070,192 +1114,3 @@ def seed_limites_plano() -> None:
         except Exception:
             banco.rollback()
             raise
-
-
-# =========================================================
-# MIGRAÇÃO INCREMENTAL SQLITE
-# =========================================================
-
-_MIGRACOES_COLUNAS: list[tuple[str, str, str]] = [
-    ("laudos", "primeira_mensagem", "VARCHAR(80)"),
-    ("laudos", "pinado", "BOOLEAN NOT NULL DEFAULT 0"),
-    ("laudos", "pinado_em", "DATETIME"),
-    ("laudos", "modo_resposta", "VARCHAR(20) NOT NULL DEFAULT 'detalhado'"),
-    ("laudos", "atualizado_em", "DATETIME"),
-    ("laudos", "is_deep_research", "BOOLEAN NOT NULL DEFAULT 0"),
-    (
-        "laudos",
-        "status_revisao",
-        f"VARCHAR(20) NOT NULL DEFAULT '{StatusRevisao.RASCUNHO.value}'",
-    ),
-    ("laudos", "revisado_por", "INTEGER"),
-    ("laudos", "motivo_rejeicao", "TEXT"),
-    ("laudos", "dados_formulario", "JSON"),
-    ("laudos", "confianca_ia_json", "JSON"),
-    ("laudos", "tipo_template", "VARCHAR(50) NOT NULL DEFAULT 'padrao'"),
-    ("usuarios", "atualizado_em", "DATETIME"),
-    ("usuarios", "crea", "VARCHAR(40)"),
-    ("usuarios", "status_bloqueio", "BOOLEAN NOT NULL DEFAULT 0"),
-    ("usuarios", "senha_temporaria_ativa", "BOOLEAN NOT NULL DEFAULT 0"),
-    ("empresas", "atualizado_em", "DATETIME"),
-    ("limites_plano", "deep_research", "BOOLEAN NOT NULL DEFAULT 0"),
-    ("mensagens_laudo", "lida", "BOOLEAN NOT NULL DEFAULT 0"),
-    (
-        "mensagens_laudo",
-        "remetente_id",
-        "INTEGER REFERENCES usuarios(id) ON DELETE SET NULL",
-    ),
-    (
-        "mensagens_laudo",
-        "resolvida_por_id",
-        "INTEGER REFERENCES usuarios(id) ON DELETE SET NULL",
-    ),
-    ("mensagens_laudo", "resolvida_em", "DATETIME"),
-]
-
-_MIGRACOES_INDICES: list[tuple[str, str]] = [
-    (
-        "ix_laudo_empresa_pinado",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_empresa_pinado ON laudos (empresa_id, pinado)",
-    ),
-    (
-        "ix_laudo_empresa_criado",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_empresa_criado ON laudos (empresa_id, criado_em)",
-    ),
-    (
-        "ix_laudo_empresa_deep",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_empresa_deep ON laudos (empresa_id, is_deep_research)",
-    ),
-    (
-        "ix_laudo_usuario_id",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_usuario_id ON laudos (usuario_id)",
-    ),
-    (
-        "ix_citacao_laudo_id",
-        "CREATE INDEX IF NOT EXISTS ix_citacao_laudo_id ON citacoes_laudo (laudo_id)",
-    ),
-    (
-        "ix_laudo_revisao_laudo_versao",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_revisao_laudo_versao ON laudo_revisoes (laudo_id, numero_versao)",
-    ),
-    (
-        "ix_laudo_revisao_criado",
-        "CREATE INDEX IF NOT EXISTS ix_laudo_revisao_criado ON laudo_revisoes (laudo_id, criado_em)",
-    ),
-    (
-        "ix_mensagem_laudo_criado",
-        "CREATE INDEX IF NOT EXISTS ix_mensagem_laudo_criado ON mensagens_laudo (laudo_id, criado_em)",
-    ),
-    (
-        "ix_mensagem_remetente",
-        "CREATE INDEX IF NOT EXISTS ix_mensagem_remetente ON mensagens_laudo (remetente_id)",
-    ),
-    (
-        "ix_mensagem_resolvida_por",
-        "CREATE INDEX IF NOT EXISTS ix_mensagem_resolvida_por ON mensagens_laudo (resolvida_por_id)",
-    ),
-]
-
-_SQL_CRIAR_MENSAGENS_LAUDO = f"""
-CREATE TABLE IF NOT EXISTS mensagens_laudo (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    laudo_id        INTEGER NOT NULL REFERENCES laudos(id) ON DELETE CASCADE,
-    remetente_id    INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-    tipo            VARCHAR(20) NOT NULL,
-    conteudo        TEXT NOT NULL,
-    lida            BOOLEAN NOT NULL DEFAULT 0,
-    resolvida_por_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
-    resolvida_em    DATETIME,
-    custo_api_reais NUMERIC(12, 4) NOT NULL DEFAULT 0.0000,
-    criado_em       DATETIME NOT NULL DEFAULT (datetime('now')),
-    CONSTRAINT ck_mensagem_tipo_valido CHECK (tipo IN ({_TIPOS_MENSAGEM_VALIDOS})),
-    CONSTRAINT ck_mensagem_custo_nao_negativo CHECK (custo_api_reais >= 0)
-)
-"""
-
-_SQL_CRIAR_LAUDO_REVISOES = """
-CREATE TABLE IF NOT EXISTS laudo_revisoes (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    laudo_id        INTEGER NOT NULL REFERENCES laudos(id) ON DELETE CASCADE,
-    numero_versao   INTEGER NOT NULL,
-    origem          VARCHAR(20) NOT NULL DEFAULT 'ia',
-    resumo          VARCHAR(240),
-    conteudo        TEXT NOT NULL,
-    confianca_geral VARCHAR(16),
-    confianca_json  JSON,
-    criado_em       DATETIME NOT NULL DEFAULT (datetime('now')),
-    CONSTRAINT ck_laudo_revisao_numero_positivo CHECK (numero_versao >= 1),
-    CONSTRAINT uq_laudo_revisao_laudo_versao UNIQUE (laudo_id, numero_versao)
-)
-"""
-
-
-def _sqlite_tabela_existe(conn, nome_tabela: str) -> bool:
-    resultado = conn.execute(
-        text("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = :nome LIMIT 1"),
-        {"nome": nome_tabela},
-    ).scalar()
-    return bool(resultado)
-
-
-def _sqlite_coluna_existe(conn, tabela: str, coluna: str) -> bool:
-    linhas = conn.execute(text(f"PRAGMA table_info({tabela})")).mappings().all()
-    return any(linha["name"] == coluna for linha in linhas)
-
-
-def _sqlite_indice_existe(conn, nome_indice: str) -> bool:
-    resultado = conn.execute(
-        text("SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = :nome LIMIT 1"),
-        {"nome": nome_indice},
-    ).scalar()
-    return bool(resultado)
-
-
-def _migrar_colunas_novas() -> None:
-    if not _EH_SQLITE:
-        return
-
-    with motor_banco.connect() as conn:
-        if not _sqlite_tabela_existe(conn, "mensagens_laudo"):
-            conn.execute(text(_SQL_CRIAR_MENSAGENS_LAUDO))
-            conn.commit()
-            logger.info("Tabela 'mensagens_laudo' criada.")
-        else:
-            logger.debug("Tabela 'mensagens_laudo' já existe.")
-
-        if not _sqlite_tabela_existe(conn, "laudo_revisoes"):
-            conn.execute(text(_SQL_CRIAR_LAUDO_REVISOES))
-            conn.commit()
-            logger.info("Tabela 'laudo_revisoes' criada.")
-        else:
-            logger.debug("Tabela 'laudo_revisoes' já existe.")
-
-        for tabela, coluna, tipo_sql in _MIGRACOES_COLUNAS:
-            if not _sqlite_tabela_existe(conn, tabela):
-                logger.warning(
-                    "Tabela '%s' não existe; migração da coluna '%s' ignorada.",
-                    tabela,
-                    coluna,
-                )
-                continue
-
-            if _sqlite_coluna_existe(conn, tabela, coluna):
-                continue
-
-            try:
-                conn.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo_sql}"))
-                conn.commit()
-                logger.info("Coluna '%s.%s' adicionada com sucesso.", tabela, coluna)
-            except Exception as erro:
-                logger.warning("Falha ao adicionar '%s.%s': %s", tabela, coluna, erro)
-
-        for nome_idx, sql_idx in _MIGRACOES_INDICES:
-            if _sqlite_indice_existe(conn, nome_idx):
-                continue
-
-            try:
-                conn.execute(text(sql_idx))
-                conn.commit()
-                logger.info("Índice '%s' criado com sucesso.", nome_idx)
-            except Exception as erro:
-                logger.warning("Falha ao criar índice '%s': %s", nome_idx, erro)
