@@ -429,6 +429,73 @@
         </div>
     </div>
 
+    <button
+        type="button"
+        id="btn-mesa-widget-toggle"
+        class="btn-mesa-widget-toggle"
+        aria-label="Abrir chat da mesa avaliadora"
+        aria-controls="painel-mesa-widget"
+        aria-expanded="false"
+    >
+        <span class="material-symbols-rounded" aria-hidden="true">support_agent</span>
+        <span class="label-btn-mesa-widget">Mesa</span>
+        <span id="badge-mesa-widget" class="badge-mesa-widget" hidden>0</span>
+    </button>
+
+    <aside
+        id="painel-mesa-widget"
+        class="painel-mesa-widget"
+        aria-label="Chat com mesa avaliadora"
+        hidden
+    >
+        <header class="cabecalho-mesa-widget">
+            <div>
+                <strong>Mesa Avaliadora</strong>
+                <p>Canal direto com engenharia</p>
+            </div>
+            <button
+                type="button"
+                id="btn-fechar-mesa-widget"
+                class="btn-fechar-mesa-widget"
+                aria-label="Fechar chat da mesa avaliadora"
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </header>
+
+        <div id="mesa-widget-ref-ativa" class="mesa-widget-ref-ativa" hidden>
+            <div>
+                <strong id="mesa-widget-ref-titulo">Respondendo mensagem</strong>
+                <p id="mesa-widget-ref-texto"></p>
+            </div>
+            <button type="button" id="mesa-widget-ref-limpar" aria-label="Remover referência">×</button>
+        </div>
+
+        <div id="mesa-widget-lista" class="mesa-widget-lista" role="log" aria-live="polite"></div>
+
+        <button
+            type="button"
+            id="mesa-widget-carregar-mais"
+            class="mesa-widget-carregar-mais"
+            hidden
+        >
+            Carregar anteriores
+        </button>
+
+        <div class="rodape-mesa-widget">
+            <textarea
+                id="mesa-widget-input"
+                rows="2"
+                maxlength="8000"
+                placeholder="Escreva para a mesa..."
+                aria-label="Mensagem para mesa avaliadora"
+            ></textarea>
+            <button type="button" id="mesa-widget-enviar" class="mesa-widget-enviar">
+                <span class="material-symbols-rounded" aria-hidden="true">send</span>
+            </button>
+        </div>
+    </aside>
+
     {# Composer / entrada de mensagens #}
     <footer class="rodape-entrada">
         <div class="pilula-entrada">

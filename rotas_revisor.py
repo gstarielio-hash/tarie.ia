@@ -39,12 +39,20 @@ from banco_dados import (
     Usuario,
     obter_banco,
 )
+from nucleo.inspetor.referencias_mensagem import (
+    compor_texto_com_referencia,
+    extrair_referencia_do_texto,
+)
 from seguranca import (
+    PORTAL_REVISOR,
     SESSOES_ATIVAS,
     criar_hash_senha,
     criar_sessao,
+    definir_sessao_portal,
     encerrar_sessao,
     exigir_revisor,
+    limpar_sessao_portal,
+    obter_dados_sessao_portal,
     obter_usuario_html,
     token_esta_ativo,
     usuario_tem_bloqueio_ativo,
@@ -59,6 +67,7 @@ PORTAL_TROCA_SENHA_REVISOR = "revisor"
 CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
 CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
 CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
+CHAVE_CSRF_REVISOR = "csrf_token_revisor"
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -66,6 +75,7 @@ CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
 
 class DadosRespostaChat(BaseModel):
     texto: str = Field(..., min_length=1, max_length=8000)
+    referencia_mensagem_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -74,6 +84,7 @@ class DadosWhisper(BaseModel):
     laudo_id: int
     destinatario_id: int
     mensagem: str = Field(..., min_length=1, max_length=4000)
+    referencia_mensagem_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -147,18 +158,18 @@ def _normalizar_termo_busca(valor: str) -> str:
 
 
 def _contexto_base(request: Request) -> dict[str, Any]:
-    if "csrf_token" not in request.session:
-        request.session["csrf_token"] = secrets.token_urlsafe(32)
+    if CHAVE_CSRF_REVISOR not in request.session:
+        request.session[CHAVE_CSRF_REVISOR] = secrets.token_urlsafe(32)
 
     return {
         "request": request,
-        "csrf_token": request.session["csrf_token"],
+        "csrf_token": request.session[CHAVE_CSRF_REVISOR],
         "csp_nonce": getattr(request.state, "csp_nonce", ""),
     }
 
 
 def _validar_csrf(request: Request, token_form: str = "") -> bool:
-    token_sessao = request.session.get("csrf_token", "")
+    token_sessao = request.session.get(CHAVE_CSRF_REVISOR) or request.session.get("csrf_token", "")
     if not token_sessao:
         return False
 
@@ -193,14 +204,18 @@ def _registrar_mensagem_revisor(
 
 
 def _serializar_mensagem(m: MensagemLaudo, com_data_longa: bool = False) -> dict[str, Any]:
-    return {
+    referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(m.conteudo)
+    payload: dict[str, Any] = {
         "id": m.id,
         "tipo": m.tipo,
-        "texto": m.conteudo,
+        "texto": texto_limpo,
         "data": (m.criado_em.strftime("%d/%m/%Y %H:%M") if com_data_longa else m.criado_em.strftime("%d/%m %H:%M")),
         "is_whisper": m.is_whisper,
         "remetente_id": m.remetente_id,
     }
+    if referencia_mensagem_id:
+        payload["referencia_mensagem_id"] = referencia_mensagem_id
+    return payload
 
 
 def _listar_mensagens_laudo_paginadas(
@@ -258,6 +273,8 @@ async def _notificar_inspetor_sse(
     laudo_id: int,
     tipo: str,
     texto: str,
+    mensagem_id: int | None = None,
+    referencia_mensagem_id: int | None = None,
     de_usuario_id: int | None = None,
     de_nome: str = "",
 ) -> None:
@@ -270,6 +287,8 @@ async def _notificar_inspetor_sse(
         payload = {
             "tipo": (tipo or "mensagem_eng").strip().lower(),
             "laudo_id": int(laudo_id),
+            "mensagem_id": int(mensagem_id or 0) if mensagem_id else None,
+            "referencia_mensagem_id": int(referencia_mensagem_id or 0) if referencia_mensagem_id else None,
             "de_usuario_id": int(de_usuario_id or 0) if de_usuario_id else None,
             "de_nome": (de_nome or "Mesa Avaliadora").strip()[:120],
             "texto": (texto or "").strip()[:300],
@@ -299,8 +318,8 @@ def _render_login_revisor(
 
 
 def _iniciar_fluxo_troca_senha(request: Request, *, usuario_id: int, lembrar: bool) -> None:
-    request.session.clear()
-    request.session["csrf_token"] = secrets.token_urlsafe(32)
+    limpar_sessao_portal(request.session, portal=PORTAL_REVISOR)
+    request.session[CHAVE_CSRF_REVISOR] = secrets.token_urlsafe(32)
     request.session[CHAVE_TROCA_SENHA_UID] = int(usuario_id)
     request.session[CHAVE_TROCA_SENHA_PORTAL] = PORTAL_TROCA_SENHA_REVISOR
     request.session[CHAVE_TROCA_SENHA_LEMBRAR] = bool(lembrar)
@@ -440,12 +459,16 @@ async def processar_troca_senha_revisor(
     _limpar_fluxo_troca_senha(request)
 
     token = criar_sessao(usuario.id, lembrar=lembrar)
-    request.session["session_token"] = token
-    request.session["usuario_id"] = usuario.id
-    request.session["empresa_id"] = usuario.empresa_id
-    request.session["nivel_acesso"] = usuario.nivel_acesso
-    request.session["nome"] = getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Revisor #{usuario.id}"
-    request.session["csrf_token"] = secrets.token_urlsafe(32)
+    definir_sessao_portal(
+        request.session,
+        portal=PORTAL_REVISOR,
+        token=token,
+        usuario_id=usuario.id,
+        empresa_id=usuario.empresa_id,
+        nivel_acesso=usuario.nivel_acesso,
+        nome=getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Revisor #{usuario.id}",
+    )
+    request.session[CHAVE_CSRF_REVISOR] = secrets.token_urlsafe(32)
 
     logger.info("Troca obrigatória de senha concluída | usuario_id=%s", usuario.id)
     return RedirectResponse(url="/revisao/painel", status_code=status.HTTP_303_SEE_OTHER)
@@ -504,7 +527,10 @@ async def processar_login_revisor(
             status_code=status.HTTP_403_FORBIDDEN,
         )
 
-    token_anterior = request.session.get("session_token")
+    token_anterior = obter_dados_sessao_portal(
+        request.session,
+        portal=PORTAL_REVISOR,
+    ).get("token")
     if token_anterior:
         encerrar_sessao(token_anterior)
 
@@ -513,11 +539,16 @@ async def processar_login_revisor(
         return RedirectResponse(url="/revisao/trocar-senha", status_code=status.HTTP_303_SEE_OTHER)
 
     token = criar_sessao(usuario.id, lembrar=lembrar)
-    request.session["session_token"] = token
-    request.session["usuario_id"] = usuario.id
-    request.session["empresa_id"] = usuario.empresa_id
-    request.session["nivel_acesso"] = usuario.nivel_acesso
-    request.session["nome"] = getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Revisor #{usuario.id}"
+    definir_sessao_portal(
+        request.session,
+        portal=PORTAL_REVISOR,
+        token=token,
+        usuario_id=usuario.id,
+        empresa_id=usuario.empresa_id,
+        nivel_acesso=usuario.nivel_acesso,
+        nome=getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Revisor #{usuario.id}",
+    )
+    request.session[CHAVE_CSRF_REVISOR] = secrets.token_urlsafe(32)
 
     if hasattr(usuario, "registrar_login_sucesso"):
         try:
@@ -542,8 +573,10 @@ async def logout_revisor(
     if not _validar_csrf(request, csrf_token):
         return RedirectResponse(url="/revisao/login", status_code=status.HTTP_303_SEE_OTHER)
 
-    encerrar_sessao(request.session.get("session_token"))
-    request.session.clear()
+    token = obter_dados_sessao_portal(request.session, portal=PORTAL_REVISOR).get("token")
+    encerrar_sessao(token)
+    limpar_sessao_portal(request.session, portal=PORTAL_REVISOR)
+    request.session.pop(CHAVE_CSRF_REVISOR, None)
     return RedirectResponse(url="/revisao/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -740,6 +773,7 @@ async def avaliar_laudo(
     acao = acao.strip().lower()
     motivo = motivo.strip()
     texto_notificacao_inspetor = ""
+    mensagem_notificacao: MensagemLaudo | None = None
 
     if acao == "aprovar":
         laudo.status_revisao = StatusRevisao.APROVADO.value
@@ -748,7 +782,7 @@ async def avaliar_laudo(
         laudo.atualizado_em = _agora_utc()
         texto_notificacao_inspetor = "✅ Seu laudo foi aprovado pela mesa avaliadora."
 
-        _registrar_mensagem_revisor(
+        mensagem_notificacao = _registrar_mensagem_revisor(
             banco,
             laudo_id=laudo.id,
             usuario_id=usuario.id,
@@ -767,7 +801,7 @@ async def avaliar_laudo(
         laudo.atualizado_em = _agora_utc()
         texto_notificacao_inspetor = f"⚠️ Seu laudo foi rejeitado. Motivo: {motivo}"
 
-        _registrar_mensagem_revisor(
+        mensagem_notificacao = _registrar_mensagem_revisor(
             banco,
             laudo_id=laudo.id,
             usuario_id=usuario.id,
@@ -785,6 +819,7 @@ async def avaliar_laudo(
         laudo_id=laudo.id,
         tipo="mensagem_eng",
         texto=texto_notificacao_inspetor,
+        mensagem_id=mensagem_notificacao.id if mensagem_notificacao else None,
         de_usuario_id=usuario.id,
         de_nome=usuario.nome,
     )
@@ -808,13 +843,29 @@ async def whisper_responder(
         empresa_id=usuario.empresa_id,
         laudo=laudo,
     )
+    referencia_mensagem_id = int(dados.referencia_mensagem_id or 0) or None
+    if referencia_mensagem_id:
+        referencia_existe = (
+            banco.query(MensagemLaudo.id)
+            .filter(
+                MensagemLaudo.laudo_id == laudo.id,
+                MensagemLaudo.id == referencia_mensagem_id,
+            )
+            .first()
+        )
+        if not referencia_existe:
+            raise HTTPException(status_code=404, detail="Mensagem de referência não encontrada.")
 
-    _registrar_mensagem_revisor(
+    texto_mensagem = (dados.mensagem or "").strip()
+    mensagem_salva = _registrar_mensagem_revisor(
         banco,
         laudo_id=laudo.id,
         usuario_id=usuario.id,
         tipo=TipoMensagem.HUMANO_ENG,
-        conteudo=f"💬 **Engenharia:** {dados.mensagem}",
+        conteudo=compor_texto_com_referencia(
+            f"💬 **Engenharia:** {texto_mensagem}",
+            referencia_mensagem_id,
+        ),
     )
     laudo.atualizado_em = _agora_utc()
     banco.commit()
@@ -827,7 +878,9 @@ async def whisper_responder(
             "laudo_id": laudo.id,
             "de_usuario_id": usuario.id,
             "de_nome": usuario.nome,
-            "preview": dados.mensagem[:120],
+            "mensagem_id": mensagem_salva.id,
+            "referencia_mensagem_id": referencia_mensagem_id,
+            "preview": texto_mensagem[:120],
             "timestamp": _agora_utc().isoformat(),
         },
     )
@@ -836,7 +889,9 @@ async def whisper_responder(
         inspetor_id=destinatario.id,
         laudo_id=laudo.id,
         tipo="whisper_eng",
-        texto=dados.mensagem,
+        texto=texto_mensagem,
+        mensagem_id=mensagem_salva.id,
+        referencia_mensagem_id=referencia_mensagem_id,
         de_usuario_id=usuario.id,
         de_nome=usuario.nome,
     )
@@ -864,16 +919,29 @@ async def responder_chat_campo(
 
     laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
     texto_limpo = dados.texto.strip()
+    referencia_mensagem_id = int(dados.referencia_mensagem_id or 0) or None
 
     if not texto_limpo:
         raise HTTPException(status_code=400, detail="Mensagem vazia.")
 
-    _registrar_mensagem_revisor(
+    if referencia_mensagem_id:
+        referencia_existe = (
+            banco.query(MensagemLaudo.id)
+            .filter(
+                MensagemLaudo.laudo_id == laudo.id,
+                MensagemLaudo.id == referencia_mensagem_id,
+            )
+            .first()
+        )
+        if not referencia_existe:
+            raise HTTPException(status_code=404, detail="Mensagem de referência não encontrada.")
+
+    mensagem_salva = _registrar_mensagem_revisor(
         banco,
         laudo_id=laudo.id,
         usuario_id=usuario.id,
         tipo=TipoMensagem.HUMANO_ENG,
-        conteudo=texto_limpo,
+        conteudo=compor_texto_com_referencia(texto_limpo, referencia_mensagem_id),
     )
     laudo.atualizado_em = _agora_utc()
     banco.commit()
@@ -883,6 +951,8 @@ async def responder_chat_campo(
         laudo_id=laudo.id,
         tipo="mensagem_eng",
         texto=texto_limpo,
+        mensagem_id=mensagem_salva.id,
+        referencia_mensagem_id=referencia_mensagem_id,
         de_usuario_id=usuario.id,
         de_nome=usuario.nome,
     )
@@ -1004,12 +1074,13 @@ manager = ConnectionManager()
 
 def _usuario_ws_da_sessao(websocket: WebSocket) -> dict[str, Any]:
     sessao = getattr(websocket, "session", None) or {}
+    dados_sessao = obter_dados_sessao_portal(sessao, portal=PORTAL_REVISOR)
 
-    token = sessao.get("session_token")
-    usuario_id = sessao.get("usuario_id")
-    empresa_id = sessao.get("empresa_id")
-    nivel_acesso = sessao.get("nivel_acesso")
-    nome = sessao.get("nome") or sessao.get("nome_completo") or "Revisor"
+    token = dados_sessao.get("token")
+    usuario_id = dados_sessao.get("usuario_id")
+    empresa_id = dados_sessao.get("empresa_id")
+    nivel_acesso = dados_sessao.get("nivel_acesso")
+    nome = dados_sessao.get("nome") or sessao.get("nome_completo") or "Revisor"
 
     if not token or not token_esta_ativo(token):
         raise HTTPException(status_code=401, detail="Sessão WebSocket inválida.")

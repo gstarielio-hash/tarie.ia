@@ -13,7 +13,7 @@ import string
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from passlib.context import CryptContext
@@ -72,6 +72,40 @@ contexto_senha = CryptContext(
     deprecated="auto",
     bcrypt__rounds=BCRYPT_ROUNDS,
 )
+
+CHAVE_SESSION_TOKEN = "session_token"
+CHAVE_USUARIO_ID = "usuario_id"
+CHAVE_EMPRESA_ID = "empresa_id"
+CHAVE_NIVEL_ACESSO = "nivel_acesso"
+CHAVE_NOME = "nome"
+
+PORTAL_INSPETOR = "inspetor"
+PORTAL_REVISOR = "revisor"
+PORTAL_ADMIN = "admin"
+
+_CHAVES_SESSAO_POR_PORTAL: dict[str, dict[str, str]] = {
+    PORTAL_INSPETOR: {
+        "token": "session_token_inspetor",
+        "usuario_id": "usuario_id_inspetor",
+        "empresa_id": "empresa_id_inspetor",
+        "nivel_acesso": "nivel_acesso_inspetor",
+        "nome": "nome_inspetor",
+    },
+    PORTAL_REVISOR: {
+        "token": "session_token_revisor",
+        "usuario_id": "usuario_id_revisor",
+        "empresa_id": "empresa_id_revisor",
+        "nivel_acesso": "nivel_acesso_revisor",
+        "nome": "nome_revisor",
+    },
+    PORTAL_ADMIN: {
+        "token": "session_token_admin",
+        "usuario_id": "usuario_id_admin",
+        "empresa_id": "empresa_id_admin",
+        "nivel_acesso": "nivel_acesso_admin",
+        "nome": "nome_admin",
+    },
+}
 
 
 # =========================================================
@@ -272,8 +306,129 @@ def _encerrar_sessoes_excedentes_do_usuario_bd(usuario_id: int) -> list[str]:
         return []
 
 
-def _limpar_chaves_sessao_request(request: Request) -> None:
-    for chave in ("session_token", "usuario_id", "nivel_acesso", "nome"):
+def normalizar_portal_sessao(portal: str | None) -> str | None:
+    valor = str(portal or "").strip().lower()
+    if valor in _CHAVES_SESSAO_POR_PORTAL:
+        return valor
+    return None
+
+
+def portal_por_caminho(caminho: str | None) -> str | None:
+    rota = str(caminho or "").strip().lower()
+    if rota.startswith("/app"):
+        return PORTAL_INSPETOR
+    if rota.startswith("/revisao"):
+        return PORTAL_REVISOR
+    if rota.startswith("/admin"):
+        return PORTAL_ADMIN
+    return None
+
+
+def _chaves_sessao_do_portal(portal: str | None) -> dict[str, str] | None:
+    portal_normalizado = normalizar_portal_sessao(portal)
+    if not portal_normalizado:
+        return None
+    return _CHAVES_SESSAO_POR_PORTAL.get(portal_normalizado)
+
+
+def obter_dados_sessao_portal(
+    sessao: Any,
+    *,
+    portal: str | None = None,
+    caminho: str | None = None,
+) -> dict[str, Any]:
+    portal_alvo = normalizar_portal_sessao(portal) or portal_por_caminho(caminho)
+    chaves = _chaves_sessao_do_portal(portal_alvo)
+
+    token = sessao.get(CHAVE_SESSION_TOKEN)
+    usuario_id = sessao.get(CHAVE_USUARIO_ID)
+    empresa_id = sessao.get(CHAVE_EMPRESA_ID)
+    nivel_acesso = sessao.get(CHAVE_NIVEL_ACESSO)
+    nome = sessao.get(CHAVE_NOME)
+
+    if chaves:
+        token = sessao.get(chaves["token"]) or token
+        usuario_id = sessao.get(chaves["usuario_id"]) or usuario_id
+        empresa_id = sessao.get(chaves["empresa_id"]) or empresa_id
+        nivel_acesso = sessao.get(chaves["nivel_acesso"]) or nivel_acesso
+        nome = sessao.get(chaves["nome"]) or nome
+
+    return {
+        "portal": portal_alvo,
+        "token": token,
+        "usuario_id": usuario_id,
+        "empresa_id": empresa_id,
+        "nivel_acesso": nivel_acesso,
+        "nome": nome,
+    }
+
+
+def definir_sessao_portal(
+    sessao: Any,
+    *,
+    portal: str,
+    token: str,
+    usuario_id: int,
+    empresa_id: int | None,
+    nivel_acesso: int,
+    nome: str,
+) -> None:
+    portal_normalizado = normalizar_portal_sessao(portal)
+    chaves = _chaves_sessao_do_portal(portal_normalizado)
+    if not chaves:
+        raise ValueError("Portal inválido para definição de sessão.")
+
+    sessao[chaves["token"]] = token
+    sessao[chaves["usuario_id"]] = int(usuario_id)
+    sessao[chaves["empresa_id"]] = int(empresa_id) if empresa_id is not None else None
+    sessao[chaves["nivel_acesso"]] = int(nivel_acesso)
+    sessao[chaves["nome"]] = str(nome or "").strip()
+
+    # Compatibilidade com chaves legadas existentes no projeto.
+    sessao[CHAVE_SESSION_TOKEN] = token
+    sessao[CHAVE_USUARIO_ID] = int(usuario_id)
+    sessao[CHAVE_EMPRESA_ID] = int(empresa_id) if empresa_id is not None else None
+    sessao[CHAVE_NIVEL_ACESSO] = int(nivel_acesso)
+    sessao[CHAVE_NOME] = str(nome or "").strip()
+
+
+def limpar_sessao_portal(sessao: Any, *, portal: str) -> None:
+    chaves = _chaves_sessao_do_portal(portal)
+    if not chaves:
+        return
+
+    token_portal = sessao.get(chaves["token"])
+    token_global = sessao.get(CHAVE_SESSION_TOKEN)
+
+    for chave in chaves.values():
+        sessao.pop(chave, None)
+
+    deve_limpar_global = bool(token_portal and token_global == token_portal)
+    if not deve_limpar_global and not token_portal and token_global:
+        try:
+            nivel_global = int(sessao.get(CHAVE_NIVEL_ACESSO))
+        except (TypeError, ValueError):
+            nivel_global = None
+
+        if portal == PORTAL_INSPETOR and nivel_global == NivelAcesso.INSPETOR.value:
+            deve_limpar_global = True
+        elif portal == PORTAL_REVISOR and nivel_global is not None and nivel_global >= NivelAcesso.REVISOR.value:
+            deve_limpar_global = True
+        elif portal == PORTAL_ADMIN and nivel_global == NivelAcesso.DIRETORIA.value:
+            deve_limpar_global = True
+
+    if deve_limpar_global:
+        for chave in (CHAVE_SESSION_TOKEN, CHAVE_USUARIO_ID, CHAVE_EMPRESA_ID, CHAVE_NIVEL_ACESSO, CHAVE_NOME):
+            sessao.pop(chave, None)
+
+
+def _limpar_chaves_sessao_request(request: Request, *, portal: str | None = None) -> None:
+    portal_normalizado = normalizar_portal_sessao(portal) or portal_por_caminho(request.url.path)
+    if portal_normalizado:
+        limpar_sessao_portal(request.session, portal=portal_normalizado)
+        return
+
+    for chave in (CHAVE_SESSION_TOKEN, CHAVE_USUARIO_ID, CHAVE_EMPRESA_ID, CHAVE_NIVEL_ACESSO, CHAVE_NOME):
         request.session.pop(chave, None)
 
 
@@ -585,7 +740,14 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
     if secrets.randbelow(_CHANCE_LIMPEZA) == 0:
         _limpar_sessoes_expiradas()
 
-    token = request.session.get("session_token")
+    portal_atual = portal_por_caminho(request.url.path)
+    dados_sessao = obter_dados_sessao_portal(
+        request.session,
+        portal=portal_atual,
+        caminho=request.url.path,
+    )
+
+    token = dados_sessao.get("token")
     ip = _normalizar_ip(request) or "desconhecido"
 
     if not token:
@@ -593,7 +755,7 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if not token_esta_ativo(token):
         logger.warning("Token inativo ou expirado | ip=%s", ip)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         return None
 
     with _lock_sessoes:
@@ -603,10 +765,10 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
     if not usuario_id:
         logger.warning("Token sem usuario_id associado | ip=%s", ip)
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         return None
 
-    usuario_id_sessao = request.session.get("usuario_id")
+    usuario_id_sessao = dados_sessao.get("usuario_id")
     if usuario_id_sessao and int(usuario_id_sessao) != int(usuario_id):
         logger.warning(
             "Divergência entre session_token e usuario_id da sessão web | token_uid=%s | sessao_uid=%s | ip=%s",
@@ -615,13 +777,13 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
             ip,
         )
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         return None
 
     usuario = banco.get(Usuario, usuario_id)
     if not usuario:
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Usuário inexistente com sessão ativa | usuario_id=%s | ip=%s",
             usuario_id,
@@ -631,7 +793,7 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if usuario_tem_bloqueio_ativo(usuario):
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Acesso negado — bloqueio ativo | usuario_id=%s | ip=%s",
             usuario.id,
@@ -641,7 +803,7 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if meta and not _contexto_sessao_confere(meta, request):
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request)
+        _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Sessão invalidada por divergência de contexto | usuario_id=%s | ip=%s",
             usuario.id,

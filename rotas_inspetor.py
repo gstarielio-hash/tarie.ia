@@ -70,10 +70,14 @@ from banco_dados import (
     obter_banco,
 )
 from seguranca import (
+    PORTAL_INSPETOR,
     criar_hash_senha,
     criar_sessao,
+    definir_sessao_portal,
     encerrar_sessao,
     exigir_inspetor,
+    limpar_sessao_portal,
+    obter_dados_sessao_portal,
     obter_usuario_html,
     token_esta_ativo,
     usuario_tem_bloqueio_ativo,
@@ -93,6 +97,10 @@ from nucleo.inspetor.confianca_ia import (
     _titulo_confianca_humano,
     analisar_confianca_resposta_ia,
     normalizar_payload_confianca_ia,
+)
+from nucleo.inspetor.referencias_mensagem import (
+    compor_texto_com_referencia,
+    extrair_referencia_do_texto,
 )
 from templates_ia import RelatorioCBMGO
 
@@ -153,6 +161,7 @@ PORTAL_TROCA_SENHA_INSPETOR = "inspetor"
 CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
 CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
 CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
+CHAVE_CSRF_INSPETOR = "csrf_token_inspetor"
 
 SETORES_PERMITIDOS = frozenset(
     {
@@ -369,19 +378,19 @@ def resposta_json_ok(payload: dict[str, Any], status_code: int = 200) -> JSONRes
 
 
 def contexto_base(request: Request) -> dict[str, Any]:
-    if "csrf_token" not in request.session:
-        request.session["csrf_token"] = secrets.token_urlsafe(32)
+    if CHAVE_CSRF_INSPETOR not in request.session:
+        request.session[CHAVE_CSRF_INSPETOR] = secrets.token_urlsafe(32)
 
     return {
         "request": request,
-        "csrf_token": request.session["csrf_token"],
+        "csrf_token": request.session[CHAVE_CSRF_INSPETOR],
         "csp_nonce": getattr(request.state, "csp_nonce", ""),
         "v_app": VERSAO_APP,
     }
 
 
 def validar_csrf(request: Request, token_form: str = "") -> bool:
-    token_sessao = request.session.get("csrf_token", "")
+    token_sessao = request.session.get(CHAVE_CSRF_INSPETOR) or request.session.get("csrf_token", "")
     if not token_sessao:
         return False
 
@@ -659,8 +668,8 @@ def redirecionar_por_nivel(usuario: Usuario) -> RedirectResponse:
 
 
 def _iniciar_fluxo_troca_senha(request: Request, *, usuario_id: int, lembrar: bool) -> None:
-    request.session.clear()
-    request.session["csrf_token"] = secrets.token_urlsafe(32)
+    limpar_sessao_portal(request.session, portal=PORTAL_INSPETOR)
+    request.session[CHAVE_CSRF_INSPETOR] = secrets.token_urlsafe(32)
     request.session[CHAVE_TROCA_SENHA_UID] = int(usuario_id)
     request.session[CHAVE_TROCA_SENHA_PORTAL] = PORTAL_TROCA_SENHA_INSPETOR
     request.session[CHAVE_TROCA_SENHA_LEMBRAR] = bool(lembrar)
@@ -1514,6 +1523,8 @@ def serializar_historico_mensagem(
     citacoes: list[dict[str, Any]] | None = None,
     confianca_ia: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(mensagem.conteudo)
+
     if mensagem.tipo in (TipoMensagem.USER.value, TipoMensagem.HUMANO_INSP.value):
         papel = "usuario"
     elif mensagem.tipo == TipoMensagem.HUMANO_ENG.value:
@@ -1524,7 +1535,7 @@ def serializar_historico_mensagem(
     item: dict[str, Any] = {
         "id": mensagem.id,
         "papel": papel,
-        "texto": mensagem.conteudo,
+        "texto": texto_limpo,
         "tipo": mensagem.tipo,
         "modo": modo_resposta or MODO_DETALHADO,
         "is_whisper": mensagem.tipo
@@ -1534,6 +1545,8 @@ def serializar_historico_mensagem(
         ),
         "remetente_id": mensagem.remetente_id,
     }
+    if referencia_mensagem_id:
+        item["referencia_mensagem_id"] = referencia_mensagem_id
 
     if citacoes:
         item["citacoes"] = citacoes
@@ -1541,6 +1554,21 @@ def serializar_historico_mensagem(
         item["confianca_ia"] = normalizar_payload_confianca_ia(confianca_ia)
 
     return item
+
+
+def serializar_mensagem_mesa(mensagem: MensagemLaudo) -> dict[str, Any]:
+    referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(mensagem.conteudo)
+    payload: dict[str, Any] = {
+        "id": mensagem.id,
+        "laudo_id": mensagem.laudo_id,
+        "tipo": mensagem.tipo,
+        "texto": texto_limpo,
+        "remetente_id": mensagem.remetente_id,
+        "data": formatar_data_br(mensagem.criado_em),
+    }
+    if referencia_mensagem_id:
+        payload["referencia_mensagem_id"] = referencia_mensagem_id
+    return payload
 
 
 async def notificar_mesa_whisper(
@@ -1596,6 +1624,7 @@ class DadosChat(BaseModel):
     texto_documento: str = Field(default="", max_length=LIMITE_DOC_CHARS)
     nome_documento: str = Field(default="", max_length=LIMITE_NOME_DOCUMENTO)
     laudo_id: Optional[int] = None
+    referencia_mensagem_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
@@ -1608,6 +1637,13 @@ class DadosChat(BaseModel):
     @classmethod
     def validar_nome_documento(cls, valor: str) -> str:
         return nome_documento_seguro(valor)
+
+
+class DadosMesaMensagem(BaseModel):
+    texto: str = Field(default="", max_length=LIMITE_MSG_CHARS)
+    referencia_mensagem_id: int | None = Field(default=None, ge=1)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
 
 class DadosPDF(BaseModel):
@@ -1866,14 +1902,15 @@ async def tela_login_app(
     request: Request,
     banco: Session = Depends(obter_banco),
 ):
-    token = request.session.get("session_token")
+    dados_sessao = obter_dados_sessao_portal(request.session, portal=PORTAL_INSPETOR)
+    token = dados_sessao.get("token")
     if token and token_esta_ativo(token):
-        usuario_id = request.session.get("usuario_id")
+        usuario_id = dados_sessao.get("usuario_id")
         if usuario_id:
             usuario = banco.get(Usuario, usuario_id)
             if usuario:
                 return redirecionar_por_nivel(usuario)
-        request.session.clear()
+        limpar_sessao_portal(request.session, portal=PORTAL_INSPETOR)
 
     return templates.TemplateResponse(request, "login_app.html", contexto_base(request))
 
@@ -1921,12 +1958,16 @@ async def processar_troca_senha_app(
     _limpar_fluxo_troca_senha(request)
 
     token = criar_sessao(usuario.id, lembrar=lembrar)
-    request.session["session_token"] = token
-    request.session["usuario_id"] = usuario.id
-    request.session["empresa_id"] = usuario.empresa_id
-    request.session["nivel_acesso"] = usuario.nivel_acesso
-    request.session["nome"] = usuario_nome(usuario)
-    request.session["csrf_token"] = secrets.token_urlsafe(32)
+    definir_sessao_portal(
+        request.session,
+        portal=PORTAL_INSPETOR,
+        token=token,
+        usuario_id=usuario.id,
+        empresa_id=usuario.empresa_id,
+        nivel_acesso=usuario.nivel_acesso,
+        nome=usuario_nome(usuario),
+    )
+    request.session[CHAVE_CSRF_INSPETOR] = secrets.token_urlsafe(32)
 
     logger.info("Troca obrigatória de senha concluída | usuario_id=%s", usuario.id)
     return RedirectResponse(url="/app/", status_code=303)
@@ -1997,7 +2038,10 @@ async def processar_login_app(
             status_code=403,
         )
 
-    token_anterior = request.session.get("session_token")
+    token_anterior = obter_dados_sessao_portal(
+        request.session,
+        portal=PORTAL_INSPETOR,
+    ).get("token")
     if token_anterior:
         encerrar_sessao(token_anterior)
 
@@ -2006,11 +2050,16 @@ async def processar_login_app(
         return RedirectResponse(url="/app/trocar-senha", status_code=303)
 
     token = criar_sessao(usuario.id, lembrar=lembrar)
-    request.session["session_token"] = token
-    request.session["usuario_id"] = usuario.id
-    request.session["empresa_id"] = usuario.empresa_id
-    request.session["nivel_acesso"] = usuario.nivel_acesso
-    request.session["nome"] = usuario_nome(usuario)
+    definir_sessao_portal(
+        request.session,
+        portal=PORTAL_INSPETOR,
+        token=token,
+        usuario_id=usuario.id,
+        empresa_id=usuario.empresa_id,
+        nivel_acesso=usuario.nivel_acesso,
+        nome=usuario_nome(usuario),
+    )
+    request.session[CHAVE_CSRF_INSPETOR] = secrets.token_urlsafe(32)
 
     if hasattr(usuario, "registrar_login_sucesso"):
         usuario.registrar_login_sucesso(ip=request.client.host if request.client else None)
@@ -2029,8 +2078,10 @@ async def logout_inspetor(
     if not validar_csrf(request, csrf_token):
         return RedirectResponse(url="/app/login", status_code=303)
 
-    encerrar_sessao(request.session.get("session_token"))
-    request.session.clear()
+    token = obter_dados_sessao_portal(request.session, portal=PORTAL_INSPETOR).get("token")
+    encerrar_sessao(token)
+    limpar_sessao_portal(request.session, portal=PORTAL_INSPETOR)
+    request.session.pop(CHAVE_CSRF_INSPETOR, None)
     return RedirectResponse(url="/app/login", status_code=303)
 
 
@@ -2321,28 +2372,33 @@ async def rota_chat(
     )
 
     eh_whisper_para_mesa = mensagem_para_mesa(mensagem_limpa)
+    referencia_mensagem_id = None
+    texto_exibicao = ""
 
     if eh_whisper_para_mesa:
         tipo_msg_usuario = TipoMensagem.HUMANO_INSP.value
-        texto_salvar = remover_mencao_mesa(mensagem_limpa)
-        if not texto_salvar:
+        texto_exibicao = remover_mencao_mesa(mensagem_limpa)
+        if not texto_exibicao:
             raise HTTPException(status_code=400, detail="Mensagem para a mesa está vazia.")
+        referencia_mensagem_id = int(dados.referencia_mensagem_id or 0) or None
+        texto_salvar = compor_texto_com_referencia(texto_exibicao, referencia_mensagem_id)
     elif eh_comando_finalizar:
         tipo_msg_usuario = TipoMensagem.USER.value
         texto_salvar = "*(Inspetor solicitou encerramento e geração do laudo)*"
+        texto_exibicao = texto_salvar
     else:
         tipo_msg_usuario = TipoMensagem.USER.value
         texto_salvar = mensagem_limpa or nome_documento or "[imagem]"
+        texto_exibicao = texto_salvar
 
-    banco.add(
-        MensagemLaudo(
-            laudo_id=laudo.id,
-            remetente_id=usuario.id,
-            tipo=tipo_msg_usuario,
-            conteudo=texto_salvar,
-            custo_api_reais=Decimal("0.0000"),
-        )
+    mensagem_usuario = MensagemLaudo(
+        laudo_id=laudo.id,
+        remetente_id=usuario.id,
+        tipo=tipo_msg_usuario,
+        conteudo=texto_salvar,
+        custo_api_reais=Decimal("0.0000"),
     )
+    banco.add(mensagem_usuario)
 
     laudo.atualizado_em = agora_utc()
     laudo.modo_resposta = dados.modo
@@ -2372,17 +2428,19 @@ async def rota_chat(
                 laudo_id=laudo_id_atual,
                 inspetor_id=usuario_id_atual,
                 inspetor_nome=usuario_nome_atual,
-                preview=texto_salvar,
+                preview=texto_exibicao,
             )
 
             yield evento_sse(
                 {
                     "tipo": TipoMensagem.HUMANO_INSP.value,
                     "tipo_humano": TipoMensagem.HUMANO_INSP.value,
-                    "texto": texto_salvar,
+                    "texto": texto_exibicao,
                     "remetente": "inspetor",
                     "destinatario": "engenharia",
                     "laudo_id": laudo_id_atual,
+                    "mensagem_id": mensagem_usuario.id,
+                    "referencia_mensagem_id": referencia_mensagem_id,
                 }
             )
             yield "data: [FIM]\n\n"
@@ -2761,6 +2819,94 @@ async def obter_mensagens_laudo(
         "laudo_id": laudo_id,
         "limite": limite,
     }
+
+
+@roteador_inspetor.get("/api/laudo/{laudo_id}/mesa/mensagens")
+async def listar_mensagens_mesa_laudo(
+    laudo_id: int,
+    cursor: int | None = Query(default=None, gt=0),
+    limite: int = Query(default=40, ge=10, le=120),
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    _ = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+
+    consulta = banco.query(MensagemLaudo).filter(
+        MensagemLaudo.laudo_id == laudo_id,
+        MensagemLaudo.tipo.in_(
+            (
+                TipoMensagem.HUMANO_INSP.value,
+                TipoMensagem.HUMANO_ENG.value,
+            )
+        ),
+    )
+    if cursor:
+        consulta = consulta.filter(MensagemLaudo.id < cursor)
+
+    mensagens_desc = consulta.order_by(MensagemLaudo.id.desc()).limit(limite + 1).all()
+    tem_mais = len(mensagens_desc) > limite
+    mensagens_pagina = list(reversed(mensagens_desc[:limite]))
+    cursor_proximo = mensagens_pagina[0].id if tem_mais and mensagens_pagina else None
+
+    return resposta_json_ok(
+        {
+            "laudo_id": laudo_id,
+            "itens": [serializar_mensagem_mesa(item) for item in mensagens_pagina],
+            "cursor_proximo": int(cursor_proximo) if cursor_proximo else None,
+            "tem_mais": tem_mais,
+        }
+    )
+
+
+@roteador_inspetor.post("/api/laudo/{laudo_id}/mesa/mensagem")
+async def enviar_mensagem_mesa_laudo(
+    laudo_id: int,
+    dados: DadosMesaMensagem,
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+
+    texto_limpo = (dados.texto or "").strip()
+    if not texto_limpo:
+        raise HTTPException(status_code=400, detail="Mensagem para a mesa está vazia.")
+
+    referencia_mensagem_id = int(dados.referencia_mensagem_id or 0) or None
+    if referencia_mensagem_id:
+        referencia_existe = (
+            banco.query(MensagemLaudo.id)
+            .filter(
+                MensagemLaudo.laudo_id == laudo.id,
+                MensagemLaudo.id == referencia_mensagem_id,
+            )
+            .first()
+        )
+        if not referencia_existe:
+            raise HTTPException(status_code=404, detail="Mensagem de referência não encontrada.")
+
+    mensagem = MensagemLaudo(
+        laudo_id=laudo.id,
+        remetente_id=usuario.id,
+        tipo=TipoMensagem.HUMANO_INSP.value,
+        conteudo=compor_texto_com_referencia(texto_limpo, referencia_mensagem_id),
+        custo_api_reais=Decimal("0.0000"),
+    )
+    banco.add(mensagem)
+    laudo.atualizado_em = agora_utc()
+    banco.commit()
+
+    await notificar_mesa_whisper(
+        empresa_id=usuario.empresa_id,
+        laudo_id=laudo.id,
+        inspetor_id=usuario.id,
+        inspetor_nome=usuario_nome(usuario),
+        preview=texto_limpo,
+    )
+
+    payload = serializar_mensagem_mesa(mensagem)
+    return resposta_json_ok({"laudo_id": laudo.id, "mensagem": payload}, status_code=201)
 
 
 @roteador_inspetor.get("/api/laudo/{laudo_id}/revisoes")

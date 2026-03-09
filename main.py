@@ -53,7 +53,13 @@ from banco_dados import (
 from rotas_admin import roteador_admin
 from rotas_inspetor import roteador_inspetor
 from rotas_revisor import roteador_revisor
-from seguranca import SESSOES_ATIVAS, token_esta_ativo, usuario_tem_bloqueio_ativo
+from seguranca import (
+    SESSOES_ATIVAS,
+    obter_dados_sessao_portal,
+    portal_por_caminho,
+    token_esta_ativo,
+    usuario_tem_bloqueio_ativo,
+)
 
 
 # =============================================================================
@@ -404,7 +410,11 @@ def _obter_usuario_da_sessao(
     request: Request,
     banco: Session,
 ) -> Optional[Usuario]:
-    token = request.session.get("session_token")
+    dados_sessao = obter_dados_sessao_portal(
+        request.session,
+        caminho=request.url.path,
+    )
+    token = dados_sessao.get("token")
     if not token or not token_esta_ativo(token):
         return None
 
@@ -691,7 +701,10 @@ def create_app() -> FastAPI:
             )
 
         try:
-            token = request.session.get("session_token")
+            token = obter_dados_sessao_portal(
+                request.session,
+                caminho=request.url.path,
+            ).get("token")
         except Exception:
             token = None
 
@@ -870,7 +883,12 @@ def create_app() -> FastAPI:
             request: Request,
             banco: Session = Depends(obter_banco),
         ):
-            token = request.session.get("session_token", "Nenhum token")
+            portal_atual = portal_por_caminho(request.url.path)
+            token = obter_dados_sessao_portal(
+                request.session,
+                portal=portal_atual,
+                caminho=request.url.path,
+            ).get("token", "Nenhum token")
             usuario_id = SESSOES_ATIVAS.get(token, "Nenhum ID")
 
             if isinstance(usuario_id, int):

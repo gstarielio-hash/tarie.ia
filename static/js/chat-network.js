@@ -815,7 +815,15 @@
             const laudoId = Number(objeto?.laudo_id ?? objeto?.laudoId ?? getLaudoAtualId?.() ?? 0) || null;
 
             if (remetenteEhEngenharia(remetente) && typeof window.adicionarMensagemNaUI === "function") {
-                window.adicionarMensagemNaUI("engenharia", texto, objeto?.tipo || "humanoeng");
+                window.adicionarMensagemNaUI(
+                    "engenharia",
+                    texto,
+                    objeto?.tipo || "humanoeng",
+                    {
+                        mensagemId: Number(objeto?.mensagem_id ?? objeto?.id ?? 0) || null,
+                        referenciaMensagemId: Number(objeto?.referencia_mensagem_id ?? 0) || null,
+                    }
+                );
                 emitirStatusMesa("respondeu", {
                     origem: "mesa",
                     laudoId,

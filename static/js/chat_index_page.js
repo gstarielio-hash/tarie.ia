@@ -84,6 +84,13 @@
         ultimoElementoFocado: null,
         iniciandoInspecao: false,
         finalizandoInspecao: false,
+        mesaWidgetAberto: false,
+        mesaWidgetCarregando: false,
+        mesaWidgetMensagens: [],
+        mesaWidgetCursor: null,
+        mesaWidgetTemMais: false,
+        mesaWidgetReferenciaAtiva: null,
+        mesaWidgetNaoLidas: 0,
     };
 
     // Compatibilidade com trechos legados do projeto.
@@ -130,6 +137,7 @@
         btnFinalizarInspecao: document.getElementById("btn-finalizar-inspecao"),
 
         campoMensagem: document.getElementById("campo-mensagem"),
+        btnToggleHumano: document.getElementById("btn-toggle-humano"),
         backdropHighlight: document.getElementById("highlight-backdrop"),
         pilulaEntrada: document.querySelector(".pilula-entrada"),
 
@@ -138,6 +146,19 @@
         btnFecharBanner: document.querySelector(".btn-fechar-banner"),
 
         botoesAcoesRapidas: Array.from(document.querySelectorAll(".btn-acao-rapida")),
+
+        btnMesaWidgetToggle: document.getElementById("btn-mesa-widget-toggle"),
+        badgeMesaWidget: document.getElementById("badge-mesa-widget"),
+        painelMesaWidget: document.getElementById("painel-mesa-widget"),
+        btnFecharMesaWidget: document.getElementById("btn-fechar-mesa-widget"),
+        mesaWidgetLista: document.getElementById("mesa-widget-lista"),
+        mesaWidgetInput: document.getElementById("mesa-widget-input"),
+        mesaWidgetEnviar: document.getElementById("mesa-widget-enviar"),
+        mesaWidgetCarregarMais: document.getElementById("mesa-widget-carregar-mais"),
+        mesaWidgetRefAtiva: document.getElementById("mesa-widget-ref-ativa"),
+        mesaWidgetRefTitulo: document.getElementById("mesa-widget-ref-titulo"),
+        mesaWidgetRefTexto: document.getElementById("mesa-widget-ref-texto"),
+        mesaWidgetRefLimpar: document.getElementById("mesa-widget-ref-limpar"),
     };
 
     // =========================================================
@@ -257,6 +278,345 @@
         if (status === "canal" || status === "ativo") return "canal_ativo";
 
         return CONFIG_STATUS_MESA[status] ? status : "pronta";
+    }
+
+    function obterLaudoAtivo() {
+        return Number(window.TarielAPI?.obterLaudoAtualId?.() || 0) || null;
+    }
+
+    function obterTokenCsrf() {
+        return document.querySelector('meta[name="csrf-token"]')?.content || "";
+    }
+
+    function resumirTexto(texto, limite = 140) {
+        const base = String(texto || "").replace(/\s+/g, " ").trim();
+        if (!base) return "Mensagem sem conteúdo";
+        return base.length > limite ? `${base.slice(0, limite)}...` : base;
+    }
+
+    function atualizarBadgeMesaWidget() {
+        if (!el.badgeMesaWidget) return;
+        const total = Number(estado.mesaWidgetNaoLidas || 0);
+        if (total <= 0) {
+            el.badgeMesaWidget.hidden = true;
+            el.badgeMesaWidget.textContent = "0";
+            return;
+        }
+        el.badgeMesaWidget.hidden = false;
+        el.badgeMesaWidget.textContent = String(Math.min(total, 99));
+    }
+
+    function limparReferenciaMesaWidget() {
+        estado.mesaWidgetReferenciaAtiva = null;
+        if (el.mesaWidgetRefAtiva) {
+            el.mesaWidgetRefAtiva.hidden = true;
+        }
+        if (el.mesaWidgetRefTexto) {
+            el.mesaWidgetRefTexto.textContent = "";
+        }
+    }
+
+    function definirReferenciaMesaWidget(mensagem) {
+        const referenciaId = Number(mensagem?.id || 0) || null;
+        if (!referenciaId) {
+            limparReferenciaMesaWidget();
+            return;
+        }
+
+        const preview = resumirTexto(mensagem?.texto || "");
+        estado.mesaWidgetReferenciaAtiva = { id: referenciaId, texto: preview };
+
+        if (el.mesaWidgetRefTitulo) {
+            el.mesaWidgetRefTitulo.textContent = `Respondendo #${referenciaId}`;
+        }
+        if (el.mesaWidgetRefTexto) {
+            el.mesaWidgetRefTexto.textContent = preview;
+        }
+        if (el.mesaWidgetRefAtiva) {
+            el.mesaWidgetRefAtiva.hidden = false;
+        }
+        el.mesaWidgetInput?.focus();
+    }
+
+    function normalizarMensagemMesa(payload) {
+        const tipo = String(payload?.tipo || "").toLowerCase();
+        const id = Number(payload?.id || 0) || null;
+        if (!id) return null;
+
+        return {
+            id,
+            laudo_id: Number(payload?.laudo_id || 0) || null,
+            tipo,
+            texto: String(payload?.texto || "").trim(),
+            data: String(payload?.data || "").trim(),
+            remetente_id: Number(payload?.remetente_id || 0) || null,
+            referencia_mensagem_id: Number(payload?.referencia_mensagem_id || 0) || null,
+        };
+    }
+
+    function obterMensagemMesaPorId(mensagemId) {
+        const alvo = Number(mensagemId || 0) || null;
+        if (!alvo) return null;
+        return (estado.mesaWidgetMensagens || []).find((item) => Number(item?.id) === alvo) || null;
+    }
+
+    async function irParaMensagemPrincipal(mensagemId) {
+        const alvo = Number(mensagemId || 0) || null;
+        if (!alvo) return false;
+
+        const seletor = `.linha-mensagem[data-mensagem-id="${alvo}"]`;
+        let elemento = document.querySelector(seletor);
+
+        if (!elemento) {
+            const laudoId = obterLaudoAtivo();
+            if (laudoId && typeof window.TarielAPI?.carregarLaudo === "function") {
+                try {
+                    await window.TarielAPI.carregarLaudo(laudoId, { forcar: true, silencioso: true });
+                } catch (_) {}
+                elemento = document.querySelector(seletor);
+            }
+        }
+
+        if (!elemento) {
+            mostrarToast("Mensagem de referência não está visível no histórico atual.", "aviso", 2300);
+            return false;
+        }
+
+        elemento.scrollIntoView({ behavior: "smooth", block: "center" });
+        elemento.classList.add("destacar-referencia");
+        window.setTimeout(() => elemento.classList.remove("destacar-referencia"), 1400);
+        return true;
+    }
+
+    function renderizarListaMesaWidget() {
+        if (!el.mesaWidgetLista) return;
+
+        const mensagens = Array.isArray(estado.mesaWidgetMensagens)
+            ? estado.mesaWidgetMensagens
+            : [];
+
+        el.mesaWidgetLista.innerHTML = "";
+        if (!mensagens.length) {
+            const vazio = document.createElement("p");
+            vazio.className = "texto-vazio-pendencias";
+            vazio.textContent = "Sem mensagens da mesa neste laudo.";
+            el.mesaWidgetLista.appendChild(vazio);
+            return;
+        }
+
+        for (const item of mensagens) {
+            const entradaMesa = item.tipo === "humano_eng";
+            const card = document.createElement("article");
+            card.className = `mesa-widget-item ${entradaMesa ? "entrada" : "saida"}`;
+            card.dataset.mensagemId = String(item.id);
+
+            const referenciaId = Number(item.referencia_mensagem_id || 0) || null;
+            const referenciaMsg = referenciaId ? obterMensagemMesaPorId(referenciaId) : null;
+            const referenciaPreview = resumirTexto(referenciaMsg?.texto || `Mensagem #${referenciaId || ""}`);
+            const referenciaHtml = referenciaId
+                ? `
+                    <button type="button" class="mesa-widget-ref-link" data-ir-mensagem-id="${referenciaId}">
+                        <strong>Referência #${referenciaId}</strong>
+                        <span>${escaparHtml(referenciaPreview)}</span>
+                    </button>
+                `
+                : "";
+
+            card.innerHTML = `
+                <div class="meta">
+                    <span>${entradaMesa ? "Mesa" : "Você"}</span>
+                    <span>${escaparHtml(item.data || "")}</span>
+                </div>
+                ${referenciaHtml}
+                <p class="texto">${escaparHtml(item.texto || "")}</p>
+                <div class="acoes">
+                    <button type="button" data-responder-mensagem-id="${item.id}">Responder</button>
+                </div>
+            `;
+
+            el.mesaWidgetLista.appendChild(card);
+        }
+
+        el.mesaWidgetLista.scrollTop = el.mesaWidgetLista.scrollHeight;
+    }
+
+    async function carregarMensagensMesaWidget({ append = false, silencioso = false } = {}) {
+        const laudoId = obterLaudoAtivo();
+        if (!laudoId || estado.mesaWidgetCarregando) return;
+
+        estado.mesaWidgetCarregando = true;
+        if (el.mesaWidgetCarregarMais) {
+            el.mesaWidgetCarregarMais.disabled = true;
+        }
+
+        try {
+            const params = new URLSearchParams();
+            params.set("limite", "40");
+            if (append && Number(estado.mesaWidgetCursor || 0) > 0) {
+                params.set("cursor", String(estado.mesaWidgetCursor));
+            }
+
+            const resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/mensagens?${params.toString()}`, {
+                credentials: "same-origin",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+
+            if (!resposta.ok) {
+                throw new Error(`HTTP_${resposta.status}`);
+            }
+
+            const dados = await resposta.json();
+            const payload = dados?.dados || dados || {};
+            const itens = Array.isArray(payload?.itens) ? payload.itens : [];
+            const normalizados = itens
+                .map(normalizarMensagemMesa)
+                .filter(Boolean);
+
+            if (append) {
+                estado.mesaWidgetMensagens = [...normalizados, ...estado.mesaWidgetMensagens];
+            } else {
+                estado.mesaWidgetMensagens = [...normalizados];
+            }
+
+            estado.mesaWidgetCursor = Number(payload?.cursor_proximo || 0) || null;
+            estado.mesaWidgetTemMais = !!payload?.tem_mais;
+
+            if (el.mesaWidgetCarregarMais) {
+                el.mesaWidgetCarregarMais.hidden = !estado.mesaWidgetTemMais;
+            }
+
+            renderizarListaMesaWidget();
+        } catch (erro) {
+            if (!silencioso) {
+                mostrarToast("Não foi possível carregar o chat da mesa.", "aviso", 2400);
+            }
+        } finally {
+            estado.mesaWidgetCarregando = false;
+            if (el.mesaWidgetCarregarMais) {
+                el.mesaWidgetCarregarMais.disabled = false;
+            }
+        }
+    }
+
+    async function enviarMensagemMesaWidget() {
+        const laudoId = obterLaudoAtivo();
+        const texto = String(el.mesaWidgetInput?.value || "").trim();
+        if (!laudoId || !texto) return;
+
+        const referenciaId = Number(estado.mesaWidgetReferenciaAtiva?.id || 0) || null;
+
+        el.mesaWidgetEnviar?.setAttribute("aria-busy", "true");
+        if (el.mesaWidgetEnviar) {
+            el.mesaWidgetEnviar.disabled = true;
+        }
+
+        try {
+            const resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/mensagem`, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-CSRF-Token": obterTokenCsrf(),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({
+                    texto,
+                    referencia_mensagem_id: referenciaId || null,
+                }),
+            });
+
+            if (!resposta.ok) {
+                throw new Error(`HTTP_${resposta.status}`);
+            }
+
+            el.mesaWidgetInput.value = "";
+            limparReferenciaMesaWidget();
+
+            await carregarMensagensMesaWidget({ silencioso: true });
+            atualizarStatusMesa("aguardando", texto.slice(0, 120));
+        } catch (erro) {
+            mostrarToast("Falha ao enviar mensagem para a mesa.", "erro", 2400);
+        } finally {
+            el.mesaWidgetEnviar?.removeAttribute("aria-busy");
+            if (el.mesaWidgetEnviar) {
+                el.mesaWidgetEnviar.disabled = false;
+            }
+            el.mesaWidgetInput?.focus();
+        }
+    }
+
+    async function abrirMesaWidget() {
+        estado.mesaWidgetAberto = true;
+        estado.mesaWidgetNaoLidas = 0;
+        atualizarBadgeMesaWidget();
+
+        if (el.painelMesaWidget) {
+            el.painelMesaWidget.hidden = false;
+        }
+        if (el.btnMesaWidgetToggle) {
+            el.btnMesaWidgetToggle.setAttribute("aria-expanded", "true");
+        }
+
+        await carregarMensagensMesaWidget({ silencioso: true });
+        el.mesaWidgetInput?.focus();
+    }
+
+    function fecharMesaWidget() {
+        estado.mesaWidgetAberto = false;
+        if (el.painelMesaWidget) {
+            el.painelMesaWidget.hidden = true;
+        }
+        if (el.btnMesaWidgetToggle) {
+            el.btnMesaWidgetToggle.setAttribute("aria-expanded", "false");
+        }
+    }
+
+    async function toggleMesaWidget() {
+        if (estado.mesaWidgetAberto) {
+            fecharMesaWidget();
+            return;
+        }
+        await abrirMesaWidget();
+    }
+
+    async function atualizarChatAoVivoComMesa(dadosEvento) {
+        const laudoEvento = Number(dadosEvento?.laudo_id ?? dadosEvento?.laudoId ?? 0) || null;
+        const laudoAtivo = obterLaudoAtivo();
+        if (!laudoEvento || !laudoAtivo || laudoEvento !== laudoAtivo) {
+            return;
+        }
+
+        const texto = String(dadosEvento?.texto || "").trim();
+        const mensagemId = Number(dadosEvento?.mensagem_id ?? dadosEvento?.id ?? 0) || null;
+        const referenciaMensagemId = Number(dadosEvento?.referencia_mensagem_id ?? 0) || null;
+
+        const mensagemJaRenderizada = mensagemId
+            ? !!document.querySelector(`.linha-mensagem[data-mensagem-id="${mensagemId}"]`)
+            : false;
+
+        if (
+            texto &&
+            !mensagemJaRenderizada &&
+            typeof window.adicionarMensagemNaUI === "function"
+        ) {
+            window.adicionarMensagemNaUI("engenharia", texto, "humano_eng", {
+                mensagemId,
+                referenciaMensagemId,
+            });
+            try {
+                window.TarielChatPainel?.adicionarAoHistorico?.("assistente", texto);
+            } catch (_) {}
+        } else if (!texto && typeof window.TarielAPI?.carregarLaudo === "function") {
+            try {
+                await window.TarielAPI.carregarLaudo(laudoEvento, { forcar: true, silencioso: true });
+            } catch (_) {}
+        }
+
+        await carregarMensagensMesaWidget({ silencioso: true });
     }
 
     function atualizarStatusMesa(status = "pronta", detalhe = "") {
@@ -1225,6 +1585,11 @@
                     mostrarBannerEngenharia(dados.texto);
                     const laudoIdEvento = Number(dados?.laudo_id ?? dados?.laudoId ?? 0) || null;
                     carregarPendenciasMesa({ laudoId: laudoIdEvento, silencioso: true }).catch(() => {});
+                    atualizarChatAoVivoComMesa(dados).catch(() => {});
+                    if (!estado.mesaWidgetAberto) {
+                        estado.mesaWidgetNaoLidas += 1;
+                        atualizarBadgeMesaWidget();
+                    }
                     return;
                 }
 
@@ -1372,6 +1737,60 @@
                 }
             });
         });
+
+        el.btnMesaWidgetToggle?.addEventListener("click", () => {
+            toggleMesaWidget();
+        });
+        el.btnFecharMesaWidget?.addEventListener("click", () => {
+            fecharMesaWidget();
+        });
+        el.btnToggleHumano?.addEventListener("click", () => {
+            abrirMesaWidget();
+        });
+        el.mesaWidgetRefLimpar?.addEventListener("click", () => {
+            limparReferenciaMesaWidget();
+        });
+        el.mesaWidgetCarregarMais?.addEventListener("click", async () => {
+            await carregarMensagensMesaWidget({ append: true, silencioso: true });
+        });
+        el.mesaWidgetEnviar?.addEventListener("click", () => {
+            enviarMensagemMesaWidget();
+        });
+        el.mesaWidgetInput?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                enviarMensagemMesaWidget();
+            }
+        });
+        el.mesaWidgetLista?.addEventListener("click", async (event) => {
+            const botaoResponder = event.target?.closest?.("[data-responder-mensagem-id]");
+            if (botaoResponder) {
+                const mensagemId = Number(botaoResponder.dataset.responderMensagemId || 0) || null;
+                if (!mensagemId) return;
+                const msg = obterMensagemMesaPorId(mensagemId);
+                if (msg) {
+                    definirReferenciaMesaWidget(msg);
+                }
+                return;
+            }
+
+            const botaoRef = event.target?.closest?.("[data-ir-mensagem-id]");
+            if (botaoRef) {
+                const referenciaId = Number(botaoRef.dataset.irMensagemId || 0) || null;
+                if (referenciaId) {
+                    await irParaMensagemPrincipal(referenciaId);
+                }
+            }
+        });
+
+        document.addEventListener("click", async (event) => {
+            const alvoReferencia = event.target?.closest?.(".bloco-referencia-chat[data-ref-id]");
+            if (!alvoReferencia) return;
+            const referenciaId = Number(alvoReferencia.dataset.refId || 0) || null;
+            if (referenciaId) {
+                await irParaMensagemPrincipal(referenciaId);
+            }
+        });
     }
 
     function bindEventosSistema() {
@@ -1381,11 +1800,26 @@
                 obterTipoTemplateDoPayload(event?.detail || {})
             );
             carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+            estado.mesaWidgetMensagens = [];
+            estado.mesaWidgetCursor = null;
+            estado.mesaWidgetTemMais = false;
+            estado.mesaWidgetNaoLidas = 0;
+            atualizarBadgeMesaWidget();
+            if (estado.mesaWidgetAberto) {
+                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+            }
         };
 
         const onRelatorioFinalizadoOuCancelado = () => {
             fecharModalGateQualidade();
             resetarInterfaceInspecao();
+            estado.mesaWidgetMensagens = [];
+            estado.mesaWidgetCursor = null;
+            estado.mesaWidgetTemMais = false;
+            estado.mesaWidgetNaoLidas = 0;
+            atualizarBadgeMesaWidget();
+            limparReferenciaMesaWidget();
+            fecharMesaWidget();
         };
 
         const onMesaAtivada = () => {
@@ -1401,6 +1835,9 @@
 
             if (status === "respondeu" || status === "aguardando") {
                 carregarPendenciasMesa({ silencioso: true }).catch(() => {});
+                if (estado.mesaWidgetAberto) {
+                    carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+                }
             }
         };
 
@@ -1408,6 +1845,14 @@
             const laudoId = Number(event?.detail?.laudoId ?? event?.detail?.laudo_id ?? 0) || null;
             if (!laudoId) return;
             carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+            estado.mesaWidgetMensagens = [];
+            estado.mesaWidgetCursor = null;
+            estado.mesaWidgetTemMais = false;
+            estado.mesaWidgetNaoLidas = 0;
+            atualizarBadgeMesaWidget();
+            if (estado.mesaWidgetAberto) {
+                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+            }
         };
 
         const onGateQualidadeFalhou = (event) => {
@@ -1455,6 +1900,7 @@
 
         atualizarStatusMesa("pronta");
         atualizarBotoesFiltroPendencias();
+        atualizarBadgeMesaWidget();
         aplicarHighlightComposer(el.campoMensagem?.value || "");
         atualizarVisualComposer(el.campoMensagem?.value || "");
         sincronizarScrollBackdrop();
@@ -1468,6 +1914,9 @@
                 exibirInterfaceInspecaoAtiva(obterTipoTemplateDoPayload(dados));
                 const laudoId = Number(dados?.laudo_id ?? dados?.laudoId ?? 0) || null;
                 await carregarPendenciasMesa({ laudoId, silencioso: true });
+                if (estado.mesaWidgetAberto) {
+                    await carregarMensagensMesaWidget({ silencioso: true });
+                }
                 return;
             }
 

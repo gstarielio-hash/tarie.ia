@@ -650,10 +650,15 @@
             opacity: .82;
         }
 
+        .bolha.destacada {
+            box-shadow: 0 0 0 2px rgba(244, 123, 32, 0.65);
+        }
+
         /* Resposta */
         .view-reply {
             display: flex;
-            gap: 12px;
+            flex-direction: column;
+            gap: 10px;
             padding: 16px 22px;
             border-top: 1px solid var(--borda);
             background: var(--cor-primaria);
@@ -661,6 +666,11 @@
 
         .view-reply[hidden] {
             display: none !important;
+        }
+
+        .view-reply-main {
+            display: flex;
+            gap: 12px;
         }
 
         .view-reply textarea {
@@ -699,6 +709,81 @@
 
         .btn-enviar-chat:hover:not(:disabled) {
             background: var(--cor-secundaria-hover);
+        }
+
+        .bolha-referencia {
+            margin-bottom: 8px;
+            border: 1px solid rgba(244, 123, 32, 0.45);
+            border-left: 3px solid var(--cor-secundaria);
+            background: rgba(244, 123, 32, 0.08);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+
+        .bolha-referencia strong {
+            display: block;
+            color: #ffd2ad;
+            font-size: 11px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .btn-responder-msg {
+            margin-top: 8px;
+            border: 1px solid rgba(244, 123, 32, 0.5);
+            border-radius: 8px;
+            background: rgba(244, 123, 32, 0.1);
+            color: #ffd2ad;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+
+        .btn-responder-msg:hover {
+            background: rgba(244, 123, 32, 0.18);
+        }
+
+        .reply-ref-ativa {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            border: 1px solid rgba(244, 123, 32, 0.45);
+            background: rgba(244, 123, 32, 0.08);
+            border-left: 3px solid var(--cor-secundaria);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .reply-ref-ativa[hidden] {
+            display: none !important;
+        }
+
+        .reply-ref-ativa strong {
+            display: block;
+            color: #ffd2ad;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .reply-ref-ativa p {
+            margin: 0;
+            color: var(--texto-claro);
+            opacity: 0.92;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .btn-limpar-ref {
+            border: 1px solid rgba(244, 123, 32, 0.5);
+            background: transparent;
+            color: #ffd2ad;
+            border-radius: 8px;
+            min-width: 32px;
+            height: 32px;
+            cursor: pointer;
         }
 
         /* Modal */
@@ -1057,6 +1142,15 @@
                 </div>
 
                 <div class="view-reply" id="box-resposta">
+                    <div id="ref-ativa-resposta" class="reply-ref-ativa" hidden>
+                        <div>
+                            <strong id="ref-ativa-titulo">Respondendo mensagem</strong>
+                            <p id="ref-ativa-texto"></p>
+                        </div>
+                        <button type="button" id="btn-limpar-ref-ativa" class="btn-limpar-ref" aria-label="Remover referência">×</button>
+                    </div>
+
+                    <div class="view-reply-main">
                     <label for="input-resposta" class="sr-only">Mensagem para o inspetor</label>
                     <textarea id="input-resposta" rows="2"
                         placeholder="Escreva uma mensagem para o Inspetor em campo... (Enter envia)" aria-label="Mensagem para o inspetor"></textarea>
@@ -1064,6 +1158,7 @@
                         <span class="material-symbols-rounded" aria-hidden="true">send</span>
                         <span>Enviar</span>
                     </button>
+                    </div>
                 </div>
             </section>
         </main>
@@ -1129,6 +1224,10 @@
                 viewAcoes: document.getElementById("view-acoes"),
                 timeline: document.getElementById("view-timeline"),
                 boxResposta: document.getElementById("box-resposta"),
+                refAtivaResposta: document.getElementById("ref-ativa-resposta"),
+                refAtivaTitulo: document.getElementById("ref-ativa-titulo"),
+                refAtivaTexto: document.getElementById("ref-ativa-texto"),
+                btnLimparRefAtiva: document.getElementById("btn-limpar-ref-ativa"),
                 inputResposta: document.getElementById("input-resposta"),
                 btnEnviarMsg: document.getElementById("btn-enviar-msg"),
                 modalRelatorio: document.getElementById("modal-relatorio"),
@@ -1148,6 +1247,7 @@
                 wsReconnectTimer: null,
                 lastFocusedElement: null,
                 pendingSend: false,
+                referenciaMensagemAtiva: null,
                 historicoMensagens: [],
                 historicoCursorProximo: null,
                 historicoTemMais: false,
@@ -1187,10 +1287,60 @@
                 }, 3200);
             };
 
+            const resumoMensagem = (texto) => {
+                const base = String(texto || "").replace(/\s+/g, " ").trim();
+                if (!base) return "Mensagem sem conteúdo";
+                return base.length > 140 ? `${base.slice(0, 140)}...` : base;
+            };
+
+            const limparReferenciaMensagemAtiva = () => {
+                state.referenciaMensagemAtiva = null;
+                if (els.refAtivaResposta) {
+                    els.refAtivaResposta.hidden = true;
+                }
+                if (els.refAtivaTexto) {
+                    els.refAtivaTexto.textContent = "";
+                }
+            };
+
+            const definirReferenciaMensagemAtiva = (msg) => {
+                if (!msg || !Number.isFinite(Number(msg.id))) {
+                    limparReferenciaMensagemAtiva();
+                    return;
+                }
+
+                const referenciaId = Number(msg.id);
+                const referenciaTexto = resumoMensagem(msg.texto);
+                state.referenciaMensagemAtiva = {
+                    id: referenciaId,
+                    texto: referenciaTexto
+                };
+
+                if (els.refAtivaTitulo) {
+                    els.refAtivaTitulo.textContent = `Respondendo #${referenciaId}`;
+                }
+                if (els.refAtivaTexto) {
+                    els.refAtivaTexto.textContent = referenciaTexto;
+                }
+                if (els.refAtivaResposta) {
+                    els.refAtivaResposta.hidden = false;
+                }
+                els.inputResposta?.focus();
+            };
+
             const setActiveItem = (id) => {
                 document.querySelectorAll(".item-lista.ativo").forEach((el) => el.classList.remove("ativo"));
                 document.querySelectorAll(`.js-item-laudo[data-id="${CSS.escape(String(id))}"]`)
                     .forEach((el) => el.classList.add("ativo"));
+            };
+
+            const irParaMensagemTimeline = (mensagemId) => {
+                const alvo = els.timeline?.querySelector?.(`[data-msg-id="${CSS.escape(String(mensagemId))}"]`);
+                if (!alvo) return;
+
+                alvo.scrollIntoView({ behavior: "smooth", block: "center" });
+                alvo.classList.add("destacada");
+                setTimeout(() => alvo.classList.remove("destacada"), 1200);
             };
 
             const setViewLoading = (texto = "Carregando...") => {
@@ -1218,13 +1368,45 @@
                     remetente = "Você";
                 }
 
+                const mensagemId = Number(msg.id);
+                if (Number.isFinite(mensagemId) && mensagemId > 0) {
+                    bubble.dataset.msgId = String(mensagemId);
+                }
+
+                const referenciaId = Number(msg.referencia_mensagem_id);
+                let blocoReferencia = "";
+                if (Number.isFinite(referenciaId) && referenciaId > 0) {
+                    const msgRef = (state.historicoMensagens || []).find(
+                        (item) => Number(item?.id) === referenciaId
+                    );
+                    const textoRef = resumoMensagem(msgRef?.texto || `Mensagem #${referenciaId}`);
+                    blocoReferencia = `
+                        <div class="bolha-referencia" data-ref-id="${referenciaId}">
+                            <strong>Respondendo #${referenciaId}</strong>
+                            <span>${escapeHtml(textoRef)}</span>
+                        </div>
+                    `;
+                }
+
+                const mostrarBotaoResponder = Number.isFinite(mensagemId) && mensagemId > 0;
+
                 bubble.innerHTML = `
                     <div class="bolha-header">
                         <span>${escapeHtml(remetente)}</span>
                         <span>${escapeHtml(msg.data || "")}</span>
                     </div>
+                    ${blocoReferencia}
                     <div>${nl2br(msg.texto)}</div>
+                    ${mostrarBotaoResponder ? `<button type="button" class="btn-responder-msg" data-ref-id="${mensagemId}">Responder</button>` : ""}
                 `;
+
+                const btnResponder = bubble.querySelector(".btn-responder-msg");
+                if (btnResponder) {
+                    btnResponder.addEventListener("click", () => {
+                        definirReferenciaMensagemAtiva(msg);
+                    });
+                }
+
                 return bubble;
             };
 
@@ -1457,6 +1639,10 @@
 
                         els.listaWhispers.prepend(renderWhisperItem(dados));
                         showStatus("Novo whisper recebido.", "notifications_active");
+
+                        if (Number(state.laudoAtivoId || 0) === Number(dados.laudo_id || 0)) {
+                            carregarHistoricoMensagens({ appendAntigas: false }).catch(() => {});
+                        }
                     } catch (erro) {
                         console.error("[Tariel] Erro ao processar whisper:", erro);
                     }
@@ -1482,6 +1668,7 @@
 
             const carregarLaudo = async (id) => {
                 state.laudoAtivoId = id;
+                limparReferenciaMensagemAtiva();
                 setActiveItem(id);
                 setViewLoading();
 
@@ -1516,6 +1703,7 @@
             const enviarMensagemEngenheiro = async () => {
                 const texto = els.inputResposta.value.trim();
                 if (!texto || !state.laudoAtivoId || state.pendingSend) return;
+                const referenciaMensagemId = Number(state.referenciaMensagemAtiva?.id) || null;
 
                 state.pendingSend = true;
                 els.btnEnviarMsg.disabled = true;
@@ -1524,6 +1712,7 @@
                 const bubble = renderMessageBubble({
                     tipo: "humano_eng",
                     texto,
+                    referencia_mensagem_id: referenciaMensagemId,
                     data: "Enviando..."
                 }, true);
 
@@ -1542,7 +1731,10 @@
                             "X-CSRF-Token": tokenCsrf,
                             "X-Requested-With": "XMLHttpRequest"
                         },
-                        body: JSON.stringify({ texto })
+                        body: JSON.stringify({
+                            texto,
+                            referencia_mensagem_id: referenciaMensagemId
+                        })
                     });
 
                     if (!res.ok) {
@@ -1550,6 +1742,7 @@
                     }
 
                     await carregarLaudo(state.laudoAtivoId);
+                    limparReferenciaMensagemAtiva();
                 } catch (erro) {
                     showStatus("Erro ao enviar mensagem.", "error");
                     console.error("[Tariel] Falha ao responder:", erro);
@@ -1682,8 +1875,16 @@
             els.listaLaudos.addEventListener("keydown", handleListaKeydown);
             els.listaWhispers.addEventListener("click", handleListaClick);
             els.listaWhispers.addEventListener("keydown", handleListaKeydown);
+            els.timeline.addEventListener("click", (event) => {
+                const referencia = event.target.closest(".bolha-referencia[data-ref-id]");
+                if (!referencia) return;
+                const referenciaId = Number(referencia.dataset.refId || 0);
+                if (!Number.isFinite(referenciaId) || referenciaId <= 0) return;
+                irParaMensagemTimeline(referenciaId);
+            });
 
             els.btnEnviarMsg.addEventListener("click", enviarMensagemEngenheiro);
+            els.btnLimparRefAtiva?.addEventListener("click", limparReferenciaMensagemAtiva);
             els.inputResposta.addEventListener("keydown", (event) => {
                 if (event.key === "Enter" && !event.shiftKey) {
                     event.preventDefault();

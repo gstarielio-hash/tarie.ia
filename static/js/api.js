@@ -949,6 +949,10 @@
                 const elIA = criarBolhaIA(msg.modo || "detalhado");
                 const elTexto = elIA.querySelector(".texto-msg");
                 elIA.querySelector(".cursor-piscando")?.remove();
+                const mensagemId = Number(msg?.id ?? 0);
+                if (Number.isFinite(mensagemId) && mensagemId > 0) {
+                    elIA.dataset.mensagemId = String(mensagemId);
+                }
 
                 if (elTexto) {
                     elTexto.innerHTML = renderizarMarkdown(msg.texto || "");
@@ -971,13 +975,30 @@
                 window.adicionarMensagemNaUI(
                     "engenharia",
                     String(msg.texto || ""),
-                    msg.tipo || "humanoeng"
+                    msg.tipo || "humanoeng",
+                    {
+                        mensagemId: Number(msg?.id ?? 0) || null,
+                        referenciaMensagemId: Number(msg?.referencia_mensagem_id ?? 0) || null,
+                    }
                 );
                 adicionarAoHistorico("assistente", String(msg.texto || ""));
                 continue;
             }
 
-            adicionarMensagemInspetor(String(msg.texto || ""), null, null);
+            const linhaInspetor = adicionarMensagemInspetor(
+                String(msg.texto || ""),
+                null,
+                null,
+                null,
+                {
+                    mensagemId: Number(msg?.id ?? 0) || null,
+                    referenciaMensagemId: Number(msg?.referencia_mensagem_id ?? 0) || null,
+                    omitirStatusEntrega: true,
+                }
+            );
+            if (linhaInspetor && Number(msg?.id || 0) > 0) {
+                linhaInspetor.dataset.mensagemId = String(Number(msg.id));
+            }
             adicionarAoHistorico("usuario", String(msg.texto || ""));
         }
 

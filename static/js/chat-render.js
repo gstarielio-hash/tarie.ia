@@ -193,17 +193,52 @@
             return btn;
         }
 
+        function criarBlocoReferenciaMensagem(referenciaId, referenciaTexto = "") {
+            const idNumerico = Number(referenciaId);
+            if (!Number.isFinite(idNumerico) || idNumerico <= 0) return null;
+
+            const bloco = document.createElement("button");
+            bloco.type = "button";
+            bloco.className = "bloco-referencia-chat";
+            bloco.dataset.refId = String(idNumerico);
+            bloco.setAttribute("aria-label", `Ir para mensagem #${idNumerico}`);
+
+            const textoPreview = textoSeguro(referenciaTexto || "");
+            const preview = textoPreview
+                ? (textoPreview.length > 140 ? `${textoPreview.slice(0, 140)}...` : textoPreview)
+                : `Mensagem #${idNumerico}`;
+
+            bloco.innerHTML = `
+                <span class="material-symbols-rounded" aria-hidden="true">reply</span>
+                <span class="ref-conteudo">
+                    <strong>Respondendo #${idNumerico}</strong>
+                    <span>${escapeHTML(preview)}</span>
+                </span>
+            `;
+            return bloco;
+        }
+
         // =========================================================
         // RENDERIZAÇÃO DE MENSAGENS
         // =========================================================
 
-        function adicionarMensagemInspetor(texto, imagemBase64, nomeDoc = null, idMensagem = null) {
+        function adicionarMensagemInspetor(
+            texto,
+            imagemBase64,
+            nomeDoc = null,
+            idMensagem = null,
+            opcoes = {}
+        ) {
+            const opts = (opcoes && typeof opcoes === "object") ? opcoes : {};
             const whisper = ehWhisper(texto);
 
             const linha = document.createElement("div");
             linha.className = `linha-mensagem mensagem-inspetor${whisper ? " whisper-msg" : ""}`;
 
-            if (idMensagem) {
+            const mensagemIdPersistida = Number(opts.mensagemId);
+            if (Number.isFinite(mensagemIdPersistida) && mensagemIdPersistida > 0) {
+                linha.dataset.mensagemId = String(mensagemIdPersistida);
+            } else if (idMensagem) {
                 linha.dataset.mensagemId = String(idMensagem);
                 linha.dataset.tmpId = String(idMensagem);
             }
@@ -237,6 +272,14 @@
 
             corpo.appendChild(nomeRemetente);
 
+            const blocoReferencia = criarBlocoReferenciaMensagem(
+                opts.referenciaMensagemId,
+                opts.referenciaTexto
+            );
+            if (blocoReferencia) {
+                corpo.appendChild(blocoReferencia);
+            }
+
             if (nomeDoc) {
                 const chipDocumento = document.createElement("div");
                 chipDocumento.className = "chip-documento";
@@ -267,7 +310,7 @@
                 corpo.appendChild(p);
             }
 
-            if (idMensagem) {
+            if (idMensagem && !opts.omitirStatusEntrega) {
                 const tiques = document.createElement("span");
                 tiques.className = "tiques-status status-enviado";
                 tiques.setAttribute("aria-hidden", "true");
@@ -348,7 +391,8 @@
             return linha;
         }
 
-        function adicionarMensagemNaUI(remetente, texto, tipo) {
+        function adicionarMensagemNaUI(remetente, texto, tipo, opcoes = {}) {
+            const opts = (opcoes && typeof opcoes === "object") ? opcoes : {};
             const remetenteNormalizado = textoSeguro(remetente).toLowerCase();
             const tipoNormalizado = textoSeguro(tipo).toLowerCase();
 
@@ -361,10 +405,18 @@
 
             const linha = document.createElement("div");
             linha.className = `linha-mensagem mensagem-ia ${ehEngenharia ? "whisper-eng" : "whisper-insp"}`;
+            const mensagemIdPersistida = Number(opts.mensagemId);
+            if (Number.isFinite(mensagemIdPersistida) && mensagemIdPersistida > 0) {
+                linha.dataset.mensagemId = String(mensagemIdPersistida);
+            }
 
             const avatarIcone = ehEngenharia ? "engineering" : "person";
             const titulo = ehEngenharia ? "Mesa de Engenharia" : "Inspetor";
             const cor = ehEngenharia ? "#F47B20" : "#0F2B46";
+            const blocoReferencia = criarBlocoReferenciaMensagem(
+                opts.referenciaMensagemId,
+                opts.referenciaTexto
+            );
 
             linha.innerHTML = `
                 <div class="conteudo-mensagem">
@@ -379,6 +431,11 @@
                     </div>
                 </div>
             `;
+
+            if (blocoReferencia) {
+                const corpo = linha.querySelector(".corpo-texto");
+                corpo?.insertBefore(blocoReferencia, corpo.querySelector(".texto-msg"));
+            }
 
             areaMensagens.appendChild(linha);
             rolarParaBaixo();

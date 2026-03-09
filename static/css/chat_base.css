@@ -2018,6 +2018,56 @@ body.sidebar-colapsada .btn-ir-fim-chat {
     color: var(--accent-wf, #F47B20) !important;
 }
 
+.bloco-referencia-chat {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 0 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(244, 123, 32, 0.45);
+    border-left: 3px solid var(--accent-wf, #F47B20);
+    border-radius: 10px;
+    background: rgba(244, 123, 32, 0.08);
+    color: #ffd9bd;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bloco-referencia-chat .material-symbols-rounded {
+    font-size: 18px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.bloco-referencia-chat .ref-conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bloco-referencia-chat .ref-conteudo strong {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.bloco-referencia-chat .ref-conteudo span {
+    font-size: 12px;
+    line-height: 1.35;
+    color: #f8efe7;
+    opacity: .95;
+}
+
+.bloco-referencia-chat:hover {
+    background: rgba(244, 123, 32, 0.15);
+}
+
+.linha-mensagem.destacar-referencia .corpo-texto {
+    box-shadow: 0 0 0 2px rgba(244, 123, 32, 0.62);
+}
+
 /* ==========================================
    MODO FOCO
    ========================================== */
