@@ -40,9 +40,19 @@ SENHA_HASH_PADRAO = criar_hash_senha(SENHA_PADRAO)
 
 
 def _extrair_csrf(html: str) -> str:
-    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', html)
-    assert match, "Token CSRF nao encontrado no HTML."
-    return match.group(1)
+    match_meta = re.search(r'<meta\s+name="csrf-token"\s+content="([^"]+)"', html, flags=re.IGNORECASE)
+    if match_meta:
+        return match_meta.group(1)
+
+    match_input = re.search(r'name="csrf_token"[^>]*\svalue="(?!\$\{)([^"]+)"', html, flags=re.IGNORECASE)
+    if match_input:
+        return match_input.group(1)
+
+    match_boot = re.search(r'"csrfToken"\s*:\s*"([^"]+)"', html)
+    if match_boot:
+        return match_boot.group(1)
+
+    raise AssertionError("Token CSRF nao encontrado no HTML.")
 
 
 def _criar_laudo(
@@ -83,7 +93,7 @@ def _login_app_inspetor(client: TestClient, email: str) -> str:
     )
     assert resposta.status_code == 303
     assert resposta.headers["location"] == "/app/"
-    return csrf
+    return _csrf_pagina(client, "/app/")
 
 
 def _login_revisor(client: TestClient, email: str) -> str:
@@ -101,7 +111,7 @@ def _login_revisor(client: TestClient, email: str) -> str:
     )
     assert resposta.status_code == 303
     assert resposta.headers["location"] == "/revisao/painel"
-    return csrf
+    return _csrf_pagina(client, "/revisao/painel")
 
 
 def _login_admin(client: TestClient, email: str) -> str:
@@ -119,7 +129,7 @@ def _login_admin(client: TestClient, email: str) -> str:
     )
     assert resposta.status_code == 303
     assert resposta.headers["location"] == "/admin/painel"
-    return csrf
+    return _csrf_pagina(client, "/admin/painel")
 
 
 def _csrf_pagina(client: TestClient, rota: str) -> str:

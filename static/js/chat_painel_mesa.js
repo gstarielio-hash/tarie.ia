@@ -47,6 +47,55 @@
         return document.getElementById("btn-toggle-humano");
     }
 
+    function possuiWidgetMesaDedicado() {
+        return Boolean(
+            document.getElementById("painel-mesa-widget") &&
+            document.getElementById("mesa-widget-input")
+        );
+    }
+
+    function abrirWidgetMesaDedicado(texto = "") {
+        if (!possuiWidgetMesaDedicado()) return false;
+
+        const painel = document.getElementById("painel-mesa-widget");
+        const botaoToggle = document.getElementById("btn-mesa-widget-toggle");
+        const input = document.getElementById("mesa-widget-input");
+
+        const aberto =
+            botaoToggle?.getAttribute("aria-expanded") === "true" ||
+            painel?.classList.contains("aberto") ||
+            (painel ? !painel.hidden : false);
+
+        if (!aberto && botaoToggle) {
+            botaoToggle.click();
+        }
+
+        const sugestao = String(texto || "")
+            .replace(REGEX_ALIAS_MESA_INICIAL, "")
+            .trim();
+
+        if (input) {
+            if (sugestao && !String(input.value || "").trim()) {
+                input.value = sugestao;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+
+            try {
+                input.focus({ preventScroll: true });
+            } catch (_) {
+                input.focus();
+            }
+
+            try {
+                const fim = input.value.length;
+                input.setSelectionRange(fim, fim);
+            } catch (_) { }
+        }
+
+        fecharSidebarMobile();
+        return true;
+    }
+
     function fecharSidebarMobile() {
         if (window.innerWidth >= 768) return;
 
@@ -141,6 +190,10 @@
     // Apenas ativa/preenche o composer com o prefixo @insp.
     // Não dispara envio automático.
     function ativarMesaAvaliadora(texto = "") {
+        if (abrirWidgetMesaDedicado(texto)) {
+            return true;
+        }
+
         const campo = obterCampoMensagem();
         if (!campo) return false;
 
@@ -171,6 +224,11 @@
         if (!ok) {
             TP.toast?.("Campo de mensagem não encontrado.", "erro", 3000);
             return false;
+        }
+
+        if (possuiWidgetMesaDedicado()) {
+            TP.toast?.("Chat da mesa avaliadora aberto.", "info", 1800);
+            return true;
         }
 
         TP.toast?.("Atalho @insp ativado para a mesa avaliadora.", "info", 1800);

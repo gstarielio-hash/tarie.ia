@@ -306,7 +306,7 @@
         });
 
         mostrarToast(
-            "Digite sua mensagem — ela será enviada ao engenheiro com prefixo @insp.",
+            "Chat da mesa avaliadora aberto. Escreva sua mensagem por lá.",
             "info",
             3000
         );

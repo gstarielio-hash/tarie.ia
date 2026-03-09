@@ -245,28 +245,87 @@
         return `${MARCADOR_ENG}${base}`.trimEnd();
     }
 
+    function possuiMesaWidgetDedicado() {
+        return Boolean(
+            document.getElementById("painel-mesa-widget") &&
+            document.getElementById("mesa-widget-input")
+        );
+    }
+
+    function abrirMesaWidgetDedicado(texto = "") {
+        if (!possuiMesaWidgetDedicado()) return false;
+
+        const painel = document.getElementById("painel-mesa-widget");
+        const botaoToggle = document.getElementById("btn-mesa-widget-toggle");
+        const campoMesa = document.getElementById("mesa-widget-input");
+
+        const aberto =
+            botaoToggle?.getAttribute("aria-expanded") === "true" ||
+            painel?.classList.contains("aberto") ||
+            (painel ? !painel.hidden : false);
+
+        if (!aberto && botaoToggle) {
+            botaoToggle.click();
+        }
+
+        const sugestao = String(texto || "")
+            .replace(/^@?(insp|inspetor|eng|engenharia|revisor|mesa|avaliador|avaliacao)\b\s*[:\-]?\s*/i, "")
+            .trim();
+
+        if (campoMesa) {
+            if (sugestao && !String(campoMesa.value || "").trim()) {
+                campoMesa.value = sugestao;
+                campoMesa.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+
+            campoMesa.focus();
+            if (typeof campoMesa.setSelectionRange === "function") {
+                const fim = campoMesa.value.length;
+                campoMesa.setSelectionRange(fim, fim);
+            }
+        }
+
+        if (isMobile()) {
+            fecharSidebarSilencioso();
+        }
+
+        return true;
+    }
+
     function atualizarEstadoToggleMesa() {
         const campo = obterCampoMensagem();
         const btnToggle = document.getElementById("btn-toggle-humano");
         const btnSidebar = document.getElementById("btn-sidebar-engenheiro");
         if (!campo) return;
 
-        const ativo = /^eng\b/i.test(campo.value);
+        const widgetDedicadoAtivo = possuiMesaWidgetDedicado();
+        const ativo = widgetDedicadoAtivo ? false : /^eng\b/i.test(campo.value);
+        const tituloAtivo = widgetDedicadoAtivo
+            ? "Chat da mesa aberto"
+            : "Desativar conversa com engenharia";
+        const tituloInativo = widgetDedicadoAtivo
+            ? "Abrir chat da mesa avaliadora"
+            : "Falar com engenharia";
 
         marcarBotaoPressionado(btnToggle, ativo, {
             color: TOGGLE_COLOR,
-            tituloAtivo: "Desativar conversa com engenharia",
-            tituloInativo: "Falar com engenharia"
+            tituloAtivo,
+            tituloInativo
         });
 
         marcarBotaoPressionado(btnSidebar, ativo, {
             color: TOGGLE_COLOR,
-            tituloAtivo: "Desativar conversa com engenharia",
-            tituloInativo: "Falar com engenharia"
+            tituloAtivo,
+            tituloInativo
         });
     }
 
     function ativarMesaAvaliadora(texto = "") {
+        if (abrirMesaWidgetDedicado(texto)) {
+            atualizarEstadoToggleMesa();
+            return true;
+        }
+
         const campo = obterCampoMensagem();
         if (!campo) return false;
 
@@ -285,6 +344,11 @@
     }
 
     function alternarMesaAvaliadora() {
+        if (abrirMesaWidgetDedicado()) {
+            atualizarEstadoToggleMesa();
+            return;
+        }
+
         const campo = obterCampoMensagem();
         if (!campo) return;
 

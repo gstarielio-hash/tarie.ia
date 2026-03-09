@@ -1139,11 +1139,16 @@ def estado_relatorio_sanitizado(
 
 
 def formatar_data_humana(valor: Optional[datetime]) -> str:
+    return formatar_data_br(valor, incluir_ano=True)
+
+
+def formatar_data_br(valor: Optional[datetime], *, incluir_ano: bool = False) -> str:
     if not valor:
         return "-"
 
     try:
-        return valor.astimezone().strftime("%d/%m/%Y %H:%M")
+        formato = "%d/%m/%Y %H:%M" if incluir_ano else "%d/%m %H:%M"
+        return valor.astimezone().strftime(formato)
     except Exception:
         return "-"
 
@@ -2224,6 +2229,8 @@ async def rota_chat(
 
     mensagem_limpa = (dados.mensagem or "").strip()
     comando_rapido, argumento_comando_rapido = analisar_comando_rapido_chat(mensagem_limpa)
+    comando_rapido_eh_mesa = comando_rapido == "enviar_mesa"
+    mensagem_bruta_eh_mesa = mensagem_para_mesa(mensagem_limpa)
     dados_imagem_validos = validar_imagem_base64(dados.dados_imagem)
     texto_documento = (dados.texto_documento or "").strip()
     nome_documento = nome_documento_seguro(dados.nome_documento)
@@ -2263,7 +2270,10 @@ async def rota_chat(
                 detail="Laudo aprovado não pode ser editado.",
             )
 
-        if laudo.status_revisao == StatusRevisao.AGUARDANDO.value:
+        if (
+            laudo.status_revisao == StatusRevisao.AGUARDANDO.value
+            and not (mensagem_bruta_eh_mesa or comando_rapido_eh_mesa)
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="Laudo aguardando avaliação não pode receber novas mensagens.",
@@ -2735,7 +2745,15 @@ async def obter_mensagens_laudo(
         for cit in citacoes_laudo
     ]
 
-    consulta_mensagens = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id)
+    consulta_mensagens = banco.query(MensagemLaudo).filter(
+        MensagemLaudo.laudo_id == laudo_id,
+        ~MensagemLaudo.tipo.in_(
+            (
+                TipoMensagem.HUMANO_INSP.value,
+                TipoMensagem.HUMANO_ENG.value,
+            )
+        ),
+    )
     if cursor:
         consulta_mensagens = consulta_mensagens.filter(MensagemLaudo.id < cursor)
 

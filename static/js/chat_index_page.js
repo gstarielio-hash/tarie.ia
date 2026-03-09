@@ -44,7 +44,7 @@
         canal_ativo: {
             classe: "status-canal",
             icone: "alternate_email",
-            texto: "Canal @insp ativo",
+            texto: "Canal da mesa ativo",
         },
         aguardando: {
             classe: "status-aguardando",
@@ -576,7 +576,16 @@
     async function enviarMensagemMesaWidget() {
         const laudoId = obterLaudoAtivo();
         const texto = String(el.mesaWidgetInput?.value || "").trim();
-        if (!laudoId || !texto) return;
+
+        if (!laudoId) {
+            mostrarToast("Selecione um laudo ativo para conversar com a mesa.", "aviso", 2400);
+            return;
+        }
+
+        if (!texto) {
+            mostrarToast("Digite uma mensagem para a mesa avaliadora.", "aviso", 2200);
+            return;
+        }
 
         const referenciaId = Number(estado.mesaWidgetReferenciaAtiva?.id || 0) || null;
 
@@ -602,7 +611,11 @@
             });
 
             if (!resposta.ok) {
-                throw new Error(`HTTP_${resposta.status}`);
+                const detalhe = await extrairMensagemErroHTTP(
+                    resposta,
+                    `HTTP_${resposta.status}`
+                );
+                throw new Error(detalhe);
             }
 
             el.mesaWidgetInput.value = "";
@@ -611,7 +624,12 @@
             await carregarMensagensMesaWidget({ silencioso: true });
             atualizarStatusMesa("aguardando", texto.slice(0, 120));
         } catch (erro) {
-            mostrarToast("Falha ao enviar mensagem para a mesa.", "erro", 2400);
+            const detalhe = String(erro?.message || "").trim();
+            mostrarToast(
+                detalhe || "Falha ao enviar mensagem para a mesa.",
+                "erro",
+                2600
+            );
         } finally {
             el.mesaWidgetEnviar?.removeAttribute("aria-busy");
             if (el.mesaWidgetEnviar) {
@@ -679,26 +697,7 @@
         }
 
         const texto = String(dadosEvento?.texto || "").trim();
-        const mensagemId = Number(dadosEvento?.mensagem_id ?? dadosEvento?.id ?? 0) || null;
-        const referenciaMensagemId = Number(dadosEvento?.referencia_mensagem_id ?? 0) || null;
-
-        const mensagemJaRenderizada = mensagemId
-            ? !!document.querySelector(`.linha-mensagem[data-mensagem-id="${mensagemId}"]`)
-            : false;
-
-        if (
-            texto &&
-            !mensagemJaRenderizada &&
-            typeof window.adicionarMensagemNaUI === "function"
-        ) {
-            window.adicionarMensagemNaUI("engenharia", texto, "humano_eng", {
-                mensagemId,
-                referenciaMensagemId,
-            });
-            try {
-                window.TarielChatPainel?.adicionarAoHistorico?.("assistente", texto);
-            } catch (_) {}
-        } else if (!texto && typeof window.TarielAPI?.carregarLaudo === "function") {
+        if (!texto && typeof window.TarielAPI?.carregarLaudo === "function") {
             try {
                 await window.TarielAPI.carregarLaudo(laudoEvento, { forcar: true, silencioso: true });
             } catch (_) {}
@@ -995,6 +994,46 @@
 
         const tokenMeta = document.querySelector('meta[name="csrf-token"]')?.content?.trim() || "";
         return tokenMeta ? { ...base, "X-CSRF-Token": tokenMeta } : base;
+    }
+
+    async function extrairMensagemErroHTTP(resposta, fallback = "") {
+        if (!resposta) return String(fallback || "").trim();
+
+        try {
+            const tipoConteudo = String(resposta.headers?.get("content-type") || "").toLowerCase();
+
+            if (tipoConteudo.includes("application/json")) {
+                const payload = await resposta.json();
+                const detalhe =
+                    payload?.detail ??
+                    payload?.erro ??
+                    payload?.mensagem ??
+                    payload?.message ??
+                    "";
+
+                if (typeof detalhe === "string" && detalhe.trim()) {
+                    return detalhe.trim();
+                }
+
+                if (Array.isArray(detalhe) && detalhe.length > 0) {
+                    return String(
+                        detalhe
+                            .map((item) => String(item?.msg || item || "").trim())
+                            .filter(Boolean)
+                            .join(" | ")
+                    ).trim();
+                }
+            } else {
+                const bruto = String(await resposta.text()).trim();
+                if (bruto) {
+                    return bruto.slice(0, 240);
+                }
+            }
+        } catch (_) {
+            // Fallback silencioso.
+        }
+
+        return String(fallback || `Falha HTTP ${resposta.status || ""}`).trim();
     }
 
     function formatarDataPendencia(dataIso = "", fallback = "") {

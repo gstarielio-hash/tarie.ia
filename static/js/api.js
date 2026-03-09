@@ -944,6 +944,16 @@
 
         for (const msg of historicoLaudoPaginado) {
             const papel = String(msg?.papel || "").toLowerCase();
+            const tipoNormalizado = String(msg?.tipo || "").toLowerCase();
+
+            // Chat da mesa é exibido no widget dedicado.
+            if (
+                tipoNormalizado === "humano_insp" ||
+                tipoNormalizado === "humano_eng" ||
+                tipoNormalizado === "humanoeng"
+            ) {
+                continue;
+            }
 
             if (papel === "assistente") {
                 const elIA = criarBolhaIA(msg.modo || "detalhado");
@@ -971,17 +981,7 @@
                 continue;
             }
 
-            if (papel === "engenheiro" && typeof window.adicionarMensagemNaUI === "function") {
-                window.adicionarMensagemNaUI(
-                    "engenharia",
-                    String(msg.texto || ""),
-                    msg.tipo || "humanoeng",
-                    {
-                        mensagemId: Number(msg?.id ?? 0) || null,
-                        referenciaMensagemId: Number(msg?.referencia_mensagem_id ?? 0) || null,
-                    }
-                );
-                adicionarAoHistorico("assistente", String(msg.texto || ""));
+            if (papel === "engenheiro") {
                 continue;
             }
 
