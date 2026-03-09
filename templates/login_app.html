@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#081624">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+
+    <title>Portal do Cliente • Tariel IA</title>
+
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+
+    <style nonce="{{ csp_nonce }}">
+        :root {
+            --bg-body: #081624;
+            --bg-card: #0f2b46;
+            --bg-input: #173654;
+            --bg-input-focus: #1a3d5e;
+            --text-primary: #f0f6fc;
+            --text-secondary: #90aac0;
+            --text-label: #b0c4de;
+            --accent: #f47b20;
+            --accent-hover: #d86815;
+            --danger: #c62828;
+            --danger-soft: #ff8a80;
+            --danger-bg: rgba(198, 40, 40, 0.15);
+            --border-soft: rgba(176, 196, 222, 0.1);
+            --border-input: rgba(176, 196, 222, 0.2);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --focus-ring: 0 0 0 3px rgba(244, 123, 32, 0.15);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            margin: 0;
+            display: grid;
+            place-items: center;
+            min-height: 100svh;
+            padding: 24px;
+            background:
+                radial-gradient(circle at top, rgba(244, 123, 32, 0.08), transparent 28%),
+                var(--bg-body);
+            color: var(--text-primary);
+            font-family: "Inter", sans-serif;
+        }
+
+        .box-login {
+            width: 100%;
+            max-width: 420px;
+            padding: 36px 32px 28px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            background: linear-gradient(180deg, rgba(15, 43, 70, 0.98), rgba(12, 34, 55, 0.98));
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(8px);
+        }
+
+        .cabecalho-login {
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .cabecalho-login h1 {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 0 0 8px;
+            color: var(--accent);
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .cabecalho-login p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .alerta-erro {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 12px 14px;
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-sm);
+            background: var(--danger-bg);
+            color: var(--danger-soft);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .form-login {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            color: var(--text-label);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .campo-wrapper {
+            position: relative;
+        }
+
+        .campo-icone {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 19px;
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 16px 12px 44px;
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        }
+
+        .form-control::placeholder {
+            color: rgba(176, 196, 222, 0.55);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+            background: var(--bg-input-focus);
+            box-shadow: var(--focus-ring);
+        }
+
+        .campo-senha .form-control {
+            padding-right: 52px;
+        }
+
+        .btn-toggle-senha {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background-color .2s ease, color .2s ease;
+        }
+
+        .btn-toggle-senha:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .btn-toggle-senha:focus-visible,
+        .btn-login:focus-visible,
+        .form-control:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .ajuda-login {
+            margin-top: -4px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 50px;
+            margin-top: 6px;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent);
+            color: #fff;
+            font: inherit;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color .2s ease, transform .15s ease, opacity .2s ease;
+        }
+
+        .btn-login:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-login:disabled {
+            opacity: .75;
+            cursor: wait;
+            transform: none;
+        }
+
+        .rodape-login {
+            margin-top: 18px;
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .rodape-login strong {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .box-login {
+                min-height: 100svh;
+                max-width: none;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                border: none;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="box-login" aria-label="Portal do inspetor">
+        <header class="cabecalho-login">
+            <h1>
+                <span class="material-symbols-rounded" aria-hidden="true">engineering</span>
+                Tariel IA
+            </h1>
+            <p>Portal do Inspetor de Campo</p>
+        </header>
+
+        {% if erro %}
+        <div class="alerta-erro" role="alert" aria-live="assertive">
+            <span class="material-symbols-rounded" aria-hidden="true">error</span>
+            {{ erro | e }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/app/login" class="form-login" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="form-group">
+                <label for="email">E-mail corporativo</label>
+                <div class="campo-wrapper">
+                    <span class="material-symbols-rounded campo-icone" aria-hidden="true">mail</span>
+                    <input type="email" id="email" name="email" class="form-control" required autocomplete="username"
+                        autocapitalize="off" spellcheck="false" inputmode="email" placeholder="nome@empresa.com.br" {%
+                        if not em_producao %}value="inspetor@wf.com.br" {% endif %} autocomplete="username">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="senha">Senha de acesso</label>
+                <div class="campo-wrapper campo-senha">
+                    <span class="material-symbols-rounded campo-icone" aria-hidden="true">lock</span>
+                    <input type="password" id="senha" name="senha" class="form-control" required
+                        autocomplete="current-password" placeholder="••••••••" {% if not em_producao
+                        %}value="Dev@123456" {% endif %} autocomplete="current-password">
+                    <button type="button" class="btn-toggle-senha" id="btn-toggle-senha" aria-label="Mostrar senha"
+                        aria-pressed="false">
+                        <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
+                    </button>
+                </div>
+                <p class="ajuda-login">Use as mesmas credenciais liberadas para acesso de campo.</p>
+            </div>
+
+            <button type="submit" class="btn-login" id="btn-login">
+                <span>Entrar no sistema</span>
+                <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+            </button>
+        </form>
+
+        <p class="rodape-login">
+            Ambiente protegido para acesso ao <strong>Portal do Cliente</strong>.
+        </p>
+    </main>
+
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            "use strict";
+
+            const form = document.querySelector(".form-login");
+            const email = document.getElementById("email");
+            const senha = document.getElementById("senha");
+            const btnLogin = document.getElementById("btn-login");
+            const btnToggleSenha = document.getElementById("btn-toggle-senha");
+
+            if (btnToggleSenha && senha) {
+                btnToggleSenha.addEventListener("click", () => {
+                    const visivel = senha.type === "text";
+                    senha.type = visivel ? "password" : "text";
+                    btnToggleSenha.setAttribute("aria-pressed", String(!visivel));
+                    btnToggleSenha.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
+                    btnToggleSenha.querySelector(".material-symbols-rounded").textContent =
+                        visivel ? "visibility" : "visibility_off";
+                    senha.focus();
+                });
+            }
+
+            form?.addEventListener("submit", () => {
+                if (!email?.value || !senha?.value) return;
+                btnLogin.disabled = true;
+                btnLogin.innerHTML =
+                    '<span>Entrando...</span><span class="material-symbols-rounded" aria-hidden="true">progress_activity</span>';
+            });
+        })();
+    </script>
+</body>
+
+</html>

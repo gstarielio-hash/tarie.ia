@@ -1,0 +1,1010 @@
+/* ==========================================
+   TARIEL CONTROL TOWER — CHAT_MOBILE.CSS
+   Ajustes responsivos do chat e da aplicação
+   Camada final de responsividade do chat
+   Ordem recomendada de carga:
+   layout/app shell -> chat_base.css -> chat_index.css -> chat_mobile.css
+   ========================================== */
+
+/* ==========================================
+   TABLET / TELAS MÉDIAS
+   ========================================== */
+
+@media (max-width: 1024px) {
+    .thread-nav {
+        padding: 10px 18px;
+    }
+
+    .area-mensagens {
+        padding: 20px 18px 20px;
+        scroll-padding-bottom: 172px;
+    }
+
+    .rodape-entrada {
+        padding: 12px 18px 14px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    }
+
+    .pilula-entrada {
+        max-width: 100%;
+    }
+
+    .tela-boas-vindas {
+        padding: 24px 20px 20px;
+    }
+
+    .acoes-rapidas {
+        max-width: 100%;
+    }
+
+    .estatisticas-wf {
+        max-width: 100%;
+        padding: 14px 18px;
+    }
+
+    .conteudo-mensagem {
+        max-width: min(100%, 94%);
+    }
+
+    .acoes-mensagem {
+        padding-left: 46px;
+    }
+
+    .indicador-digitando {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}
+
+/* ==========================================
+   MOBILE
+   ========================================== */
+
+@media (max-width: 768px) {
+    /* ---------- comportamento geral ---------- */
+
+    .painel-chat,
+    .area-mensagens,
+    .rodape-entrada {
+        min-width: 0;
+    }
+
+    .area-mensagens {
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+        scroll-padding-bottom: 168px;
+    }
+
+    .thread-tab,
+    .btn-acao-msg,
+    .btn-copiar-codigo,
+    .chip-modo-resposta,
+    .rodape-entrada .btn-icone,
+    .btn-finalizar,
+    .btn-acao-rapida,
+    #btn-abrir-modal-novo,
+    #btn-nova-inspecao {
+        touch-action: manipulation;
+    }
+
+    /* ---------- Header / topo ---------- */
+
+    .cabecalho-wf {
+        min-height: var(--header-h-mobile);
+        height: var(--header-h-mobile);
+        padding: 0 12px;
+        gap: 8px;
+    }
+
+    .logo-titulo {
+        gap: 10px;
+    }
+
+    .logo-info {
+        gap: 2px;
+    }
+
+    .logo-linha h1 {
+        font-size: 14px;
+    }
+
+    .avatar-ia {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        font-size: 11px;
+    }
+
+    .status-conexao {
+        display: none;
+    }
+
+    .controles-cabecalho {
+        gap: 8px;
+    }
+
+    .seletor-setor {
+        min-height: 36px;
+        padding: 6px 8px;
+    }
+
+    .seletor-setor > .material-symbols-rounded {
+        display: none;
+    }
+
+    .seletor-setor select {
+        font-size: 11px;
+    }
+
+    .texto-btn {
+        display: none;
+    }
+
+    #btn-abrir-modal-novo,
+    #btn-nova-inspecao {
+        min-width: 38px;
+        min-height: 38px;
+        padding: 7px 10px;
+        border-radius: 10px;
+    }
+
+    /* ---------- Thread nav ---------- */
+
+    .thread-nav {
+        padding: 8px 14px;
+    }
+
+    .thread-nav-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .thread-breadcrumb {
+        width: 100%;
+        font-size: 11px;
+    }
+
+    .thread-tabs {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .thread-tab {
+        min-height: 32px;
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    /* ---------- Área de mensagens ---------- */
+
+    .area-mensagens {
+        gap: 14px;
+        padding: 16px 14px 16px;
+    }
+
+    .area-mensagens > .linha-mensagem,
+    .area-mensagens > .tela-boas-vindas,
+    .area-mensagens > .skeleton-carregamento,
+    .area-mensagens > .mensagem-boas-vindas,
+    .area-mensagens > .bloco-texto-solto {
+        max-width: 100%;
+    }
+
+    /* ---------- Boas-vindas ---------- */
+
+    .tela-boas-vindas {
+        margin-top: 0;
+        padding: 20px 16px 18px;
+        border-radius: 18px;
+    }
+
+    .icone-boas-vindas span {
+        margin-bottom: 6px;
+        font-size: 46px;
+    }
+
+    .tela-boas-vindas h2 {
+        margin: 10px 0 8px;
+        font-size: 22px;
+        line-height: 1.2;
+    }
+
+    .tela-boas-vindas p {
+        margin-bottom: 22px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .acoes-rapidas {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .btn-acao-rapida {
+        min-height: auto;
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .titulo-acao {
+        font-size: 13px;
+    }
+
+    .subtitulo-acao {
+        font-size: 11px;
+    }
+
+    .estatisticas-wf {
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 12px;
+    }
+
+    .stat-item {
+        padding: 0;
+    }
+
+    .stat-divisor {
+        width: 100%;
+        height: 1px;
+    }
+
+    .stat-valor {
+        font-size: 20px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+    }
+
+    /* ---------- Mensagens ---------- */
+
+    .linha-mensagem {
+        width: 100%;
+    }
+
+    .conteudo-mensagem {
+        gap: 8px;
+        max-width: 100%;
+    }
+
+    .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        font-size: 18px;
+    }
+
+    .corpo-texto {
+        width: fit-content;
+        min-width: 0;
+        max-width: min(100%, calc(100vw - 88px));
+        padding: 12px 14px;
+        border-radius: 6px 16px 16px 16px;
+    }
+
+    .mensagem-inspetor .corpo-texto,
+    .mensagem-usuario .corpo-texto {
+        border-radius: 16px 6px 16px 16px;
+    }
+
+    .nome-remetente {
+        font-size: 11px;
+    }
+
+    .texto-msg {
+        font-size: 14px;
+        line-height: 1.62;
+    }
+
+    .texto-msg h1 {
+        font-size: 17px;
+    }
+
+    .texto-msg h2 {
+        font-size: 15px;
+    }
+
+    .texto-msg h3 {
+        font-size: 13px;
+    }
+
+    .texto-msg ul,
+    .texto-msg ol {
+        padding-left: 18px;
+    }
+
+    .texto-msg table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .texto-msg th,
+    .texto-msg td {
+        padding: 7px 9px;
+        font-size: 12px;
+    }
+
+    .img-anexo {
+        max-height: 240px;
+        border-radius: 8px;
+    }
+
+    .chip-documento {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .tiques-status {
+        font-size: 14px;
+    }
+
+    /* ---------- Ações pós-resposta ---------- */
+
+    .acoes-mensagem {
+        gap: 6px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        margin-top: 8px;
+        padding-left: 42px;
+        padding-bottom: 2px;
+        opacity: 1;
+        scrollbar-width: none;
+    }
+
+    .acoes-mensagem::-webkit-scrollbar {
+        display: none;
+    }
+
+    .btn-acao-msg {
+        flex-shrink: 0;
+        min-height: 32px;
+        padding: 6px 8px;
+        border-radius: 7px;
+        font-size: 11px;
+    }
+
+    .btn-acao-msg .material-symbols-rounded {
+        font-size: 14px !important;
+    }
+
+    .acoes-mensagem .sep-acao {
+        display: none;
+    }
+
+    /* ---------- Código / citações / fontes ---------- */
+
+    .bloco-codigo {
+        border-radius: 10px;
+    }
+
+    .bloco-codigo-header {
+        padding: 7px 10px;
+    }
+
+    .bloco-codigo-lang {
+        font-size: 10px;
+    }
+
+    .btn-copiar-codigo {
+        min-height: 28px;
+        padding: 2px 4px;
+        font-size: 10px;
+    }
+
+    .bloco-codigo pre {
+        padding: 12px;
+    }
+
+    .bloco-codigo pre code,
+    .texto-msg code {
+        font-size: 12px;
+    }
+
+    .bloco-citacoes {
+        padding: 9px 10px;
+        border-radius: 8px;
+    }
+
+    .citacoes-titulo {
+        font-size: 10px;
+    }
+
+    .citacao-item,
+    .citacao-trecho {
+        font-size: 11px;
+    }
+
+    .fonte-item {
+        gap: 8px;
+        padding: 9px 10px;
+        border-radius: 8px;
+    }
+
+    .fonte-link {
+        font-size: 11px;
+    }
+
+    .fonte-dominio,
+    .fonte-detalhes summary,
+    .fonte-trecho {
+        font-size: 10px;
+    }
+
+    .sugestoes-rapidas {
+        padding-top: 2px;
+    }
+
+    .chip-sugestao {
+        padding: 3px 8px;
+        font-size: 10px;
+    }
+
+    /* ---------- Preview / drag ---------- */
+
+    .preview-anexo {
+        gap: 6px;
+    }
+
+    .preview-thumb {
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+    }
+
+    .preview-item.chip-documento-preview {
+        max-width: 100%;
+        font-size: 10px;
+    }
+
+    .chip-doc-nome {
+        max-width: 130px;
+    }
+
+    .box-arraste {
+        width: calc(100vw - 32px);
+        padding: 32px 20px;
+        border-radius: 16px;
+    }
+
+    .box-arraste .material-symbols-rounded {
+        font-size: 42px;
+    }
+
+    .box-arraste h3 {
+        font-size: 18px;
+    }
+
+    .box-arraste p {
+        font-size: 12px;
+    }
+
+    /* ---------- Composer ---------- */
+
+    .rodape-entrada {
+        gap: 6px;
+        padding: 10px 12px 12px;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .pilula-entrada {
+        gap: 6px;
+        padding: 8px;
+        border-radius: 18px;
+    }
+
+    .grupo-chip-modo {
+        gap: 4px;
+        padding: 2px 2px 0;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+    }
+
+    .grupo-chip-modo::-webkit-scrollbar {
+        display: none;
+    }
+
+    .chip-modo-resposta {
+        flex-shrink: 0;
+        min-height: 28px;
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .chip-modo-resposta .material-symbols-rounded {
+        font-size: 12px;
+    }
+
+    .controles-entrada {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 6px;
+    }
+
+    .btns-entrada-esquerda,
+    .btns-entrada-direita {
+        gap: 4px;
+    }
+
+    .highlight-backdrop {
+        padding: 8px 6px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #campo-mensagem {
+        min-height: 22px;
+        max-height: 140px;
+        padding: 9px 4px 8px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    #campo-mensagem.modo-eng-ativo {
+        padding-left: 8px;
+    }
+
+    .contador-chars {
+        min-width: 24px;
+        padding: 0 2px 2px;
+        font-size: 10px;
+    }
+
+    .rodape-entrada .btn-icone {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+    }
+
+    .rodape-entrada .btn-icone .material-symbols-rounded {
+        font-size: 20px !important;
+    }
+
+    .rodape-entrada .btn-icone.destaque {
+        border-radius: 10px;
+    }
+
+    .aviso-rodape {
+        margin-top: 4px;
+        padding: 0 6px;
+        font-size: 11px;
+        line-height: 1.45;
+    }
+
+    .btn-ir-fim-chat {
+        right: 14px;
+        bottom: 100px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    /* ---------- Digitando ---------- */
+
+    .indicador-digitando {
+        gap: 8px;
+        max-width: 100%;
+        padding: 0 14px 8px;
+    }
+
+    .bolha-digitando {
+        padding: 10px 12px;
+        border-radius: 6px 14px 14px 14px;
+    }
+
+    .bolha-digitando .dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .cursor-piscando {
+        width: 7px;
+        height: 14px;
+    }
+
+    /* ---------- Toast ---------- */
+
+    .toast-notificacao {
+        bottom: 78px;
+        max-width: calc(100vw - 20px);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+    }
+
+    .toast-notificacao .material-symbols-rounded {
+        font-size: 15px !important;
+    }
+
+    /* ---------- Banner / barra de inspeção / modal ---------- */
+
+    .barra-status-inspecao {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px 16px;
+    }
+
+    .status-info {
+        font-size: 13px;
+    }
+
+    .texto-status-inspecao {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .btn-finalizar {
+        width: 100%;
+        justify-content: center;
+        min-height: 40px;
+        padding: 10px 14px;
+        font-size: 12px;
+    }
+
+    .banner-engenharia {
+        width: calc(100% - 24px);
+        max-width: 520px;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 16px;
+        white-space: normal;
+    }
+
+    .banner-texto {
+        min-width: 0;
+        font-size: 12px;
+    }
+
+    .banner-texto strong {
+        font-size: 13px;
+    }
+
+    .modal-overlay {
+        padding: 14px;
+    }
+
+    .modal-container {
+        max-width: 100%;
+        border-radius: 14px;
+    }
+
+    .modal-header {
+        padding: 16px 16px 14px;
+    }
+
+    .modal-header h2 {
+        font-size: 16px;
+    }
+
+    .modal-body {
+        gap: 10px;
+        padding: 16px;
+    }
+
+    .modal-body p {
+        font-size: 13px;
+    }
+
+    .modal-label {
+        font-size: 12px;
+    }
+
+    .modal-select {
+        padding: 11px 12px;
+        font-size: 13px;
+    }
+
+    /* ---------- Sidebar mobile complementar ---------- */
+
+    .sidebar-topo {
+        padding-top: 2px;
+    }
+
+    .titulo-historico {
+        padding-left: 12px;
+        padding-right: 12px;
+        font-size: 10px;
+    }
+
+    .busca-historico {
+        margin: 0 10px 10px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .busca-historico input {
+        font-size: 12px;
+    }
+
+    .aviso-limite-plano,
+    .banner-relatorio-ativo {
+        margin-left: 10px;
+        margin-right: 10px;
+        border-radius: 10px;
+    }
+
+    .lista-historico {
+        padding-bottom: 14px;
+    }
+
+    .grupo-data-header {
+        padding-left: 12px;
+        padding-right: 12px;
+        font-size: 9px;
+    }
+
+    .item-historico {
+        width: calc(100% - 12px);
+        margin: 0 6px;
+        padding: 11px 34px 11px 10px;
+        border-radius: 12px;
+    }
+
+    .item-historico > .material-symbols-rounded {
+        font-size: 17px !important;
+    }
+
+    .texto-laudo-historico span:first-child {
+        font-size: 13px;
+    }
+
+    .texto-laudo-historico .preview-mensagem,
+    .texto-laudo-historico small {
+        font-size: 11px;
+    }
+
+    .barra-historico .btn-pin-item,
+    .barra-historico .btn-acao-laudo,
+    .barra-historico .btn-pin-laudo,
+    .barra-historico .btn-deletar-laudo {
+        width: 20px;
+        height: 20px;
+        opacity: 1;
+    }
+
+    .barra-historico .btn-pin-item .material-symbols-rounded,
+    .barra-historico .btn-acao-laudo .material-symbols-rounded,
+    .barra-historico .btn-pin-laudo .material-symbols-rounded,
+    .barra-historico .btn-deletar-laudo .material-symbols-rounded {
+        font-size: 13px !important;
+    }
+
+    .sidebar-acoes-rodape,
+    .acoes-sidebar {
+        gap: 8px;
+        padding: 12px 10px 10px;
+    }
+
+    .btn-sidebar-engenheiro,
+    .btn-sidebar-suporte {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .usuario-logado {
+        gap: 10px;
+        padding: 12px 10px;
+    }
+
+    .usuario-logado > .material-symbols-rounded {
+        font-size: 28px;
+    }
+
+    .info-usuario-container strong {
+        font-size: 13px;
+    }
+
+    .info-usuario {
+        font-size: 11px;
+    }
+}
+
+/* ==========================================
+   TELAS PEQUENAS
+   ========================================== */
+
+@media (max-width: 480px) {
+    .cabecalho-wf {
+        padding: 0 10px;
+    }
+
+    .logo-linha h1 {
+        font-size: 13px;
+    }
+
+    .avatar-ia {
+        width: 32px;
+        height: 32px;
+        font-size: 10px;
+    }
+
+    .thread-nav {
+        padding: 8px 10px;
+    }
+
+    .area-mensagens {
+        gap: 12px;
+        padding: 12px 10px 14px;
+        scroll-padding-bottom: 160px;
+    }
+
+    .tela-boas-vindas {
+        padding: 18px 12px 16px;
+        border-radius: 16px;
+    }
+
+    .tela-boas-vindas h2 {
+        font-size: 20px;
+    }
+
+    .tela-boas-vindas p {
+        font-size: 13px;
+    }
+
+    .btn-acao-rapida {
+        padding: 12px;
+    }
+
+    .estatisticas-wf {
+        padding: 12px;
+    }
+
+    .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 17px;
+    }
+
+    .conteudo-mensagem {
+        gap: 6px;
+    }
+
+    .corpo-texto {
+        max-width: min(100%, calc(100vw - 72px));
+        padding: 11px 12px;
+    }
+
+    .texto-msg {
+        font-size: 13px;
+        line-height: 1.58;
+    }
+
+    .rodape-entrada {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .pilula-entrada {
+        padding: 7px;
+        border-radius: 16px;
+    }
+
+    .controles-entrada {
+        gap: 4px;
+    }
+
+    .btns-entrada-esquerda,
+    .btns-entrada-direita {
+        gap: 2px;
+    }
+
+    .rodape-entrada .btn-icone {
+        width: 36px;
+        height: 36px;
+    }
+
+    .rodape-entrada .btn-icone .material-symbols-rounded {
+        font-size: 19px !important;
+    }
+
+    #campo-mensagem {
+        max-height: 120px;
+        font-size: 13px;
+    }
+
+    .highlight-backdrop {
+        font-size: 13px;
+    }
+
+    .contador-chars {
+        font-size: 9px;
+    }
+
+    .aviso-rodape {
+        font-size: 10px;
+    }
+
+    .btn-ir-fim-chat {
+        right: 10px;
+        bottom: 94px;
+        width: 36px;
+        height: 36px;
+    }
+
+    .toast-notificacao {
+        bottom: 72px;
+        text-align: left;
+        white-space: normal;
+    }
+
+    .modal-header,
+    .modal-body {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .barra-historico {
+        width: min(300px, 90vw);
+        min-width: min(300px, 90vw);
+    }
+}
+
+/* ==========================================
+   ORIENTAÇÃO LANDSCAPE BAIXA
+   ========================================== */
+
+@media (max-height: 540px) and (orientation: landscape) {
+    .tela-boas-vindas {
+        margin-top: 0;
+        padding-top: 16px;
+        padding-bottom: 14px;
+    }
+
+    .icone-boas-vindas span {
+        margin-bottom: 4px;
+        font-size: 38px;
+    }
+
+    .tela-boas-vindas h2 {
+        margin: 8px 0 6px;
+        font-size: 18px;
+    }
+
+    .tela-boas-vindas p {
+        margin-bottom: 16px;
+    }
+
+    .acoes-rapidas {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .btn-acao-rapida {
+        min-height: auto;
+    }
+
+    .rodape-entrada {
+        padding-top: 8px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    #campo-mensagem {
+        max-height: 92px;
+    }
+}
+
+/* ==========================================
+   IMPRESSÃO
+   ========================================== */
+
+@media print {
+    .overlay-sidebar,
+    .barra-historico,
+    .cabecalho-wf,
+    .rodape-entrada,
+    .indicador-digitando,
+    .sidebar-acoes-rodape,
+    .acoes-sidebar,
+    .btn-acao-msg,
+    .btn-sidebar-engenheiro,
+    .btn-sidebar-suporte {
+        display: none !important;
+    }
+}

@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#081624">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <title>Login Corporativo • Tariel Control</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+    <style nonce="{{ csp_nonce }}">
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Inter", sans-serif;
+        }
+
+        body {
+            background: #081624;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
+            color: #fff;
+        }
+
+        .login-container {
+            background: #0F2B46;
+            padding: 40px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            margin: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn .35s ease;
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-area .icone {
+            font-size: 48px;
+            color: #F47B20;
+        }
+
+        .logo-area h1 {
+            font-size: 24px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .logo-area p {
+            font-size: 14px;
+            color: #B0C4DE;
+            margin-top: 5px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            color: #B0C4DE;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 16px;
+            transition: border-color .3s, background .3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #F47B20;
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 3px rgba(244, 123, 32, 0.25);
+        }
+
+        .input-group input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 50px #0F2B46 inset;
+            -webkit-text-fill-color: #fff;
+        }
+
+        .input-group input.invalido {
+            border-color: rgba(255, 77, 77, .6);
+        }
+
+        .input-group input.valido {
+            border-color: rgba(72, 199, 142, .6);
+        }
+
+        .msg-campo {
+            font-size: 11px;
+            margin-top: 5px;
+            padding-left: 2px;
+        }
+
+        .msg-campo.erro {
+            color: #ff8a8a;
+        }
+
+        .msg-campo.aviso {
+            color: #F47B20;
+        }
+
+        .senha-wrapper {
+            position: relative;
+        }
+
+        .senha-wrapper input {
+            padding-right: 44px;
+        }
+
+        .btn-toggle-senha {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #B0C4DE;
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color .2s;
+        }
+
+        .btn-toggle-senha:hover {
+            color: #F47B20;
+        }
+
+        .btn-toggle-senha .material-symbols-rounded {
+            font-size: 20px;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #F47B20;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .3s, transform .2s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-login:hover:not(:disabled) {
+            background: #d86815;
+            transform: translateY(-2px);
+        }
+
+        .btn-login:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .erro-msg {
+            background: rgba(255, 77, 77, .15);
+            border: 1px solid rgba(255, 77, 77, .4);
+            color: #ff8a8a;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .aviso-msg {
+            background: rgba(244, 123, 32, .12);
+            border: 1px solid rgba(244, 123, 32, .35);
+            color: #F47B20;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .badge-dev {
+            display: none;
+            background: rgba(244, 123, 32, 0.15);
+            border: 1px solid rgba(244, 123, 32, 0.3);
+            color: #F47B20;
+            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .rodape-login {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: rgba(176, 196, 222, 0.5);
+        }
+
+        .rodape-login strong {
+            color: rgba(176, 196, 222, 0.75);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── CSS Modal de Login (mantido para compatibilidade futura com <dialog>) ── */
+        @keyframes fadeInD {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #dialog-login {
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: #0F2B46;
+            color: #fff;
+            width: min(420px, calc(100vw - 32px));
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
+            animation: fadeInD .3s ease;
+        }
+
+        #dialog-login::backdrop {
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+
+<body data-login-ok="{{ '1' if login_sucesso else '0' }}">
+    <div class="login-container" role="main" aria-label="Formulário de acesso">
+
+        <div class="logo-area">
+            <span class="material-symbols-rounded icone" aria-hidden="true">shield_person</span>
+            <h1>Acesso Restrito</h1>
+            <p>Portal da Diretoria WF Engenharia</p>
+        </div>
+
+        <div class="badge-dev" id="badge-dev" aria-live="polite">
+            🛠️ Modo Dev — credenciais preenchidas automaticamente
+        </div>
+
+        <div class="aviso-msg" id="aviso-rate" role="alert" aria-live="assertive"></div>
+
+        {% if erro %}
+        <div class="erro-msg" role="alert" aria-live="assertive">
+            <span class="material-symbols-rounded" aria-hidden="true" style="font-size:16px;">error</span>
+            {{ erro | e }}
+        </div>
+        {% endif %}
+
+        <form action="/admin/login" method="POST" id="form-login" novalidate autocomplete="off">
+
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="input-group">
+                <label for="email">E-mail Corporativo</label>
+                <input type="email" id="email" name="email" required placeholder="diretoria@wf.com.br"
+                    autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none"
+                    aria-describedby="msg-email" autocomplete="username">
+                <span class="msg-campo" id="msg-email" aria-live="polite"></span>
+            </div>
+
+            <div class="input-group">
+                <label for="senha">Senha de Acesso</label>
+                <div class="senha-wrapper">
+                    <input type="password" id="senha" name="senha" required placeholder="••••••••"
+                        autocomplete="current-password" minlength="8" aria-describedby="msg-senha" autocomplete="current-password">
+                    <button type="button" class="btn-toggle-senha" id="btn-toggle-senha" aria-label="Mostrar senha"
+                        aria-pressed="false">
+                        <span class="material-symbols-rounded" id="icone-toggle">visibility</span>
+                    </button>
+                </div>
+                <span class="msg-campo" id="msg-senha" aria-live="polite"></span>
+            </div>
+
+            <button type="submit" class="btn-login" id="btn-login">
+                <span class="material-symbols-rounded" aria-hidden="true">login</span>
+                Autenticar Sistema
+            </button>
+        </form>
+
+        <p class="rodape-login">
+            Acesso restrito a membros da<br>
+            <strong>Diretoria WF Engenharia</strong>
+        </p>
+    </div>
+
+    <script nonce="{{ csp_nonce }}">
+        (function () {
+            "use strict";
+
+            // ── Autofill APENAS em localhost (dev) ─────────────────────────────────────
+            if (["localhost", "127.0.0.1"].includes(location.hostname)) {
+                document.getElementById("email").value = "admin@wf.com.br";
+                document.getElementById("senha").value = "Admin@2026";
+                document.getElementById("badge-dev").style.display = "block";
+            }
+
+            // ── Toggle mostrar / ocultar senha ─────────────────────────────────────────
+            const senhaInput = document.getElementById("senha");
+            const btnToggle = document.getElementById("btn-toggle-senha");
+            const iconeToggle = document.getElementById("icone-toggle");
+
+            btnToggle.addEventListener("click", () => {
+                const visivel = senhaInput.type === "text";
+                senhaInput.type = visivel ? "password" : "text";
+                iconeToggle.textContent = visivel ? "visibility" : "visibility_off";
+                btnToggle.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
+                btnToggle.setAttribute("aria-pressed", String(!visivel));
+            });
+
+            // ── Caps Lock detector ─────────────────────────────────────────────────────
+            const msgSenha = document.getElementById("msg-senha");
+            senhaInput.addEventListener("keyup", (e) => {
+                if (e.getModifierState && e.getModifierState("CapsLock")) {
+                    msgSenha.textContent = "⚠ Caps Lock ativado";
+                    msgSenha.className = "msg-campo aviso";
+                } else {
+                    if (msgSenha.textContent.includes("Caps")) {
+                        msgSenha.textContent = "";
+                        msgSenha.className = "msg-campo";
+                    }
+                }
+            });
+
+            // ── Validação client-side ──────────────────────────────────────────────────
+            const emailInput = document.getElementById("email");
+            const msgEmail = document.getElementById("msg-email");
+
+            function validarEmail(v) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+            }
+
+            emailInput.addEventListener("blur", () => {
+                if (!emailInput.value.trim()) {
+                    emailInput.className = "invalido";
+                    msgEmail.textContent = "Informe o e-mail corporativo.";
+                    msgEmail.className = "msg-campo erro";
+                } else if (!validarEmail(emailInput.value)) {
+                    emailInput.className = "invalido";
+                    msgEmail.textContent = "Formato de e-mail inválido.";
+                    msgEmail.className = "msg-campo erro";
+                } else {
+                    emailInput.className = "valido";
+                    msgEmail.textContent = "";
+                    msgEmail.className = "msg-campo";
+                }
+            });
+
+            senhaInput.addEventListener("blur", () => {
+                if (senhaInput.value.length < 8) {
+                    senhaInput.className = "invalido";
+                    if (!msgSenha.textContent.includes("Caps")) {
+                        msgSenha.textContent = "A senha deve ter ao menos 8 caracteres.";
+                        msgSenha.className = "msg-campo erro";
+                    }
+                } else {
+                    senhaInput.className = "valido";
+                    if (!msgSenha.textContent.includes("Caps")) {
+                        msgSenha.textContent = "";
+                        msgSenha.className = "msg-campo";
+                    }
+                }
+            });
+
+            // ── Rate limiting visual (3 tentativas → bloqueio 30s) ────────────────────
+            const LIMITE_TENTATIVAS = 3;
+            const BLOQUEIO_MS = 30_000;
+            const CHAVE_LS = "wf_login_tentativas";
+
+            function carregarEstado() {
+                try { return JSON.parse(localStorage.getItem(CHAVE_LS)) || { count: 0, desde: 0 }; }
+                catch { return { count: 0, desde: 0 }; }
+            }
+            function salvarEstado(s) {
+                localStorage.setItem(CHAVE_LS, JSON.stringify(s));
+            }
+
+            const avisoRate = document.getElementById("aviso-rate");
+            const btnLogin = document.getElementById("btn-login");
+            let timerBloqueio = null;
+
+            function verificarBloqueio() {
+                const estado = carregarEstado();
+                const agora = Date.now();
+                if (estado.count >= LIMITE_TENTATIVAS) {
+                    const restante = BLOQUEIO_MS - (agora - estado.desde);
+                    if (restante > 0) {
+                        ativarBloqueio(restante, estado);
+                        return true;
+                    } else {
+                        salvarEstado({ count: 0, desde: 0 });
+                    }
+                }
+                return false;
+            }
+
+            function ativarBloqueio(ms, estado) {
+                btnLogin.disabled = true;
+                clearInterval(timerBloqueio);
+                timerBloqueio = setInterval(() => {
+                    const restante = BLOQUEIO_MS - (Date.now() - estado.desde);
+                    if (restante <= 0) {
+                        clearInterval(timerBloqueio);
+                        btnLogin.disabled = false;
+                        avisoRate.style.display = "none";
+                        salvarEstado({ count: 0, desde: 0 });
+                        btnLogin.innerHTML =
+                            '<span class="material-symbols-rounded" aria-hidden="true">login</span> Autenticar Sistema';
+                    } else {
+                        const seg = Math.ceil(restante / 1000);
+                        avisoRate.style.display = "block";
+                        avisoRate.textContent = `⏳ Muitas tentativas. Aguarde ${seg}s para tentar novamente.`;
+                        btnLogin.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true" style="animation:spin 1s linear infinite;">sync</span> Bloqueado (${seg}s)`;
+                    }
+                }, 500);
+            }
+
+            verificarBloqueio();
+
+            // ── Submit com feedback + rate limit ──────────────────────────────────────
+            const form = document.getElementById("form-login");
+            form.addEventListener("submit", (e) => {
+                if (verificarBloqueio()) { e.preventDefault(); return; }
+
+                let ok = true;
+                if (!validarEmail(emailInput.value)) {
+                    emailInput.className = "invalido";
+                    msgEmail.textContent = "Informe um e-mail válido.";
+                    msgEmail.className = "msg-campo erro";
+                    ok = false;
+                }
+                if (senhaInput.value.length < 8) {
+                    senhaInput.className = "invalido";
+                    if (!msgSenha.textContent.includes("Caps")) {
+                        msgSenha.textContent = "Senha inválida.";
+                        msgSenha.className = "msg-campo erro";
+                    }
+                    ok = false;
+                }
+                if (!ok) { e.preventDefault(); return; }
+
+                const estado = carregarEstado();
+                estado.count += 1;
+                if (estado.count === 1) estado.desde = Date.now();
+                salvarEstado(estado);
+
+                btnLogin.disabled = true;
+                btnLogin.innerHTML =
+                    '<span class="material-symbols-rounded" aria-hidden="true" ' +
+                    'style="animation:spin 1s linear infinite;">sync</span> Verificando...';
+            });
+
+            // Limpa o rate limit se o login foi concluído com sucesso
+            if (document.body.dataset.loginOk === "1") {
+                salvarEstado({ count: 0, desde: 0 });
+            }
+
+        })();
+    </script>
+</body>
+
+</html>

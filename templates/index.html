@@ -1,0 +1,743 @@
+{% extends "base.html" %}
+
+{% block title %}Sistema WF • Inspeções Industriais{% endblock %}
+
+{# ============================================================
+   HEADER DO CHAT
+   ============================================================ #}
+{% block header %}
+<header class="cabecalho-wf">
+    <div class="logo-titulo">
+        <button
+            type="button"
+            id="btn-menu"
+            class="btn-icone"
+            aria-label="Alternar menu lateral"
+            aria-expanded="false"
+            aria-controls="barra-historico"
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">menu</span>
+        </button>
+
+        <div class="logo-info">
+            <div class="logo-linha">
+                <div class="avatar-ia" aria-hidden="true">TI</div>
+                <h1>Assistente Técnico WF</h1>
+            </div>
+
+            <div class="status-conexao" id="status-conexao" aria-live="polite">
+                <span class="indicador-online" id="indicador-online" aria-hidden="true"></span>
+                <span id="texto-status-conexao">Online</span>
+                <span class="separador-status" aria-hidden="true"></span>
+                <span class="material-symbols-rounded icone-cadeado" aria-hidden="true">lock</span>
+                <span>Conexão segura</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controles-cabecalho">
+        {# Reservado para futura filtragem de contexto/setor #}
+        <div class="seletor-setor" hidden>
+            <span class="material-symbols-rounded" aria-hidden="true">factory</span>
+            <label for="setor-industrial" class="sr-only">Setor industrial</label>
+
+            <select id="setor-industrial" aria-label="Selecione o setor industrial">
+                <option value="geral">Geral / Padrão</option>
+                <option value="eletrica">Elétrica / NR-10 / RTI / PIE</option>
+                <option value="mecanica">Mecânica / NR-12</option>
+                <option value="caldeiraria">Caldeiraria / NR-13</option>
+                <option value="avcb">AVCB / Corpo de Bombeiros</option>
+            </select>
+        </div>
+
+        <a
+            href="/app/"
+            class="btn-secundario btn-home-cabecalho"
+            aria-label="Ir para início"
+            title="Página inicial"
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">home</span>
+            <span class="texto-btn">Home</span>
+        </a>
+
+        <button
+            type="button"
+            id="btn-abrir-modal-novo"
+            class="btn-secundario"
+            aria-label="Iniciar nova inspeção"
+            aria-haspopup="dialog"
+            aria-controls="modal-nova-inspecao"
+            aria-expanded="false"
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">add</span>
+            <span class="texto-btn">Nova Inspeção</span>
+        </button>
+    </div>
+</header>
+{% endblock %}
+
+{# ============================================================
+   SIDEBAR / HISTÓRICO
+   ============================================================ #}
+{% block sidebar %}
+    {% include "componentes/sidebar.html" %}
+{% endblock %}
+
+{# ============================================================
+   CONTEÚDO PRINCIPAL DO CHAT
+   ============================================================ #}
+{% block content %}
+<main class="painel-chat" id="painel-chat">
+    {# Banner temporário quando a engenharia envia resposta #}
+    <div
+        id="banner-notificacao-engenharia"
+        class="banner-engenharia"
+        role="status"
+        aria-live="assertive"
+        aria-atomic="true"
+        hidden
+    >
+        <span class="material-symbols-rounded" aria-hidden="true">support_agent</span>
+
+        <div class="banner-texto">
+            <strong>Mesa avaliadora respondeu</strong>
+            <span id="texto-previa-notificacao">Nova mensagem recebida...</span>
+        </div>
+
+        <button type="button" class="btn-fechar-banner" aria-label="Fechar notificação">
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+    </div>
+
+    {# Barra de status da inspeção ativa #}
+    <div
+        id="barra-status-inspecao"
+        class="barra-status-inspecao"
+        hidden
+        aria-live="polite"
+    >
+        <div class="status-info">
+            <span class="material-symbols-rounded" aria-hidden="true">assignment</span>
+
+            <span class="texto-status-inspecao">
+                <span>Sessão ativa:</span>
+                <strong id="nome-template-ativo">Inspeção Geral</strong>
+            </span>
+
+            <span
+                id="pill-status-mesa"
+                class="pill-status-mesa status-pronta"
+                data-mesa-status="pronta"
+                role="status"
+                aria-live="polite"
+            >
+                <span id="icone-status-mesa" class="material-symbols-rounded" aria-hidden="true">support_agent</span>
+                <span id="texto-status-mesa">Mesa pronta</span>
+            </span>
+        </div>
+
+        <div class="acoes-status-inspecao">
+            <button
+                type="button"
+                id="btn-abrir-pendencias-mesa"
+                class="btn-pendencias-mesa"
+                aria-expanded="false"
+                aria-controls="painel-pendencias-mesa"
+                hidden
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
+                <span>Pendências</span>
+                <span id="badge-pendencias-mesa" class="badge-pendencias-mesa" hidden>0</span>
+            </button>
+
+            <button type="button" id="btn-finalizar-inspecao" class="btn-finalizar">
+                <span class="material-symbols-rounded" aria-hidden="true">send_and_archive</span>
+                Finalizar e Enviar para Mesa Avaliadora
+            </button>
+        </div>
+    </div>
+
+    <section
+        id="painel-pendencias-mesa"
+        class="painel-pendencias-mesa"
+        aria-live="polite"
+        hidden
+    >
+        <div class="cabecalho-pendencias">
+            <h3>
+                <span class="material-symbols-rounded" aria-hidden="true">assignment_late</span>
+                Pendências da Mesa
+            </h3>
+
+            <div class="acoes-pendencias">
+                <button type="button" id="btn-exportar-pendencias-pdf" class="btn-pendencias-acao">
+                    Exportar PDF
+                </button>
+                <button type="button" id="btn-marcar-pendencias-lidas" class="btn-pendencias-acao">
+                    Marcar lidas
+                </button>
+                <button type="button" id="btn-fechar-pendencias-mesa" class="btn-pendencias-acao btn-secundaria">
+                    Fechar
+                </button>
+            </div>
+        </div>
+
+        <div class="filtros-pendencias" role="group" aria-label="Filtro de pendências">
+            <button
+                type="button"
+                class="chip-filtro-pendencia ativo"
+                data-filtro-pendencias="abertas"
+                aria-pressed="true"
+            >
+                Abertas
+            </button>
+            <button
+                type="button"
+                class="chip-filtro-pendencia"
+                data-filtro-pendencias="resolvidas"
+                aria-pressed="false"
+            >
+                Resolvidas
+            </button>
+            <button
+                type="button"
+                class="chip-filtro-pendencia"
+                data-filtro-pendencias="todas"
+                aria-pressed="false"
+            >
+                Todas
+            </button>
+        </div>
+
+        <p id="texto-vazio-pendencias-mesa" class="texto-vazio-pendencias" hidden>
+            Nenhuma pendência enviada pela mesa avaliadora neste laudo.
+        </p>
+
+        <p id="resumo-pendencias-mesa" class="resumo-pendencias-mesa" hidden></p>
+
+        <ul id="lista-pendencias-mesa" class="lista-pendencias-mesa"></ul>
+
+        <div class="rodape-pendencias">
+            <button
+                type="button"
+                id="btn-carregar-mais-pendencias"
+                class="btn-pendencias-acao btn-carregar-mais-pendencias"
+                hidden
+            >
+                Carregar mais
+            </button>
+        </div>
+    </section>
+
+    {# Feed de mensagens #}
+    <div
+        id="area-mensagens"
+        class="area-mensagens"
+        role="log"
+        aria-relevant="additions text"
+        aria-label="Conversa com a IA"
+    >
+        {# Tela inicial antes do início da inspeção #}
+        <div id="tela-boas-vindas" class="tela-boas-vindas">
+            <div class="icone-boas-vindas" aria-hidden="true">
+                <span class="material-symbols-rounded">manage_accounts</span>
+            </div>
+
+            <h2>Central de Inspeções WF</h2>
+
+            <p>
+                Abra uma nova inspeção por modalidade ou em <strong>Chat Livre</strong>.
+                Para falar com a mesa avaliadora dentro do mesmo chat, comece a mensagem com <strong>@insp</strong>.
+            </p>
+
+            <div class="fluxo-operacional" aria-label="Fluxo operacional da inspeção">
+                <article class="passo-fluxo">
+                    <span class="passo-indice">1</span>
+                    <h3>Novo Laudo</h3>
+                    <p>Escolha a modalidade (NR, AVCB, SPDA etc.) e inicie a coleta em campo.</p>
+                </article>
+
+                <article class="passo-fluxo">
+                    <span class="passo-indice">2</span>
+                    <h3>Coleta Guiada</h3>
+                    <p>Envie fotos e observações para a IA estruturar o laudo técnico com checklist.</p>
+                </article>
+
+                <article class="passo-fluxo">
+                    <span class="passo-indice">3</span>
+                    <h3>Validação</h3>
+                    <p>Use <strong>@insp</strong> para alinhar com engenharia e finalizar para revisão.</p>
+                </article>
+            </div>
+
+            <div class="acoes-rapidas">
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-avcb"
+                    data-tipo="avcb"
+                    data-preprompt="Inicie checklist AVCB para esta planta. Vou enviar fotos e dados para validar segurança contra incêndio."
+                    aria-label="Checklist AVCB"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">local_fire_department</span>
+                    <span class="titulo-acao">Checklist AVCB</span>
+                    <span class="subtitulo-acao">Projeto Bombeiros</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-nr12"
+                    data-tipo="nr12maquinas"
+                    data-preprompt="Inicie análise de adequação NR-12. Liste riscos, não conformidades e ações corretivas."
+                    aria-label="Adequação NR-12"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">precision_manufacturing</span>
+                    <span class="titulo-acao">Adequação NR-12</span>
+                    <span class="subtitulo-acao">Máquinas e Equipamentos</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-nr13"
+                    data-tipo="nr13"
+                    data-preprompt="Inicie inspeção NR-13 para caldeiras e vasos de pressão. Quero não conformidades, riscos e plano de ação."
+                    aria-label="Inspeção NR-13"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">warehouse</span>
+                    <span class="titulo-acao">Inspeção NR-13</span>
+                    <span class="subtitulo-acao">Caldeiras e Vasos</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-rti"
+                    data-tipo="rti"
+                    data-preprompt="Inicie análise RTI da instalação elétrica. Vou enviar fotos e medições para laudo com recomendações."
+                    aria-label="RTI Elétrica"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">bolt</span>
+                    <span class="titulo-acao">RTI Elétrica</span>
+                    <span class="subtitulo-acao">NR-10</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-pie"
+                    data-tipo="pie"
+                    data-preprompt="Inicie inspeção PIE. Preciso mapear documentos obrigatórios, pendências e plano de regularização."
+                    aria-label="PIE Instalações Elétricas"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">electrical_services</span>
+                    <span class="titulo-acao">PIE</span>
+                    <span class="subtitulo-acao">Prontuário Elétrico</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-spda"
+                    data-tipo="spda"
+                    data-preprompt="Inicie inspeção SPDA conforme NBR 5419. Quero diagnóstico objetivo com prioridades."
+                    aria-label="Inspeção SPDA"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">thunderstorm</span>
+                    <span class="titulo-acao">Inspeção SPDA</span>
+                    <span class="subtitulo-acao">NBR 5419</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-loto"
+                    data-tipo="padrao"
+                    data-preprompt="Inicie laudo LOTO com checklist guiado. Vou enviar os pontos de bloqueio, energias perigosas e sinalização."
+                    aria-label="Implantação LOTO"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">lock</span>
+                    <span class="titulo-acao">Implantação LOTO</span>
+                    <span class="subtitulo-acao">Bloqueio e Sinalização</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-acao-rapida acao-padrao"
+                    data-tipo="padrao"
+                    data-preprompt="Inicie laudo em chat livre. Vou descrever a inconformidade e preciso parecer técnico estruturado."
+                    aria-label="Laudo em chat livre"
+                >
+                    <span class="material-symbols-rounded icone-acao" aria-hidden="true">article</span>
+                    <span class="titulo-acao">Chat Livre</span>
+                    <span class="subtitulo-acao">Inspeção Geral</span>
+                </button>
+            </div>
+
+            <div class="estatisticas-wf" aria-label="Estatísticas da WF Soluções">
+                <div class="stat-item">
+                    <span class="stat-valor">+600</span>
+                    <span class="stat-label">Empresas Atendidas</span>
+                </div>
+
+                <div class="stat-divisor" aria-hidden="true"></div>
+
+                <div class="stat-item">
+                    <span class="stat-valor">+1.500</span>
+                    <span class="stat-label">Laudos c/ ART</span>
+                </div>
+
+                <div class="stat-divisor" aria-hidden="true"></div>
+
+                <div class="stat-item">
+                    <span class="stat-valor">3x</span>
+                    <span class="stat-label">Mais Rápido</span>
+                </div>
+            </div>
+        </div>
+
+        {# Indicador visual de digitação da IA #}
+        <div
+            id="indicador-digitando"
+            class="indicador-digitando"
+            role="status"
+            aria-label="Tariel está digitando"
+            aria-hidden="true"
+        >
+            <div class="avatar avatar-digitando" aria-hidden="true">
+                <span class="material-symbols-rounded">smart_toy</span>
+            </div>
+
+            <div class="bolha-digitando">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+    </div>
+
+    <button
+        type="button"
+        id="btn-ir-fim-chat"
+        class="btn-ir-fim-chat"
+        aria-label="Ir para última mensagem"
+        title="Ir para última mensagem"
+    >
+        <span class="material-symbols-rounded" aria-hidden="true">arrow_downward</span>
+    </button>
+
+    {# Camada de arraste para anexos #}
+    <div id="camada-arraste" class="camada-arraste" aria-hidden="true">
+        <div class="box-arraste">
+            <span class="material-symbols-rounded" aria-hidden="true">upload_file</span>
+            <h3>Solte o arquivo aqui</h3>
+            <p>Imagens (PNG, JPG, WebP) ou documentos (PDF, DOCX)</p>
+        </div>
+    </div>
+
+    {# Composer / entrada de mensagens #}
+    <footer class="rodape-entrada">
+        <div class="pilula-entrada">
+            <div
+                id="preview-anexo"
+                class="preview-anexo"
+                role="status"
+                aria-label="Pré-visualização do arquivo"
+                aria-live="polite"
+            ></div>
+
+            <div class="grupo-chip-modo" role="group" aria-label="Modo de resposta da IA">
+                <button
+                    class="chip-modo-resposta"
+                    type="button"
+                    data-modo="curto"
+                    aria-pressed="false"
+                    title="Resposta resumida"
+                >
+                    <span class="material-symbols-rounded" aria-hidden="true">compress</span>
+                    Curto
+                </button>
+
+                <button
+                    class="chip-modo-resposta ativo"
+                    type="button"
+                    data-modo="detalhado"
+                    aria-pressed="true"
+                    title="Resposta completa"
+                >
+                    <span class="material-symbols-rounded" aria-hidden="true">article</span>
+                    Detalhado
+                </button>
+            </div>
+
+            <div class="controles-entrada">
+                <div class="btns-entrada-esquerda">
+                    <button
+                        type="button"
+                        id="btn-anexo"
+                        class="btn-icone"
+                        title="Anexar arquivo"
+                        aria-label="Anexar arquivo"
+                    >
+                        <span class="material-symbols-rounded" aria-hidden="true">attach_file</span>
+                    </button>
+
+                    <input
+                        type="file"
+                        id="input-anexo"
+                        hidden
+                        aria-hidden="true"
+                        tabindex="-1"
+                    >
+
+                    <button
+                        type="button"
+                        id="btn-microfone"
+                        class="btn-icone"
+                        title="Ditar observação técnica por voz"
+                        aria-label="Ativar ditado"
+                    >
+                        <span class="material-symbols-rounded" aria-hidden="true">mic</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        id="btn-toggle-humano"
+                        class="btn-icone"
+                        title="Falar com Mesa Avaliadora"
+                        aria-label="Falar com mesa avaliadora"
+                    >
+                        <span class="material-symbols-rounded" aria-hidden="true">support_agent</span>
+                    </button>
+                </div>
+
+                <div class="container-textarea">
+                    <div id="highlight-backdrop" class="highlight-backdrop" aria-hidden="true"></div>
+
+                    <textarea
+                        id="campo-mensagem"
+                        rows="1"
+                        maxlength="8000"
+                        spellcheck="false"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        aria-label="Campo de mensagem"
+                        aria-multiline="true"
+                        placeholder="Descreva a inspeção ou envie foto… Use @insp para falar com a mesa avaliadora"
+                    ></textarea>
+                </div>
+
+                <div class="btns-entrada-direita">
+                    <span id="contador-chars" class="contador-chars" aria-live="polite" aria-atomic="true"></span>
+
+                    <button
+                        type="button"
+                        id="btn-enviar"
+                        class="btn-icone"
+                        disabled
+                        title="Enviar"
+                        aria-label="Enviar mensagem"
+                    >
+                        <span class="material-symbols-rounded" aria-hidden="true">arrow_upward</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <p class="dica-composer">
+            Dica: use <strong>@insp</strong> para conversar com a mesa e os comandos
+            <strong>/pendencias</strong>, <strong>/resumo</strong>, <strong>/enviar_mesa</strong> e <strong>/gerar_previa</strong>.
+        </p>
+
+        <p class="aviso-rodape">
+            Este assistente não substitui laudo técnico com ART.
+            A WF Soluções Industriais garante o sigilo dos dados.
+        </p>
+    </footer>
+</main>
+
+{# ============================================================
+   MODAL DE NOVA INSPEÇÃO
+   ============================================================ #}
+<div
+    id="modal-nova-inspecao"
+    class="modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-titulo"
+    aria-describedby="modal-descricao"
+    aria-hidden="true"
+    hidden
+>
+    <div class="modal-container" role="document">
+        <div class="modal-header">
+            <h2 id="modal-titulo">
+                <span class="material-symbols-rounded" aria-hidden="true">add_task</span>
+                Configurar Nova Inspeção
+            </h2>
+
+            <button type="button" class="btn-icone btn-fechar-modal" aria-label="Fechar modal">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <p id="modal-descricao">
+                Selecione a modalidade para iniciar o laudo com estrutura WF.
+            </p>
+
+            <label for="select-template-inspecao" class="modal-label">
+                Tipo de relatório / norma
+            </label>
+
+            <select id="select-template-inspecao" class="modal-select">
+                <optgroup label="Bombeiros e Incêndio">
+                    <option value="avcb">Laudo AVCB (Projeto e Conformidade)</option>
+                    <option value="cbmgo">Checklist CBM-GO (CMAR / Estrutura)</option>
+                </optgroup>
+                <optgroup label="Máquinas e Processos">
+                    <option value="nr12maquinas">Adequação NR-12 (Máquinas e Equipamentos)</option>
+                    <option value="nr13">Inspeção NR-13 (Caldeiras e Vasos)</option>
+                </optgroup>
+                <optgroup label="Instalações Elétricas">
+                    <option value="rti">RTI - Relatório Técnico de Instalações Elétricas</option>
+                    <option value="pie">PIE - Prontuário das Instalações Elétricas</option>
+                    <option value="spda">Inspeção SPDA - NBR 5419</option>
+                </optgroup>
+                <optgroup label="Flexível">
+                    <option value="padrao">Chat Livre / Inspeção Geral</option>
+                </optgroup>
+            </select>
+
+            <div class="modal-grid-contexto">
+                <div class="modal-campo">
+                    <label for="input-cliente-inspecao" class="modal-label">Empresa / Planta</label>
+                    <input
+                        id="input-cliente-inspecao"
+                        class="modal-input"
+                        type="text"
+                        maxlength="120"
+                        placeholder="Ex: Usina Metalúrgica WF - Unidade 02"
+                    >
+                </div>
+
+                <div class="modal-campo">
+                    <label for="input-unidade-inspecao" class="modal-label">Setor / Linha</label>
+                    <input
+                        id="input-unidade-inspecao"
+                        class="modal-input"
+                        type="text"
+                        maxlength="120"
+                        placeholder="Ex: Área de Prensas / Linha A"
+                    >
+                </div>
+            </div>
+
+            <div class="modal-campo">
+                <label for="textarea-objetivo-inspecao" class="modal-label">Objetivo da inspeção</label>
+                <textarea
+                    id="textarea-objetivo-inspecao"
+                    class="modal-textarea"
+                    rows="3"
+                    maxlength="600"
+                    placeholder="Descreva em poucas linhas o escopo e o foco da vistoria."
+                ></textarea>
+            </div>
+
+            <p class="modal-observacao">
+                Durante a coleta, use <strong>@insp</strong> para acionar a mesa avaliadora sem sair da conversa.
+            </p>
+
+            <button type="button" class="btn-acao" id="btn-confirmar-inspecao">
+                Iniciar Sessão de Coleta
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ============================================================
+   MODAL DE GATE DE QUALIDADE
+   ============================================================ #}
+<div
+    id="modal-gate-qualidade"
+    class="modal-overlay modal-overlay-gate"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="gate-qualidade-titulo"
+    aria-describedby="gate-qualidade-descricao"
+    aria-hidden="true"
+    hidden
+>
+    <div class="modal-container modal-container-gate" role="document">
+        <div class="modal-header modal-header-gate">
+            <h2 id="gate-qualidade-titulo">
+                <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
+                Checklist obrigatório antes do envio
+            </h2>
+
+            <button
+                type="button"
+                id="btn-fechar-modal-gate-qualidade"
+                class="btn-icone btn-fechar-modal"
+                aria-label="Fechar checklist de qualidade"
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body modal-body-gate">
+            <p id="gate-qualidade-descricao">
+                A sessão não foi enviada para a mesa avaliadora porque ainda faltam evidências obrigatórias.
+            </p>
+
+            <div class="gate-template-pill">
+                <span class="material-symbols-rounded" aria-hidden="true">assignment</span>
+                <span id="titulo-gate-template">Inspeção Geral</span>
+            </div>
+
+            <p id="texto-gate-qualidade-resumo" class="gate-resumo"></p>
+
+            <section class="bloco-gate-qualidade" aria-labelledby="titulo-gate-faltantes">
+                <h3 id="titulo-gate-faltantes">Itens pendentes</h3>
+                <ul id="lista-gate-faltantes" class="lista-gate-qualidade"></ul>
+            </section>
+
+            <details class="bloco-gate-qualidade gate-checklist-completo">
+                <summary>Ver checklist completo</summary>
+                <ul id="lista-gate-checklist" class="lista-gate-qualidade"></ul>
+            </details>
+
+            <div class="gate-acoes">
+                <button type="button" id="btn-entendi-gate-qualidade" class="btn-acao">
+                    Entendi, voltar para coleta
+                </button>
+                <button type="button" id="btn-gate-preencher-no-chat" class="btn-pendencias-acao">
+                    Inserir /pendencias no chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# ============================================================
+   SCRIPTS DO CHAT
+   Ordem importante:
+   1. base/core
+   2. render/rede
+   3. bootstrap primário da API
+   4. sidebar e index page
+   5. módulos do painel
+   ============================================================ #}
+{% block extra_scripts %}
+<script src="/static/js/api-core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat-render.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat-network.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/api.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/ui.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/hardware.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_sidebar.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_index_page.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+
+<script src="/static/js/chat_painel_core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_painel_laudos.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_painel_historico_acoes.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_painel_mesa.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_painel_relatorio.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat_painel_index.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+{% endblock %}

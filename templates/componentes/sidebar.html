@@ -1,0 +1,451 @@
+{# ============================================================
+   TARIEL — SIDEBAR DO CHAT / HISTÓRICO DE LAUDOS
+
+   RESPONSABILIDADES DESTE COMPONENTE:
+   - Exibir histórico de laudos recentes
+   - Exibir laudos fixados e não fixados
+   - Exibir alerta de limite do plano
+   - Exibir banner de relatório em andamento
+   - Exibir ações rápidas da sidebar
+   - Exibir usuário logado
+
+   REGRAS DE ARQUITETURA:
+   - Este template deve conter apenas marcação Jinja/HTML
+   - Nenhuma lógica JS inline deve permanecer aqui
+   - O comportamento da lateral deve ficar em:
+     /static/js/chat_sidebar.js
+   - O #overlay-sidebar continua fora do .container-app
+   ============================================================ #}
+
+{# ============================================================
+   MAPA DE ÍCONES POR SETOR
+   ============================================================ #}
+{% set icones_setor = {
+    'eletrica': 'bolt',
+    'mecanica': 'precision_manufacturing',
+    'caldeiraria': 'valve',
+    'spda': 'thunderstorm',
+    'loto': 'lock',
+    'nr10': 'electrical_services',
+    'nr12': 'settings',
+    'nr13': 'compress',
+    'nr35': 'height',
+    'avcb': 'local_fire_department',
+    'pie': 'schema',
+    'rti': 'description',
+    'geral': 'history'
+} %}
+
+{# ============================================================
+   MAPA DE STATUS PARA CLASSE CSS
+   ============================================================ #}
+{% set mapa_status = {
+    'conforme': 'conforme',
+    'nao conforme': 'nao-conforme',
+    'não conforme': 'nao-conforme',
+    'pendente': 'pendente',
+    'rascunho': 'rascunho',
+    'aguardando': 'aguardando',
+    'aprovado': 'aprovado',
+    'rejeitado': 'rejeitado',
+    'em_analise': 'em-analise',
+    'em analise': 'em-analise'
+} %}
+
+{# ============================================================
+   DADOS BASE
+   ============================================================ #}
+{% set laudos = laudos_recentes | default([], true) %}
+{% set laudos_pinados = laudos | selectattr('pinado') | list %}
+{% set laudos_nao_pinados = laudos | rejectattr('pinado') | list %}
+
+{% set usuario_nome = (usuario.nome_completo if usuario else 'Usuário') %}
+{% set empresa_nome = (usuario.empresa.nome_fantasia if usuario and usuario.empresa else 'WF Soluções') %}
+
+{% set laudo_ativo_id = (
+    estado_relatorio.laudo_id
+    if estado_relatorio and estado_relatorio.laudo_id
+    else none
+) %}
+
+{% set estado_relatorio_atual = (
+    estado_relatorio.estado
+    if estado_relatorio and estado_relatorio.estado
+    else 'sem_relatorio'
+) %}
+
+<aside
+    id="barra-historico"
+    class="barra-historico"
+    aria-label="Histórico de inspeções"
+    data-estado-relatorio="{{ estado_relatorio_atual }}"
+    data-laudo-ativo-id="{{ laudo_ativo_id if laudo_ativo_id else '' }}"
+>
+    {# ========================================================
+       ÁREA PRINCIPAL ROLÁVEL
+       ======================================================== #}
+    <div class="secao-sidebar">
+        <header class="sidebar-topo">
+            <div class="titulo-historico">Rastreabilidade de Laudos</div>
+
+            <div class="busca-historico" data-busca-ready="true">
+                <span class="material-symbols-rounded" aria-hidden="true">search</span>
+
+                <input
+                    type="search"
+                    id="busca-historico-input"
+                    class="input-busca-historico"
+                    placeholder="Buscar laudos..."
+                    aria-label="Buscar no histórico"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    maxlength="80"
+                >
+            </div>
+        </header>
+
+        {# ====================================================
+           ALERTA DE LIMITE DE PLANO
+           ==================================================== #}
+        {% if laudos_mes_limite is not none and (laudos_mes_limite | int) > 0 %}
+            {% set usados_mes = laudos_mes_usados | default(0) | int %}
+            {% set limite_mes = laudos_mes_limite | int %}
+            {% set percentual_mes = ((usados_mes / limite_mes) * 100) | round | int %}
+
+            {% if percentual_mes >= 80 %}
+                {% if percentual_mes >= 100 %}
+                    {% set classe_aviso = "aviso-limite-atingido" %}
+                    {% set icone_aviso = "block" %}
+                    {% set titulo_aviso = "Limite atingido" %}
+                {% elif percentual_mes >= 90 %}
+                    {% set classe_aviso = "aviso-limite-critico" %}
+                    {% set icone_aviso = "warning" %}
+                    {% set titulo_aviso = "Quase no limite" %}
+                {% else %}
+                    {% set classe_aviso = "aviso-limite-aviso" %}
+                    {% set icone_aviso = "info" %}
+                    {% set titulo_aviso = "Limite se aproximando" %}
+                {% endif %}
+
+                <section
+                    class="aviso-limite-plano {{ classe_aviso }}"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    <span class="material-symbols-rounded" aria-hidden="true">{{ icone_aviso }}</span>
+
+                    <div class="aviso-limite-corpo">
+                        <strong>{{ titulo_aviso }}</strong>
+                        <span>{{ usados_mes }}/{{ limite_mes }} laudos este mês</span>
+
+                        <a href="/app/planos" class="aviso-limite-link">
+                            <span class="material-symbols-rounded" aria-hidden="true">rocket_launch</span>
+                            Fazer upgrade
+                        </a>
+                    </div>
+                </section>
+            {% endif %}
+        {% endif %}
+
+        {# ====================================================
+           BANNER DE RELATÓRIO EM ANDAMENTO
+           Mantido sempre no DOM para atualização via JS
+           ==================================================== #}
+        <section
+            id="banner-relatorio-sidebar"
+            class="banner-relatorio-ativo"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            {% if estado_relatorio_atual != 'relatorio_ativo' %}hidden{% endif %}
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">edit_document</span>
+
+            <div class="banner-relatorio-texto">
+                <strong>Relatório em andamento</strong>
+                <span id="banner-relatorio-laudo-id">
+                    {% if laudo_ativo_id %}
+                        Laudo #{{ laudo_ativo_id }}
+                    {% else %}
+                        Laudo #—
+                    {% endif %}
+                </span>
+            </div>
+
+            <span class="dot-piscando" aria-hidden="true"></span>
+        </section>
+
+        {# ====================================================
+           HISTÓRICO
+           ==================================================== #}
+        <nav
+            id="lista-historico"
+            class="lista-historico"
+            aria-label="Laudos recentes"
+        >
+            {# -----------------------------------------------
+               ESTADO VAZIO
+               Mantido sempre no DOM para facilitar toggle via JS
+               ----------------------------------------------- #}
+            <div
+                id="estado-vazio-historico"
+                class="estado-vazio-historico"
+                {% if laudos %}hidden{% endif %}
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">history</span>
+                <span>Nenhum laudo ainda.<br>Inicie uma inspeção no chat.</span>
+            </div>
+
+            {% if laudos %}
+                {# -------------------------------------------
+                   FIXADOS
+                   ------------------------------------------- #}
+                <section
+                    id="secao-laudos-pinados"
+                    class="secao-pinados"
+                    aria-label="Laudos fixados"
+                    {% if not laudos_pinados %}hidden{% endif %}
+                >
+                    <div class="secao-pinados-titulo">
+                        <span class="material-symbols-rounded" aria-hidden="true">keep</span>
+                        Fixados
+                    </div>
+
+                    {% for laudo in laudos_pinados %}
+                        {% set status_raw = laudo.status_conformidade | default('pendente', true) | lower %}
+                        {% set status_cls = mapa_status.get(status_raw, 'pendente') %}
+
+                        {% set setor_raw = laudo.setor_industrial | default('geral', true) %}
+                        {% set setor_key = setor_raw | lower %}
+                        {% set setor_label = setor_raw | e | capitalize %}
+                        {% set icone_setor = icones_setor.get(setor_key, 'history') %}
+
+                        {% set data_iso = laudo.criado_em.strftime('%Y-%m-%d') %}
+                        {% set data_br = laudo.criado_em.strftime('%d/%m/%Y') %}
+                        {% set hora_br = laudo.criado_em.strftime('%H:%M') %}
+
+                        {% set item_ativo = (laudo_ativo_id and laudo.id == laudo_ativo_id) %}
+
+                        <div
+                            class="item-historico pinado{% if item_ativo %} ativo{% endif %}"
+                            role="button"
+                            tabindex="0"
+                            data-laudo-id="{{ laudo.id | int }}"
+                            data-pinado="true"
+                            data-data="{{ data_iso }}"
+                            data-status-relatorio="{{ status_cls }}"
+                            data-status-revisao="{{ (laudo.status_revisao | default('', true) | lower | replace(' ', '_')) | e }}"
+                            {% if item_ativo %}aria-current="true"{% endif %}
+                            aria-label="Laudo {{ setor_label }}, fixado, {{ data_br }}"
+                            title="Abrir laudo {{ setor_label }}"
+                        >
+                            <span class="material-symbols-rounded" aria-hidden="true">{{ icone_setor }}</span>
+
+                            <span class="texto-laudo-historico">
+                                <span>{{ setor_label }}</span>
+
+                                {% if laudo.primeira_mensagem %}
+                                    <span class="preview-mensagem">
+                                        {{ laudo.primeira_mensagem | e | truncate(38, killwords=true, end='…') }}
+                                    </span>
+                                {% else %}
+                                    <small>{{ hora_br }}</small>
+                                {% endif %}
+                            </span>
+
+                            <span
+                                class="badge-status badge-{{ status_cls }}"
+                                aria-hidden="true"
+                                title="Status: {{ status_raw }}"
+                            >•</span>
+                            <span class="sr-only">Status {{ status_raw }}</span>
+
+                            <button
+                                type="button"
+                                class="btn-acao-laudo btn-pin-laudo"
+                                data-acao-laudo="pin"
+                                aria-label="Desafixar laudo"
+                                aria-pressed="true"
+                                title="Desafixar laudo"
+                            >
+                                <span class="material-symbols-rounded" aria-hidden="true">keep</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn-acao-laudo btn-deletar-laudo"
+                                data-acao-laudo="delete"
+                                aria-label="Excluir laudo"
+                                title="Excluir laudo"
+                            >
+                                <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                            </button>
+                        </div>
+                    {% endfor %}
+                </section>
+
+                {# -------------------------------------------
+                   NÃO FIXADOS AGRUPADOS POR DATA
+                   ------------------------------------------- #}
+                <section
+                    id="secao-laudos-historico"
+                    class="secao-laudos-historico"
+                    aria-label="Laudos recentes"
+                    {% if not laudos_nao_pinados %}hidden{% endif %}
+                >
+                    {% if laudos_nao_pinados %}
+                        {% set ns = namespace(data_aberta='') %}
+
+                        {% for laudo in laudos_nao_pinados %}
+                            {% set status_raw = laudo.status_conformidade | default('pendente', true) | lower %}
+                            {% set status_cls = mapa_status.get(status_raw, 'pendente') %}
+
+                            {% set setor_raw = laudo.setor_industrial | default('geral', true) %}
+                            {% set setor_key = setor_raw | lower %}
+                            {% set setor_label = setor_raw | e | capitalize %}
+                            {% set icone_setor = icones_setor.get(setor_key, 'history') %}
+
+                            {% set data_iso = laudo.criado_em.strftime('%Y-%m-%d') %}
+                            {% set data_br = laudo.criado_em.strftime('%d/%m/%Y') %}
+                            {% set hora_br = laudo.criado_em.strftime('%H:%M') %}
+
+                            {% set item_ativo = (laudo_ativo_id and laudo.id == laudo_ativo_id) %}
+
+                            {% if data_br != ns.data_aberta %}
+                                {% if ns.data_aberta %}
+                                        </div>
+                                    </section>
+                                {% endif %}
+
+                                <section class="grupo-data" data-data="{{ data_iso }}">
+                                    <div class="grupo-data-header">{{ data_br }}</div>
+                                    <div class="grupo-data-lista">
+
+                                {% set ns.data_aberta = data_br %}
+                            {% endif %}
+
+                            <div
+                                class="item-historico{% if item_ativo %} ativo{% endif %}"
+                                role="button"
+                                tabindex="0"
+                                data-laudo-id="{{ laudo.id | int }}"
+                                data-pinado="false"
+                                data-data="{{ data_iso }}"
+                                data-status-relatorio="{{ status_cls }}"
+                                data-status-revisao="{{ (laudo.status_revisao | default('', true) | lower | replace(' ', '_')) | e }}"
+                                {% if item_ativo %}aria-current="true"{% endif %}
+                                aria-label="Laudo {{ setor_label }}, {{ data_br }}"
+                                title="Abrir laudo {{ setor_label }}"
+                            >
+                                <span class="material-symbols-rounded" aria-hidden="true">{{ icone_setor }}</span>
+
+                                <span class="texto-laudo-historico">
+                                    <span>{{ setor_label }}</span>
+
+                                    {% if laudo.primeira_mensagem %}
+                                        <span class="preview-mensagem">
+                                            {{ laudo.primeira_mensagem | e | truncate(38, killwords=true, end='…') }}
+                                        </span>
+                                    {% else %}
+                                        <small>{{ hora_br }}</small>
+                                    {% endif %}
+                                </span>
+
+                                <span
+                                    class="badge-status badge-{{ status_cls }}"
+                                    aria-hidden="true"
+                                    title="Status: {{ status_raw }}"
+                                >•</span>
+                                <span class="sr-only">Status {{ status_raw }}</span>
+
+                                <button
+                                    type="button"
+                                    class="btn-acao-laudo btn-pin-laudo"
+                                    data-acao-laudo="pin"
+                                    aria-label="Fixar laudo"
+                                    aria-pressed="false"
+                                    title="Fixar laudo"
+                                >
+                                    <span class="material-symbols-rounded" aria-hidden="true">push_pin</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-acao-laudo btn-deletar-laudo"
+                                    data-acao-laudo="delete"
+                                    aria-label="Excluir laudo"
+                                    title="Excluir laudo"
+                                >
+                                    <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                                </button>
+                            </div>
+
+                            {% if loop.last %}
+                                    </div>
+                                </section>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </section>
+            {% endif %}
+        </nav>
+    </div>
+
+    {# ========================================================
+       AÇÕES FIXAS DA SIDEBAR
+       ======================================================== #}
+    <div class="sidebar-acoes-rodape">
+        <button
+            type="button"
+            id="btn-sidebar-engenheiro"
+            class="btn-sidebar-engenheiro"
+            data-atalho-mesa="insp"
+            data-texto-mesa="@insp "
+            aria-label="Chamar engenheiro no chat com prefixo @insp"
+            title="Falar com Engenheiro"
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">support_agent</span>
+            Falar com Engenheiro
+        </button>
+
+        <a
+            href="https://wa.me/{{ suporte_whatsapp | default('5516999999999') }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-sidebar-suporte"
+            aria-label="Suporte ao cliente via WhatsApp, abre em nova aba"
+            title="Suporte ao Cliente"
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">headset_mic</span>
+            Suporte ao Cliente
+        </a>
+    </div>
+
+    {# ========================================================
+       USUÁRIO LOGADO
+       ======================================================== #}
+    <div class="usuario-logado" aria-label="Usuário conectado">
+        <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+
+        <div class="info-usuario-container">
+            <strong id="nome-usuario">{{ usuario_nome | e }}</strong>
+            <span class="info-usuario">{{ empresa_nome | e }}</span>
+        </div>
+
+        <form action="/app/logout" method="POST" class="form-logout-sidebar">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <button
+                type="submit"
+                class="btn-icone btn-logout"
+                title="Sair do sistema"
+                aria-label="Sair do sistema"
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+            </button>
+        </form>
+    </div>
+</aside>

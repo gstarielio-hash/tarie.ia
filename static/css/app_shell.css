@@ -1,0 +1,269 @@
+/* ==========================================
+   TARIEL CONTROL TOWER — APP_SHELL.CSS
+   Estilos globais do shell da aplicação:
+   - toast do service worker
+   - barra de status de rede
+   - botão global de toggle da sidebar
+   - badge de plano bloqueado
+   - alerta sem javascript
+   ========================================== */
+
+/* -----------------------------------------
+   Fallback sem JavaScript
+   ----------------------------------------- */
+.noscript-alerta {
+    padding: 20px;
+    background: #FFEBEE;
+    color: #C62828;
+    text-align: center;
+    font-family: var(--font-base, sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* -----------------------------------------
+   Toast de atualização do Service Worker
+   ----------------------------------------- */
+.toast-sw {
+    position: fixed;
+    left: 50%;
+    bottom: 80px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 12px 16px;
+    border: 1px solid rgba(244, 123, 32, 0.5);
+    border-radius: 10px;
+    background: #0F2B46;
+    color: #fff;
+    font-size: 13px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(8px);
+    transition:
+        opacity .25s ease,
+        visibility .25s ease,
+        transform .25s ease;
+}
+
+.toast-sw.visivel {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.toast-sw__btn {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font: inherit;
+    transition:
+        background-color .18s ease,
+        color .18s ease,
+        opacity .18s ease;
+}
+
+.toast-sw__btn--primary {
+    padding: 6px 12px;
+    background: #F47B20;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.toast-sw__btn--primary:hover {
+    background: #d4690f;
+}
+
+.toast-sw__btn--ghost {
+    padding: 4px 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 16px;
+    line-height: 1;
+}
+
+.toast-sw__btn--ghost:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* -----------------------------------------
+   Barra global de status de rede
+   ----------------------------------------- */
+.barra-status-rede {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: #C62828;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-100%);
+    transition:
+        opacity .22s ease,
+        visibility .22s ease,
+        transform .22s ease,
+        background-color .22s ease;
+}
+
+.barra-status-rede.visivel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.barra-status-rede.online {
+    background: #1F7A3E;
+}
+
+.barra-status-rede.offline {
+    background: #C62828;
+}
+
+/* -----------------------------------------
+   Botão global de toggle da lateral
+   ----------------------------------------- */
+.btn-toggle-ui {
+    position: fixed;
+    right: 22px;
+    bottom: 96px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(176, 196, 222, 0.22);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(17, 50, 80, 0.96), rgba(12, 36, 58, 0.96));
+    color: rgba(206, 222, 236, 0.9);
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition:
+        background-color .18s ease,
+        color .18s ease,
+        border-color .18s ease,
+        transform .18s ease,
+        box-shadow .18s ease;
+}
+
+.btn-toggle-ui:hover {
+    background: linear-gradient(180deg, rgba(20, 57, 91, 0.98), rgba(14, 42, 68, 0.98));
+    color: #ffffff;
+    border-color: rgba(244, 123, 32, 0.45);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow:
+        0 14px 30px rgba(0, 0, 0, 0.4),
+        0 0 0 3px rgba(244, 123, 32, 0.12);
+}
+
+.btn-toggle-ui:focus-visible {
+    outline: 2px solid #F47B20;
+    outline-offset: 2px;
+}
+
+.btn-toggle-ui::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 10px);
+    padding: 4px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(15, 43, 70, 0.95);
+    color: #B0C4DE;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity .15s ease;
+}
+
+.btn-toggle-ui:hover::after {
+    opacity: 1;
+}
+
+.barra-status-rede .material-symbols-rounded,
+.btn-toggle-ui .material-symbols-rounded {
+    font-size: 20px !important;
+}
+
+body.modo-foco .btn-toggle-ui {
+    border-color: rgba(244, 123, 32, 0.45);
+    color: #F47B20;
+}
+
+/* -----------------------------------------
+   Badge de plano bloqueado
+   ----------------------------------------- */
+.badge-plano-bloqueado {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 2px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #C62828;
+    color: #fff;
+    font-size: 9px;
+    line-height: 1.2;
+    vertical-align: super;
+    user-select: none;
+}
+
+/* -----------------------------------------
+   Toast runtime simples
+   ----------------------------------------- */
+.toast-runtime {
+    position: fixed;
+    left: 50%;
+    bottom: 80px;
+    z-index: 9997;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    font-family: var(--font-base, 'Inter', sans-serif);
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+
+/* -----------------------------------------
+   Responsividade do shell
+   ----------------------------------------- */
+@media (max-width: 768px) {
+    .btn-toggle-ui {
+        display: none;
+    }
+
+    .toast-sw,
+    .toast-runtime {
+        bottom: 72px;
+        white-space: normal;
+    }
+}

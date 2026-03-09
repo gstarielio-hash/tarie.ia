@@ -1,0 +1,629 @@
+/* ==========================================
+   GLOBAL - PADRÃO EMPRESA WF (B2B Industrial)
+   Base visual única do sistema
+   ========================================== */
+
+/* ==========================================
+   VARIÁVEIS DE DESIGN — ÚNICA FONTE DA VERDADE
+   Todos os outros arquivos CSS DEVEM referenciar
+   apenas estas variáveis. Nunca hardcodar cores
+   em componentes quando existir token equivalente.
+   ========================================== */
+
+:root {
+    /* ── Marca ──────────────────────────────── */
+    --cor-primaria: #0F2B46;
+    --cor-primaria-2: #123554;
+    --cor-secundaria: #F47B20;
+    --cor-secundaria-2: #FF9A4A;
+    --cor-fundo-chat: #081624;
+    --cor-fundo-deep: #071320;
+
+    /* ── Status ─────────────────────────────── */
+    --cor-aprovado: #1F7A3E;
+    --cor-alerta: #C62828;
+    --cor-aviso: #F5A623;
+    --cor-info: #42A5F5;
+
+    /* ── Fundos ─────────────────────────────── */
+    --bg-app: var(--cor-fundo-chat);
+    --bg-app-elevado: #0A1B2C;
+    --bg-panel: var(--cor-primaria);
+    --bg-panel-elevado: var(--cor-primaria-2);
+    --bg-input: #173654;
+    --bg-hover: #1E446A;
+    --bg-hover-soft: rgba(176, 196, 222, 0.06);
+    --bg-card: rgba(23, 54, 84, 0.50);
+    --bg-card-strong: rgba(23, 54, 84, 0.72);
+    --bg-overlay: rgba(6, 15, 24, 0.72);
+    --bg-overlay-strong: rgba(6, 15, 24, 0.88);
+    --bg-soft-light: rgba(255, 255, 255, 0.03);
+    --bg-soft-lighter: rgba(255, 255, 255, 0.05);
+
+    /* ── Texto ──────────────────────────────── */
+    --text-primary: #F0F6FC;
+    --text-secondary: #90AAC0;
+    --text-tertiary: #5A7490;
+    --text-muted: rgba(176, 196, 222, 0.42);
+    --text-on-accent: #FFFFFF;
+
+    /* ── Acento ─────────────────────────────── */
+    --accent-wf: var(--cor-secundaria);
+    --accent-hover: #D86815;
+    --accent-active: #BF5910;
+    --accent-soft: #FFB066;
+    --accent-subtle: rgba(244, 123, 32, 0.10);
+    --accent-subtle-strong: rgba(244, 123, 32, 0.16);
+    --accent-glow: rgba(244, 123, 32, 0.28);
+
+    /* ── Bordas ─────────────────────────────── */
+    --border-color: #1E446A;
+    --border-color-strong: #295178;
+    --border-muted: rgba(176, 196, 222, 0.10);
+    --border-soft: rgba(176, 196, 222, 0.14);
+    --border-subtle: 1px solid var(--border-color);
+    --border-strong: 1px solid var(--border-color-strong);
+
+    /* ── Sombras ────────────────────────────── */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.16);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.50);
+    --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.38);
+    --shadow-smooth: 0 8px 24px rgba(0, 0, 0, 0.34);
+    --shadow-glow: 0 0 20px rgba(244, 123, 32, 0.18);
+
+    /* ── Raios ──────────────────────────────── */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --radius-2xl: 28px;
+    --radius-pill: 999px;
+
+    /* ── Espaçamentos úteis ─────────────────── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 28px;
+    --space-8: 32px;
+
+    /* ── Layout ─────────────────────────────── */
+    --container-sm: 720px;
+    --container-md: 980px;
+    --container-lg: 1200px;
+    --header-height: 74px;
+    --sidebar-width: 276px;
+
+    /* ── Camadas ────────────────────────────── */
+    --z-base: 1;
+    --z-sticky: 20;
+    --z-dropdown: 50;
+    --z-overlay: 100;
+    --z-toast: 9998;
+    --z-modal: 9999;
+
+    /* ── Transições ─────────────────────────── */
+    --t-fast: 0.12s;
+    --t-base: 0.22s;
+    --t-slow: 0.38s;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Focus / A11y ───────────────────────── */
+    --focus-ring: 0 0 0 3px rgba(244, 123, 32, 0.22);
+    --ring-wf: 0 0 0 3px rgba(244, 123, 32, 0.16);
+
+    /* ── Badges ─────────────────────────────── */
+    --badge-conforme: #4CAF50;
+    --badge-pendente: #FFCA28;
+    --badge-nao-conforme: #EF5350;
+    --badge-info: #64B5F6;
+
+    /* ── Tipografia ─────────────────────────── */
+    --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+    /* ── Color scheme ───────────────────────── */
+    color-scheme: dark;
+}
+
+/* ==========================================
+   RESET E BASE
+   ========================================== */
+
+html {
+    height: 100%;
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    height: 100%;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    line-height: 1.5;
+    color: var(--text-primary);
+    font-family: var(--font-base);
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(7, 19, 32, 0.96), rgba(8, 22, 36, 1));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+    font: inherit;
+    color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+    background: none;
+}
+
+button {
+    border: 0;
+    padding: 0;
+}
+
+button,
+select,
+summary {
+    cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+    cursor: not-allowed;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+img {
+    height: auto;
+}
+
+textarea {
+    resize: vertical;
+}
+
+iframe {
+    border: 0;
+}
+
+table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+th,
+td {
+    text-align: left;
+    vertical-align: top;
+}
+
+fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+}
+
+legend {
+    padding: 0;
+}
+
+ul[role="list"],
+ol[role="list"] {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+hr {
+    border: 0;
+    border-top: var(--border-subtle);
+}
+
+a {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+a:hover {
+    text-decoration-color: currentColor;
+}
+
+small {
+    font-size: 0.875em;
+}
+
+strong,
+b {
+    font-weight: 700;
+}
+
+/* ==========================================
+   SELEÇÃO DE TEXTO
+   ========================================== */
+
+::selection {
+    color: #fff;
+    background-color: rgba(244, 123, 32, 0.28);
+}
+
+/* ==========================================
+   FOCO ACESSÍVEL
+   ========================================== */
+
+:focus-visible {
+    outline: 2px solid var(--accent-wf);
+    outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ==========================================
+   MATERIAL SYMBOLS
+   ========================================== */
+
+.material-symbols-rounded {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+    vertical-align: middle;
+    user-select: none;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ==========================================
+   UTILITÁRIOS GLOBAIS
+   ========================================== */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sr-only-focusable:focus,
+.sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+}
+
+.texto-truncado {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quebra-texto {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.nao-selecionavel {
+    user-select: none;
+}
+
+.centralizado {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.superficie-glass {
+    background: linear-gradient(180deg, rgba(15, 43, 70, 0.78), rgba(12, 34, 54, 0.84));
+    border: 1px solid rgba(176, 196, 222, 0.14);
+    box-shadow:
+        var(--shadow-smooth),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+}
+
+.container-conteudo {
+    width: 100%;
+    max-width: var(--container-md);
+    margin-inline: auto;
+}
+
+.container-conteudo-lg {
+    width: 100%;
+    max-width: var(--container-lg);
+    margin-inline: auto;
+}
+
+.flex-coluna {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-linha {
+    display: flex;
+}
+
+.gap-1 {
+    gap: var(--space-1);
+}
+
+.gap-2 {
+    gap: var(--space-2);
+}
+
+.gap-3 {
+    gap: var(--space-3);
+}
+
+.gap-4 {
+    gap: var(--space-4);
+}
+
+.gap-5 {
+    gap: var(--space-5);
+}
+
+.gap-6 {
+    gap: var(--space-6);
+}
+
+.w-full {
+    width: 100%;
+}
+
+.h-full {
+    height: 100%;
+}
+
+/* ==========================================
+   ESTADOS DE CONTROLE
+   ========================================== */
+
+[hidden] {
+    display: none !important;
+}
+
+:disabled {
+    cursor: not-allowed;
+}
+
+/* ==========================================
+   BADGES DE STATUS (base global)
+   ========================================== */
+
+.badge-status {
+    flex-shrink: 0;
+    font-size: 18px;
+    line-height: 1;
+    transition:
+        opacity var(--t-fast) var(--ease),
+        color var(--t-fast) var(--ease);
+}
+
+.badge-conforme,
+.badge-aprovado {
+    color: var(--badge-conforme);
+}
+
+.badge-pendente {
+    color: var(--badge-pendente);
+}
+
+.badge-nao-conforme,
+.badge-rejeitado {
+    color: var(--badge-nao-conforme);
+}
+
+.badge-info {
+    color: var(--badge-info);
+}
+
+/* ==========================================
+   CAMPOS E PLACEHOLDERS
+   ========================================== */
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-tertiary);
+    opacity: 1;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled,
+button:disabled {
+    opacity: 0.6;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* ==========================================
+   SCROLLBAR GLOBAL
+   Base visual mínima, sem invadir componentes.
+   Componentes com scrollbar própria podem
+   sobrescrever localmente.
+   ========================================== */
+
+html,
+body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+/* aplicado apenas em elementos scrolláveis comuns */
+body * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(90, 116, 144, 0.75) transparent;
+}
+
+body *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+body *::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body *::-webkit-scrollbar-thumb {
+    background-color: rgba(90, 116, 144, 0.75);
+    border-radius: var(--radius-pill);
+}
+
+body *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-tertiary);
+}
+
+/* ==========================================
+   SELETORES DE ESTADO REUTILIZÁVEIS
+   ========================================== */
+
+.is-hidden {
+    display: none !important;
+}
+
+.is-invisible {
+    visibility: hidden !important;
+}
+
+.is-clickable {
+    cursor: pointer;
+}
+
+.is-muted {
+    color: var(--text-tertiary) !important;
+}
+
+.is-accent {
+    color: var(--accent-wf) !important;
+}
+
+.is-danger {
+    color: var(--cor-alerta) !important;
+}
+
+.is-success {
+    color: var(--cor-aprovado) !important;
+}
+
+.is-warning {
+    color: var(--cor-aviso) !important;
+}
+
+.is-elevated {
+    box-shadow: var(--shadow-md) !important;
+}
+
+.is-glass {
+    background: linear-gradient(180deg, rgba(15, 43, 70, 0.78), rgba(12, 34, 54, 0.84)) !important;
+    backdrop-filter: blur(12px);
+}
+
+/* ==========================================
+   ANIMAÇÕES BASE
+   ========================================== */
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================
+   REDUÇÃO DE MOVIMENTO (base global)
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

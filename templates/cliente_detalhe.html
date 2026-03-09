@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    {# Segurança ideal:
+    - Enviar CSP por header HTTP no servidor.
+    - Enviar X-Frame-Options: DENY por header HTTP.
+    - Enviar X-Content-Type-Options: nosniff por header HTTP.
+    #}
+
+    <title>{{ empresa.nome_fantasia | e }} • Tariel Control</title>
+
+    <link rel="icon" href="/static/img/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/admin.css">
+
+    <style nonce="{{ csp_nonce }}">
+        :root {
+            --wf-bg: #f6f8fb;
+            --wf-surface: #ffffff;
+            --wf-text: #0f2b46;
+            --wf-text-soft: #667085;
+            --wf-border: #e7ecf3;
+            --wf-accent: #f47b20;
+            --wf-accent-dark: #d4690f;
+            --wf-danger: #c62828;
+            --wf-danger-bg: #ffebee;
+            --wf-success: #2e7d32;
+            --wf-success-bg: #e8f5e9;
+            --wf-warning: #e65100;
+            --wf-warning-bg: #fff3e0;
+            --wf-shadow: 0 8px 26px rgba(15, 43, 70, .08);
+            --wf-radius-sm: 8px;
+            --wf-radius-md: 12px;
+            --wf-radius-lg: 14px;
+        }
+
+        .voltar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 20px;
+            color: var(--wf-accent);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .voltar:hover {
+            text-decoration: underline;
+        }
+
+        .item-menu.logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--wf-radius-sm);
+            background: none;
+            color: inherit;
+            text-align: left;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .item-menu.logout-btn:hover {
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .item-menu.logout-btn:focus-visible,
+        .btn-acao-wf:focus-visible,
+        .btn-reset:focus-visible,
+        .btn-salvar-crea:focus-visible,
+        .btn-add:focus-visible,
+        .btn-modal-cancelar:focus-visible,
+        .btn-modal-confirmar:focus-visible,
+        .modal-fechar-x:focus-visible,
+        .alert-fechar:focus-visible,
+        .voltar:focus-visible {
+            outline: 2px solid var(--wf-accent);
+            outline-offset: 2px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-card,
+        .secao {
+            background: var(--wf-surface);
+            box-shadow: var(--wf-shadow);
+        }
+
+        .info-card {
+            padding: 16px 20px;
+            border: 1px solid var(--wf-border);
+            border-radius: var(--wf-radius-md);
+        }
+
+        .info-card .label {
+            margin-bottom: 4px;
+            color: #98a2b3;
+            font-size: 11px;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .info-card .valor {
+            color: var(--wf-text);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .valor-auxiliar {
+            color: #888;
+            font-size: 13px;
+            font-weight: 400;
+        }
+
+        .barra-uso {
+            height: 8px;
+            margin-top: 8px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: #eee;
+        }
+
+        .barra-uso-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--wf-accent);
+            transition: width .35s ease, background-color .2s ease;
+        }
+
+        .secao {
+            margin-bottom: 20px;
+            padding: 24px;
+            border: 1px solid var(--wf-border);
+            border-radius: var(--wf-radius-lg);
+        }
+
+        .secao h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            color: var(--wf-text);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .acoes-empresa {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .btn-acao-wf,
+        .btn-add,
+        .btn-reset,
+        .btn-modal-cancelar,
+        .btn-modal-confirmar {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform .15s ease, filter .15s ease, background-color .15s ease, border-color .15s ease;
+        }
+
+        .btn-acao-wf:hover,
+        .btn-add:hover,
+        .btn-reset:hover,
+        .btn-modal-cancelar:hover,
+        .btn-modal-confirmar:hover {
+            transform: translateY(-1px);
+            filter: brightness(.98);
+        }
+
+        .btn-acao-wf {
+            padding: 9px 16px;
+            border-radius: var(--wf-radius-sm);
+            border: 1px solid transparent;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .btn-block {
+            background: var(--wf-danger-bg);
+            color: var(--wf-danger);
+            border-color: #ef9a9a;
+        }
+
+        .btn-unblock {
+            background: var(--wf-success-bg);
+            color: var(--wf-success);
+            border-color: #a5d6a7;
+        }
+
+        .btn-plano {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #90caf9;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge.conforme {
+            background: var(--wf-success-bg);
+            color: var(--wf-success);
+        }
+
+        .badge.critico {
+            background: var(--wf-danger-bg);
+            color: var(--wf-danger);
+        }
+
+        .badge.atencao {
+            background: var(--wf-warning-bg);
+            color: var(--wf-warning);
+        }
+
+        .badge.status-empresa {
+            padding: 6px 16px;
+            font-size: 14px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: var(--wf-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity .25s ease, transform .25s ease;
+        }
+
+        .alert.saindo {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        .alert-success {
+            background: var(--wf-success-bg);
+            color: var(--wf-success);
+            border-left: 4px solid #4caf50;
+        }
+
+        .alert-error {
+            background: var(--wf-danger-bg);
+            color: var(--wf-danger);
+            border-left: 4px solid #ef5350;
+        }
+
+        .alert-fechar {
+            margin-left: auto;
+            padding: 0 4px;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 16px;
+            opacity: .6;
+            cursor: pointer;
+        }
+
+        .alert-fechar:hover {
+            opacity: 1;
+        }
+
+        .form-inline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .campo-form {
+            min-width: 160px;
+            flex: 1 1 220px;
+        }
+
+        .form-inline label {
+            display: block;
+            margin-bottom: 4px;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .form-inline input,
+        .modal-plano select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #d8dde6;
+            border-radius: 6px;
+            font: inherit;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .form-inline input:focus,
+        .modal-plano select:focus {
+            outline: none;
+            border-color: var(--wf-accent);
+            box-shadow: 0 0 0 3px rgba(244, 123, 32, .12);
+        }
+
+        .btn-add {
+            padding: 9px 14px;
+            border: none;
+            border-radius: 6px;
+            background: var(--wf-text);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .btn-reset {
+            padding: 5px 10px;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            background: var(--wf-warning-bg);
+            color: var(--wf-warning);
+            font-size: 12px;
+        }
+
+        .form-crea-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+        }
+
+        .form-crea-inline input {
+            width: 130px;
+            padding: 6px 8px;
+            border: 1px solid #d8dde6;
+            border-radius: 6px;
+            font: inherit;
+            font-size: 12px;
+            background: #fff;
+        }
+
+        .form-crea-inline input:focus {
+            outline: none;
+            border-color: var(--wf-accent);
+            box-shadow: 0 0 0 2px rgba(244, 123, 32, .12);
+        }
+
+        .btn-salvar-crea {
+            padding: 6px 9px;
+            border: 1px solid #90caf9;
+            border-radius: 6px;
+            background: #e3f2fd;
+            color: #1565c0;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .estado-vazio-tabela {
+            padding: 20px;
+            color: #999;
+            text-align: center;
+        }
+
+        .texto-suave {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, .6);
+        }
+
+        .modal-overlay.ativo {
+            display: flex;
+        }
+
+        .modal-plano {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            padding: 28px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, .22);
+        }
+
+        .modal-plano h3 {
+            margin-bottom: 16px;
+            color: var(--wf-text);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-modal-cancelar {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #eee;
+            font-size: 13px;
+        }
+
+        .btn-modal-confirmar {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 6px;
+            background: var(--wf-accent);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .btn-modal-confirmar:hover {
+            background: var(--wf-accent-dark);
+        }
+
+        .modal-fechar-x {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            border: none;
+            background: none;
+            color: #888;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .modal-fechar-x:hover {
+            color: #333;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        @media (max-width: 768px) {
+            .secao {
+                padding: 18px;
+            }
+
+            .topbar-detalhe {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    {% set _plano = empresa.plano_ativo | default('Piloto', true) %}
+    {% set _empresa_ativa = not empresa.status_bloqueio %}
+    {% set _uso_pct = uso_percentual | int if uso_percentual is not none else none %}
+    {% set _limite_plano = limite_plano | int if limite_plano is not none else 0 %}
+
+    <div class="admin-layout">
+        <aside class="sidebar" aria-label="Menu administrativo">
+            <div class="logo-area">
+                <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+                <h2>Tariel Control</h2>
+            </div>
+
+            <nav class="menu-admin" aria-label="Navegação administrativa">
+                <a href="/admin/painel" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
+                    Visão Geral
+                </a>
+
+                <a href="/admin/clientes" class="item-menu ativo" aria-current="page">
+                    <span class="material-symbols-rounded" aria-hidden="true">corporate_fare</span>
+                    Clientes SaaS
+                </a>
+
+                <a href="/admin/auditoria" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">folder_open</span>
+                    Auditoria de IA
+                </a>
+
+                <a href="/admin/configuracoes" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">settings</span>
+                    Configuração
+                </a>
+
+                <form action="/admin/logout" method="POST" style="margin:0;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="item-menu logout-btn" aria-label="Sair do sistema">
+                        <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                        Sair
+                    </button>
+                </form>
+            </nav>
+        </aside>
+
+        <main class="conteudo-principal">
+            <a href="/admin/clientes" class="voltar">
+                <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+                Clientes SaaS
+            </a>
+
+            <header class="topbar topbar-detalhe"
+                style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+                <div class="titulo-pagina">
+                    <h1>{{ empresa.nome_fantasia | e }}</h1>
+                    <p>
+                        CNPJ: {{ empresa.cnpj | e }}
+                        &nbsp;•&nbsp;
+                        Cadastro: {{ empresa.data_cadastro.strftime('%d/%m/%Y') if empresa.data_cadastro else '—' }}
+                    </p>
+                </div>
+
+                <span class="badge status-empresa {{ 'conforme' if _empresa_ativa else 'critico' }}"
+                    aria-label="Status: {{ 'Ativo' if _empresa_ativa else 'Bloqueado' }}">
+                    <span aria-hidden="true">{{ '✅' if _empresa_ativa else '🔒' }}</span>
+                    {{ 'Ativo' if _empresa_ativa else 'Bloqueado' }}
+                </span>
+            </header>
+
+            {% for msg in mensagens_flash %}
+            {% set _tipo_alerta = 'success' if msg.tipo == 'success' else 'error' %}
+            <div class="alert alert-{{ _tipo_alerta }}" role="alert" aria-live="assertive">
+                <span aria-hidden="true">{{ '✅' if _tipo_alerta == 'success' else '⚠️' }}</span>
+                {{ msg.texto | e }}
+                <button type="button" class="alert-fechar" aria-label="Fechar alerta">×</button>
+            </div>
+            {% endfor %}
+
+            <section class="info-grid" aria-label="Indicadores da empresa">
+                <div class="info-card">
+                    <div class="label">Plano ativo</div>
+                    <div class="valor">{{ _plano | e }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="label">Total de laudos</div>
+                    <div class="valor">{{ total_laudos | int }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="label">Custo API acumulado</div>
+                    <div class="valor">R$ {{ "%.2f" | format(custo_total | float) }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="label">Uso do plano</div>
+
+                    {% if _uso_pct is not none %}
+                    <div class="valor">
+                        {{ _uso_pct }}%
+                        <span class="valor-auxiliar">de {{ _limite_plano }}</span>
+                    </div>
+
+                    <div class="barra-uso" role="progressbar" aria-valuenow="{{ _uso_pct }}" aria-valuemin="0"
+                        aria-valuemax="100" aria-label="Uso do plano: {{ _uso_pct }}%">
+                        <div class="barra-uso-fill" data-pct="{{ _uso_pct }}"
+                            data-critico="{{ 'true' if _uso_pct > 80 else 'false' }}">
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="valor" style="color:#4CAF50;">Ilimitado</div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <div class="acoes-empresa">
+                <form method="POST" action="/admin/clientes/{{ empresa.id | int }}/bloquear">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit"
+                        class="btn-acao-wf {{ 'btn-unblock' if empresa.status_bloqueio else 'btn-block' }}"
+                        data-confirmar="{{ 'Deseja desbloquear o acesso desta empresa?' if empresa.status_bloqueio else 'Deseja bloquear o acesso desta empresa? Os usuários não conseguirão entrar.' }}"
+                        aria-label="{{ 'Desbloquear acesso da empresa' if empresa.status_bloqueio else 'Bloquear acesso da empresa' }}">
+                        <span class="material-symbols-rounded" aria-hidden="true">
+                            {{ 'lock_open' if empresa.status_bloqueio else 'block' }}
+                        </span>
+                        {{ 'Desbloquear Acesso' if empresa.status_bloqueio else 'Bloquear Acesso' }}
+                    </button>
+                </form>
+
+                <button type="button" class="btn-acao-wf btn-plano" id="btn-abrir-modal-plano" aria-haspopup="dialog"
+                    aria-controls="modal-plano" aria-expanded="false">
+                    <span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span>
+                    Trocar Plano
+                </button>
+            </div>
+
+            <section class="secao">
+                <h3>
+                    <span class="material-symbols-rounded" aria-hidden="true">badge</span>
+                    Usuários Operacionais ({{ inspetores | length }})
+                </h3>
+
+                <table class="tabela-admin" aria-label="Lista de usuários operacionais">
+                    <thead>
+                        <tr>
+                            <th scope="col">Nome</th>
+                            <th scope="col">Perfil</th>
+                            <th scope="col">E-mail</th>
+                            <th scope="col">CREA (Revisor)</th>
+                            <th scope="col">Laudos</th>
+                            <th scope="col"><span class="sr-only">Ações</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in inspetores %}
+                        <tr>
+                            <td><strong>{{ u.nome_completo | e }}</strong></td>
+                            <td>
+                                {% if u.eh_revisor_ou_superior %}
+                                <span class="badge conforme">Revisor</span>
+                                {% else %}
+                                <span class="badge atencao">Inspetor</span>
+                                {% endif %}
+                            </td>
+                            <td class="texto-suave">{{ u.email | e }}</td>
+                            <td>
+                                {% if u.eh_revisor_ou_superior %}
+                                <form method="POST"
+                                    action="/admin/clientes/{{ empresa.id | int }}/usuarios/{{ u.id | int }}/atualizar-crea"
+                                    class="form-crea-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <input type="text" name="crea" maxlength="40"
+                                        value="{{ u.crea | default('', true) | e }}"
+                                        placeholder="Ex.: 123456-SP" autocomplete="off" spellcheck="false"
+                                        aria-label="CREA de {{ u.nome_completo | e }}">
+                                    <button type="submit" class="btn-salvar-crea">Salvar</button>
+                                </form>
+                                {% else %}
+                                <span class="texto-suave">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ u.laudos | length }}</td>
+                            <td>
+                                <form method="POST"
+                                    action="/admin/clientes/{{ empresa.id | int }}/resetar-senha/{{ u.id | int }}"
+                                    style="margin:0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn-reset"
+                                        data-confirmar="Resetar a senha de {{ u.nome_completo | e }}? Uma nova senha temporária será enviada por e-mail."
+                                        aria-label="Resetar senha de {{ u.nome_completo | e }}">
+                                        🔑 Resetar senha
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="estado-vazio-tabela">
+                                Nenhum usuário operacional cadastrado.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <form class="form-inline" method="POST"
+                    action="/admin/clientes/{{ empresa.id | int }}/adicionar-inspetor"
+                    aria-label="Adicionar novo inspetor">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                    <div class="campo-form">
+                        <label for="nome-inspetor">Nome</label>
+                        <input type="text" id="nome-inspetor" name="nome" required maxlength="120" autocomplete="off"
+                            placeholder="Nome completo" autocomplete="name">
+                    </div>
+
+                    <div class="campo-form">
+                        <label for="email-inspetor">E-mail</label>
+                        <input type="email" id="email-inspetor" name="email" required maxlength="254" autocomplete="off"
+                            placeholder="email@empresa.com" autocomplete="email" inputmode="email" spellcheck="false">
+                    </div>
+
+                    <button type="submit" class="btn-add">
+                        <span class="material-symbols-rounded" aria-hidden="true"
+                            style="font-size:16px;">person_add</span>
+                        Adicionar
+                    </button>
+                </form>
+            </section>
+
+            <section class="secao">
+                <h3>
+                    <span class="material-symbols-rounded" aria-hidden="true">description</span>
+                    Laudos recentes
+                </h3>
+
+                <table class="tabela-admin" aria-label="Laudos recentes da empresa">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data</th>
+                            <th scope="col">Setor</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Custo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in laudos_recentes %}
+                        {% set _status_val = l.status_conformidade.value | default('Pendente', true) | e %}
+                        {% set _status_key = l.status_conformidade.value | default('Pendente', true) | lower %}
+                        <tr>
+                            <td>{{ l.data_criacao.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ l.setor_industrial | e }}</td>
+                            <td>
+                                <span
+                                    class="badge {% if _status_key == 'conforme' %}conforme{% elif _status_key in ['nao conforme', 'não conforme'] %}critico{% else %}atencao{% endif %}"
+                                    aria-label="Status: {{ _status_val }}">
+                                    {{ _status_val }}
+                                </span>
+                            </td>
+                            <td>R$ {{ "%.4f" | format(l.custo_api_reais | float) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="estado-vazio-tabela">
+                                Nenhum laudo gerado ainda.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modal-plano" role="dialog" aria-modal="true" aria-labelledby="modal-plano-titulo"
+        aria-hidden="true">
+        <div class="modal-plano">
+            <button type="button" class="modal-fechar-x" id="btn-fechar-modal-x" aria-label="Fechar modal">×</button>
+
+            <h3 id="modal-plano-titulo">Trocar plano</h3>
+
+            <form method="POST" action="/admin/clientes/{{ empresa.id | int }}/trocar-plano" id="form-trocar-plano">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <label for="select-plano" class="sr-only">Selecione o novo plano</label>
+                <select name="plano" id="select-plano" required>
+                    <option value="Piloto" {% if _plano=='Piloto' %}selected{% endif %}>
+                        Piloto — Testes limitados
+                    </option>
+                    <option value="Pro" {% if _plano=='Pro' %}selected{% endif %}>
+                        Pro — Pay per use
+                    </option>
+                    <option value="Ilimitado" {% if _plano=='Ilimitado' %}selected{% endif %}>
+                        Ilimitado — Enterprise
+                    </option>
+                </select>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-modal-cancelar" id="btn-fechar-modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-modal-confirmar">
+                        Confirmar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            "use strict";
+
+            const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
+            document.querySelectorAll(".barra-uso-fill[data-pct]").forEach((el) => {
+                const pct = clamp(parseInt(el.dataset.pct, 10) || 0, 0, 100);
+                el.style.width = `${pct}%`;
+                if (el.dataset.critico === "true") {
+                    el.style.backgroundColor = "#EF5350";
+                }
+            });
+
+            document.querySelectorAll("form").forEach((form) => {
+                const trigger = form.querySelector("[data-confirmar]");
+                if (!trigger) return;
+
+                form.addEventListener("submit", (event) => {
+                    const mensagem = trigger.getAttribute("data-confirmar");
+                    if (mensagem && !window.confirm(mensagem)) {
+                        event.preventDefault();
+                    }
+                });
+            });
+
+            const removerAlerta = (el) => {
+                if (!el || el.dataset.removendo === "true") return;
+                el.dataset.removendo = "true";
+                el.classList.add("saindo");
+                window.setTimeout(() => el.remove(), 250);
+            };
+
+            document.querySelectorAll(".alert").forEach((el) => {
+                el.querySelector(".alert-fechar")?.addEventListener("click", () => removerAlerta(el));
+                window.setTimeout(() => removerAlerta(el), 6000);
+            });
+
+            const modal = document.getElementById("modal-plano");
+            const btnAbrir = document.getElementById("btn-abrir-modal-plano");
+            const btnFechar = document.getElementById("btn-fechar-modal");
+            const btnFecharX = document.getElementById("btn-fechar-modal-x");
+            const selectPlano = document.getElementById("select-plano");
+            let focoAnterior = null;
+
+            const obterFocaveis = () => {
+                if (!modal) return [];
+                return [...modal.querySelectorAll(
+                    "button, select, input, textarea, a[href], [tabindex]:not([tabindex='-1'])"
+                )].filter((el) => !el.disabled && !el.hidden);
+            };
+
+            const abrirModal = () => {
+                if (!modal) return;
+                focoAnterior = document.activeElement;
+                modal.classList.add("ativo");
+                modal.setAttribute("aria-hidden", "false");
+                btnAbrir?.setAttribute("aria-expanded", "true");
+                document.body.style.overflow = "hidden";
+                window.setTimeout(() => selectPlano?.focus(), 0);
+            };
+
+            const fecharModal = () => {
+                if (!modal) return;
+                modal.classList.remove("ativo");
+                modal.setAttribute("aria-hidden", "true");
+                btnAbrir?.setAttribute("aria-expanded", "false");
+                document.body.style.overflow = "";
+                focoAnterior?.focus?.();
+            };
+
+            btnAbrir?.addEventListener("click", abrirModal);
+            btnFechar?.addEventListener("click", fecharModal);
+            btnFecharX?.addEventListener("click", fecharModal);
+
+            modal?.addEventListener("click", (event) => {
+                if (event.target === modal) {
+                    fecharModal();
+                }
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && modal?.classList.contains("ativo")) {
+                    fecharModal();
+                }
+            });
+
+            modal?.addEventListener("keydown", (event) => {
+                if (event.key !== "Tab" || !modal.classList.contains("ativo")) return;
+
+                const focaveis = obterFocaveis();
+                if (!focaveis.length) return;
+
+                const primeiro = focaveis[0];
+                const ultimo = focaveis[focaveis.length - 1];
+
+                if (event.shiftKey && document.activeElement === primeiro) {
+                    event.preventDefault();
+                    ultimo.focus();
+                } else if (!event.shiftKey && document.activeElement === ultimo) {
+                    event.preventDefault();
+                    primeiro.focus();
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

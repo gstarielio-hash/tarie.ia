@@ -1,0 +1,728 @@
+{# templates/planos.html #}
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0F2B46">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <title>Planos — Sistema WF</title>
+
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/material-symbols.css">
+    <link rel="stylesheet" href="/static/css/global.css">
+
+    <style>
+        /* ── Reset / base ───────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #07192B;
+            color: #B0C4DE;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* ── Cabeçalho ──────────────────────────────────────────────── */
+        .cabecalho-planos {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 24px;
+            background: rgba(15, 43, 70, .7);
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .btn-voltar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid rgba(176, 196, 222, .15);
+            color: #B0C4DE;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color .15s, color .15s, background .15s;
+        }
+
+        .btn-voltar:hover,
+        .btn-voltar:focus-visible {
+            border-color: rgba(244, 123, 32, .4);
+            color: #F47B20;
+            background: rgba(244, 123, 32, .06);
+        }
+
+        .btn-voltar:focus-visible {
+            outline: 2px solid #F47B20;
+            outline-offset: 2px;
+        }
+
+        .btn-voltar .material-symbols-rounded {
+            font-size: 16px;
+        }
+
+        .logo-cabecalho {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-size: 13px;
+            color: rgba(176, 196, 222, .5);
+        }
+
+        .avatar-ia-sm {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #1E446A, #0F2B46);
+            border: 1px solid rgba(244, 123, 32, .3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #F47B20;
+            flex-shrink: 0;
+        }
+
+        /* ── Hero ───────────────────────────────────────────────────── */
+        .hero-planos {
+            text-align: center;
+            padding: 56px 24px 40px;
+        }
+
+        .hero-planos h1 {
+            font-size: clamp(22px, 4vw, 32px);
+            font-weight: 700;
+            color: #E8F4FD;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .hero-planos h1 span {
+            color: #F47B20;
+        }
+
+        .hero-planos p {
+            font-size: 14px;
+            color: rgba(176, 196, 222, .65);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ── Badge plano atual ──────────────────────────────────────── */
+        .badge-plano-atual {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 28px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(30, 68, 106, .6);
+            border: 1px solid rgba(244, 123, 32, .25);
+            font-size: 12px;
+            color: rgba(176, 196, 222, .8);
+        }
+
+        .badge-plano-atual strong {
+            color: #F47B20;
+        }
+
+        .badge-plano-atual .material-symbols-rounded {
+            font-size: 14px;
+            color: #F47B20;
+        }
+
+        /* ── Grade de planos ────────────────────────────────────────── */
+        .grade-planos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 24px 64px;
+            width: 100%;
+        }
+
+        /* ── Card de plano ──────────────────────────────────────────── */
+        .card-plano {
+            background: rgba(15, 43, 70, .5);
+            border: 1px solid rgba(255, 255, 255, .07);
+            border-radius: 16px;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            transition: border-color .2s, transform .2s, box-shadow .2s;
+        }
+
+        .card-plano:hover {
+            border-color: rgba(244, 123, 32, .25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .3);
+        }
+
+        /* Destaque: plano intermediário */
+        .card-plano.destaque {
+            border-color: rgba(244, 123, 32, .45);
+            background: rgba(20, 52, 85, .65);
+            box-shadow: 0 0 0 1px rgba(244, 123, 32, .2),
+                0 8px 32px rgba(244, 123, 32, .08);
+        }
+
+        .card-plano.destaque:hover {
+            border-color: #F47B20;
+            box-shadow: 0 0 0 1px rgba(244, 123, 32, .4),
+                0 12px 40px rgba(244, 123, 32, .12);
+        }
+
+        /* Plano atual */
+        .card-plano.atual {
+            border-color: rgba(76, 175, 80, .4);
+        }
+
+        .etiqueta-destaque {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #d96a15, #F47B20);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            padding: 3px 14px;
+            border-radius: 20px;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(244, 123, 32, .4);
+        }
+
+        .etiqueta-atual {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: rgba(76, 175, 80, .2);
+            border: 1px solid rgba(76, 175, 80, .4);
+            color: #81c784;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        /* ── Cabeçalho do card ──────────────────────────────────────── */
+        .card-plano-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nome-plano {
+            font-size: 18px;
+            font-weight: 700;
+            color: #E8F4FD;
+        }
+
+        .desc-plano {
+            font-size: 12px;
+            color: rgba(176, 196, 222, .5);
+            line-height: 1.5;
+        }
+
+        /* ── Lista de features ──────────────────────────────────────── */
+        .lista-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .feature-item .material-symbols-rounded {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .feature-ok {
+            color: #4caf50;
+        }
+
+        .feature-nao {
+            color: rgba(176, 196, 222, .25);
+        }
+
+        .feature-texto {
+            color: rgba(176, 196, 222, .8);
+        }
+
+        .feature-nao .feature-texto {
+            color: rgba(176, 196, 222, .35);
+        }
+
+        .feature-valor {
+            font-weight: 600;
+            color: #E8F4FD;
+        }
+
+        /* ── Divisor ────────────────────────────────────────────────── */
+        .divisor-card {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        /* ── Botão de ação do card ──────────────────────────────────── */
+        .btn-plano {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, color .15s, opacity .15s;
+            border: 1px solid transparent;
+        }
+
+        .btn-plano:focus-visible {
+            outline: 2px solid #F47B20;
+            outline-offset: 2px;
+        }
+
+        .btn-plano .material-symbols-rounded {
+            font-size: 17px;
+        }
+
+        .btn-plano-primario {
+            background: #F47B20;
+            color: #fff;
+            border-color: #F47B20;
+        }
+
+        .btn-plano-primario:hover {
+            background: #d96a15;
+            border-color: #d96a15;
+        }
+
+        .btn-plano-secundario {
+            background: transparent;
+            color: #B0C4DE;
+            border-color: rgba(176, 196, 222, .2);
+        }
+
+        .btn-plano-secundario:hover {
+            border-color: rgba(244, 123, 32, .35);
+            color: #F47B20;
+            background: rgba(244, 123, 32, .06);
+        }
+
+        .btn-plano-atual {
+            background: rgba(76, 175, 80, .1);
+            color: #81c784;
+            border-color: rgba(76, 175, 80, .3);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* ── Rodapé da página ───────────────────────────────────────── */
+        .rodape-planos {
+            margin-top: auto;
+            text-align: center;
+            padding: 24px;
+            border-top: 1px solid rgba(255, 255, 255, .05);
+            font-size: 12px;
+            color: rgba(176, 196, 222, .35);
+            line-height: 1.7;
+        }
+
+        .rodape-planos a {
+            color: rgba(176, 196, 222, .5);
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .rodape-planos a:hover {
+            color: #F47B20;
+        }
+
+        /* ── Responsivo ─────────────────────────────────────────────── */
+        @media (max-width: 600px) {
+            .hero-planos {
+                padding: 36px 16px 28px;
+            }
+
+            .grade-planos {
+                padding: 0 16px 48px;
+                gap: 16px;
+            }
+
+            .card-plano {
+                padding: 24px 18px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .card-plano {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Cabeçalho ────────────────────────────────────────────────── -->
+    <header class="cabecalho-planos">
+        <a href="/app/" class="btn-voltar" aria-label="Voltar ao assistente">
+            <span class="material-symbols-rounded">arrow_back</span>
+            Voltar
+        </a>
+        <div class="logo-cabecalho" aria-hidden="true">
+            <div class="avatar-ia-sm">TI</div>
+            WF Soluções Industriais
+        </div>
+    </header>
+
+
+    <!-- ── Hero ─────────────────────────────────────────────────────── -->
+    <section class="hero-planos" aria-labelledby="titulo-planos">
+        <div class="badge-plano-atual" aria-label="Plano atual">
+            <span class="material-symbols-rounded">workspace_premium</span>
+            Plano atual:
+            <strong>{{ usuario.empresa.plano_ativo }}</strong>
+        </div>
+        <h1 id="titulo-planos">
+            Escolha o plano <span>certo para sua equipe</span>
+        </h1>
+        <p>
+            Todos os planos incluem acesso ao assistente Tariel, geração de laudos
+            e histórico de inspeções. Sem fidelidade — cancele quando quiser.
+        </p>
+    </section>
+
+
+    <!-- ── Grade de planos ──────────────────────────────────────────── -->
+    <main>
+        <div class="grade-planos" role="list" aria-label="Planos disponíveis">
+
+            {# ── Macros de exibição ──────────────────────────────────── #}
+            {%- macro exibir_limite(valor, sufixo="") -%}
+            {%- if valor is none -%}
+            <span class="feature-valor">Ilimitado</span>
+            {%- else -%}
+            <span class="feature-valor">{{ valor }}{{ sufixo }}</span>
+            {%- endif -%}
+            {%- endmacro -%}
+
+            {%- macro feature(disponivel, texto) -%}
+            <li class="feature-item {% if disponivel %}feature-ok{% else %}feature-nao{% endif %}">
+                <span class="material-symbols-rounded" aria-hidden="true">
+                    {{ "check_circle" if disponivel else "cancel" }}
+                </span>
+                <span class="feature-texto">{{ texto }}</span>
+            </li>
+            {%- endmacro -%}
+
+
+            {# ── Plano Inicial ───────────────────────────────────────── #}
+            {% set l_inicial = limites["Inicial"] %}
+            {% set e_inicial = usuario.empresa.plano_ativo == "Inicial" %}
+            <article class="card-plano {% if e_inicial %}atual{% endif %}" role="listitem"
+                aria-label="Plano Inicial{% if e_inicial %}, plano atual{% endif %}">
+                {% if e_inicial %}
+                <span class="etiqueta-atual" aria-hidden="true">Seu plano</span>
+                {% endif %}
+
+                <div class="card-plano-header">
+                    <div class="nome-plano">Inicial</div>
+                    <div class="desc-plano">
+                        Para inspetor autônomo ou pequena equipe começando com laudos digitais.
+                    </div>
+                </div>
+
+                <ul class="lista-features" aria-label="Recursos do plano Inicial">
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            {{ exibir_limite(l_inicial.laudos_mes) }} laudos / mês
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            {{ exibir_limite(l_inicial.usuarios_max) }} usuário
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            Histórico de
+                            {% if l_inicial.retencao_dias %}
+                            <span class="feature-valor">{{ l_inicial.retencao_dias }} dias</span>
+                            {% else %}
+                            <span class="feature-valor">ilimitado</span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    {{ feature(l_inicial.upload_doc, "Upload de PDF / DOCX") }}
+                    {{ feature(l_inicial.deep_research, "Deep Research com citações") }}
+                    {{ feature(l_inicial.integracoes_max, "Integrações externas") }}
+                </ul>
+
+                <hr class="divisor-card" aria-hidden="true">
+
+                {% if e_inicial %}
+                <button type="button" class="btn-plano btn-plano-atual" disabled aria-label="Este é seu plano atual">
+                    <span class="material-symbols-rounded">check</span>
+                    Plano atual
+                </button>
+                {% else %}
+                <a href="mailto:comercial@wf.com.br?subject=Plano%20Inicial%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                    class="btn-plano btn-plano-secundario" aria-label="Contratar plano Inicial">
+                    <span class="material-symbols-rounded">mail</span>
+                    Falar com vendas
+                </a>
+                {% endif %}
+            </article>
+
+
+            {# ── Plano Intermediário ──────────────────────────────────── #}
+            {% set l_inter = limites["Intermediario"] %}
+            {% set e_inter = usuario.empresa.plano_ativo == "Intermediario" %}
+            <article class="card-plano destaque {% if e_inter %}atual{% endif %}" role="listitem"
+                aria-label="Plano Intermediário{% if e_inter %}, plano atual{% endif %}">
+                <span class="etiqueta-destaque" aria-hidden="true">Mais popular</span>
+                {% if e_inter %}
+                <span class="etiqueta-atual" aria-hidden="true">Seu plano</span>
+                {% endif %}
+
+                <div class="card-plano-header">
+                    <div class="nome-plano">Intermediário</div>
+                    <div class="desc-plano">
+                        Para equipes de inspeção com múltiplos usuários e documentos técnicos.
+                    </div>
+                </div>
+
+                <ul class="lista-features" aria-label="Recursos do plano Intermediário">
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            {{ exibir_limite(l_inter.laudos_mes) }} laudos / mês
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            Até {{ exibir_limite(l_inter.usuarios_max) }} usuários
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            Histórico de
+                            {% if l_inter.retencao_dias %}
+                            <span class="feature-valor">{{ l_inter.retencao_dias }} dias</span>
+                            {% else %}
+                            <span class="feature-valor">ilimitado</span>
+                            {% endif %}
+                        </span>
+                    </li>
+                    {{ feature(l_inter.upload_doc, "Upload de PDF / DOCX") }}
+                    {{ feature(l_inter.deep_research, "Deep Research com citações") }}
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            <span class="feature-valor">{{ l_inter.integracoes_max }}</span>
+                            integração externa
+                        </span>
+                    </li>
+                </ul>
+
+                <hr class="divisor-card" aria-hidden="true">
+
+                {% if e_inter %}
+                <button type="button" class="btn-plano btn-plano-atual" disabled aria-label="Este é seu plano atual">
+                    <span class="material-symbols-rounded">check</span>
+                    Plano atual
+                </button>
+                {% else %}
+                <a href="mailto:comercial@wf.com.br?subject=Plano%20Intermedi%C3%A1rio%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                    class="btn-plano btn-plano-primario" aria-label="Contratar plano Intermediário">
+                    <span class="material-symbols-rounded">rocket_launch</span>
+                    Fazer upgrade
+                </a>
+                {% endif %}
+            </article>
+
+
+            {# ── Plano Ilimitado ──────────────────────────────────────── #}
+            {% set l_ilim = limites["Ilimitado"] %}
+            {% set e_ilim = usuario.empresa.plano_ativo == "Ilimitado" %}
+            <article class="card-plano {% if e_ilim %}atual{% endif %}" role="listitem"
+                aria-label="Plano Ilimitado{% if e_ilim %}, plano atual{% endif %}">
+                {% if e_ilim %}
+                <span class="etiqueta-atual" aria-hidden="true">Seu plano</span>
+                {% endif %}
+
+                <div class="card-plano-header">
+                    <div class="nome-plano">Ilimitado</div>
+                    <div class="desc-plano">
+                        Para empresas de inspeção de grande porte com deep research e integrações.
+                    </div>
+                </div>
+
+                <ul class="lista-features" aria-label="Recursos do plano Ilimitado">
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            {{ exibir_limite(l_ilim.laudos_mes) }} laudos / mês
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            {{ exibir_limite(l_ilim.usuarios_max, " usuários") }}
+                        </span>
+                    </li>
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            Histórico
+                            <span class="feature-valor">ilimitado</span>
+                        </span>
+                    </li>
+                    {{ feature(l_ilim.upload_doc, "Upload de PDF / DOCX") }}
+                    {{ feature(l_ilim.deep_research, "Deep Research com citações") }}
+                    <li class="feature-item feature-ok">
+                        <span class="material-symbols-rounded feature-ok" aria-hidden="true">check_circle</span>
+                        <span class="feature-texto">
+                            Integrações <span class="feature-valor">ilimitadas</span>
+                        </span>
+                    </li>
+                </ul>
+
+                <hr class="divisor-card" aria-hidden="true">
+
+                {% if e_ilim %}
+                <button type="button" class="btn-plano btn-plano-atual" disabled aria-label="Este é seu plano atual">
+                    <span class="material-symbols-rounded">check</span>
+                    Plano atual
+                </button>
+                {% else %}
+                <a href="mailto:comercial@wf.com.br?subject=Plano%20Ilimitado%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                    class="btn-plano btn-plano-secundario" aria-label="Contratar plano Ilimitado">
+                    <span class="material-symbols-rounded">mail</span>
+                    Falar com vendas
+                </a>
+                {% endif %}
+            </article>
+
+        </div>
+    </main>
+
+
+    <!-- ── Rodapé ────────────────────────────────────────────────────── -->
+    <footer class="rodape-planos">
+        <p>
+            Para upgrade ou dúvidas sobre faturamento, entre em contato com
+            <a href="mailto:comercial@wf.com.br">comercial@wf.com.br</a>
+        </p>
+        <p style="margin-top:6px;">
+            WF Soluções Industriais · CNPJ {{ usuario.empresa.cnpj }}
+        </p>
+    </footer>
+
+
+    <script nonce="{{ csp_nonce }}">
+        (function () {
+            "use strict";
+
+            // Mostra toast de limite atingido se redirecionado via ?limite=1
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("limite") === "1") {
+                // Reutiliza TarielUI.exibirToast se disponível,
+                // senão cria toast simples inline
+                const msg = "Limite do plano atingido. Faça upgrade para continuar.";
+                if (typeof window.TarielUI?.exibirToast === "function") {
+                    window.TarielUI.exibirToast(msg, "aviso", 6000);
+                } else {
+                    const div = document.createElement("div");
+                    Object.assign(div.style, {
+                        position: "fixed",
+                        bottom: "24px",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        background: "#4A3000",
+                        border: "1px solid #F47B20",
+                        color: "#fff",
+                        padding: "12px 20px",
+                        borderRadius: "8px",
+                        fontSize: "13px",
+                        zIndex: "9999",
+                        boxShadow: "0 4px 20px rgba(0,0,0,.4)",
+                        maxWidth: "340px",
+                        textAlign: "center",
+                    });
+                    div.setAttribute("role", "alert");
+                    div.textContent = msg;
+                    document.body.appendChild(div);
+                    setTimeout(() => div.remove(), 6000);
+                }
+
+                // Limpa o param da URL sem reload
+                const url = new URL(window.location.href);
+                url.searchParams.delete("limite");
+                history.replaceState(null, "", url.toString());
+            }
+        })();
+    </script>
+
+</body>
+
+</html>

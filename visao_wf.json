@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "tariel-488710",
+  "private_key_id": "da232bae905ced5aff7f6c390ae087e5a9f2ac10",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDCKxTkBKJ5YC11\nPE/pfoOjJ9uQnAIPgeJjYg4qshcgItEwjtADVb/oEmrSUy/Mgffw30BHyAQ/fPDw\n8xDi+9/GEela25OM+qJJHyGYzOUQZX6Vu8yEHaJ7B792ti8l9uo8prdetpBBHnBh\ngrJs5l5k7akCU4Nzgy7HrDMvVVUZnd7m6dxoiOP6ItArH8vfS+Vl3tjximKK9UAw\nzCt69xoTqJyuIJSbNIrYUgUSuxMwh+9NQcA9MrPVdKgaeE9NQ76/ybOye7gXfOmW\nMSd8L5wIsThL9/q6A3wlSEc1P+D2stOJfcoyHsJL3hTq1Cva/7woTshsFNeKwOTC\nsPUwwTXLAgMBAAECggEAAP5LUZDeD0E8pr4q25pVXi4lobC0aHA8KxgaRXOJAxXM\nSrqUwRJHu6q05fkdh8N5yWn0wElCZL+k8JP1wqf1xg5bSoqJXd/FQ8WARzjlkYxL\nYIvyr/U7E4LU6frWgwW1ooKTnM0nTFQ1exXIQKztQXomcrKLAwE3hlPfCEaR+36d\nJMXHBLUfcE0r3pRvl2N/KCDiv72Yt7e/wGG/RWeACiWagrWkJsKRJ/OaSoZbrnIw\nncDr4NZljfKf7egHNH3GjLHT1piJxVVqG6O4RioTNB7kSKgvIH7BO7i7YMdCepFh\n+5Ln2lWZ9+kFGL1g3f4ghCxZaXSoZYU5S/PbC0FufQKBgQDxVMQCH7oB9jCpYq47\nIz0wbsLFK21+VV+n7XEKiWb9OKOHATa6uNORp01BRNlvzkj5+wUrdWC5Yr75K7K5\niKoIGBlw/8x2BGQ/U4ji6S0jfP9QhULPdlO/pdy5nn2BV2wSEVitOYI+GEqrRKIX\n9e0Xq3WG5+JYDtUCw0XFSZ3Z5wKBgQDN+HA+9OwgFxPp+V/Up4tMxd71urw1HgZT\nfInCBWCwPCKoa0KHU7nSJs9ix2eRYLt0HO3ritLTCDpWVm84IkbhRERSJ5n7CRI4\nMj7LeJIIlEaSpWQEL8wcK8vExLis3zkZvAQf4msp7Kjp+y4tqCnL65+AMPW9PNZC\n6xGD+kmwfQKBgEmmpf9D8X+hw+4d+LCBq635T6XfABabNYtJcsNVdcH4JCgSncJU\nn/UGyxQNUBLIMQthqY0+0FsjoMboqC3pYIMB39nVp2+pHXMaKl+d7DG1dzH6yY4J\nPbvyga+AiCsOJCRLePW85FvRDBDC7HlFi6s6n66hXDmlpSqnr8ZrFiqnAoGAXXOW\nQgpQRDMUVvlNcKff/SJeCfICyLrpteFwg3Z7Kxrtwqp/0fS7/8yaFcBRjlVsV790\nd4VSKGu4REoNRlPPAxA9S2UqaQrxmEu70AfRglD8QDcITRn+qt14I7v56n2RY8q5\nuFm7s5bsANV1W0PMSviKMtiD9qtur4gGN3JNEuUCgYBwl4etGiptjc7AmNMz2tx3\nH4dwN69By4kSBWpcWLMJMHr+5lAi7BP97Ki3HCP8bQWQXMp66AHoSTCK8ydb0yRK\n1FrxI1UVO67fpYQ+O6uhpzCdm8FtHHHWkYQN9TAOsy/UafqwZN9U+R9tRNUAiwoG\nEP5AhRnvETmWaQrHlRNr6g==\n-----END PRIVATE KEY-----\n",
+  "client_email": "tariel-ia-motor@tariel-488710.iam.gserviceaccount.com",
+  "client_id": "104789219561736266936",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/tariel-ia-motor%40tariel-488710.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

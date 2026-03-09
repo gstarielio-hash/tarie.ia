@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0F2B46">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    {# Segurança ideal:
+    - Enviar X-Content-Type-Options: nosniff por header HTTP.
+    - Enviar X-Frame-Options: DENY por header HTTP.
+    - Enviar CSP por header HTTP no backend.
+    #}
+
+    <title>Tariel Control Tower • Dashboard IA</title>
+
+    <link rel="manifest" href="/app/manifesto.json">
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/admin.css">
+
+    <style nonce="{{ csp_nonce }}">
+        :root {
+            --wf-text: #0F2B46;
+            --wf-text-soft: #667085;
+            --wf-surface: #fff;
+            --wf-border: #E7ECF3;
+            --wf-accent: #F47B20;
+            --wf-accent-dark: #D86815;
+            --wf-success: #2E7D32;
+            --wf-success-bg: #E8F5E9;
+            --wf-danger: #C62828;
+            --wf-danger-bg: #FFEBEE;
+            --wf-warning: #E65100;
+            --wf-warning-bg: #FFF3E0;
+            --wf-info: #2196F3;
+            --wf-info-bg: rgba(33, 150, 243, .1);
+            --wf-green: #4CAF50;
+            --wf-green-bg: rgba(76, 175, 80, .1);
+            --wf-orange-bg: rgba(244, 123, 32, .1);
+            --wf-radius-sm: 8px;
+            --wf-radius-md: 12px;
+            --wf-shadow-sm: 0 1px 4px rgba(0, 0, 0, .07);
+        }
+
+        .material-symbols-rounded {
+            font-family: "Material Symbols Rounded", sans-serif !important;
+            font-weight: 400;
+            font-style: normal;
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+            display: inline-block;
+            line-height: 1;
+            vertical-align: middle;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: "liga";
+        }
+
+        .sidebar .material-symbols-rounded {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            font-size: 24px !important;
+        }
+
+        .btn-novo-cliente,
+        .link-acao-tabela,
+        .item-menu.logout-btn,
+        .alert-fechar {
+            font: inherit;
+        }
+
+        .btn-novo-cliente {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: var(--wf-radius-sm);
+            background: var(--wf-accent);
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            transition: background-color .2s ease, transform .2s ease;
+        }
+
+        .btn-novo-cliente:hover {
+            background: var(--wf-accent-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-novo-cliente .material-symbols-rounded {
+            font-size: 20px !important;
+        }
+
+        .btn-novo-cliente:focus-visible,
+        .item-menu.logout-btn:focus-visible,
+        .alert-fechar:focus-visible,
+        .link-acao-tabela:focus-visible {
+            outline: 2px solid var(--wf-accent);
+            outline-offset: 2px;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: var(--wf-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity .25s ease, transform .25s ease;
+        }
+
+        .alert.saindo {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+
+        .alert-success {
+            background: var(--wf-success-bg);
+            color: var(--wf-success);
+            border-left: 4px solid var(--wf-green);
+        }
+
+        .alert-error {
+            background: var(--wf-danger-bg);
+            color: var(--wf-danger);
+            border-left: 4px solid #EF5350;
+        }
+
+        .alert-fechar {
+            margin-left: auto;
+            padding: 0 4px;
+            border: none;
+            background: none;
+            color: inherit;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: .6;
+        }
+
+        .alert-fechar:hover {
+            opacity: 1;
+        }
+
+        .box-grafico {
+            padding: 24px;
+            border: 1px solid var(--wf-border);
+            border-radius: var(--wf-radius-md);
+            background: var(--wf-surface);
+            box-shadow: var(--wf-shadow-sm);
+        }
+
+        .box-grafico h3,
+        .box-tabela h3 {
+            margin-bottom: 16px;
+            color: var(--wf-text);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .container-canvas {
+            position: relative;
+            height: 260px;
+        }
+
+        .area-dados {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge.conforme {
+            background: var(--wf-success-bg);
+            color: var(--wf-success);
+        }
+
+        .badge.critico {
+            background: var(--wf-danger-bg);
+            color: var(--wf-danger);
+        }
+
+        .badge.atencao {
+            background: var(--wf-warning-bg);
+            color: var(--wf-warning);
+        }
+
+        .item-menu.logout-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--wf-radius-sm);
+            background: none;
+            color: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .item-menu.logout-btn:hover {
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .item-menu.destaque {
+            background: rgba(244, 123, 32, .1);
+            color: var(--wf-accent) !important;
+        }
+
+        .usuario-painel {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            color: #B0C4DE;
+            font-size: 13px;
+        }
+
+        .usuario-painel .material-symbols-rounded {
+            font-size: 20px !important;
+        }
+
+        .usuario-painel__nome {
+            display: block;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .usuario-painel__cargo {
+            font-size: 11px;
+        }
+
+        .cnpj-mascarado {
+            color: #666;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .icone-card {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            border-radius: 12px;
+        }
+
+        .icone-card .material-symbols-rounded {
+            font-size: 28px !important;
+        }
+
+        .icone-card--clientes {
+            background: var(--wf-info-bg);
+            color: var(--wf-info);
+        }
+
+        .icone-card--inspecoes {
+            background: var(--wf-green-bg);
+            color: var(--wf-green);
+        }
+
+        .icone-card--receita {
+            background: var(--wf-orange-bg);
+            color: var(--wf-accent);
+        }
+
+        .link-acao-tabela {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--wf-accent);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .link-acao-tabela:hover {
+            text-decoration: underline;
+        }
+
+        .texto-vazio-tabela {
+            padding: 24px;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    {% set _qtd_clientes = dados.qtd_clientes | default(0) | int %}
+    {% set _total_inspecoes = dados.total_inspecoes | default(0) | int %}
+    {% set _receita_total = dados.receita_ia_total | default(0) | float %}
+
+    <div class="admin-layout">
+        <aside class="sidebar" aria-label="Menu administrativo">
+            <div class="logo-area">
+                <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+                <h2>Tariel Control</h2>
+            </div>
+
+            <nav class="menu-admin" aria-label="Menu principal">
+                <a href="/admin/painel" class="item-menu ativo" aria-current="page">
+                    <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
+                    Visão Geral
+                </a>
+
+                <a href="/admin/clientes" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">corporate_fare</span>
+                    Clientes SaaS
+                </a>
+
+                <a href="/admin/novo-cliente" class="item-menu destaque">
+                    <span class="material-symbols-rounded" aria-hidden="true">person_add</span>
+                    Novo Cliente
+                </a>
+
+                <a href="/admin/auditoria" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">folder_open</span>
+                    Auditoria de IA
+                </a>
+
+                <a href="/admin/configuracoes" class="item-menu">
+                    <span class="material-symbols-rounded" aria-hidden="true">settings</span>
+                    Configuração
+                </a>
+
+                <form action="/admin/logout" method="POST" style="margin:0;padding:0;" id="form-logout">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="item-menu logout-btn" aria-label="Sair do sistema">
+                        <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                        Sair
+                    </button>
+                </form>
+            </nav>
+
+            {% if usuario %}
+            <div class="usuario-painel" aria-label="Usuário conectado">
+                <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+                <div>
+                    <strong class="usuario-painel__nome">{{ usuario.nome_completo | e }}</strong>
+                    <span class="usuario-painel__cargo">Diretoria WF</span>
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+
+        <main class="conteudo-principal">
+            <header class="topbar">
+                <div class="titulo-pagina">
+                    <h1>Métricas SaaS IA</h1>
+                    <p>Acompanhamento de consumo e clientes ativos.</p>
+                </div>
+
+                <a href="/admin/novo-cliente" class="btn-novo-cliente" aria-label="Cadastrar novo cliente">
+                    <span class="material-symbols-rounded" aria-hidden="true">add</span>
+                    Novo Cliente
+                </a>
+            </header>
+
+            {% for msg in mensagens_flash %}
+            {% set _tipo_alerta = 'success' if msg.tipo == 'success' else 'error' %}
+            <div class="alert alert-{{ _tipo_alerta }}" role="alert" aria-live="assertive">
+                <span aria-hidden="true">{{ '✅' if _tipo_alerta == 'success' else '⚠️' }}</span>
+                {{ msg.texto | e }}
+                <button class="alert-fechar" aria-label="Fechar alerta" type="button">×</button>
+            </div>
+            {% endfor %}
+
+            <section class="cards-kpi" aria-label="Indicadores principais">
+                <div class="card">
+                    <div class="icone-card icone-card--clientes" aria-hidden="true">
+                        <span class="material-symbols-rounded">domain</span>
+                    </div>
+                    <div class="dados-card">
+                        <h3>Clientes Ativos</h3>
+                        <p class="valor" aria-label="{{ _qtd_clientes }} clientes ativos">
+                            {{ _qtd_clientes }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="icone-card icone-card--inspecoes" aria-hidden="true">
+                        <span class="material-symbols-rounded">analytics</span>
+                    </div>
+                    <div class="dados-card">
+                        <h3>Inspeções Processadas</h3>
+                        <p class="valor" aria-label="{{ _total_inspecoes }} inspeções">
+                            {{ _total_inspecoes }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="icone-card icone-card--receita" aria-hidden="true">
+                        <span class="material-symbols-rounded">payments</span>
+                    </div>
+                    <div class="dados-card">
+                        <h3>Faturamento IA (API)</h3>
+                        <p class="valor">R$ {{ "%.2f" | format(_receita_total) }}</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="area-dados" aria-label="Análise de laudos e clientes">
+                <div class="box-grafico">
+                    <h3>Laudos Gerados — Últimos 7 dias</h3>
+                    <div class="container-canvas">
+                        <canvas id="graficoInspecoes" role="img"
+                            aria-label="Gráfico de barras: laudos gerados nos últimos 7 dias"
+                            data-labels='{{ dados.labels_grafico | default([]) | tojson }}'
+                            data-valores='{{ dados.valores_grafico | default([]) | tojson }}'>
+                        </canvas>
+                    </div>
+                </div>
+
+                <div class="box-tabela">
+                    <h3>Ranking de Clientes</h3>
+                    <table class="tabela-admin" aria-label="Lista de clientes cadastrados">
+                        <thead>
+                            <tr>
+                                <th scope="col">Empresa</th>
+                                <th scope="col">CNPJ</th>
+                                <th scope="col">Plano Ativo</th>
+                                <th scope="col">Status</th>
+                                <th scope="col"><span class="sr-only">Ações</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in dados.clientes %}
+                            {% set _plano = cliente.plano_ativo | default('—', true) %}
+                            {% set _bloqueado = cliente.status_bloqueio %}
+                            {% set _cnpj_final = (cliente.cnpj | default('', true))[-2:] %}
+                            <tr>
+                                <td><strong>{{ cliente.nome_fantasia | e }}</strong></td>
+
+                                <td>
+                                    <span class="cnpj-mascarado" title="CNPJ disponível na tela de detalhe"
+                                        aria-label="CNPJ parcialmente oculto">
+                                        **.***.***/****-{{ _cnpj_final | e if _cnpj_final else '**' }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="badge {% if _plano == 'Ilimitado' %}atencao{% else %}conforme{% endif %}"
+                                        aria-label="Plano: {{ _plano | e }}">
+                                        {{ _plano | e }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {% if _bloqueado %}
+                                    <span class="badge critico" aria-label="Status: Bloqueado">Bloqueado</span>
+                                    {% else %}
+                                    <span class="badge conforme" aria-label="Status: Ativo">Ativo</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    <a href="/admin/clientes/{{ cliente.id | int }}" class="link-acao-tabela"
+                                        aria-label="Ver detalhes de {{ cliente.nome_fantasia | e }}">
+                                        <span class="material-symbols-rounded" aria-hidden="true"
+                                            style="font-size:15px;">open_in_new</span>
+                                        Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="texto-vazio-tabela" aria-live="polite">
+                                    Nenhum cliente cadastrado ainda.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"
+        integrity="sha384-e6cc9LaIG7xZ3XD5B+jtr1NhTWPQGQdRCh6xiZ+ZFUtWCpg4ycv3Sh+SkZoopvUY" crossorigin="anonymous"
+        nonce="{{ csp_nonce }}"></script>
+
+    <script src="/static/js/painel.js" defer nonce="{{ csp_nonce }}"></script>
+
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            "use strict";
+
+            window.WF = Object.freeze({
+                csrfToken: document.querySelector('meta[name="csrf-token"]')?.content ?? ""
+            });
+
+            const removerAlerta = (el) => {
+                if (!el || el.dataset.removendo === "true") return;
+                el.dataset.removendo = "true";
+                el.classList.add("saindo");
+                window.setTimeout(() => el.remove(), 250);
+            };
+
+            document.querySelectorAll(".alert").forEach((el) => {
+                el.querySelector(".alert-fechar")?.addEventListener("click", () => removerAlerta(el));
+                window.setTimeout(() => removerAlerta(el), 6000);
+            });
+
+            document.getElementById("form-logout")?.addEventListener("submit", (event) => {
+                if (!window.confirm("Deseja realmente sair do sistema?")) {
+                    event.preventDefault();
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

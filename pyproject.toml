@@ -1,0 +1,33 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 160
+extend-exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "recursos_rc.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F"]
+
+[tool.mypy]
+python_version = "3.14"
+ignore_missing_imports = true
+follow_imports = "skip"
+warn_unused_configs = true
+exclude = [
+    '^recursos_rc\.py$',
+    '^venv/',
+    '^\.venv/',
+]
+files = [
+    "main.py",
+    "rotas_admin.py",
+    "rotas_inspetor.py",
+    "rotas_revisor.py",
+    "seguranca.py",
+    "servicos_saas.py",
+    "nucleo/cliente_ia.py",
+    "nucleo/gerador_laudos.py",
+]
