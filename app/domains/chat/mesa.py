@@ -8,6 +8,7 @@ from fastapi import Depends, HTTPException, Query, Request
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+from app.domains.chat.auth_helpers import usuario_nome
 from app.domains.chat.mensagem_helpers import (
     notificar_mesa_whisper,
     serializar_mensagem_mesa,
@@ -17,7 +18,6 @@ from app.domains.chat.routes import (
     agora_utc,
     obter_laudo_do_inspetor,
     resposta_json_ok,
-    usuario_nome,
 )
 from app.domains.chat.schemas import DadosMesaMensagem
 from app.shared.database import MensagemLaudo, TipoMensagem, Usuario, obter_banco

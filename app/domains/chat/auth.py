@@ -11,6 +11,17 @@ from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domains.chat.auth_helpers import (
+    CHAVE_TROCA_SENHA_LEMBRAR,
+    NIVEIS_PERMITIDOS_APP,
+    _iniciar_fluxo_troca_senha,
+    _limpar_fluxo_troca_senha,
+    _render_troca_senha,
+    _usuario_pendente_troca_senha,
+    _validar_nova_senha,
+    redirecionar_por_nivel,
+    usuario_nome,
+)
 from app.domains.chat.limits_helpers import contar_laudos_mes, obter_limite_empresa
 from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
@@ -19,21 +30,12 @@ from app.domains.chat.session_helpers import (
     validar_csrf,
 )
 from app.domains.chat.routes import (
-    CHAVE_TROCA_SENHA_LEMBRAR,
-    NIVEIS_PERMITIDOS_APP,
     PADRAO_SUPORTE_WHATSAPP,
-    _iniciar_fluxo_troca_senha,
-    _limpar_fluxo_troca_senha,
-    _render_troca_senha,
     _settings,
-    _usuario_pendente_troca_senha,
-    _validar_nova_senha,
     configuracoes,
     logger,
     montar_limites_para_template,
-    redirecionar_por_nivel,
     templates,
-    usuario_nome,
 )
 from app.domains.chat.normalization import normalizar_email
 from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco
@@ -77,7 +79,7 @@ async def tela_troca_senha_app(
 ):
     if not _usuario_pendente_troca_senha(request, banco):
         return RedirectResponse(url="/app/login", status_code=303)
-    return _render_troca_senha(request)
+    return _render_troca_senha(request, templates=templates)
 
 
 async def processar_troca_senha_app(
@@ -89,7 +91,7 @@ async def processar_troca_senha_app(
     banco: Session = Depends(obter_banco),
 ):
     if not validar_csrf(request, csrf_token):
-        return _render_troca_senha(request, erro="Requisição inválida.", status_code=400)
+        return _render_troca_senha(request, templates=templates, erro="Requisição inválida.", status_code=400)
 
     usuario = _usuario_pendente_troca_senha(request, banco)
     if not usuario:
@@ -97,10 +99,10 @@ async def processar_troca_senha_app(
 
     erro_validacao = _validar_nova_senha(senha_atual, nova_senha, confirmar_senha)
     if erro_validacao:
-        return _render_troca_senha(request, erro=erro_validacao, status_code=400)
+        return _render_troca_senha(request, templates=templates, erro=erro_validacao, status_code=400)
 
     if not verificar_senha(senha_atual, usuario.senha_hash):
-        return _render_troca_senha(request, erro="Senha temporária inválida.", status_code=401)
+        return _render_troca_senha(request, templates=templates, erro="Senha temporária inválida.", status_code=401)
 
     lembrar = bool(request.session.get(CHAVE_TROCA_SENHA_LEMBRAR, False))
     usuario.senha_hash = criar_hash_senha(nova_senha)

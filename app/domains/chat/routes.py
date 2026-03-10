@@ -17,27 +17,23 @@ import io  # noqa: F401
 import json
 import logging
 import os
-import secrets
 import tempfile  # noqa: F401
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation  # noqa: F401
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import (
     APIRouter,
     File,  # noqa: F401
     HTTPException,
     Query,  # noqa: F401
-    Request,
     UploadFile,  # noqa: F401
 )
 from fastapi.responses import (
     FileResponse,  # noqa: F401
-    HTMLResponse,
     JSONResponse,
-    RedirectResponse,
     StreamingResponse,  # noqa: F401
 )
 from fastapi.templating import Jinja2Templates
@@ -52,16 +48,13 @@ from app.shared.database import (
     Laudo,
     LimitePlano,
     ModoResposta,
-    NivelAcesso,
     PlanoEmpresa,
     SessaoLocal,  # noqa: F401
     TemplateLaudo,
     Usuario,
 )
 from app.shared.security import (
-    PORTAL_INSPETOR,
-    limpar_sessao_portal,
-    usuario_tem_bloqueio_ativo,
+    PORTAL_INSPETOR,  # noqa: F401
 )
 from nucleo.cliente_ia import ClienteIA
 from nucleo.gerador_laudos import GeradorLaudos  # noqa: F401
@@ -102,6 +95,20 @@ from app.domains.chat.session_helpers import (
     exigir_csrf,  # noqa: F401
     laudo_id_sessao,  # noqa: F401
     validar_csrf,  # noqa: F401
+)
+from app.domains.chat.auth_helpers import (
+    CHAVE_TROCA_SENHA_LEMBRAR,  # noqa: F401
+    CHAVE_TROCA_SENHA_PORTAL,  # noqa: F401
+    CHAVE_TROCA_SENHA_UID,  # noqa: F401
+    NIVEIS_PERMITIDOS_APP,  # noqa: F401
+    PORTAL_TROCA_SENHA_INSPETOR,  # noqa: F401
+    _iniciar_fluxo_troca_senha,  # noqa: F401
+    _limpar_fluxo_troca_senha,  # noqa: F401
+    _render_troca_senha,  # noqa: F401
+    _usuario_pendente_troca_senha,  # noqa: F401
+    _validar_nova_senha,  # noqa: F401
+    redirecionar_por_nivel,  # noqa: F401
+    usuario_nome,  # noqa: F401
 )
 from app.domains.chat.limits_helpers import (
     contar_laudos_mes,  # noqa: F401
@@ -197,12 +204,6 @@ PREFIXO_MODO_HUMANO = "__MODO_HUMANO__:"
 MODO_DETALHADO = ModoResposta.DETALHADO.value
 MODO_CURTO = ModoResposta.CURTO.value
 MODO_DEEP = ModoResposta.DEEP_RESEARCH.value
-
-NIVEIS_PERMITIDOS_APP = frozenset({NivelAcesso.INSPETOR.value})
-PORTAL_TROCA_SENHA_INSPETOR = "inspetor"
-CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
-CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
-CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
 
 MIME_DOC_PERMITIDOS = {
     "application/pdf": "pdf",
@@ -326,10 +327,6 @@ def selecionar_template_ativo_para_tipo(
     return candidatos[0]
 
 
-def usuario_nome(usuario: Usuario) -> str:
-    return getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Inspetor #{usuario.id}"
-
-
 def obter_cliente_ia_ativo() -> ClienteIA:
     if cliente_ia is None:
         detalhe = "Módulo de IA indisponível. Configure CHAVE_API_GEMINI e reinicie o serviço."
@@ -339,94 +336,6 @@ def obter_cliente_ia_ativo() -> ClienteIA:
         raise HTTPException(status_code=503, detail=detalhe)
 
     return cliente_ia
-
-
-def redirecionar_por_nivel(usuario: Usuario) -> RedirectResponse:
-    nivel = usuario.nivel_acesso
-
-    if nivel == NivelAcesso.INSPETOR.value:
-        return RedirectResponse(url="/app/", status_code=303)
-
-    if nivel == NivelAcesso.REVISOR.value:
-        return RedirectResponse(url="/revisao/painel", status_code=303)
-
-    if nivel >= NivelAcesso.DIRETORIA.value:
-        return RedirectResponse(url="/admin/painel", status_code=303)
-
-    return RedirectResponse(url="/app/login", status_code=303)
-
-
-def _iniciar_fluxo_troca_senha(request: Request, *, usuario_id: int, lembrar: bool) -> None:
-    limpar_sessao_portal(request.session, portal=PORTAL_INSPETOR)
-    request.session[CHAVE_CSRF_INSPETOR] = secrets.token_urlsafe(32)
-    request.session[CHAVE_TROCA_SENHA_UID] = int(usuario_id)
-    request.session[CHAVE_TROCA_SENHA_PORTAL] = PORTAL_TROCA_SENHA_INSPETOR
-    request.session[CHAVE_TROCA_SENHA_LEMBRAR] = bool(lembrar)
-
-
-def _limpar_fluxo_troca_senha(request: Request) -> None:
-    request.session.pop(CHAVE_TROCA_SENHA_UID, None)
-    request.session.pop(CHAVE_TROCA_SENHA_PORTAL, None)
-    request.session.pop(CHAVE_TROCA_SENHA_LEMBRAR, None)
-
-
-def _usuario_pendente_troca_senha(request: Request, banco: Session) -> Optional[Usuario]:
-    if request.session.get(CHAVE_TROCA_SENHA_PORTAL) != PORTAL_TROCA_SENHA_INSPETOR:
-        return None
-
-    usuario_id = request.session.get(CHAVE_TROCA_SENHA_UID)
-    try:
-        usuario_id_int = int(usuario_id)
-    except (TypeError, ValueError):
-        _limpar_fluxo_troca_senha(request)
-        return None
-
-    usuario = banco.get(Usuario, usuario_id_int)
-    if not usuario:
-        _limpar_fluxo_troca_senha(request)
-        return None
-
-    if usuario.nivel_acesso not in NIVEIS_PERMITIDOS_APP:
-        _limpar_fluxo_troca_senha(request)
-        return None
-
-    if not bool(getattr(usuario, "senha_temporaria_ativa", False)):
-        _limpar_fluxo_troca_senha(request)
-        return None
-
-    if usuario_tem_bloqueio_ativo(usuario):
-        _limpar_fluxo_troca_senha(request)
-        return None
-
-    return usuario
-
-
-def _validar_nova_senha(senha_atual: str, nova_senha: str, confirmar_senha: str) -> str:
-    senha_atual = senha_atual or ""
-    nova_senha = nova_senha or ""
-    confirmar_senha = confirmar_senha or ""
-
-    if not senha_atual or not nova_senha or not confirmar_senha:
-        return "Preencha senha atual, nova senha e confirmação."
-    if nova_senha != confirmar_senha:
-        return "A confirmação da nova senha não confere."
-    if len(nova_senha) < 8:
-        return "A nova senha deve ter no mínimo 8 caracteres."
-    if nova_senha == senha_atual:
-        return "A nova senha deve ser diferente da senha temporária."
-    return ""
-
-
-def _render_troca_senha(request: Request, *, erro: str = "", status_code: int = 200) -> HTMLResponse:
-    contexto = {
-        **contexto_base(request),
-        "erro": erro,
-        "titulo_pagina": "Troca Obrigatória de Senha",
-        "subtitulo_pagina": "Defina sua nova senha para liberar o acesso ao sistema.",
-        "acao_form": "/app/trocar-senha",
-        "rota_login": "/app/login",
-    }
-    return templates.TemplateResponse(request, "trocar_senha.html", contexto, status_code=status_code)
 
 
 def obter_preview_primeira_mensagem(

@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
 import app.domains.chat.routes as rotas_inspetor
+from app.domains.chat.auth_helpers import usuario_nome
 from app.domains.chat.media_helpers import (
     nome_documento_seguro,
     safe_remove_file,
@@ -67,7 +68,6 @@ from app.domains.chat.routes import (
     obter_preview_primeira_mensagem,
     resposta_json_ok,
     selecionar_template_ativo_para_tipo,
-    usuario_nome,
 )
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF
 from app.domains.chat.templates_ai import RelatorioCBMGO
