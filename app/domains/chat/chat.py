@@ -24,6 +24,10 @@ from app.domains.chat.media_helpers import (
     validar_historico_total,
     validar_imagem_base64,
 )
+from app.domains.chat.mensagem_helpers import (
+    notificar_mesa_whisper,
+    serializar_historico_mensagem,
+)
 from app.domains.chat.normalization import normalizar_tipo_template
 from app.domains.chat.commands_helpers import (
     montar_resposta_comando_rapido,
@@ -57,13 +61,11 @@ from app.domains.chat.routes import (
     leitor_docx,
     leitor_pdf,
     logger,
-    notificar_mesa_whisper,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,
     obter_preview_primeira_mensagem,
     resposta_json_ok,
     selecionar_template_ativo_para_tipo,
-    serializar_historico_mensagem,
     usuario_nome,
 )
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF

@@ -80,11 +80,9 @@ from nucleo.inspetor.confianca_ia import (
     CONFIANCA_MEDIA,  # noqa: F401
     _titulo_confianca_humano,  # noqa: F401
     analisar_confianca_resposta_ia,  # noqa: F401
-    normalizar_payload_confianca_ia,
 )
 from nucleo.inspetor.referencias_mensagem import (
     compor_texto_com_referencia,  # noqa: F401
-    extrair_referencia_do_texto,
 )
 from nucleo.template_laudos import gerar_preview_pdf_template  # noqa: F401
 from app.domains.chat.normalization import (
@@ -108,10 +106,14 @@ from app.domains.chat.media_helpers import (
 from app.domains.chat.pendencias_helpers import (
     MAPA_FILTRO_PENDENCIAS_LABEL,  # noqa: F401
     descrever_status_revisao,  # noqa: F401
-    formatar_data_br,
     formatar_data_humana,  # noqa: F401
     listar_pendencias_mesa_laudo,  # noqa: F401
     normalizar_filtro_pendencias,  # noqa: F401
+)
+from app.domains.chat.mensagem_helpers import (
+    notificar_mesa_whisper,  # noqa: F401
+    serializar_historico_mensagem,  # noqa: F401
+    serializar_mensagem_mesa,  # noqa: F401
 )
 from app.domains.chat.commands_helpers import (
     montar_resposta_comando_pendencias,  # noqa: F401
@@ -886,92 +888,6 @@ def montar_limites_para_template(banco: Session) -> dict[str, Any]:
         limites[plano.value] = fallback
 
     return limites
-
-
-def serializar_historico_mensagem(
-    mensagem: MensagemLaudo,
-    modo_resposta: str,
-    citacoes: list[dict[str, Any]] | None = None,
-    confianca_ia: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(mensagem.conteudo)
-
-    if mensagem.tipo in (TipoMensagem.USER.value, TipoMensagem.HUMANO_INSP.value):
-        papel = "usuario"
-    elif mensagem.tipo == TipoMensagem.HUMANO_ENG.value:
-        papel = "engenheiro"
-    else:
-        papel = "assistente"
-
-    item: dict[str, Any] = {
-        "id": mensagem.id,
-        "papel": papel,
-        "texto": texto_limpo,
-        "tipo": mensagem.tipo,
-        "modo": modo_resposta or MODO_DETALHADO,
-        "is_whisper": mensagem.tipo
-        in (
-            TipoMensagem.HUMANO_INSP.value,
-            TipoMensagem.HUMANO_ENG.value,
-        ),
-        "remetente_id": mensagem.remetente_id,
-    }
-    if referencia_mensagem_id:
-        item["referencia_mensagem_id"] = referencia_mensagem_id
-
-    if citacoes:
-        item["citacoes"] = citacoes
-    if confianca_ia and mensagem.tipo == TipoMensagem.IA.value:
-        item["confianca_ia"] = normalizar_payload_confianca_ia(confianca_ia)
-
-    return item
-
-
-def serializar_mensagem_mesa(mensagem: MensagemLaudo) -> dict[str, Any]:
-    referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(mensagem.conteudo)
-    payload: dict[str, Any] = {
-        "id": mensagem.id,
-        "laudo_id": mensagem.laudo_id,
-        "tipo": mensagem.tipo,
-        "texto": texto_limpo,
-        "remetente_id": mensagem.remetente_id,
-        "data": formatar_data_br(mensagem.criado_em),
-    }
-    if referencia_mensagem_id:
-        payload["referencia_mensagem_id"] = referencia_mensagem_id
-    return payload
-
-
-async def notificar_mesa_whisper(
-    *,
-    empresa_id: int,
-    laudo_id: int,
-    inspetor_id: int,
-    inspetor_nome: str,
-    preview: str,
-) -> None:
-    try:
-        from app.domains.revisor.routes import manager as manager_mesa
-
-        payload = {
-            "tipo": "whisper_ping",
-            "laudo_id": laudo_id,
-            "inspetor": inspetor_nome,
-            "inspetor_id": inspetor_id,
-            "preview": preview[:120],
-            "timestamp": agora_utc().isoformat(),
-        }
-
-        if hasattr(manager_mesa, "broadcast_empresa"):
-            await manager_mesa.broadcast_empresa(
-                empresa_id=empresa_id,
-                mensagem=payload,
-            )
-        elif hasattr(manager_mesa, "ping_whisper"):
-            await manager_mesa.ping_whisper(payload)
-
-    except Exception:
-        logger.warning("Falha ao notificar mesa avaliadora.", exc_info=True)
 
 
 # ============================================================================
