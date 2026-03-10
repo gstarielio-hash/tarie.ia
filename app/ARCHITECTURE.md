@@ -2,9 +2,9 @@
 
 ## Domínios
 - `app/domains/chat`: portal do inspetor, chat IA e fluxo de laudo
-  - `routes.py`: implementação principal + `roteador_inspetor`
+  - `routes.py`: núcleo compartilhado (helpers, estado, IA, utilitários)
   - `schemas.py`: contratos pydantic do domínio
-  - `auth.py`, `laudo.py`, `chat.py`, `mesa.py`, `pendencias.py`: roteadores ativos por responsabilidade
+  - `auth.py`, `laudo.py`, `chat.py`, `mesa.py`, `pendencias.py`: handlers e roteadores por responsabilidade
 - `app/domains/mesa`: contratos e serviços da mesa avaliadora
 - `app/domains/admin`: painel administrativo e serviços SaaS
 - `app/domains/revisor`: painel de revisão/engenharia
