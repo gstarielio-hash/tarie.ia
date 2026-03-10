@@ -17,7 +17,9 @@
 ## Frontend (assets)
 - `static/js/chat`: scripts do portal do inspetor/chat
 - `static/js/admin`: scripts do portal administrativo
+- `static/js/revisor`: scripts do portal da mesa/revisão
 - `static/js/shared`: utilitários comuns, bootstrap e service worker
+- `static/css/revisor`: estilos específicos da biblioteca de templates de laudo
 
 ## Compatibilidade
 Os wrappers legados da raiz foram removidos nesta fase de consolidação.

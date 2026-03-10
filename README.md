@@ -23,7 +23,8 @@ Backlog mestre da etapa antiga (priorizado e com status):
 - `app/domains/admin`: painel administrativo e serviços SaaS
 - `app/domains/revisor`: painel da engenharia/revisão
 - `app/shared`: banco de dados, segurança e utilitários compartilhados
-- `static/js/chat`, `static/js/admin`, `static/js/shared`: organização de scripts por domínio
+- `static/js/chat`, `static/js/admin`, `static/js/revisor`, `static/js/shared`: organização de scripts por domínio
+- `static/css/revisor`: estilos dedicados da biblioteca de templates da mesa avaliadora
 
 Observação: os wrappers legados da raiz foram removidos. Use apenas os módulos em `app/` (`app/domains/*` e `app/shared/*`).
 
