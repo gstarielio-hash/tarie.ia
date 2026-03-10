@@ -28,13 +28,13 @@ from app.domains.chat.routes import (
     estado_relatorio_sanitizado,
     logger,
     montar_limites_para_template,
-    normalizar_email,
     obter_limite_empresa,
     redirecionar_por_nivel,
     templates,
     usuario_nome,
     validar_csrf,
 )
+from app.domains.chat.normalization import normalizar_email
 from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco
 from app.shared.security import (
     PORTAL_INSPETOR,

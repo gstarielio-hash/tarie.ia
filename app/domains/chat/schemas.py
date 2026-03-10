@@ -10,6 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domains.chat.normalization import normalizar_setor
+
 LIMITE_MSG_CHARS = 8_000
 LIMITE_HISTORICO = 20
 LIMITE_IMG_BASE64 = 14_500_000
@@ -41,9 +43,6 @@ class DadosChat(BaseModel):
     @field_validator("setor")
     @classmethod
     def validar_setor(cls, valor: str) -> str:
-        # Import lazy para evitar ciclo durante bootstrap.
-        from app.domains.chat.routes import normalizar_setor
-
         return normalizar_setor(valor)
 
     @field_validator("nome_documento")
@@ -75,8 +74,6 @@ class DadosPDF(BaseModel):
     @field_validator("setor")
     @classmethod
     def validar_setor(cls, valor: str) -> str:
-        from app.domains.chat.routes import normalizar_setor
-
         return normalizar_setor(valor)
 
 
@@ -97,4 +94,3 @@ class DadosFeedback(BaseModel):
     trecho: str = Field(default="", max_length=LIMITE_FEEDBACK)
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
-

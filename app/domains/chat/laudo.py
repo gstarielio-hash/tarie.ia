@@ -10,10 +10,14 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+from app.domains.chat.normalization import (
+    ALIASES_TEMPLATE,
+    nome_template_humano,
+    normalizar_tipo_template,
+)
 from app.domains.chat.schemas import DadosPin
 from app.domains.chat.templates_ai import RelatorioCBMGO
 from app.domains.chat.routes import (
-    ALIASES_TEMPLATE,
     MODO_DETALHADO,
     _gerar_diff_revisoes,
     _obter_revisao_por_versao,
@@ -26,8 +30,6 @@ from app.domains.chat.routes import (
     garantir_limite_laudos,
     laudo_id_sessao,
     logger,
-    nome_template_humano,
-    normalizar_tipo_template,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,
     resposta_json_ok,

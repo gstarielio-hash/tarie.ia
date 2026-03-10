@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
 import app.domains.chat.routes as rotas_inspetor
+from app.domains.chat.normalization import normalizar_tipo_template
 from app.domains.chat.routes import (
     LIMITE_DOC_BYTES,
     LIMITE_DOC_CHARS,
@@ -47,7 +48,6 @@ from app.domains.chat.routes import (
     leitor_pdf,
     logger,
     nome_documento_seguro,
-    normalizar_tipo_template,
     notificar_mesa_whisper,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,

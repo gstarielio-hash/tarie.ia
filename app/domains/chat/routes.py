@@ -91,6 +91,12 @@ from nucleo.inspetor.referencias_mensagem import (
     extrair_referencia_do_texto,
 )
 from nucleo.template_laudos import gerar_preview_pdf_template  # noqa: F401
+from app.domains.chat.normalization import (
+    TIPOS_TEMPLATE_VALIDOS,
+    codigos_template_compativeis,
+    nome_template_humano,
+    normalizar_tipo_template,
+)
 from app.domains.chat.schemas import (
     DadosChat,  # noqa: F401
     DadosFeedback,  # noqa: F401
@@ -157,53 +163,6 @@ CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
 CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
 CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
 CHAVE_CSRF_INSPETOR = "csrf_token_inspetor"
-
-SETORES_PERMITIDOS = frozenset(
-    {
-        "geral",
-        "eletrica",
-        "mecanica",
-        "caldeiraria",
-        "spda",
-        "loto",
-        "nr10",
-        "nr12",
-        "nr13",
-        "nr35",
-        "avcb",
-        "pie",
-        "rti",
-    }
-)
-
-TIPOS_TEMPLATE_VALIDOS = {
-    "cbmgo": "CBM-GO Vistoria Bombeiro",
-    "rti": "NR-10 RTI Elétrica",
-    "nr10_rti": "NR-10 RTI Elétrica",
-    "nr13": "NR-13 Caldeiras",
-    "nr13_caldeira": "NR-13 Caldeiras",
-    "nr12maquinas": "NR-12 Máquinas",
-    "nr12_maquinas": "NR-12 Máquinas",
-    "spda": "SPDA Proteção Descargas",
-    "pie": "PIE Instalações Elétricas",
-    "avcb": "AVCB Projeto Bombeiro",
-    "padrao": "Inspeção Geral (Padrão)",
-}
-
-ALIASES_TEMPLATE = {
-    "nr12": "nr12maquinas",
-    "nr12_maquinas": "nr12maquinas",
-    "nr12maquinas": "nr12maquinas",
-    "rti": "rti",
-    "nr10_rti": "rti",
-    "nr13": "nr13",
-    "nr13_caldeira": "nr13",
-    "cbmgo": "cbmgo",
-    "spda": "spda",
-    "pie": "pie",
-    "avcb": "avcb",
-    "padrao": "padrao",
-}
 
 REGRAS_GATE_QUALIDADE_TEMPLATE: dict[str, dict[str, Any]] = {
     "padrao": {
@@ -412,42 +371,6 @@ def laudo_id_sessao(request: Request) -> Optional[int]:
         return None
 
 
-def normalizar_email(email: str) -> str:
-    return (email or "").strip().lower()
-
-
-def normalizar_setor(valor: str) -> str:
-    setor = (valor or "").strip().lower()
-    return setor if setor in SETORES_PERMITIDOS else "geral"
-
-
-def normalizar_tipo_template(valor: str) -> str:
-    bruto = (valor or "").strip().lower()
-    return ALIASES_TEMPLATE.get(bruto, "padrao")
-
-
-def codigos_template_compativeis(tipo_template: str) -> list[str]:
-    tipo = normalizar_tipo_template(tipo_template)
-    variantes_por_tipo: dict[str, list[str]] = {
-        "cbmgo": ["cbmgo", "cbmgo_cmar", "checklist_cbmgo"],
-        "rti": ["rti", "nr10_rti"],
-        "nr13": ["nr13", "nr13_caldeira"],
-        "nr12maquinas": ["nr12maquinas", "nr12_maquinas"],
-        "padrao": ["padrao"],
-    }
-
-    candidatos = [tipo, *variantes_por_tipo.get(tipo, [])]
-    vistos: set[str] = set()
-    codigos: list[str] = []
-    for item in candidatos:
-        codigo = re.sub(r"[^a-z0-9_-]+", "_", str(item or "").strip().lower()).strip("_-")
-        if not codigo or codigo in vistos:
-            continue
-        vistos.add(codigo)
-        codigos.append(codigo)
-    return codigos
-
-
 def selecionar_template_ativo_para_tipo(
     banco: Session,
     *,
@@ -479,11 +402,6 @@ def selecionar_template_ativo_para_tipo(
         )
     )
     return candidatos[0]
-
-
-def nome_template_humano(tipo_template: str) -> str:
-    tipo = normalizar_tipo_template(tipo_template)
-    return TIPOS_TEMPLATE_VALIDOS.get(tipo, TIPOS_TEMPLATE_VALIDOS["padrao"])
 
 
 def normalizar_filtro_pendencias(valor: str) -> str:
