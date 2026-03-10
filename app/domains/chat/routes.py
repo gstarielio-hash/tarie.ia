@@ -79,9 +79,9 @@ from nucleo.inspetor.comandos_chat import (  # noqa: F401
     remover_mencao_mesa,
 )
 from nucleo.inspetor.confianca_ia import (
-    CONFIANCA_MEDIA,
+    CONFIANCA_MEDIA,  # noqa: F401
     _resumo_texto_curto,
-    _titulo_confianca_humano,
+    _titulo_confianca_humano,  # noqa: F401
     analisar_confianca_resposta_ia,  # noqa: F401
     normalizar_payload_confianca_ia,
 )
@@ -109,12 +109,19 @@ from app.domains.chat.media_helpers import (
     validar_imagem_base64,  # noqa: F401
 )
 from app.domains.chat.pendencias_helpers import (
-    MAPA_FILTRO_PENDENCIAS_LABEL,
-    descrever_status_revisao,
+    MAPA_FILTRO_PENDENCIAS_LABEL,  # noqa: F401
+    descrever_status_revisao,  # noqa: F401
     formatar_data_br,
-    formatar_data_humana,
-    listar_pendencias_mesa_laudo,
-    normalizar_filtro_pendencias,
+    formatar_data_humana,  # noqa: F401
+    listar_pendencias_mesa_laudo,  # noqa: F401
+    normalizar_filtro_pendencias,  # noqa: F401
+)
+from app.domains.chat.commands_helpers import (
+    montar_resposta_comando_pendencias,  # noqa: F401
+    montar_resposta_comando_previa,  # noqa: F401
+    montar_resposta_comando_rapido,  # noqa: F401
+    montar_resposta_comando_resumo,  # noqa: F401
+    registrar_comando_rapido_historico,  # noqa: F401
 )
 from app.domains.chat.schemas import (
     DadosChat,  # noqa: F401
@@ -949,250 +956,6 @@ def _resumo_diff_revisoes(diff_texto: str) -> dict[str, int]:
         "linhas_removidas": removidas,
         "total_alteracoes": adicionadas + removidas,
     }
-
-
-def montar_resposta_comando_pendencias(
-    banco: Session,
-    laudo: Laudo,
-    argumento: str,
-) -> str:
-    filtro_bruto = (argumento or "").split(" ", 1)[0].strip().lower()
-    filtro = normalizar_filtro_pendencias(filtro_bruto or "abertas")
-    pendencias, total, abertas, total_filtrado = listar_pendencias_mesa_laudo(
-        banco,
-        laudo_id=laudo.id,
-        filtro=filtro,
-        pagina=1,
-        tamanho=5,
-    )
-    resolvidas = max(total - abertas, 0)
-
-    linhas = [
-        "### Pendências da Mesa",
-        f"- Filtro: **{MAPA_FILTRO_PENDENCIAS_LABEL.get(filtro, 'Abertas')}**",
-        f"- Total geral: **{total}**",
-        f"- Abertas: **{abertas}** | Resolvidas: **{resolvidas}**",
-    ]
-
-    if total_filtrado <= 0:
-        linhas.append("- Nenhuma pendência para o filtro selecionado.")
-        linhas.append("")
-        linhas.append("Comandos úteis: `/pendencias todas` | `/pendencias abertas` | `/pendencias resolvidas`")
-        return "\n".join(linhas)
-
-    linhas.append("")
-    linhas.append("Principais itens:")
-    for indice, item in enumerate(pendencias, start=1):
-        status_item = "aberta" if not item.lida else "resolvida"
-        data_item = formatar_data_humana(item.criado_em)
-        texto_item = " ".join((item.conteudo or "").split()).strip()[:180] or "(sem conteúdo)"
-        linhas.append(f"{indice}. [{status_item}] {texto_item} _(#{item.id} · {data_item})_")
-
-    if total_filtrado > len(pendencias):
-        linhas.append(f"- ... e mais **{total_filtrado - len(pendencias)}** item(ns) no filtro atual.")
-
-    linhas.append("")
-    linhas.append("Dica: use `/enviar_mesa <mensagem>` para responder no mesmo chat.")
-    return "\n".join(linhas)
-
-
-def montar_resposta_comando_resumo(
-    banco: Session,
-    laudo: Laudo,
-) -> str:
-    mensagens = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo.id).all()
-    qtd_usuario = sum(1 for item in mensagens if item.tipo in (TipoMensagem.USER.value, TipoMensagem.HUMANO_INSP.value))
-    qtd_ia = sum(1 for item in mensagens if item.tipo == TipoMensagem.IA.value)
-    qtd_mesa = sum(1 for item in mensagens if item.tipo == TipoMensagem.HUMANO_ENG.value)
-    qtd_fotos = sum(1 for item in mensagens if _mensagem_representa_foto(item.conteudo or ""))
-    qtd_docs = sum(1 for item in mensagens if _mensagem_representa_documento(item.conteudo or ""))
-    gate = avaliar_gate_qualidade_laudo(banco, laudo)
-    hash_curto = (laudo.codigo_hash or "")[-6:]
-    pendencias_abertas = (
-        banco.query(MensagemLaudo)
-        .filter(
-            MensagemLaudo.laudo_id == laudo.id,
-            MensagemLaudo.tipo == TipoMensagem.HUMANO_ENG.value,
-            MensagemLaudo.lida.is_(False),
-        )
-        .count()
-    )
-    total_revisoes = (
-        banco.query(func.count(LaudoRevisao.id))
-        .filter(LaudoRevisao.laudo_id == laudo.id)
-        .scalar()
-        or 0
-    )
-    ultima_revisao = _obter_ultima_revisao_laudo(banco, laudo.id)
-    confianca = normalizar_payload_confianca_ia(getattr(laudo, "confianca_ia_json", None) or {})
-    confianca_geral = _titulo_confianca_humano(confianca.get("geral", CONFIANCA_MEDIA))
-
-    linhas = [
-        "### Resumo da Sessão",
-        f"- Laudo: **#{hash_curto or laudo.id}** ({nome_template_humano(getattr(laudo, 'tipo_template', 'padrao'))})",
-        f"- Status: **{descrever_status_revisao(laudo.status_revisao)}**",
-        f"- Atualizado em: **{formatar_data_humana(getattr(laudo, 'atualizado_em', None) or getattr(laudo, 'criado_em', None))}**",
-        f"- Mensagens: usuário/inspetor **{qtd_usuario}**, IA **{qtd_ia}**, mesa **{qtd_mesa}**",
-        f"- Evidências registradas: fotos **{qtd_fotos}**, documentos **{qtd_docs}**",
-        f"- Pendências abertas da mesa: **{pendencias_abertas}**",
-        f"- Confiança IA (última síntese): **{confianca_geral}**",
-    ]
-
-    if total_revisoes:
-        linhas.append(f"- Versionamento: **v{ultima_revisao.numero_versao if ultima_revisao else total_revisoes}** ({total_revisoes} revisão(ões))")
-        if total_revisoes >= 2 and ultima_revisao:
-            revisao_anterior = _obter_revisao_por_versao(
-                banco,
-                laudo.id,
-                int(ultima_revisao.numero_versao) - 1,
-            )
-            if revisao_anterior:
-                diff = _gerar_diff_revisoes(revisao_anterior.conteudo or "", ultima_revisao.conteudo or "")
-                resumo_diff = _resumo_diff_revisoes(diff)
-                linhas.append(
-                    "- Mudanças da última revisão: "
-                    f"**+{resumo_diff['linhas_adicionadas']} / -{resumo_diff['linhas_removidas']}**"
-                )
-
-    if gate.get("aprovado", False):
-        linhas.append("- Gate de qualidade: **aprovado**")
-    else:
-        faltantes = gate.get("faltantes", []) or []
-        linhas.append(f"- Gate de qualidade: **reprovado** ({len(faltantes)} item(ns) pendente(s))")
-        if faltantes:
-            linhas.append("  Itens críticos:")
-            for item in faltantes[:3]:
-                linhas.append(f"  - {item.get('titulo', 'Item pendente')}")
-
-    pontos_humanos = confianca.get("pontos_validacao_humana", []) or []
-    if pontos_humanos:
-        linhas.append("- Pontos para validação humana:")
-        for item in pontos_humanos[:3]:
-            linhas.append(f"  - {item}")
-
-    return "\n".join(linhas)
-
-
-def montar_resposta_comando_previa(
-    banco: Session,
-    laudo: Laudo,
-) -> str:
-    gate = avaliar_gate_qualidade_laudo(banco, laudo)
-    faltantes = gate.get("faltantes", []) or []
-    pendencias_abertas = (
-        banco.query(MensagemLaudo)
-        .filter(
-            MensagemLaudo.laudo_id == laudo.id,
-            MensagemLaudo.tipo == TipoMensagem.HUMANO_ENG.value,
-            MensagemLaudo.lida.is_(False),
-        )
-        .count()
-    )
-    parecer_ia = (laudo.parecer_ia or "").strip()
-    if parecer_ia:
-        parecer_preview = parecer_ia[:900] + ("..." if len(parecer_ia) > 900 else "")
-    else:
-        parecer_preview = "_Sem parecer consolidado da IA até o momento._"
-    confianca = normalizar_payload_confianca_ia(getattr(laudo, "confianca_ia_json", None) or {})
-    confianca_geral = _titulo_confianca_humano(confianca.get("geral", CONFIANCA_MEDIA))
-    ultima_revisao = _obter_ultima_revisao_laudo(banco, laudo.id)
-    total_revisoes = (
-        banco.query(func.count(LaudoRevisao.id))
-        .filter(LaudoRevisao.laudo_id == laudo.id)
-        .scalar()
-        or 0
-    )
-
-    linhas = [
-        "### Prévia Operacional do Laudo",
-        f"**Template:** {nome_template_humano(getattr(laudo, 'tipo_template', 'padrao'))}",
-        f"**Status:** {descrever_status_revisao(laudo.status_revisao)}",
-        f"**Atualização:** {formatar_data_humana(getattr(laudo, 'atualizado_em', None) or getattr(laudo, 'criado_em', None))}",
-        f"**Confiança IA:** {confianca_geral}",
-        "",
-        "**Escopo inicial registrado**",
-        (laudo.primeira_mensagem or "_Sem escopo inicial registrado._"),
-        "",
-        "**Síntese técnica atual da IA**",
-        parecer_preview,
-        "",
-        f"**Pendências abertas da mesa:** {pendencias_abertas}",
-    ]
-
-    if total_revisoes:
-        linhas.append(
-            f"**Versão atual:** v{ultima_revisao.numero_versao if ultima_revisao else total_revisoes} "
-            f"({total_revisoes} revisão(ões))"
-        )
-
-    pontos_humanos = confianca.get("pontos_validacao_humana", []) or []
-    if pontos_humanos:
-        linhas.append("")
-        linhas.append("**Pontos para validação humana**")
-        for item in pontos_humanos[:4]:
-            linhas.append(f"- {item}")
-
-    if gate.get("aprovado", False):
-        linhas.append("**Gate de qualidade:** aprovado para envio.")
-    else:
-        linhas.append(f"**Gate de qualidade:** bloqueado ({len(faltantes)} item(ns) pendente(s)).")
-        if faltantes:
-            linhas.append("")
-            linhas.append("Itens que faltam:")
-            for item in faltantes[:5]:
-                linhas.append(f"- {item.get('titulo', 'Item pendente')} — {item.get('observacao', '')}".strip())
-
-    linhas.append("")
-    linhas.append("Comandos úteis: `/resumo` | `/pendencias` | `/enviar_mesa <mensagem>`")
-    return "\n".join(linhas)
-
-
-def montar_resposta_comando_rapido(
-    banco: Session,
-    laudo: Laudo,
-    comando: str,
-    argumento: str,
-) -> str:
-    comando_normalizado = str(comando or "").strip().lower()
-    if comando_normalizado == "pendencias":
-        return montar_resposta_comando_pendencias(banco, laudo, argumento)
-    if comando_normalizado == "resumo":
-        return montar_resposta_comando_resumo(banco, laudo)
-    if comando_normalizado == "gerar_previa":
-        return montar_resposta_comando_previa(banco, laudo)
-
-    raise HTTPException(status_code=400, detail="Comando rápido inválido.")
-
-
-def registrar_comando_rapido_historico(
-    banco: Session,
-    laudo: Laudo,
-    usuario: Usuario,
-    comando: str,
-    argumento: str,
-    resposta: str,
-) -> None:
-    sufixo = f" {argumento.strip()}" if argumento else ""
-    conteudo_comando = f"[COMANDO_RAPIDO] /{comando}{sufixo}".strip()
-
-    banco.add(
-        MensagemLaudo(
-            laudo_id=laudo.id,
-            remetente_id=usuario.id,
-            tipo=TipoMensagem.USER.value,
-            conteudo=conteudo_comando,
-            custo_api_reais=Decimal("0.0000"),
-        )
-    )
-    banco.add(
-        MensagemLaudo(
-            laudo_id=laudo.id,
-            tipo=TipoMensagem.IA.value,
-            conteudo=resposta,
-            custo_api_reais=Decimal("0.0000"),
-        )
-    )
-    laudo.atualizado_em = agora_utc()
 
 
 def montar_limites_para_template(banco: Session) -> dict[str, Any]:

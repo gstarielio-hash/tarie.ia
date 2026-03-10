@@ -25,6 +25,10 @@ from app.domains.chat.media_helpers import (
     validar_imagem_base64,
 )
 from app.domains.chat.normalization import normalizar_tipo_template
+from app.domains.chat.commands_helpers import (
+    montar_resposta_comando_rapido,
+    registrar_comando_rapido_historico,
+)
 from app.domains.chat.routes import (
     LIMITE_DOC_BYTES,
     LIMITE_DOC_CHARS,
@@ -216,11 +220,6 @@ async def rota_chat(
                     status_code=400,
                     detail="Esse comando exige um relatório ativo.",
                 )
-
-            from app.domains.chat.routes import (
-                montar_resposta_comando_rapido,
-                registrar_comando_rapido_historico,
-            )
 
             texto_comando = montar_resposta_comando_rapido(
                 banco=banco,
