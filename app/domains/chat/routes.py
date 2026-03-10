@@ -12,13 +12,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import io  # noqa: F401
 import tempfile  # noqa: F401
-from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal, InvalidOperation  # noqa: F401
-from typing import Any
+from typing import Any  # noqa: F401
 
 from fastapi import (
     APIRouter,
@@ -32,18 +29,12 @@ from fastapi.responses import (
     JSONResponse,  # noqa: F401
     StreamingResponse,  # noqa: F401
 )
-from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask  # noqa: F401
 
 from app.shared.database import (
-    LIMITES_PADRAO,
     CitacaoLaudo,  # noqa: F401
     Empresa,  # noqa: F401
-    LimitePlano,
-    ModoResposta,
-    PlanoEmpresa,
     SessaoLocal,  # noqa: F401
-    TemplateLaudo,
 )
 from app.shared.security import (
     PORTAL_INSPETOR,  # noqa: F401
@@ -65,9 +56,6 @@ from nucleo.inspetor.referencias_mensagem import (
     compor_texto_com_referencia,  # noqa: F401
 )
 from nucleo.template_laudos import gerar_preview_pdf_template  # noqa: F401
-from app.domains.chat.normalization import (
-    codigos_template_compativeis,
-)
 from app.domains.chat.media_helpers import (
     LIMITE_HISTORICO_TOTAL_CHARS,  # noqa: F401
     LIMITE_IMG_BASE64,  # noqa: F401
@@ -92,13 +80,39 @@ from app.domains.chat.app_context import (
     PADRAO_SUPORTE_WHATSAPP,  # noqa: F401
     _settings,  # noqa: F401
     configuracoes,  # noqa: F401
-    logger,
+    logger,  # noqa: F401
     templates,  # noqa: F401
+)
+from app.domains.chat.chat_runtime import (
+    LIMITE_DOC_BYTES,  # noqa: F401
+    LIMITE_DOC_CHARS,  # noqa: F401
+    LIMITE_FEEDBACK,  # noqa: F401
+    LIMITE_HISTORICO,  # noqa: F401
+    LIMITE_MSG_CHARS,  # noqa: F401
+    LIMITE_PARECER,  # noqa: F401
+    MIME_DOC_PERMITIDOS,  # noqa: F401
+    MODO_CURTO,  # noqa: F401
+    MODO_DEEP,  # noqa: F401
+    MODO_DETALHADO,  # noqa: F401
+    PREFIXO_CITACOES,  # noqa: F401
+    PREFIXO_METADATA,  # noqa: F401
+    PREFIXO_MODO_HUMANO,  # noqa: F401
+    TEM_DOCX,  # noqa: F401
+    TEM_PYPDF,  # noqa: F401
+    TIMEOUT_FILA_STREAM_SEGUNDOS,  # noqa: F401
+    TIMEOUT_KEEPALIVE_SSE_SEGUNDOS,  # noqa: F401
+    executor_stream,  # noqa: F401
+    leitor_docx,  # noqa: F401
+    leitor_pdf,  # noqa: F401
 )
 from app.domains.chat.ia_runtime import (
     _erro_cliente_ia_boot as _erro_cliente_ia_boot_padrao,
     cliente_ia as cliente_ia_padrao,
     obter_cliente_ia_ativo as obter_cliente_ia_runtime,
+)
+from app.domains.chat.notifications import (
+    GerenciadorSSEUsuario,  # noqa: F401
+    inspetor_notif_manager,  # noqa: F401
 )
 from app.domains.chat.core_helpers import (
     agora_utc,  # noqa: F401
@@ -131,6 +145,10 @@ from app.domains.chat.limits_helpers import (
     garantir_limite_laudos,  # noqa: F401
     garantir_upload_documento_habilitado,  # noqa: F401
     obter_limite_empresa,  # noqa: F401
+)
+from app.domains.chat.template_helpers import (
+    montar_limites_para_template,  # noqa: F401
+    selecionar_template_ativo_para_tipo,  # noqa: F401
 )
 from app.domains.chat.pendencias_helpers import (
     MAPA_FILTRO_PENDENCIAS_LABEL,  # noqa: F401
@@ -175,135 +193,9 @@ roteador_inspetor = APIRouter()
 cliente_ia: ClienteIA | None = cliente_ia_padrao
 _erro_cliente_ia_boot: str | None = _erro_cliente_ia_boot_padrao
 
-executor_stream = ThreadPoolExecutor(max_workers=4, thread_name_prefix="tariel_ia")
-
 # ============================================================================
-# CONSTANTES
+# HELPERS GERAIS (compat layer)
 # ============================================================================
-
-LIMITE_MSG_CHARS = 8_000
-LIMITE_HISTORICO = 20
-
-# 10 MB binário em base64 pode ultrapassar 13 MB de string
-
-LIMITE_DOC_BYTES = 15 * 1024 * 1024
-LIMITE_DOC_CHARS = 40_000
-LIMITE_PARECER = 4_000
-LIMITE_FEEDBACK = 500
-
-TIMEOUT_FILA_STREAM_SEGUNDOS = 90.0
-TIMEOUT_KEEPALIVE_SSE_SEGUNDOS = 25.0
-
-PREFIXO_METADATA = "__METADATA__:"
-PREFIXO_CITACOES = "__CITACOES__:"
-PREFIXO_MODO_HUMANO = "__MODO_HUMANO__:"
-
-MODO_DETALHADO = ModoResposta.DETALHADO.value
-MODO_CURTO = ModoResposta.CURTO.value
-MODO_DEEP = ModoResposta.DEEP_RESEARCH.value
-
-MIME_DOC_PERMITIDOS = {
-    "application/pdf": "pdf",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-}
-
-try:
-    import pypdf as leitor_pdf
-
-    TEM_PYPDF = True
-except ImportError:
-    TEM_PYPDF = False
-    leitor_pdf = None
-
-try:
-    import docx as leitor_docx
-
-    TEM_DOCX = True
-except ImportError:
-    TEM_DOCX = False
-    leitor_docx = None
-
-
-# ============================================================================
-# SSE MANAGER POR USUÁRIO
-# ============================================================================
-
-
-class GerenciadorSSEUsuario:
-    def __init__(self) -> None:
-        self._filas: dict[int, set[asyncio.Queue]] = defaultdict(set)
-
-    async def conectar(self, usuario_id: int) -> asyncio.Queue:
-        fila: asyncio.Queue = asyncio.Queue(maxsize=50)
-        self._filas[usuario_id].add(fila)
-        return fila
-
-    def desconectar(self, usuario_id: int, fila: asyncio.Queue) -> None:
-        filas = self._filas.get(usuario_id)
-        if not filas:
-            return
-
-        filas.discard(fila)
-        if not filas:
-            self._filas.pop(usuario_id, None)
-
-    async def notificar(self, usuario_id: int, mensagem: dict[str, Any]) -> None:
-        filas = list(self._filas.get(usuario_id, set()))
-        if not filas:
-            return
-
-        filas_para_remover: list[asyncio.Queue] = []
-
-        for fila in filas:
-            try:
-                fila.put_nowait(mensagem)
-            except asyncio.QueueFull:
-                logger.warning("Fila SSE cheia | usuario_id=%s", usuario_id)
-                filas_para_remover.append(fila)
-
-        for fila in filas_para_remover:
-            self.desconectar(usuario_id, fila)
-
-
-inspetor_notif_manager = GerenciadorSSEUsuario()
-
-
-# ============================================================================
-# HELPERS GERAIS
-# ============================================================================
-
-
-def selecionar_template_ativo_para_tipo(
-    banco: Session,
-    *,
-    empresa_id: int,
-    tipo_template: str,
-) -> TemplateLaudo | None:
-    codigos = codigos_template_compativeis(tipo_template)
-    if not codigos:
-        return None
-
-    candidatos = (
-        banco.query(TemplateLaudo)
-        .filter(
-            TemplateLaudo.empresa_id == empresa_id,
-            TemplateLaudo.ativo.is_(True),
-            TemplateLaudo.codigo_template.in_(codigos),
-        )
-        .all()
-    )
-    if not candidatos:
-        return None
-
-    prioridade = {codigo: indice for indice, codigo in enumerate(codigos)}
-    candidatos.sort(
-        key=lambda item: (
-            prioridade.get(str(item.codigo_template or "").strip().lower(), 999),
-            -int(item.versao or 0),
-            -int(item.id or 0),
-        )
-    )
-    return candidatos[0]
 
 
 def obter_cliente_ia_ativo() -> ClienteIA:
@@ -311,26 +203,6 @@ def obter_cliente_ia_ativo() -> ClienteIA:
         cliente=cliente_ia,
         erro_boot=_erro_cliente_ia_boot,
     )
-
-
-def montar_limites_para_template(banco: Session) -> dict[str, Any]:
-    limites: dict[str, Any] = {}
-
-    for plano in PlanoEmpresa:
-        registro = banco.get(LimitePlano, plano.value)
-        if registro:
-            limites[plano.value] = registro
-            continue
-
-        fallback = type("LimitePlanoView", (), {})()
-        setattr(fallback, "plano", plano.value)
-
-        for campo, valor in LIMITES_PADRAO.get(plano.value, {}).items():
-            setattr(fallback, campo, valor)
-
-        limites[plano.value] = fallback
-
-    return limites
 
 
 # ============================================================================

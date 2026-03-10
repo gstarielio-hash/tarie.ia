@@ -20,6 +20,24 @@ from starlette.background import BackgroundTask
 import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.auth_helpers import usuario_nome
 from app.domains.chat.app_context import logger
+from app.domains.chat.chat_runtime import (
+    LIMITE_DOC_BYTES,
+    LIMITE_DOC_CHARS,
+    LIMITE_PARECER,
+    MIME_DOC_PERMITIDOS,
+    MODO_DEEP,
+    MODO_DETALHADO,
+    PREFIXO_CITACOES,
+    PREFIXO_METADATA,
+    PREFIXO_MODO_HUMANO,
+    TEM_DOCX,
+    TEM_PYPDF,
+    TIMEOUT_FILA_STREAM_SEGUNDOS,
+    TIMEOUT_KEEPALIVE_SSE_SEGUNDOS,
+    executor_stream,
+    leitor_docx,
+    leitor_pdf,
+)
 from app.domains.chat.core_helpers import (
     agora_utc,
     evento_sse,
@@ -48,28 +66,12 @@ from app.domains.chat.limits_helpers import (
     garantir_limite_laudos,
     garantir_upload_documento_habilitado,
 )
+from app.domains.chat.notifications import inspetor_notif_manager
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
 from app.domains.chat.session_helpers import exigir_csrf, laudo_id_sessao
+from app.domains.chat.template_helpers import selecionar_template_ativo_para_tipo
 from app.domains.chat.routes import (
-    LIMITE_DOC_BYTES,
-    LIMITE_DOC_CHARS,
-    LIMITE_PARECER,
-    MIME_DOC_PERMITIDOS,
-    MODO_DEEP,
-    MODO_DETALHADO,
-    PREFIXO_CITACOES,
-    PREFIXO_METADATA,
-    PREFIXO_MODO_HUMANO,
-    TIMEOUT_FILA_STREAM_SEGUNDOS,
-    TIMEOUT_KEEPALIVE_SSE_SEGUNDOS,
-    TEM_DOCX,
-    TEM_PYPDF,
-    executor_stream,
-    inspetor_notif_manager,
-    leitor_docx,
-    leitor_pdf,
     obter_cliente_ia_ativo,
-    selecionar_template_ativo_para_tipo,
 )
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF
 from app.domains.chat.templates_ai import RelatorioCBMGO

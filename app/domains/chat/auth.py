@@ -30,13 +30,13 @@ from app.domains.chat.app_context import (
     templates,
 )
 from app.domains.chat.limits_helpers import contar_laudos_mes, obter_limite_empresa
+from app.domains.chat.template_helpers import montar_limites_para_template
 from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
     contexto_base,
     estado_relatorio_sanitizado,
     validar_csrf,
 )
-from app.domains.chat.routes import montar_limites_para_template
 from app.domains.chat.normalization import normalizar_email
 from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco
 from app.shared.security import (
