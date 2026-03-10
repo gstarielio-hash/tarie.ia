@@ -17,7 +17,7 @@ from typing import Optional
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-from banco_dados import SessaoLocal
+from app.shared.database import SessaoLocal
 
 logger = logging.getLogger(__name__)
 

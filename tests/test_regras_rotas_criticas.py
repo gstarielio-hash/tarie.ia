@@ -13,13 +13,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from starlette.websockets import WebSocketDisconnect
 
-import banco_dados
+import app.shared.database as banco_dados
 import main
-import rotas_admin
-import rotas_inspetor
-import rotas_revisor
-import seguranca
-from banco_dados import (
+import app.domains.admin.routes as rotas_admin
+import app.domains.chat.routes as rotas_inspetor
+import app.domains.revisor.routes as rotas_revisor
+import app.shared.security as seguranca
+from app.shared.database import (
     Base,
     Empresa,
     Laudo,
@@ -33,7 +33,7 @@ from banco_dados import (
     TipoMensagem,
     Usuario,
 )
-from seguranca import criar_hash_senha, verificar_senha
+from app.shared.security import criar_hash_senha, verificar_senha
 
 SENHA_PADRAO = "Senha@123"
 SENHA_HASH_PADRAO = criar_hash_senha(SENHA_PADRAO)

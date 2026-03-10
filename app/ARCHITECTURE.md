@@ -20,5 +20,5 @@
 - `static/js/shared`: utilitários comuns, bootstrap e service worker
 
 ## Compatibilidade
-Os módulos históricos no diretório raiz (`rotas_*.py`, `banco_dados.py`, `seguranca.py`, etc.)
-foram mantidos como wrappers para preservar imports existentes durante a transição.
+Os wrappers legados da raiz foram removidos nesta fase de consolidação.
+Todos os imports devem apontar para `app/domains/*` e `app/shared/*`.

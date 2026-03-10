@@ -25,7 +25,7 @@ Backlog mestre da etapa antiga (priorizado e com status):
 - `app/shared`: banco de dados, segurança e utilitários compartilhados
 - `static/js/chat`, `static/js/admin`, `static/js/shared`: organização de scripts por domínio
 
-Observação: os arquivos legados na raiz (`rotas_*.py`, `banco_dados.py`, `seguranca.py`, etc.) permanecem como wrappers de compatibilidade durante a transição.
+Observação: os wrappers legados da raiz foram removidos. Use apenas os módulos em `app/` (`app/domains/*` e `app/shared/*`).
 
 ## Setup local (do zero)
 
