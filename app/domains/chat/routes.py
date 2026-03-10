@@ -95,6 +95,11 @@ from app.domains.chat.app_context import (
     logger,
     templates,  # noqa: F401
 )
+from app.domains.chat.ia_runtime import (
+    _erro_cliente_ia_boot as _erro_cliente_ia_boot_padrao,
+    cliente_ia as cliente_ia_padrao,
+    obter_cliente_ia_ativo as obter_cliente_ia_runtime,
+)
 from app.domains.chat.core_helpers import (
     agora_utc,  # noqa: F401
     evento_sse,  # noqa: F401
@@ -167,17 +172,8 @@ from app.domains.chat.schemas import (
 
 roteador_inspetor = APIRouter()
 
-cliente_ia: ClienteIA | None = None
-_erro_cliente_ia_boot: str | None = None
-
-try:
-    cliente_ia = ClienteIA()
-except Exception as erro:
-    _erro_cliente_ia_boot = str(erro)
-    logger.warning(
-        "Cliente IA indisponível no boot. Recursos de IA ficarão desativados até configuração correta.",
-        exc_info=not isinstance(erro, OSError),
-    )
+cliente_ia: ClienteIA | None = cliente_ia_padrao
+_erro_cliente_ia_boot: str | None = _erro_cliente_ia_boot_padrao
 
 executor_stream = ThreadPoolExecutor(max_workers=4, thread_name_prefix="tariel_ia")
 
@@ -311,14 +307,10 @@ def selecionar_template_ativo_para_tipo(
 
 
 def obter_cliente_ia_ativo() -> ClienteIA:
-    if cliente_ia is None:
-        detalhe = "Módulo de IA indisponível. Configure CHAVE_API_GEMINI e reinicie o serviço."
-        if _erro_cliente_ia_boot:
-            detalhe = f"{detalhe} Motivo: {_erro_cliente_ia_boot}"
-
-        raise HTTPException(status_code=503, detail=detalhe)
-
-    return cliente_ia
+    return obter_cliente_ia_runtime(
+        cliente=cliente_ia,
+        erro_boot=_erro_cliente_ia_boot,
+    )
 
 
 def montar_limites_para_template(banco: Session) -> dict[str, Any]:
