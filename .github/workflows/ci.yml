@@ -1,0 +1,42 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Ruff check
+        run: python -m ruff check .
+
+      - name: Architecture guard (chat)
+        run: python scripts/check_chat_architecture.py
+
+      - name: Critical pytest suite
+        run: |
+          python -m pytest -q \
+            tests/test_smoke.py \
+            tests/test_regras_rotas_criticas.py \
+            tests/test_inspetor_comandos_dominio.py \
+            tests/test_inspetor_confianca_dominio.py

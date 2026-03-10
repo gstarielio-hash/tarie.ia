@@ -1850,8 +1850,6 @@ def test_revisor_whisper_responder_rejeita_destinatario_diferente_do_responsavel
 
 def test_jornada_e2e_chat_ia_e_mesa_comunicacao_bilateral(ambiente_critico) -> None:
     client_inspetor = ambiente_critico["client"]
-    SessionLocal = ambiente_critico["SessionLocal"]
-    ids = ambiente_critico["ids"]
     csrf_inspetor = _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
 
     with TestClient(main.app) as client_revisor:

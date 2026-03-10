@@ -83,6 +83,7 @@ Esse script valida, nesta ordem:
 
 - `ruff format`
 - `ruff check`
+- `scripts/check_chat_architecture.py` (guarda de arquitetura do domínio chat)
 - `mypy`
 - `pytest`
 - `compileall` recursivo
@@ -95,10 +96,16 @@ Se quiser executar manualmente a parte Python:
 ```powershell
 python -m ruff format .
 python -m ruff check .
+python scripts/check_chat_architecture.py
 python -m mypy
 python -m pytest -q
 python -m compileall -q .
 ```
+
+### GitHub Actions
+
+- `ci.yml`: lint + guarda de arquitetura + suíte crítica de testes.
+- `e2e-local-stress.yml` (manual): stress E2E intenso local (sequencial + paralelo) com Playwright.
 
 ## Testes E2E (Playwright)
 

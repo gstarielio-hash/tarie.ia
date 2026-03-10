@@ -1,0 +1,75 @@
+name: e2e-local-stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      stress_rounds:
+        description: "Rodadas do stress local sequencial"
+        required: false
+        default: "12"
+      parallel_rounds:
+        description: "Rodadas do stress local paralelo"
+        required: false
+        default: "10"
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      DATABASE_URL: sqlite:///${{ github.workspace }}/.tmp_e2e_stress.sqlite3
+      E2E_LOCAL_DATABASE_URL: sqlite:///${{ github.workspace }}/.tmp_e2e_stress.sqlite3
+      E2E_USE_LOCAL_DB: "1"
+      E2E_LOCAL_SEED_BOOTSTRAP: "0"
+      RUN_E2E_LOCAL: "1"
+      STRESS_LAUDOS_ROUNDS: ${{ inputs.stress_rounds }}
+      STRESS_PARALLEL_ROUNDS: ${{ inputs.parallel_rounds }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
+
+      - name: Seed stress users
+        run: python scripts/seed_usuario_uso_intenso.py
+
+      - name: Run local stress E2E (sequential)
+        run: |
+          python -m pytest -q tests/e2e/test_local_stress_playwright.py \
+            --browser chromium \
+            --tracing retain-on-failure \
+            --video retain-on-failure \
+            --screenshot only-on-failure \
+            --output test-results/playwright-seq \
+            -s
+
+      - name: Run local stress E2E (parallel)
+        run: |
+          python -m pytest -q tests/e2e/test_local_parallel_stress_playwright.py \
+            --browser chromium \
+            --tracing retain-on-failure \
+            --video retain-on-failure \
+            --screenshot only-on-failure \
+            --output test-results/playwright-par \
+            -s
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-stress-results
+          path: test-results
+          if-no-files-found: ignore
