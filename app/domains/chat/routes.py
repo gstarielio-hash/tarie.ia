@@ -25,7 +25,6 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation  # noqa: F401
-from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import (
@@ -97,6 +96,18 @@ from app.domains.chat.normalization import (
     nome_template_humano,
     normalizar_tipo_template,
 )
+from app.domains.chat.media_helpers import (
+    LIMITE_HISTORICO_TOTAL_CHARS,  # noqa: F401
+    LIMITE_IMG_BASE64,  # noqa: F401
+    LIMITE_NOME_DOCUMENTO,  # noqa: F401
+    REGEX_ARQUIVO_DOCUMENTO,  # noqa: F401
+    REGEX_DATA_URI_IMAGEM,  # noqa: F401
+    mensagem_representa_documento,
+    nome_documento_seguro,  # noqa: F401
+    safe_remove_file,  # noqa: F401
+    validar_historico_total,  # noqa: F401
+    validar_imagem_base64,  # noqa: F401
+)
 from app.domains.chat.pendencias_helpers import (
     MAPA_FILTRO_PENDENCIAS_LABEL,
     descrever_status_revisao,
@@ -109,7 +120,6 @@ from app.domains.chat.schemas import (
     DadosChat,  # noqa: F401
     DadosFeedback,  # noqa: F401
     DadosPDF,  # noqa: F401
-    MensagemHistorico,
 )
 
 try:
@@ -143,16 +153,13 @@ executor_stream = ThreadPoolExecutor(max_workers=4, thread_name_prefix="tariel_i
 
 LIMITE_MSG_CHARS = 8_000
 LIMITE_HISTORICO = 20
-LIMITE_HISTORICO_TOTAL_CHARS = 40_000
 
 # 10 MB binário em base64 pode ultrapassar 13 MB de string
-LIMITE_IMG_BASE64 = 14_500_000
 
 LIMITE_DOC_BYTES = 15 * 1024 * 1024
 LIMITE_DOC_CHARS = 40_000
 LIMITE_PARECER = 4_000
 LIMITE_FEEDBACK = 500
-LIMITE_NOME_DOCUMENTO = 120
 
 TIMEOUT_FILA_STREAM_SEGUNDOS = 90.0
 TIMEOUT_KEEPALIVE_SSE_SEGUNDOS = 25.0
@@ -238,13 +245,6 @@ MIME_DOC_PERMITIDOS = {
 
 PADRAO_SUPORTE_WHATSAPP = os.getenv("SUPORTE_WHATSAPP", "5516999999999").strip()
 VERSAO_APP = os.getenv("APP_BUILD_ID", "dev").strip() or "dev"
-
-REGEX_DATA_URI_IMAGEM = re.compile(
-    r"^data:image\/(?:png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$",
-    flags=re.IGNORECASE,
-)
-
-REGEX_ARQUIVO_DOCUMENTO = re.compile(r"\.(?:pdf|docx?)\b", flags=re.IGNORECASE)
 
 try:
     import pypdf as leitor_pdf
@@ -523,47 +523,6 @@ def obter_preview_primeira_mensagem(
     return "Nova conversa"
 
 
-def validar_historico_total(historico: list["MensagemHistorico"]) -> None:
-    total = sum(len(item.texto or "") for item in historico)
-    if total > LIMITE_HISTORICO_TOTAL_CHARS:
-        raise HTTPException(
-            status_code=413,
-            detail="Histórico excedeu o tamanho máximo permitido.",
-        )
-
-
-def validar_imagem_base64(dados_imagem: str) -> str:
-    valor = (dados_imagem or "").strip()
-    if not valor:
-        return ""
-
-    if len(valor) > LIMITE_IMG_BASE64:
-        raise HTTPException(status_code=413, detail="Imagem excedeu o tamanho máximo.")
-
-    if not REGEX_DATA_URI_IMAGEM.match(valor):
-        raise HTTPException(status_code=400, detail="Imagem base64 inválida.")
-
-    return valor
-
-
-def nome_documento_seguro(nome: str) -> str:
-    texto = (nome or "").strip()
-    if not texto:
-        return ""
-
-    nome_base = Path(texto).name
-    nome_base = re.sub(r"[^A-Za-z0-9._\- ()À-ÿ]", "_", nome_base)
-    return nome_base[:LIMITE_NOME_DOCUMENTO]
-
-
-def safe_remove_file(caminho: str) -> None:
-    try:
-        if caminho and os.path.isfile(caminho):
-            os.remove(caminho)
-    except Exception:
-        logger.warning("Falha ao remover arquivo temporário | caminho=%s", caminho)
-
-
 def obter_limite_empresa(usuario: Usuario, banco: Session):
     if not usuario.empresa:
         return None
@@ -633,12 +592,7 @@ def _mensagem_representa_foto(conteudo: str) -> bool:
 
 
 def _mensagem_representa_documento(conteudo: str) -> bool:
-    texto = (conteudo or "").strip()
-    if not texto:
-        return False
-    if texto.lower().startswith("documento:"):
-        return True
-    return bool(REGEX_ARQUIVO_DOCUMENTO.search(texto))
+    return mensagem_representa_documento(conteudo)
 
 
 def _mensagem_textual_relevante(conteudo: str) -> bool:

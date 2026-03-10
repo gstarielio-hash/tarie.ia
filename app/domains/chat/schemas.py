@@ -10,6 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domains.chat.media_helpers import nome_documento_seguro
 from app.domains.chat.normalization import normalizar_setor
 
 LIMITE_MSG_CHARS = 8_000
@@ -48,8 +49,6 @@ class DadosChat(BaseModel):
     @field_validator("nome_documento")
     @classmethod
     def validar_nome_documento(cls, valor: str) -> str:
-        from app.domains.chat.routes import nome_documento_seguro
-
         return nome_documento_seguro(valor)
 
 

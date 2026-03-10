@@ -18,6 +18,12 @@ from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
 import app.domains.chat.routes as rotas_inspetor
+from app.domains.chat.media_helpers import (
+    nome_documento_seguro,
+    safe_remove_file,
+    validar_historico_total,
+    validar_imagem_base64,
+)
 from app.domains.chat.normalization import normalizar_tipo_template
 from app.domains.chat.routes import (
     LIMITE_DOC_BYTES,
@@ -47,18 +53,14 @@ from app.domains.chat.routes import (
     leitor_docx,
     leitor_pdf,
     logger,
-    nome_documento_seguro,
     notificar_mesa_whisper,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,
     obter_preview_primeira_mensagem,
     resposta_json_ok,
-    safe_remove_file,
     selecionar_template_ativo_para_tipo,
     serializar_historico_mensagem,
     usuario_nome,
-    validar_historico_total,
-    validar_imagem_base64,
 )
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF
 from app.domains.chat.templates_ai import RelatorioCBMGO
