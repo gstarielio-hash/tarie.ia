@@ -11,8 +11,13 @@ from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domains.chat.routes import (
+from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
+    contexto_base,
+    estado_relatorio_sanitizado,
+    validar_csrf,
+)
+from app.domains.chat.routes import (
     CHAVE_TROCA_SENHA_LEMBRAR,
     NIVEIS_PERMITIDOS_APP,
     PADRAO_SUPORTE_WHATSAPP,
@@ -23,16 +28,13 @@ from app.domains.chat.routes import (
     _usuario_pendente_troca_senha,
     _validar_nova_senha,
     configuracoes,
-    contexto_base,
     contar_laudos_mes,
-    estado_relatorio_sanitizado,
     logger,
     montar_limites_para_template,
     obter_limite_empresa,
     redirecionar_por_nivel,
     templates,
     usuario_nome,
-    validar_csrf,
 )
 from app.domains.chat.normalization import normalizar_email
 from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco

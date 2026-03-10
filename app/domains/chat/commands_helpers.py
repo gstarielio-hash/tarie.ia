@@ -19,6 +19,7 @@ from app.domains.chat.pendencias_helpers import (
     listar_pendencias_mesa_laudo,
     normalizar_filtro_pendencias,
 )
+from app.domains.chat.gate_helpers import avaliar_gate_qualidade_laudo
 from app.domains.chat.revisao_helpers import (
     _gerar_diff_revisoes,
     _obter_revisao_por_versao,
@@ -39,8 +40,6 @@ def _mensagem_representa_foto(conteudo: str) -> bool:
 
 
 def _avaliar_gate_padrao(banco: Session, laudo: Laudo) -> dict[str, Any]:
-    from app.domains.chat.routes import avaliar_gate_qualidade_laudo
-
     return avaliar_gate_qualidade_laudo(banco, laudo)
 
 

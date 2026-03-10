@@ -12,9 +12,9 @@ from app.domains.chat.mensagem_helpers import (
     notificar_mesa_whisper,
     serializar_mensagem_mesa,
 )
+from app.domains.chat.session_helpers import exigir_csrf
 from app.domains.chat.routes import (
     agora_utc,
-    exigir_csrf,
     obter_laudo_do_inspetor,
     resposta_json_ok,
     usuario_nome,

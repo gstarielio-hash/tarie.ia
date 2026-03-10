@@ -10,6 +10,10 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+from app.domains.chat.gate_helpers import (
+    avaliar_gate_qualidade_laudo,
+    garantir_gate_qualidade_laudo,
+)
 from app.domains.chat.normalization import (
     ALIASES_TEMPLATE,
     nome_template_humano,
@@ -21,21 +25,21 @@ from app.domains.chat.revisao_helpers import (
     _resumo_diff_revisoes,
     _serializar_revisao_laudo,
 )
+from app.domains.chat.session_helpers import (
+    estado_relatorio_sanitizado,
+    exigir_csrf,
+    laudo_id_sessao,
+)
 from app.domains.chat.schemas import DadosPin
 from app.domains.chat.templates_ai import RelatorioCBMGO
 from app.domains.chat.routes import (
     MODO_DETALHADO,
     agora_utc,
-    avaliar_gate_qualidade_laudo,
-    exigir_csrf,
-    garantir_gate_qualidade_laudo,
     garantir_limite_laudos,
-    laudo_id_sessao,
     logger,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,
     resposta_json_ok,
-    estado_relatorio_sanitizado,
 )
 from app.domains.chat.auth import pagina_inicial, pagina_planos
 from app.shared.database import (
