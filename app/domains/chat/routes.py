@@ -1677,7 +1677,6 @@ async def notificar_mesa_whisper(
 # ============================================================================
 
 
-@roteador_inspetor.get("/api/laudo/status")
 async def api_status_relatorio(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -1686,7 +1685,6 @@ async def api_status_relatorio(
     return resposta_json_ok(estado_relatorio_sanitizado(request, banco, usuario))
 
 
-@roteador_inspetor.post("/api/laudo/iniciar")
 async def api_iniciar_relatorio(
     request: Request,
     tipo_template: str | None = Form(default=None),
@@ -1779,7 +1777,6 @@ async def api_iniciar_relatorio(
     )
 
 
-@roteador_inspetor.post("/api/laudo/{laudo_id}/finalizar")
 async def api_finalizar_relatorio(
     laudo_id: int,
     request: Request,
@@ -1841,7 +1838,6 @@ async def api_finalizar_relatorio(
     )
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/gate-qualidade")
 async def api_obter_gate_qualidade_laudo(
     laudo_id: int,
     request: Request,
@@ -1857,7 +1853,6 @@ async def api_obter_gate_qualidade_laudo(
     return JSONResponse(resultado, status_code=status_http)
 
 
-@roteador_inspetor.post("/api/laudo/cancelar")
 async def api_cancelar_relatorio(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -1884,7 +1879,6 @@ async def api_cancelar_relatorio(
     return resposta_json_ok({"success": True, "message": "❌ Relatório cancelado"})
 
 
-@roteador_inspetor.post("/api/laudo/desativar")
 async def api_desativar_relatorio_ativo(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -1928,7 +1922,6 @@ async def api_desativar_relatorio_ativo(
 # ============================================================================
 
 
-@roteador_inspetor.get("/login", response_class=HTMLResponse)
 async def tela_login_app(
     request: Request,
     banco: Session = Depends(obter_banco),
@@ -1946,7 +1939,6 @@ async def tela_login_app(
     return templates.TemplateResponse(request, "login_app.html", contexto_base(request))
 
 
-@roteador_inspetor.get("/trocar-senha", response_class=HTMLResponse)
 async def tela_troca_senha_app(
     request: Request,
     banco: Session = Depends(obter_banco),
@@ -1956,7 +1948,6 @@ async def tela_troca_senha_app(
     return _render_troca_senha(request)
 
 
-@roteador_inspetor.post("/trocar-senha")
 async def processar_troca_senha_app(
     request: Request,
     senha_atual: str = Form(default=""),
@@ -2004,7 +1995,6 @@ async def processar_troca_senha_app(
     return RedirectResponse(url="/app/", status_code=303)
 
 
-@roteador_inspetor.post("/login")
 async def processar_login_app(
     request: Request,
     email: str = Form(default=""),
@@ -2101,7 +2091,6 @@ async def processar_login_app(
     return RedirectResponse(url="/app/", status_code=303)
 
 
-@roteador_inspetor.post("/logout")
 async def logout_inspetor(
     request: Request,
     csrf_token: str = Form(default=""),
@@ -2116,7 +2105,6 @@ async def logout_inspetor(
     return RedirectResponse(url="/app/login", status_code=303)
 
 
-@roteador_inspetor.get("/", response_class=HTMLResponse)
 async def pagina_inicial(
     request: Request,
     banco: Session = Depends(obter_banco),
@@ -2169,7 +2157,6 @@ async def pagina_inicial(
     )
 
 
-@roteador_inspetor.get("/planos", response_class=HTMLResponse)
 async def pagina_planos(
     request: Request,
     banco: Session = Depends(obter_banco),
@@ -2953,7 +2940,6 @@ async def enviar_mensagem_mesa_laudo(
     return resposta_json_ok({"laudo_id": laudo.id, "mensagem": payload}, status_code=201)
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/revisoes")
 async def listar_revisoes_laudo(
     laudo_id: int,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -2979,7 +2965,6 @@ async def listar_revisoes_laudo(
     )
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/revisoes/diff")
 async def obter_diff_revisoes_laudo(
     laudo_id: int,
     base: Optional[int] = None,
@@ -3031,7 +3016,6 @@ async def obter_diff_revisoes_laudo(
     )
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/pendencias")
 async def obter_pendencias_laudo(
     laudo_id: int,
     filtro: str = "abertas",
@@ -3071,7 +3055,6 @@ async def obter_pendencias_laudo(
     )
 
 
-@roteador_inspetor.post("/api/laudo/{laudo_id}/pendencias/marcar-lidas")
 async def marcar_pendencias_laudo_como_lidas(
     laudo_id: int,
     request: Request,
@@ -3104,7 +3087,6 @@ async def marcar_pendencias_laudo_como_lidas(
     return resposta_json_ok({"ok": True, "laudo_id": laudo_id, "marcadas": int(marcadas)})
 
 
-@roteador_inspetor.patch("/api/laudo/{laudo_id}/pendencias/{mensagem_id}")
 async def atualizar_pendencia_laudo(
     laudo_id: int,
     mensagem_id: int,
@@ -3163,7 +3145,6 @@ async def atualizar_pendencia_laudo(
     )
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/pendencias/exportar-pdf")
 async def exportar_pendencias_laudo_pdf(
     laudo_id: int,
     filtro: str = "abertas",
@@ -3361,7 +3342,6 @@ async def rota_upload_doc(
     )
 
 
-@roteador_inspetor.patch("/api/laudo/{laudo_id}/pin")
 async def rota_pin_laudo(
     laudo_id: int,
     request: Request,
@@ -3385,7 +3365,6 @@ async def rota_pin_laudo(
     )
 
 
-@roteador_inspetor.delete("/api/laudo/{laudo_id}")
 async def rota_deletar_laudo(
     laudo_id: int,
     request: Request,
