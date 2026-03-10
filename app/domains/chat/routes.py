@@ -14,8 +14,6 @@ from __future__ import annotations
 
 import asyncio
 import io  # noqa: F401
-import logging
-import os
 import tempfile  # noqa: F401
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
@@ -34,11 +32,9 @@ from fastapi.responses import (
     JSONResponse,  # noqa: F401
     StreamingResponse,  # noqa: F401
 )
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask  # noqa: F401
 
-from app.core.settings import get_settings
 from app.shared.database import (
     LIMITES_PADRAO,
     CitacaoLaudo,  # noqa: F401
@@ -91,6 +87,13 @@ from app.domains.chat.session_helpers import (
     exigir_csrf,  # noqa: F401
     laudo_id_sessao,  # noqa: F401
     validar_csrf,  # noqa: F401
+)
+from app.domains.chat.app_context import (
+    PADRAO_SUPORTE_WHATSAPP,  # noqa: F401
+    _settings,  # noqa: F401
+    configuracoes,  # noqa: F401
+    logger,
+    templates,  # noqa: F401
 )
 from app.domains.chat.core_helpers import (
     agora_utc,  # noqa: F401
@@ -162,16 +165,7 @@ from app.domains.chat.schemas import (
     DadosPDF,  # noqa: F401
 )
 
-try:
-    from configuracoes import configuracoes
-except ImportError:
-    configuracoes = None
-
-logger = logging.getLogger("tariel.rotas_inspetor")
-_settings = get_settings()
-
 roteador_inspetor = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 cliente_ia: ClienteIA | None = None
 _erro_cliente_ia_boot: str | None = None
@@ -216,8 +210,6 @@ MIME_DOC_PERMITIDOS = {
     "application/pdf": "pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 }
-
-PADRAO_SUPORTE_WHATSAPP = os.getenv("SUPORTE_WHATSAPP", "5516999999999").strip()
 
 try:
     import pypdf as leitor_pdf

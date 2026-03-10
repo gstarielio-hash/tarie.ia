@@ -19,6 +19,7 @@ from starlette.background import BackgroundTask
 
 import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.auth_helpers import usuario_nome
+from app.domains.chat.app_context import logger
 from app.domains.chat.core_helpers import (
     agora_utc,
     evento_sse,
@@ -67,7 +68,6 @@ from app.domains.chat.routes import (
     inspetor_notif_manager,
     leitor_docx,
     leitor_pdf,
-    logger,
     obter_cliente_ia_ativo,
     selecionar_template_ativo_para_tipo,
 )

@@ -22,6 +22,13 @@ from app.domains.chat.auth_helpers import (
     redirecionar_por_nivel,
     usuario_nome,
 )
+from app.domains.chat.app_context import (
+    PADRAO_SUPORTE_WHATSAPP,
+    _settings,
+    configuracoes,
+    logger,
+    templates,
+)
 from app.domains.chat.limits_helpers import contar_laudos_mes, obter_limite_empresa
 from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
@@ -29,14 +36,7 @@ from app.domains.chat.session_helpers import (
     estado_relatorio_sanitizado,
     validar_csrf,
 )
-from app.domains.chat.routes import (
-    PADRAO_SUPORTE_WHATSAPP,
-    _settings,
-    configuracoes,
-    logger,
-    montar_limites_para_template,
-    templates,
-)
+from app.domains.chat.routes import montar_limites_para_template
 from app.domains.chat.normalization import normalizar_email
 from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco
 from app.shared.security import (

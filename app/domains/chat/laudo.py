@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+from app.domains.chat.app_context import logger
 from app.domains.chat.core_helpers import agora_utc, resposta_json_ok
 from app.domains.chat.gate_helpers import (
     avaliar_gate_qualidade_laudo,
@@ -37,7 +38,6 @@ from app.domains.chat.schemas import DadosPin
 from app.domains.chat.templates_ai import RelatorioCBMGO
 from app.domains.chat.routes import (
     MODO_DETALHADO,
-    logger,
     obter_cliente_ia_ativo,
 )
 from app.domains.chat.auth import pagina_inicial, pagina_planos
