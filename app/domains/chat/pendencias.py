@@ -12,17 +12,19 @@ from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
-from app.domains.chat.routes import (
-    agora_utc,
-    exigir_csrf,
+from app.domains.chat.pendencias_helpers import (
     listar_pendencias_mesa_laudo,
     normalizar_filtro_pendencias,
     normalizar_paginacao_pendencias,
     obter_assinatura_mesa_para_pdf,
+    serializar_pendencia_mesa,
+)
+from app.domains.chat.routes import (
+    agora_utc,
+    exigir_csrf,
     obter_laudo_do_inspetor,
     resposta_json_ok,
     safe_remove_file,
-    serializar_pendencia_mesa,
     usuario_nome,
 )
 from app.domains.chat.schemas import DadosPendencia
