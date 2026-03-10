@@ -41,7 +41,6 @@ from fastapi.responses import (
     StreamingResponse,  # noqa: F401
 )
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask  # noqa: F401
 
@@ -103,6 +102,13 @@ from app.domains.chat.session_helpers import (
     exigir_csrf,  # noqa: F401
     laudo_id_sessao,  # noqa: F401
     validar_csrf,  # noqa: F401
+)
+from app.domains.chat.limits_helpers import (
+    contar_laudos_mes,  # noqa: F401
+    garantir_deep_research_habilitado,  # noqa: F401
+    garantir_limite_laudos,  # noqa: F401
+    garantir_upload_documento_habilitado,  # noqa: F401
+    obter_limite_empresa,  # noqa: F401
 )
 from app.domains.chat.pendencias_helpers import (
     MAPA_FILTRO_PENDENCIAS_LABEL,  # noqa: F401
@@ -287,12 +293,6 @@ def resposta_json_ok(payload: dict[str, Any], status_code: int = 200) -> JSONRes
     return JSONResponse(content=payload, status_code=status_code)
 
 
-def contar_laudos_mes(banco: Session, empresa_id: int) -> int:
-    inicio_mes = agora_utc().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
-    return banco.query(func.count(Laudo.id)).filter(Laudo.empresa_id == empresa_id, Laudo.criado_em >= inicio_mes).scalar() or 0
-
-
 def selecionar_template_ativo_para_tipo(
     banco: Session,
     *,
@@ -446,37 +446,6 @@ def obter_preview_primeira_mensagem(
         return "Imagem enviada"
 
     return "Nova conversa"
-
-
-def obter_limite_empresa(usuario: Usuario, banco: Session):
-    if not usuario.empresa:
-        return None
-    return usuario.empresa.obter_limites(banco)
-
-
-def garantir_limite_laudos(usuario: Usuario, banco: Session) -> None:
-    limite = obter_limite_empresa(usuario, banco)
-    if not limite or limite.laudos_mes is None:
-        return
-
-    usados = contar_laudos_mes(banco, usuario.empresa_id)
-    if usados >= limite.laudos_mes:
-        raise HTTPException(
-            status_code=402,
-            detail="Limite de laudos mensais atingido.",
-        )
-
-
-def garantir_upload_documento_habilitado(usuario: Usuario, banco: Session) -> None:
-    limite = obter_limite_empresa(usuario, banco)
-    if not limite or not getattr(limite, "upload_doc", False):
-        raise HTTPException(status_code=403, detail="Upload de documento bloqueado pelo plano.")
-
-
-def garantir_deep_research_habilitado(usuario: Usuario, banco: Session) -> None:
-    limite = obter_limite_empresa(usuario, banco)
-    if not limite or not getattr(limite, "deep_research", False):
-        raise HTTPException(status_code=403, detail="Deep Research indisponível para o plano atual.")
 
 
 def obter_laudo_empresa(banco: Session, laudo_id: int, empresa_id: int) -> Laudo:

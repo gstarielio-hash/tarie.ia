@@ -14,6 +14,7 @@ from app.domains.chat.gate_helpers import (
     avaliar_gate_qualidade_laudo,
     garantir_gate_qualidade_laudo,
 )
+from app.domains.chat.limits_helpers import garantir_limite_laudos
 from app.domains.chat.normalization import (
     ALIASES_TEMPLATE,
     nome_template_humano,
@@ -35,7 +36,6 @@ from app.domains.chat.templates_ai import RelatorioCBMGO
 from app.domains.chat.routes import (
     MODO_DETALHADO,
     agora_utc,
-    garantir_limite_laudos,
     logger,
     obter_cliente_ia_ativo,
     obter_laudo_do_inspetor,

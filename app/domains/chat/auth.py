@@ -11,6 +11,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domains.chat.limits_helpers import contar_laudos_mes, obter_limite_empresa
 from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
     contexto_base,
@@ -28,10 +29,8 @@ from app.domains.chat.routes import (
     _usuario_pendente_troca_senha,
     _validar_nova_senha,
     configuracoes,
-    contar_laudos_mes,
     logger,
     montar_limites_para_template,
-    obter_limite_empresa,
     redirecionar_por_nivel,
     templates,
     usuario_nome,

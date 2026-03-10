@@ -34,6 +34,11 @@ from app.domains.chat.commands_helpers import (
     registrar_comando_rapido_historico,
 )
 from app.domains.chat.gate_helpers import garantir_gate_qualidade_laudo
+from app.domains.chat.limits_helpers import (
+    garantir_deep_research_habilitado,
+    garantir_limite_laudos,
+    garantir_upload_documento_habilitado,
+)
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
 from app.domains.chat.session_helpers import exigir_csrf, laudo_id_sessao
 from app.domains.chat.routes import (
@@ -53,9 +58,6 @@ from app.domains.chat.routes import (
     agora_utc,
     evento_sse,
     executor_stream,
-    garantir_deep_research_habilitado,
-    garantir_limite_laudos,
-    garantir_upload_documento_habilitado,
     inspetor_notif_manager,
     leitor_docx,
     leitor_pdf,
