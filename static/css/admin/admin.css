@@ -340,6 +340,9 @@ body:has(.admin-layout) {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: sticky;
+    top: 12px;
+    z-index: 30;
     margin-bottom: 28px;
     gap: 16px;
     flex-wrap: wrap;
@@ -352,7 +355,7 @@ body:has(.admin-layout) {
 }
 
 .admin-layout .titulo-pagina h1 {
-    font-size: 23px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--admin-text-main);
     line-height: 1.18;
@@ -549,7 +552,7 @@ body:has(.admin-layout) {
 
 .admin-layout .card:hover {
     box-shadow: var(--admin-shadow-heavy);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     border-color: color-mix(in srgb, var(--admin-border) 70%, #D67A32);
 }
 
@@ -573,8 +576,8 @@ body:has(.admin-layout) {
 }
 
 .admin-layout .icone-card.laranja {
-    background: #FFF3E0;
-    color: var(--admin-accent);
+    background: rgba(244, 123, 32, 0.16);
+    color: #FFD2AF;
 }
 
 .admin-layout .icone-card.verde {
@@ -672,7 +675,7 @@ body:has(.admin-layout) {
 .admin-layout .box-dados:hover {
     box-shadow: var(--admin-shadow-heavy);
     border-color: color-mix(in srgb, var(--admin-border) 70%, #D67A32);
-    transform: translateY(-1px);
+    transform: translateY(-0.5px);
 }
 
 .admin-layout .box-cabecalho {

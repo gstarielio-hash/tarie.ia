@@ -12,12 +12,12 @@
 
 :root {
     /* ── Marca ──────────────────────────────── */
-    --cor-primaria: #22252B;
-    --cor-primaria-2: #2B2F36;
-    --cor-secundaria: #D67A32;
-    --cor-secundaria-2: #E79A5E;
-    --cor-fundo-chat: #1A1D22;
-    --cor-fundo-deep: #14171C;
+    --cor-primaria: #23272F;
+    --cor-primaria-2: #2C313A;
+    --cor-secundaria: #F47B20;
+    --cor-secundaria-2: #FFAA68;
+    --cor-fundo-chat: #171A20;
+    --cor-fundo-deep: #12151A;
 
     /* ── Status ─────────────────────────────── */
     --cor-aprovado: #1F7A3E;
@@ -27,38 +27,38 @@
 
     /* ── Fundos ─────────────────────────────── */
     --bg-app: var(--cor-fundo-chat);
-    --bg-app-elevado: #20242B;
+    --bg-app-elevado: #1E2229;
     --bg-panel: var(--cor-primaria);
     --bg-panel-elevado: var(--cor-primaria-2);
-    --bg-input: #2F333B;
-    --bg-hover: #363B45;
+    --bg-input: #2B3038;
+    --bg-hover: #343A44;
     --bg-hover-soft: rgba(213, 219, 229, 0.05);
-    --bg-card: rgba(47, 53, 61, 0.54);
-    --bg-card-strong: rgba(47, 53, 61, 0.76);
+    --bg-card: rgba(47, 53, 61, 0.46);
+    --bg-card-strong: rgba(47, 53, 61, 0.72);
     --bg-overlay: rgba(10, 11, 14, 0.72);
     --bg-overlay-strong: rgba(10, 11, 14, 0.88);
     --bg-soft-light: rgba(255, 255, 255, 0.03);
     --bg-soft-lighter: rgba(255, 255, 255, 0.05);
 
     /* ── Texto ──────────────────────────────── */
-    --text-primary: #ECEEF2;
-    --text-secondary: #BCC3CE;
-    --text-tertiary: #8C94A2;
+    --text-primary: #ECEFF4;
+    --text-secondary: #C0C7D2;
+    --text-tertiary: #919AA9;
     --text-muted: rgba(191, 198, 209, 0.42);
     --text-on-accent: #FFFFFF;
 
     /* ── Acento ─────────────────────────────── */
     --accent-wf: var(--cor-secundaria);
-    --accent-hover: #BE6B2E;
-    --accent-active: #A55B23;
+    --accent-hover: #D86815;
+    --accent-active: #BE5F11;
     --accent-soft: #F1BA8F;
-    --accent-subtle: rgba(214, 122, 50, 0.10);
-    --accent-subtle-strong: rgba(214, 122, 50, 0.16);
-    --accent-glow: rgba(214, 122, 50, 0.26);
-    --user-accent: #AFB6C3;
-    --user-accent-soft: #D6DBE3;
-    --user-accent-subtle: rgba(175, 182, 195, 0.14);
-    --user-accent-border: rgba(175, 182, 195, 0.34);
+    --accent-subtle: rgba(244, 123, 32, 0.10);
+    --accent-subtle-strong: rgba(244, 123, 32, 0.17);
+    --accent-glow: rgba(244, 123, 32, 0.26);
+    --user-accent: #B8BEC8;
+    --user-accent-soft: #DBE0E7;
+    --user-accent-subtle: rgba(184, 190, 200, 0.14);
+    --user-accent-border: rgba(184, 190, 200, 0.34);
 
     /* ── Bordas ─────────────────────────────── */
     --border-color: #3A404B;
@@ -128,7 +128,7 @@
     --badge-info: #B9C1CE;
 
     /* ── Tipografia ─────────────────────────── */
-    --font-base: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-base: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
     --font-size-xs: 12px;
     --font-size-sm: 13px;
@@ -136,7 +136,7 @@
     --font-size-lg: 15px;
     --font-size-xl: 16px;
     --line-height-tight: 1.32;
-    --line-height-normal: 1.58;
+    --line-height-normal: 1.56;
 
     /* ── Mesa Avaliadora (Widget) ─────────── */
     --mesa-fg-primary: #ECEEF2;
@@ -194,8 +194,8 @@ body {
     color: var(--text-primary);
     font-family: var(--font-base);
     background:
-        radial-gradient(circle at top center, rgba(214, 122, 50, 0.07), transparent 36%),
-        linear-gradient(180deg, rgba(20, 22, 27, 0.98), rgba(18, 20, 24, 1));
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 34%),
+        linear-gradient(180deg, rgba(22, 24, 29, 0.98), rgba(17, 19, 24, 1));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;

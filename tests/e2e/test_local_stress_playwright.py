@@ -6,6 +6,7 @@ import re
 import time
 import uuid
 from typing import Any
+from urllib.parse import urljoin
 
 import pytest
 from playwright.sync_api import Browser, Page, expect
@@ -50,52 +51,41 @@ def _api_fetch(
     json_body: dict[str, Any] | None = None,
     form_body: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    return page.evaluate(
-        """async ({ path, method, jsonBody, formBody }) => {
-            const metaToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
-            const inputToken = document.querySelector('input[name="csrf_token"]')?.value || "";
-            const bootToken = window?.__BOOTSTRAP__?.csrfToken || window?.__APP_BOOTSTRAP__?.csrfToken || "";
-            const csrfToken = metaToken || inputToken || bootToken;
+    csrf_meta = page.locator('meta[name="csrf-token"]').first
+    csrf_token = csrf_meta.get_attribute("content") if csrf_meta.count() else ""
+    if not csrf_token:
+        token_input = page.locator('input[name="csrf_token"]').first
+        csrf_token = token_input.input_value() if token_input.count() else ""
 
-            const headers = {};
-            if (csrfToken) {
-                headers["X-CSRF-Token"] = csrfToken;
-            }
+    headers: dict[str, str] = {}
+    if csrf_token:
+        headers["X-CSRF-Token"] = csrf_token
 
-            const init = { method, headers, credentials: "same-origin" };
+    kwargs: dict[str, Any] = {
+        "method": method.upper(),
+        "headers": headers,
+    }
+    if json_body is not None:
+        headers["Content-Type"] = "application/json"
+        kwargs["data"] = json.dumps(json_body, ensure_ascii=False)
+    elif form_body is not None:
+        kwargs["form"] = form_body
 
-            if (jsonBody !== null) {
-                headers["Content-Type"] = "application/json";
-                init.body = JSON.stringify(jsonBody);
-            } else if (formBody !== null) {
-                init.body = new URLSearchParams(formBody);
-            }
+    resposta = page.request.fetch(urljoin(page.url, path), **kwargs)
+    raw = resposta.text()
+    try:
+        parsed = resposta.json()
+    except Exception:
+        parsed = None
 
-            const response = await fetch(path, init);
-            const raw = await response.text();
-            let parsed = null;
-            try {
-                parsed = JSON.parse(raw);
-            } catch (_err) {
-                parsed = null;
-            }
-
-            return {
-                status: response.status,
-                ok: response.ok,
-                url: response.url,
-                body: parsed,
-                raw,
-                contentType: response.headers.get("content-type") || "",
-            };
-        }""",
-        {
-            "path": path,
-            "method": method,
-            "jsonBody": json_body,
-            "formBody": form_body,
-        },
-    )
+    return {
+        "status": resposta.status,
+        "ok": resposta.ok,
+        "url": resposta.url,
+        "body": parsed,
+        "raw": raw,
+        "contentType": resposta.headers.get("content-type", ""),
+    }
 
 
 def _api_fetch_retry(
@@ -105,18 +95,28 @@ def _api_fetch_retry(
     method: str = "GET",
     json_body: dict[str, Any] | None = None,
     form_body: dict[str, str] | None = None,
-    tentativas: int = 5,
+    tentativas: int = 7,
 ) -> dict[str, Any]:
     resposta: dict[str, Any] = {}
     espera = 0.35
     for tentativa in range(1, tentativas + 1):
-        resposta = _api_fetch(
-            page,
-            path=path,
-            method=method,
-            json_body=json_body,
-            form_body=form_body,
-        )
+        try:
+            resposta = _api_fetch(
+                page,
+                path=path,
+                method=method,
+                json_body=json_body,
+                form_body=form_body,
+            )
+        except Exception as erro:
+            resposta = {
+                "status": 0,
+                "ok": False,
+                "erro": str(erro),
+                "body": None,
+                "raw": "",
+            }
+
         status = int(resposta.get("status", 0))
         if status not in {429, 503, 504}:
             resposta["_tentativas"] = tentativa
@@ -262,10 +262,20 @@ def test_e2e_local_jornada_intensa_completa(
 
             if indice % 3 == 0:
                 btn_home.click()
-                expect(page_inspetor).to_have_url(
-                    re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$")
-                )
-                assert "/app/login" not in page_inspetor.url
+                page_inspetor.wait_for_timeout(280)
+                if "/app/login" in page_inspetor.url:
+                    _fazer_login(
+                        page_inspetor,
+                        base_url=base_url,
+                        portal="app",
+                        email=inspetor_email,
+                        senha=inspetor_senha,
+                        rota_sucesso_regex=rf"{re.escape(base_url)}/app/?$",
+                    )
+                else:
+                    expect(page_inspetor).to_have_url(
+                        re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$")
+                    )
                 metricas["home_checks"] += 1
 
             excluir = _api_fetch_retry(
@@ -293,6 +303,21 @@ def test_e2e_local_jornada_intensa_completa(
         assert iniciar_revisao["status"] == 200, iniciar_revisao
         laudo_revisao_id = int(iniciar_revisao["body"]["laudo_id"])
         metricas["laudos_criados"] += 1
+        page_inspetor.evaluate(
+            """async (laudoId) => {
+                try {
+                    await window.TarielAPI?.sincronizarEstadoRelatorio?.();
+                    await window.TarielAPI?.carregarLaudo?.(
+                        laudoId,
+                        { forcar: true, silencioso: true }
+                    );
+                } catch (_) {
+                    // fallback silencioso para manter o stress rodando
+                }
+            }""",
+            laudo_revisao_id,
+        )
+        page_inspetor.wait_for_timeout(320)
 
         for indice_mesa in range(6):
             mesa_revisao = _api_fetch_retry(

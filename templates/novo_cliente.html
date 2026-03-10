@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#081624">
+    <meta name="theme-color" content="#171A20">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
 
@@ -19,15 +19,15 @@
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --bg-body: #081624;
-            --bg-card: #0F2B46;
-            --bg-card-2: #0C2237;
-            --bg-input: #173654;
-            --bg-input-focus: #1A3D5E;
-            --text-primary: #F0F6FC;
-            --text-secondary: #B0C4DE;
-            --text-muted: rgba(176, 196, 222, 0.72);
-            --text-soft: rgba(176, 196, 222, 0.5);
+            --bg-body: #171A20;
+            --bg-card: #23272F;
+            --bg-card-2: #1D2128;
+            --bg-input: #2B3038;
+            --bg-input-focus: #343A44;
+            --text-primary: #ECEFF4;
+            --text-secondary: #BDC5D0;
+            --text-muted: rgba(189, 197, 208, 0.72);
+            --text-soft: rgba(189, 197, 208, 0.52);
             --accent: #F47B20;
             --accent-hover: #D86815;
             --danger: #FF8A8A;
@@ -37,8 +37,8 @@
             --warning-bg: rgba(244, 123, 32, 0.12);
             --warning-border: rgba(244, 123, 32, 0.35);
             --success-border: rgba(72, 199, 142, 0.6);
-            --border-soft: rgba(255, 255, 255, 0.1);
-            --border-input: rgba(255, 255, 255, 0.16);
+            --border-soft: rgba(191, 198, 209, 0.14);
+            --border-input: rgba(191, 198, 209, 0.24);
             --radius-sm: 8px;
             --radius-md: 14px;
             --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -66,7 +66,7 @@
                 radial-gradient(circle at top, rgba(244, 123, 32, 0.08), transparent 28%),
                 var(--bg-body);
             color: var(--text-primary);
-            font-family: "Inter", sans-serif;
+            font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         .login-container {
@@ -76,7 +76,7 @@
             padding: 38px 32px 28px;
             border: 1px solid var(--border-soft);
             border-radius: var(--radius-md);
-            background: linear-gradient(180deg, rgba(15, 43, 70, 0.98), rgba(12, 34, 55, 0.98));
+            background: linear-gradient(180deg, rgba(38, 43, 52, 0.98), rgba(28, 32, 39, 0.98));
             box-shadow: var(--shadow-card);
             animation: fadeIn .35s ease;
             backdrop-filter: blur(8px);
@@ -198,7 +198,7 @@
         }
 
         .form-control::placeholder {
-            color: rgba(176, 196, 222, 0.45);
+            color: rgba(189, 197, 208, 0.5);
         }
 
         .form-control:focus {

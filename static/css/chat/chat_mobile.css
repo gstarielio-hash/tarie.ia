@@ -487,14 +487,22 @@
 
     .rodape-entrada {
         gap: 6px;
-        padding: 10px 12px 12px;
-        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        padding: 9px 12px 10px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    }
+
+    body.pagina-chat-mesa .rodape-entrada {
+        padding-right: 12px;
     }
 
     .pilula-entrada {
         gap: 6px;
         padding: 8px;
         border-radius: 18px;
+    }
+
+    body.pagina-chat-mesa .pilula-entrada {
+        max-width: 100%;
     }
 
     .grupo-chip-modo {
@@ -556,13 +564,13 @@
     }
 
     .rodape-entrada .btn-icone {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         border-radius: 12px;
     }
 
     .rodape-entrada .btn-icone .material-symbols-rounded {
-        font-size: 20px !important;
+        font-size: 19px !important;
     }
 
     .rodape-entrada .btn-icone.destaque {
@@ -576,11 +584,20 @@
         line-height: 1.45;
     }
 
+    .dica-composer {
+        font-size: 10.4px;
+        line-height: 1.36;
+    }
+
+    .aviso-rodape {
+        display: none;
+    }
+
     .btn-ir-fim-chat {
         right: 14px;
-        bottom: 100px;
-        width: 40px;
-        height: 40px;
+        bottom: 96px;
+        width: 34px;
+        height: 34px;
         border-radius: 12px;
     }
 
@@ -897,12 +914,12 @@
     }
 
     .rodape-entrada .btn-icone {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
     }
 
     .rodape-entrada .btn-icone .material-symbols-rounded {
-        font-size: 19px !important;
+        font-size: 18px !important;
     }
 
     #campo-mensagem {
@@ -922,11 +939,15 @@
         font-size: 10px;
     }
 
+    .dica-composer {
+        font-size: 10px;
+    }
+
     .btn-ir-fim-chat {
         right: 10px;
-        bottom: 94px;
-        width: 36px;
-        height: 36px;
+        bottom: 90px;
+        width: 32px;
+        height: 32px;
     }
 
     .toast-notificacao {

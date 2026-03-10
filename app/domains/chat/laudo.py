@@ -56,7 +56,16 @@ async def api_status_relatorio(
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
-    return resposta_json_ok(estado_relatorio_sanitizado(request, banco, usuario))
+    # Endpoint de consulta deve ser leitura pura para evitar corrida de cookie
+    # entre requests paralelas (ex.: /status vs /iniciar).
+    return resposta_json_ok(
+        estado_relatorio_sanitizado(
+            request,
+            banco,
+            usuario,
+            mutar_sessao=False,
+        )
+    )
 
 
 async def api_iniciar_relatorio(

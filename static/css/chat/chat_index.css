@@ -1268,12 +1268,12 @@
     right: var(--dock-right, 16px);
     bottom: var(--dock-bottom, 16px);
     z-index: 72;
-    width: 54px;
-    height: 54px;
+    width: var(--dock-size-widget, 48px);
+    height: var(--dock-size-widget, 48px);
     border-radius: 999px;
     border: 1px solid color-mix(in srgb, var(--mesa-border, rgba(56, 74, 96, 0.88)) 85%, #1b2230);
     background:
-        radial-gradient(circle at 30% 24%, #f4f6f9 0%, #e5e9ef 52%, #d2d7df 100%);
+        radial-gradient(circle at 30% 24%, #f1f4f8 0%, #e1e5ec 52%, #ccd2db 100%);
     color: #0a0f14;
     box-shadow:
         0 14px 20px rgba(4, 8, 14, 0.4),
@@ -1333,8 +1333,8 @@
 }
 
 .mesa-widget-bot {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1449,13 +1449,13 @@
 
 .painel-mesa-widget {
     position: fixed;
-    right: 18px;
-    bottom: 92px;
+    right: var(--dock-right, 16px);
+    bottom: calc(var(--dock-bottom, 16px) + var(--dock-size-widget, 48px) + 10px);
     z-index: 71;
-    width: min(470px, calc(100vw - 26px));
-    height: min(74vh, 680px);
-    min-height: 430px;
-    max-height: min(78vh, 700px);
+    width: min(440px, calc(100vw - 22px));
+    height: min(72vh, 650px);
+    min-height: 410px;
+    max-height: min(75vh, 670px);
     display: flex;
     flex-direction: column;
     border-radius: 15px;
@@ -1488,12 +1488,12 @@
 }
 
 body.pagina-chat-mesa .btn-toggle-ui {
-    right: calc(var(--dock-right, 16px) + var(--dock-size-widget, 54px) + var(--dock-gap, 10px));
-    bottom: calc(var(--dock-bottom, 16px) + var(--dock-size-widget, 54px) + var(--dock-gap, 10px));
-    z-index: 24;
+    right: var(--dock-right, 16px);
+    bottom: calc(var(--dock-bottom, 16px) + var(--dock-size-widget, 48px) + var(--dock-gap, 8px));
+    z-index: 72;
     width: var(--dock-size-ui, 38px);
     height: var(--dock-size-ui, 38px);
-    border-radius: 10px;
+    border-radius: 9px;
 }
 
 body.pagina-chat-mesa .btn-toggle-ui .material-symbols-rounded {
@@ -2056,20 +2056,20 @@ body.pagina-chat-mesa .btn-toggle-ui .material-symbols-rounded {
     }
 
     .btn-mesa-widget-toggle {
-        width: 52px;
-        height: 52px;
+        width: var(--dock-size-widget, 46px);
+        height: var(--dock-size-widget, 46px);
     }
 
     .mesa-widget-bot {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
     }
 
     .painel-mesa-widget {
         right: 8px;
         left: 8px;
         width: auto;
-        bottom: 64px;
+        bottom: calc(var(--dock-bottom, 10px) + var(--dock-size-widget, 46px) + 10px);
         height: min(68vh, 560px);
         min-height: 340px;
         max-height: min(70vh, 560px);
@@ -2077,9 +2077,10 @@ body.pagina-chat-mesa .btn-toggle-ui .material-symbols-rounded {
 
     body.pagina-chat-mesa {
         --dock-right: 10px;
-        --dock-bottom: 12px;
-        --dock-size-widget: 52px;
-        --dock-size-ui: 34px;
+        --dock-bottom: 10px;
+        --dock-gap: 7px;
+        --dock-size-widget: 46px;
+        --dock-size-ui: 32px;
     }
 }
 

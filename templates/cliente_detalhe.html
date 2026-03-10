@@ -502,7 +502,7 @@
     </style>
 </head>
 
-<body>
+<body class="admin-body">
     {% set _plano = empresa.plano_ativo | default('Piloto', true) %}
     {% set _empresa_ativa = not empresa.status_bloqueio %}
     {% set _uso_pct = uso_percentual | int if uso_percentual is not none else none %}

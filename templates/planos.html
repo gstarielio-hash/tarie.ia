@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0F2B46">
+    <meta name="theme-color" content="#171A20">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token }}">
 
@@ -31,9 +31,11 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: #07192B;
-            color: #B0C4DE;
+            font-family: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(244, 123, 32, 0.08), transparent 28%),
+                #171A20;
+            color: #BDC5D0;
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
@@ -50,8 +52,8 @@
             align-items: center;
             gap: 12px;
             padding: 16px 24px;
-            background: rgba(15, 43, 70, .7);
-            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(35, 39, 47, .78);
+            border-bottom: 1px solid rgba(191, 198, 209, .12);
             backdrop-filter: blur(8px);
             position: sticky;
             top: 0;
@@ -63,8 +65,8 @@
             align-items: center;
             gap: 6px;
             background: transparent;
-            border: 1px solid rgba(176, 196, 222, .15);
-            color: #B0C4DE;
+            border: 1px solid rgba(191, 198, 209, .22);
+            color: #BDC5D0;
             border-radius: 8px;
             padding: 6px 12px;
             font-size: 13px;
@@ -95,14 +97,14 @@
             gap: 8px;
             margin-left: auto;
             font-size: 13px;
-            color: rgba(176, 196, 222, .5);
+            color: rgba(189, 197, 208, .62);
         }
 
         .avatar-ia-sm {
             width: 24px;
             height: 24px;
             border-radius: 6px;
-            background: linear-gradient(135deg, #1E446A, #0F2B46);
+            background: linear-gradient(135deg, #3A404B, #23272F);
             border: 1px solid rgba(244, 123, 32, .3);
             display: flex;
             align-items: center;
@@ -122,7 +124,7 @@
         .hero-planos h1 {
             font-size: clamp(22px, 4vw, 32px);
             font-weight: 700;
-            color: #E8F4FD;
+            color: #ECEFF4;
             margin-bottom: 12px;
             line-height: 1.2;
         }
@@ -133,7 +135,7 @@
 
         .hero-planos p {
             font-size: 14px;
-            color: rgba(176, 196, 222, .65);
+            color: rgba(189, 197, 208, .72);
             max-width: 480px;
             margin: 0 auto;
             line-height: 1.6;
@@ -147,10 +149,10 @@
             margin-bottom: 28px;
             padding: 5px 12px;
             border-radius: 20px;
-            background: rgba(30, 68, 106, .6);
+            background: rgba(47, 53, 61, .66);
             border: 1px solid rgba(244, 123, 32, .25);
             font-size: 12px;
-            color: rgba(176, 196, 222, .8);
+            color: rgba(189, 197, 208, .88);
         }
 
         .badge-plano-atual strong {
@@ -175,8 +177,8 @@
 
         /* ── Card de plano ──────────────────────────────────────────── */
         .card-plano {
-            background: rgba(15, 43, 70, .5);
-            border: 1px solid rgba(255, 255, 255, .07);
+            background: rgba(35, 39, 47, .62);
+            border: 1px solid rgba(191, 198, 209, .14);
             border-radius: 16px;
             padding: 28px 24px;
             display: flex;
@@ -195,7 +197,7 @@
         /* Destaque: plano intermediário */
         .card-plano.destaque {
             border-color: rgba(244, 123, 32, .45);
-            background: rgba(20, 52, 85, .65);
+            background: rgba(47, 53, 61, .72);
             box-shadow: 0 0 0 1px rgba(244, 123, 32, .2),
                 0 8px 32px rgba(244, 123, 32, .08);
         }
@@ -254,12 +256,12 @@
         .nome-plano {
             font-size: 18px;
             font-weight: 700;
-            color: #E8F4FD;
+            color: #ECEFF4;
         }
 
         .desc-plano {
             font-size: 12px;
-            color: rgba(176, 196, 222, .5);
+            color: rgba(189, 197, 208, .6);
             line-height: 1.5;
         }
 
@@ -291,26 +293,26 @@
         }
 
         .feature-nao {
-            color: rgba(176, 196, 222, .25);
+            color: rgba(189, 197, 208, .28);
         }
 
         .feature-texto {
-            color: rgba(176, 196, 222, .8);
+            color: rgba(189, 197, 208, .88);
         }
 
         .feature-nao .feature-texto {
-            color: rgba(176, 196, 222, .35);
+            color: rgba(189, 197, 208, .4);
         }
 
         .feature-valor {
             font-weight: 600;
-            color: #E8F4FD;
+            color: #ECEFF4;
         }
 
         /* ── Divisor ────────────────────────────────────────────────── */
         .divisor-card {
             border: none;
-            border-top: 1px solid rgba(255, 255, 255, .06);
+            border-top: 1px solid rgba(191, 198, 209, .14);
         }
 
         /* ── Botão de ação do card ──────────────────────────────────── */
@@ -352,8 +354,8 @@
 
         .btn-plano-secundario {
             background: transparent;
-            color: #B0C4DE;
-            border-color: rgba(176, 196, 222, .2);
+            color: #BDC5D0;
+            border-color: rgba(191, 198, 209, .24);
         }
 
         .btn-plano-secundario:hover {
@@ -375,14 +377,14 @@
             margin-top: auto;
             text-align: center;
             padding: 24px;
-            border-top: 1px solid rgba(255, 255, 255, .05);
+            border-top: 1px solid rgba(191, 198, 209, .1);
             font-size: 12px;
-            color: rgba(176, 196, 222, .35);
+            color: rgba(189, 197, 208, .42);
             line-height: 1.7;
         }
 
         .rodape-planos a {
-            color: rgba(176, 196, 222, .5);
+            color: rgba(189, 197, 208, .62);
             text-decoration: underline;
             text-underline-offset: 3px;
         }

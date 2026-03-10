@@ -13,7 +13,7 @@
 
         * {
             box-sizing: border-box;
-            font-family: "Inter", sans-serif;
+            font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         body {

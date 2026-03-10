@@ -247,7 +247,7 @@
     let iaRespondendo = false;
     let contadorArraste = 0;
     let controllerStream = null;
-    let laudoAtualId = null;
+    let laudoAtualId = normalizarNumero(window.WF?.laudoAtivoId ?? null);
     let historicoConversa = [];
     let historicoLaudoPaginado = [];
     let cursorHistoricoProximo = null;
@@ -267,7 +267,12 @@
     // ESTADO DO RELATÓRIO
     // =========================================================================
 
-    let _estadoRelatorio = "sem_relatorio";
+    let _estadoRelatorio = normalizarEstadoRelatorio(window.WF?.estadoRelatorio ?? "sem_relatorio");
+    if (_estadoRelatorio !== "relatorio_ativo") {
+        laudoAtualId = null;
+    } else if (!laudoAtualId) {
+        _estadoRelatorio = "sem_relatorio";
+    }
 
     // =========================================================================
     // ÁREA DE MENSAGENS E SCROLL

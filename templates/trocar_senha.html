@@ -6,15 +6,15 @@
     <title>{{ titulo_pagina | default("Troca de Senha") | e }}</title>
     <style>
         :root {
-            --bg: #0b1d2e;
-            --card: #10283f;
-            --borda: #1d4064;
-            --texto: #e8f0f7;
-            --muted: #9ab0c6;
-            --erro-bg: #3a1414;
-            --erro-borda: #b23c3c;
-            --erro-txt: #ffd1d1;
-            --ok: #f47b20;
+            --bg: #111317;
+            --card: #171a20;
+            --borda: #2a303a;
+            --texto: #f3f6fb;
+            --muted: #9ca4b2;
+            --erro-bg: #341517;
+            --erro-borda: #9f363a;
+            --erro-txt: #ffd7d9;
+            --ok: #f08a24;
         }
 
         * {
@@ -27,9 +27,11 @@
             display: grid;
             place-items: center;
             padding: 24px;
-            background: radial-gradient(circle at top, #153554 0%, var(--bg) 60%);
+            background:
+                radial-gradient(950px 420px at 50% -12%, rgba(240, 138, 36, 0.14), transparent 68%),
+                linear-gradient(180deg, #12151a 0%, var(--bg) 100%);
             color: var(--texto);
-            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
         .card {
@@ -79,7 +81,7 @@
             width: 100%;
             border: 1px solid var(--borda);
             border-radius: 10px;
-            background: #0a1e31;
+            background: #121720;
             color: var(--texto);
             padding: 10px 12px;
             font-size: 0.98rem;
@@ -102,7 +104,7 @@
             border-radius: 10px;
             padding: 10px 14px;
             background: var(--ok);
-            color: #0b1d2e;
+            color: #171a20;
             font-weight: 700;
             cursor: pointer;
         }
@@ -115,7 +117,7 @@
         }
 
         a:hover {
-            color: #cde1f4;
+            color: #f3f6fb;
         }
     </style>
 </head>

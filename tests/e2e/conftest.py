@@ -11,6 +11,15 @@ import pytest
 import requests
 
 
+@pytest.fixture(scope="session")
+def browser_context_args(browser_context_args: dict[str, object]) -> dict[str, object]:
+    """Evita interferência de Service Worker nos fluxos E2E de sessão/reload."""
+    return {
+        **browser_context_args,
+        "service_workers": "block",
+    }
+
+
 def _obter_porta_livre() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
@@ -64,6 +73,18 @@ def live_server_url(tmp_path_factory: pytest.TempPathFactory) -> str:
         caminho_db = pasta_db / "tariel_playwright.sqlite3"
         env["SEED_DEV_BOOTSTRAP"] = "1"
         env["DATABASE_URL"] = f"sqlite:///{caminho_db.as_posix()}"
+
+    # Para suites de stress local, garantimos usuários dedicados de carga
+    # (inspetor A/B, revisor e admin) no mesmo banco do servidor E2E.
+    if os.getenv("RUN_E2E_LOCAL", "0").strip() == "1":
+        subprocess.run(
+            [sys.executable, "scripts/seed_usuario_uso_intenso.py"],
+            cwd=str(projeto_dir),
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
 
     processo = subprocess.Popen(
         [

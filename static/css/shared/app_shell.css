@@ -143,16 +143,16 @@
    ----------------------------------------- */
 .btn-toggle-ui {
     position: fixed;
-    right: 22px;
-    bottom: 96px;
+    right: 16px;
+    bottom: 90px;
     z-index: 200;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     border: 1px solid rgba(191, 198, 209, 0.24);
-    border-radius: 12px;
+    border-radius: 10px;
     background: linear-gradient(180deg, rgba(54, 59, 69, 0.96), rgba(40, 44, 52, 0.96));
     color: rgba(219, 224, 232, 0.92);
     cursor: pointer;
@@ -209,7 +209,7 @@
 
 .barra-status-rede .material-symbols-rounded,
 .btn-toggle-ui .material-symbols-rounded {
-    font-size: 20px !important;
+    font-size: 18px !important;
 }
 
 body.modo-foco .btn-toggle-ui {

@@ -65,7 +65,7 @@ body.sidebar-colapsada .painel-chat {
 
 .thread-nav-inner {
     width: 100%;
-    max-width: 980px;
+    max-width: 1180px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -74,7 +74,7 @@ body.sidebar-colapsada .painel-chat {
 }
 
 body.sidebar-colapsada .thread-nav-inner {
-    max-width: 1120px;
+    max-width: 1280px;
 }
 
 .thread-breadcrumb {
@@ -174,14 +174,14 @@ body.sidebar-colapsada .thread-nav-inner {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 16px;
-    padding: 18px 20px 24px;
+    gap: 14px;
+    padding: 18px 22px 20px;
     scroll-padding-top: var(--space-5, 20px);
-    scroll-padding-bottom: 196px;
+    scroll-padding-bottom: 182px;
     overscroll-behavior-y: contain;
     scroll-behavior: smooth;
     scrollbar-width: auto;
-    scrollbar-color: rgba(124, 156, 186, 0.62) rgba(10, 27, 45, 0.38);
+    scrollbar-color: rgba(146, 154, 167, 0.62) rgba(26, 30, 36, 0.38);
     scrollbar-gutter: stable both-edges;
     background:
         radial-gradient(circle at 14% 10%, rgba(214, 122, 50, 0.07), transparent 24%),
@@ -194,18 +194,18 @@ body.sidebar-colapsada .thread-nav-inner {
 }
 
 .area-mensagens::-webkit-scrollbar-track {
-    background: rgba(10, 27, 45, 0.32);
+    background: rgba(20, 23, 29, 0.32);
     border-radius: 999px;
 }
 
 .area-mensagens::-webkit-scrollbar-thumb {
     background: linear-gradient(
         180deg,
-        rgba(126, 162, 196, 0.88),
-        rgba(78, 120, 160, 0.88)
+        rgba(147, 156, 169, 0.88),
+        rgba(112, 121, 134, 0.88)
     );
     border-radius: 999px;
-    border: 2px solid rgba(10, 27, 45, 0.32);
+    border: 2px solid rgba(20, 23, 29, 0.32);
 }
 
 .area-mensagens > .linha-mensagem,
@@ -214,7 +214,7 @@ body.sidebar-colapsada .thread-nav-inner {
 .area-mensagens > .mensagem-boas-vindas,
 .area-mensagens > .bloco-texto-solto {
     width: 100%;
-    max-width: 1120px;
+    max-width: 1260px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -224,7 +224,7 @@ body.sidebar-colapsada .area-mensagens > .tela-boas-vindas,
 body.sidebar-colapsada .area-mensagens > .skeleton-carregamento,
 body.sidebar-colapsada .area-mensagens > .mensagem-boas-vindas,
 body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
-    max-width: 1220px;
+    max-width: 1360px;
 }
 
 /* ==========================================
@@ -233,7 +233,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .tela-boas-vindas {
     width: 100%;
-    max-width: 960px;
+    max-width: 1040px;
     max-height: min(820px, calc(100dvh - var(--header-h, 68px) - 210px));
     margin: auto auto 0;
     padding: 30px 26px 24px;
@@ -515,23 +515,23 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     align-items: flex-end;
     gap: 8px;
     width: fit-content;
-    max-width: min(1080px, 95%);
+    max-width: min(980px, 92%);
 }
 
 .mensagem-inspetor .conteudo-mensagem,
 .mensagem-usuario .conteudo-mensagem {
     flex-direction: row-reverse;
-    max-width: min(860px, 88%);
+    max-width: min(680px, 82%);
 }
 
 .corpo-texto {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     width: fit-content;
     min-width: 0;
-    max-width: min(820px, 100%);
-    padding: 10px 12px;
+    max-width: min(780px, 100%);
+    padding: 9px 11px;
     background: linear-gradient(
         180deg,
         rgba(47, 52, 61, 0.96),
@@ -540,6 +540,10 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     border: 1px solid var(--border-soft, rgba(191, 198, 209, 0.18));
     border-radius: 14px 20px 20px 20px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    transition:
+        border-color var(--t-fast, .12s) var(--ease, ease),
+        box-shadow var(--t-fast, .12s) var(--ease, ease),
+        transform var(--t-fast, .12s) var(--ease, ease);
 }
 
 .mensagem-inspetor .corpo-texto,
@@ -552,13 +556,30 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     border: 1px solid var(--user-accent-border, rgba(175, 182, 195, 0.34));
     border-radius: 20px 14px 20px 20px;
     box-shadow: 0 7px 20px rgba(0, 0, 0, 0.28);
-    max-width: min(560px, 100%);
+    width: auto;
+    inline-size: fit-content;
+    max-width: min(460px, 100%);
+}
+
+@media (hover: hover) {
+    .mensagem-ia .corpo-texto:hover {
+        border-color: rgba(191, 198, 209, 0.3);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .mensagem-inspetor .corpo-texto:hover,
+    .mensagem-usuario .corpo-texto:hover {
+        border-color: rgba(184, 190, 200, 0.48);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+        transform: translateY(-1px);
+    }
 }
 
 .nome-remetente {
     display: block;
     margin-bottom: 1px;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     letter-spacing: .02em;
     color: var(--text-secondary, #c6d5e3);
@@ -571,8 +592,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .texto-msg {
-    font-size: 13.5px;
-    line-height: 1.58;
+    font-size: 13.2px;
+    line-height: 1.55;
     word-wrap: break-word;
     overflow-wrap: anywhere;
     color: var(--text-primary, #ffffff);
@@ -587,8 +608,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
    ========================================== */
 
 .avatar {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -600,7 +621,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .avatar .material-symbols-rounded {
-    font-size: 16px !important;
+    font-size: 15px !important;
 }
 
 .mensagem-ia .avatar {
@@ -1388,10 +1409,10 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 7px;
+    gap: 5px;
     width: 100%;
-    padding: 10px 18px 12px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 8px 16px 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
     background: linear-gradient(
         180deg,
@@ -1405,13 +1426,13 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .pilula-entrada {
     width: 100%;
-    max-width: 1080px;
+    max-width: 1220px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding: 9px 10px;
+    gap: 5px;
+    padding: 8px 10px;
     border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
-    border-radius: 18px;
+    border-radius: 16px;
     background: linear-gradient(
         180deg,
         rgba(47, 52, 61, 0.86),
@@ -1429,7 +1450,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 body.sidebar-colapsada .pilula-entrada {
-    max-width: 1160px;
+    max-width: 1320px;
 }
 
 .pilula-entrada:hover {
@@ -1453,7 +1474,7 @@ body.sidebar-colapsada .pilula-entrada {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: flex-end;
-    gap: 10px;
+    gap: 8px;
 }
 
 .btns-entrada-esquerda,
@@ -1476,7 +1497,7 @@ body.sidebar-colapsada .pilula-entrada {
     width: 100%;
     min-width: 0;
     min-height: 24px;
-    max-height: 180px;
+    max-height: 160px;
     margin: 0;
     padding: 8px 8px 9px;
     border: none;
@@ -1484,8 +1505,8 @@ body.sidebar-colapsada .pilula-entrada {
     background: transparent;
     color: var(--text-primary, #ffffff);
     font: inherit;
-    font-size: 13.5px;
-    line-height: 1.55;
+    font-size: 13.2px;
+    line-height: 1.52;
     resize: none;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1537,14 +1558,14 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .rodape-entrada .btn-icone {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
-    border-radius: 10px;
+    border-radius: 9px;
     background: rgba(37, 41, 49, 0.84);
     color: var(--text-secondary, #c6d5e3);
     cursor: pointer;
@@ -1620,7 +1641,7 @@ body.sidebar-colapsada .pilula-entrada {
     margin-top: 2px;
     text-align: center;
     line-height: 1.45;
-    font-size: 11.5px;
+    font-size: 10.8px;
     letter-spacing: 0.01em;
     color: rgba(173, 182, 194, 0.58);
 }
@@ -1630,7 +1651,7 @@ body.sidebar-colapsada .pilula-entrada {
     margin: 2px 0 0;
     text-align: center;
     line-height: 1.42;
-    font-size: 11.5px;
+    font-size: 10.8px;
     letter-spacing: 0.01em;
     color: rgba(173, 182, 194, 0.74);
 }
@@ -1642,15 +1663,15 @@ body.sidebar-colapsada .pilula-entrada {
 .btn-ir-fim-chat {
     position: absolute;
     right: 16px;
-    bottom: 102px;
+    bottom: 94px;
     z-index: 40;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: 1px solid rgba(191, 198, 209, 0.28);
-    border-radius: 10px;
+    border-radius: 9px;
     background: linear-gradient(
         180deg,
         rgba(54, 59, 69, 0.98),
@@ -1671,7 +1692,7 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .btn-ir-fim-chat .material-symbols-rounded {
-    font-size: 17px !important;
+    font-size: 16px !important;
 }
 
 .btn-ir-fim-chat.visivel {
@@ -1695,11 +1716,24 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 body.pagina-chat-mesa {
-    --dock-right: 16px;
-    --dock-bottom: 16px;
-    --dock-gap: 10px;
-    --dock-size-widget: 54px;
-    --dock-size-ui: 38px;
+    --dock-right: 14px;
+    --dock-bottom: 14px;
+    --dock-gap: 8px;
+    --dock-size-widget: 48px;
+    --dock-size-ui: 34px;
+    --dock-reserve-composer: calc(var(--dock-size-widget) + 22px);
+}
+
+body.pagina-chat-mesa .rodape-entrada {
+    padding-right: calc(16px + var(--dock-reserve-composer));
+}
+
+body.pagina-chat-mesa .pilula-entrada {
+    max-width: min(1220px, calc(100% - var(--dock-reserve-composer)));
+}
+
+body.sidebar-colapsada.pagina-chat-mesa .pilula-entrada {
+    max-width: min(1320px, calc(100% - var(--dock-reserve-composer)));
 }
 
 body.pagina-chat-mesa .btn-ir-fim-chat {
@@ -1710,9 +1744,11 @@ body.pagina-chat-mesa .btn-ir-fim-chat {
         var(--dock-size-widget) +
         var(--dock-gap) +
         var(--dock-size-ui) +
+        var(--dock-gap) +
+        var(--dock-size-ui) +
         var(--dock-gap)
     );
-    z-index: 73;
+    z-index: 74;
 }
 
 /* ==========================================
@@ -2318,9 +2354,10 @@ body.modo-foco .tela-boas-vindas {
 
     body.pagina-chat-mesa {
         --dock-right: 10px;
-        --dock-bottom: 12px;
-        --dock-size-widget: 56px;
-        --dock-size-ui: 36px;
+        --dock-bottom: 10px;
+        --dock-gap: 7px;
+        --dock-size-widget: 46px;
+        --dock-size-ui: 32px;
     }
 
     body.pagina-chat-mesa .btn-ir-fim-chat {

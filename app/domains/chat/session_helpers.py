@@ -54,13 +54,16 @@ def estado_relatorio_sanitizado(
     request: Request,
     banco: Session,
     usuario: Usuario,
+    *,
+    mutar_sessao: bool = True,
 ) -> dict[str, Any]:
     estado = request.session.get("estado_relatorio", "sem_relatorio")
     laudo_id = laudo_id_sessao(request)
 
     if not laudo_id:
-        request.session["estado_relatorio"] = "sem_relatorio"
-        request.session.pop("laudo_ativo_id", None)
+        if mutar_sessao:
+            request.session["estado_relatorio"] = "sem_relatorio"
+            request.session.pop("laudo_ativo_id", None)
         return {
             "estado": "sem_relatorio",
             "laudo_id": None,
@@ -78,8 +81,9 @@ def estado_relatorio_sanitizado(
     )
 
     if not laudo:
-        request.session["estado_relatorio"] = "sem_relatorio"
-        request.session.pop("laudo_ativo_id", None)
+        if mutar_sessao:
+            request.session["estado_relatorio"] = "sem_relatorio"
+            request.session.pop("laudo_ativo_id", None)
         return {
             "estado": "sem_relatorio",
             "laudo_id": None,
@@ -90,9 +94,11 @@ def estado_relatorio_sanitizado(
         estado = "relatorio_ativo"
     else:
         estado = "sem_relatorio"
-        request.session.pop("laudo_ativo_id", None)
+        if mutar_sessao:
+            request.session.pop("laudo_ativo_id", None)
 
-    request.session["estado_relatorio"] = estado
+    if mutar_sessao:
+        request.session["estado_relatorio"] = estado
 
     return {
         "estado": estado,
