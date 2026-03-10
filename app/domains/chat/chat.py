@@ -19,6 +19,13 @@ from starlette.background import BackgroundTask
 
 import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.auth_helpers import usuario_nome
+from app.domains.chat.core_helpers import (
+    agora_utc,
+    evento_sse,
+    obter_preview_primeira_mensagem,
+    resposta_json_ok,
+)
+from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
 from app.domains.chat.media_helpers import (
     nome_documento_seguro,
     safe_remove_file,
@@ -56,17 +63,12 @@ from app.domains.chat.routes import (
     TIMEOUT_KEEPALIVE_SSE_SEGUNDOS,
     TEM_DOCX,
     TEM_PYPDF,
-    agora_utc,
-    evento_sse,
     executor_stream,
     inspetor_notif_manager,
     leitor_docx,
     leitor_pdf,
     logger,
     obter_cliente_ia_ativo,
-    obter_laudo_do_inspetor,
-    obter_preview_primeira_mensagem,
-    resposta_json_ok,
     selecionar_template_ativo_para_tipo,
 )
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF

@@ -14,26 +14,24 @@ from __future__ import annotations
 
 import asyncio
 import io  # noqa: F401
-import json
 import logging
 import os
 import tempfile  # noqa: F401
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation  # noqa: F401
 from typing import Any
 
 from fastapi import (
     APIRouter,
     File,  # noqa: F401
-    HTTPException,
+    HTTPException,  # noqa: F401
     Query,  # noqa: F401
     UploadFile,  # noqa: F401
 )
 from fastapi.responses import (
     FileResponse,  # noqa: F401
-    JSONResponse,
+    JSONResponse,  # noqa: F401
     StreamingResponse,  # noqa: F401
 )
 from fastapi.templating import Jinja2Templates
@@ -45,13 +43,11 @@ from app.shared.database import (
     LIMITES_PADRAO,
     CitacaoLaudo,  # noqa: F401
     Empresa,  # noqa: F401
-    Laudo,
     LimitePlano,
     ModoResposta,
     PlanoEmpresa,
     SessaoLocal,  # noqa: F401
     TemplateLaudo,
-    Usuario,
 )
 from app.shared.security import (
     PORTAL_INSPETOR,  # noqa: F401
@@ -95,6 +91,17 @@ from app.domains.chat.session_helpers import (
     exigir_csrf,  # noqa: F401
     laudo_id_sessao,  # noqa: F401
     validar_csrf,  # noqa: F401
+)
+from app.domains.chat.core_helpers import (
+    agora_utc,  # noqa: F401
+    evento_sse,  # noqa: F401
+    json_seguro,  # noqa: F401
+    obter_preview_primeira_mensagem,  # noqa: F401
+    resposta_json_ok,  # noqa: F401
+)
+from app.domains.chat.laudo_access_helpers import (
+    obter_laudo_do_inspetor,  # noqa: F401
+    obter_laudo_empresa,  # noqa: F401
 )
 from app.domains.chat.auth_helpers import (
     CHAVE_TROCA_SENHA_LEMBRAR,  # noqa: F401
@@ -278,22 +285,6 @@ inspetor_notif_manager = GerenciadorSSEUsuario()
 # ============================================================================
 
 
-def agora_utc() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def json_seguro(data: dict[str, Any]) -> str:
-    return json.dumps(data, ensure_ascii=False)
-
-
-def evento_sse(data: dict[str, Any]) -> str:
-    return f"data: {json_seguro(data)}\n\n"
-
-
-def resposta_json_ok(payload: dict[str, Any], status_code: int = 200) -> JSONResponse:
-    return JSONResponse(content=payload, status_code=status_code)
-
-
 def selecionar_template_ativo_para_tipo(
     banco: Session,
     *,
@@ -336,42 +327,6 @@ def obter_cliente_ia_ativo() -> ClienteIA:
         raise HTTPException(status_code=503, detail=detalhe)
 
     return cliente_ia
-
-
-def obter_preview_primeira_mensagem(
-    mensagem: str,
-    *,
-    nome_documento: str = "",
-    tem_imagem: bool = False,
-) -> str:
-    texto = (mensagem or "").strip()
-    if texto:
-        return texto[:80]
-
-    if nome_documento:
-        return f"Documento: {nome_documento[:60]}"
-
-    if tem_imagem:
-        return "Imagem enviada"
-
-    return "Nova conversa"
-
-
-def obter_laudo_empresa(banco: Session, laudo_id: int, empresa_id: int) -> Laudo:
-    laudo = banco.query(Laudo).filter(Laudo.id == laudo_id, Laudo.empresa_id == empresa_id).first()
-    if not laudo:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado.")
-    return laudo
-
-
-def obter_laudo_do_inspetor(banco: Session, laudo_id: int, usuario: Usuario) -> Laudo:
-    laudo = obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
-    if laudo.usuario_id not in (None, usuario.id):
-        raise HTTPException(
-            status_code=403,
-            detail="Laudo não pertence ao inspetor autenticado.",
-        )
-    return laudo
 
 
 def montar_limites_para_template(banco: Session) -> dict[str, Any]:

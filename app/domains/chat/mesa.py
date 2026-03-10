@@ -9,16 +9,13 @@ from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
 from app.domains.chat.auth_helpers import usuario_nome
+from app.domains.chat.core_helpers import agora_utc, resposta_json_ok
+from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
 from app.domains.chat.mensagem_helpers import (
     notificar_mesa_whisper,
     serializar_mensagem_mesa,
 )
 from app.domains.chat.session_helpers import exigir_csrf
-from app.domains.chat.routes import (
-    agora_utc,
-    obter_laudo_do_inspetor,
-    resposta_json_ok,
-)
 from app.domains.chat.schemas import DadosMesaMensagem
 from app.shared.database import MensagemLaudo, TipoMensagem, Usuario, obter_banco
 from app.shared.security import exigir_inspetor

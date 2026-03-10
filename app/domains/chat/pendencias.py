@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
 from app.domains.chat.auth_helpers import usuario_nome
+from app.domains.chat.core_helpers import agora_utc, resposta_json_ok
+from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
 from app.domains.chat.media_helpers import safe_remove_file
 from app.domains.chat.pendencias_helpers import (
     listar_pendencias_mesa_laudo,
@@ -22,11 +24,6 @@ from app.domains.chat.pendencias_helpers import (
     serializar_pendencia_mesa,
 )
 from app.domains.chat.session_helpers import exigir_csrf
-from app.domains.chat.routes import (
-    agora_utc,
-    obter_laudo_do_inspetor,
-    resposta_json_ok,
-)
 from app.domains.chat.schemas import DadosPendencia
 from app.shared.database import MensagemLaudo, TipoMensagem, Usuario, obter_banco
 from app.shared.security import exigir_inspetor
