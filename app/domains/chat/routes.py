@@ -27,7 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from fastapi import (
     APIRouter,
@@ -47,7 +47,6 @@ from fastapi.responses import (
     StreamingResponse,
 )
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
@@ -105,6 +104,14 @@ from nucleo.inspetor.referencias_mensagem import (
     extrair_referencia_do_texto,
 )
 from app.domains.chat.templates_ai import RelatorioCBMGO
+from app.domains.chat.schemas import (
+    DadosChat,
+    DadosFeedback,
+    DadosMesaMensagem,
+    DadosPDF,
+    DadosPendencia,
+    DadosPin,
+)
 
 try:
     from configuracoes import configuracoes
@@ -1663,85 +1670,6 @@ async def notificar_mesa_whisper(
 
     except Exception:
         logger.warning("Falha ao notificar mesa avaliadora.", exc_info=True)
-
-
-# ============================================================================
-# SCHEMAS
-# ============================================================================
-
-
-class MensagemHistorico(BaseModel):
-    papel: Literal["usuario", "assistente"]
-    texto: str = Field(..., max_length=LIMITE_MSG_CHARS)
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
-
-
-class DadosChat(BaseModel):
-    mensagem: str = Field(default="", max_length=LIMITE_MSG_CHARS)
-    dados_imagem: str = Field(default="", max_length=LIMITE_IMG_BASE64)
-    setor: str = Field(default="geral", max_length=50)
-    historico: list[MensagemHistorico] = Field(default_factory=list, max_length=LIMITE_HISTORICO)
-    modo: Literal["curto", "detalhado", "deep_research"] = Field(default="detalhado")
-    texto_documento: str = Field(default="", max_length=LIMITE_DOC_CHARS)
-    nome_documento: str = Field(default="", max_length=LIMITE_NOME_DOCUMENTO)
-    laudo_id: Optional[int] = None
-    referencia_mensagem_id: int | None = Field(default=None, ge=1)
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
-
-    @field_validator("setor")
-    @classmethod
-    def validar_setor(cls, valor: str) -> str:
-        return normalizar_setor(valor)
-
-    @field_validator("nome_documento")
-    @classmethod
-    def validar_nome_documento(cls, valor: str) -> str:
-        return nome_documento_seguro(valor)
-
-
-class DadosMesaMensagem(BaseModel):
-    texto: str = Field(default="", max_length=LIMITE_MSG_CHARS)
-    referencia_mensagem_id: int | None = Field(default=None, ge=1)
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
-
-
-class DadosPDF(BaseModel):
-    diagnostico: str = Field(..., min_length=1, max_length=40_000)
-    inspetor: str = Field(..., min_length=1, max_length=200)
-    empresa: str = Field(default="", max_length=200)
-    setor: str = Field(default="geral", max_length=50)
-    data: str = Field(default="", max_length=20)
-    laudo_id: Optional[int] = Field(default=None, ge=1)
-    tipo_template: str = Field(default="", max_length=80)
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
-
-    @field_validator("setor")
-    @classmethod
-    def validar_setor(cls, valor: str) -> str:
-        return normalizar_setor(valor)
-
-
-class DadosPin(BaseModel):
-    pinado: bool
-
-    model_config = ConfigDict(extra="ignore")
-
-
-class DadosPendencia(BaseModel):
-    lida: bool = True
-
-    model_config = ConfigDict(extra="ignore")
-
-
-class DadosFeedback(BaseModel):
-    tipo: Literal["positivo", "negativo"]
-    trecho: str = Field(default="", max_length=LIMITE_FEEDBACK)
-
-    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
 
 # ============================================================================
