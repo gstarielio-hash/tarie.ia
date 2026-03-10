@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.app_context import logger
 from app.domains.chat.chat_runtime import MODO_DETALHADO
 from app.domains.chat.core_helpers import agora_utc, resposta_json_ok
@@ -37,7 +38,6 @@ from app.domains.chat.session_helpers import (
 )
 from app.domains.chat.schemas import DadosPin
 from app.domains.chat.templates_ai import RelatorioCBMGO
-from app.domains.chat.routes import obter_cliente_ia_ativo
 from app.domains.chat.auth import pagina_inicial, pagina_planos
 from app.shared.database import (
     Laudo,
@@ -187,7 +187,7 @@ async def api_finalizar_relatorio(
                 if m.tipo in (TipoMensagem.USER.value, TipoMensagem.IA.value)
             ]
 
-            cliente_ia_ativo = obter_cliente_ia_ativo()
+            cliente_ia_ativo = rotas_inspetor.obter_cliente_ia_ativo()
             dados_json = await cliente_ia_ativo.gerar_json_estruturado(
                 schema_pydantic=RelatorioCBMGO,
                 historico=historico,

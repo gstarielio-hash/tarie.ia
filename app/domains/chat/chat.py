@@ -70,9 +70,6 @@ from app.domains.chat.notifications import inspetor_notif_manager
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
 from app.domains.chat.session_helpers import exigir_csrf, laudo_id_sessao
 from app.domains.chat.template_helpers import selecionar_template_ativo_para_tipo
-from app.domains.chat.routes import (
-    obter_cliente_ia_ativo,
-)
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF
 from app.domains.chat.templates_ai import RelatorioCBMGO
 from app.shared.database import (
@@ -393,7 +390,7 @@ async def rota_chat(
         if tipo_template_finalizacao == "cbmgo":
             texto_resposta = "✅ **Relatório CBM-GO estruturado gerado!** As tabelas foram preenchidas."
             try:
-                cliente_ia_ativo = obter_cliente_ia_ativo()
+                cliente_ia_ativo = rotas_inspetor.obter_cliente_ia_ativo()
                 dados_json = await cliente_ia_ativo.gerar_json_estruturado(
                     schema_pydantic=RelatorioCBMGO,
                     historico=historico_dict,
@@ -436,7 +433,7 @@ async def rota_chat(
         )
 
     eh_deep = dados.modo == MODO_DEEP
-    cliente_ia_ativo = obter_cliente_ia_ativo()
+    cliente_ia_ativo = rotas_inspetor.obter_cliente_ia_ativo()
 
     async def gerador_async():
         loop = asyncio.get_running_loop()

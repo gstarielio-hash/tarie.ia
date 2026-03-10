@@ -1,8 +1,9 @@
 """Domínio Chat/Inspetor.
 
-`routes.py` mantém helpers e handlers legados.
-Os módulos `auth`, `laudo`, `chat`, `mesa` e `pendencias` agrupam
-responsabilidades e permitem extração incremental dos roteadores.
+`router.py` monta o roteador principal com os submódulos:
+`auth`, `laudo`, `chat`, `mesa` e `pendencias`.
+`routes.py` é apenas uma camada de compatibilidade legada
+(exports mínimos para testes e integrações antigas).
 """
 
 from app.domains.chat.router import (
