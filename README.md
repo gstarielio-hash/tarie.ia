@@ -50,6 +50,8 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
+Segurança: nunca versione `.env` nem credenciais JSON (`visao_wf.local.json`/equivalentes).
+
 4. Ajustar no `.env` principalmente:
 
 - `AMBIENTE` (obrigatório: `dev`, `development`, `local`, `producao`, `production` ou `prod`)

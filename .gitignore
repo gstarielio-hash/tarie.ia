@@ -8,10 +8,22 @@ __pycache__/
 
 *.py[cod]
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
 *.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
 
 .env
+.env.*
+!.env.example
+
+# Credenciais locais (nunca versionar)
+visao_wf.json
+nucleo/credenciais/visao_wf.json
 
 # Artefatos locais de preview de PDF (não versionar)
 _tmp_pdf_preview/
