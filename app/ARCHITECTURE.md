@@ -8,6 +8,9 @@
 - `app/domains/mesa`: contratos e serviços da mesa avaliadora
 - `app/domains/admin`: painel administrativo e serviços SaaS
 - `app/domains/revisor`: painel de revisão/engenharia
+  - `routes.py`: inbox da mesa, avaliação, whisper e painel principal
+  - `templates_laudo.py`: biblioteca de templates de laudo (upload, publicar, preview)
+  - `common.py`: helpers compartilhados de contexto/CSRF e busca de laudo por empresa
 
 ## Compartilhado
 - `app/shared/database.py`: models SQLAlchemy, engine e sessão
