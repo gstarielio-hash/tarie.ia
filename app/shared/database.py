@@ -43,6 +43,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker, validates
 from sqlalchemy.pool import NullPool, StaticPool
 
+from app.core.settings import env_bool, env_int, env_str, get_settings
+
 load_dotenv()
 logger = logging.getLogger("tariel.banco_dados")
 
@@ -53,36 +55,17 @@ logger = logging.getLogger("tariel.banco_dados")
 _DIR_BASE = os.path.dirname(os.path.abspath(__file__))
 _DIR_PROJETO = Path(__file__).resolve().parents[2]
 _URL_PADRAO = f"sqlite:///{_DIR_PROJETO / 'tariel_admin.db'}"
-URL_BANCO = os.getenv("DATABASE_URL", _URL_PADRAO)
+URL_BANCO = env_str("DATABASE_URL", _URL_PADRAO)
 _ALEMBIC_INI = _DIR_PROJETO / "alembic.ini"
 _ALEMBIC_DIR = _DIR_PROJETO / "alembic"
 
-_AMBIENTE_BRUTO = os.getenv("AMBIENTE", "").strip()
-if not _AMBIENTE_BRUTO:
-    raise RuntimeError(
-        "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-    )
-
-_AMBIENTE = _AMBIENTE_BRUTO.lower()
-_AMBIENTES_VALIDOS = {"dev", "development", "local", "producao", "production", "prod"}
-if _AMBIENTE not in _AMBIENTES_VALIDOS:
-    raise RuntimeError(
-        "AMBIENTE inválido. Use: dev, development, local, producao, production ou prod."
-    )
-
-_SEED_DEV_BOOTSTRAP = os.getenv("SEED_DEV_BOOTSTRAP", "0").strip().lower() in {
-    "1",
-    "true",
-    "t",
-    "sim",
-    "yes",
-    "y",
-    "on",
-}
+_settings = get_settings()
+_AMBIENTE = _settings.ambiente
+_SEED_DEV_BOOTSTRAP = env_bool("SEED_DEV_BOOTSTRAP", False)
 
 _EH_SQLITE = URL_BANCO.startswith("sqlite")
 _EH_SQLITE_MEMORIA = _EH_SQLITE and (URL_BANCO in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in URL_BANCO or "mode=memory" in URL_BANCO)
-_EM_PRODUCAO = _AMBIENTE in {"producao", "production", "prod"}
+_EM_PRODUCAO = _settings.em_producao
 
 
 def agora_utc() -> datetime:
@@ -118,10 +101,10 @@ def _criar_engine():
         kwargs["connect_args"] = {"check_same_thread": False}
         kwargs["poolclass"] = StaticPool if _EH_SQLITE_MEMORIA else NullPool
     else:
-        kwargs["pool_size"] = int(os.getenv("DB_POOL_SIZE", "10"))
-        kwargs["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW", "20"))
-        kwargs["pool_timeout"] = int(os.getenv("DB_POOL_TIMEOUT", "30"))
-        kwargs["pool_recycle"] = int(os.getenv("DB_POOL_RECYCLE", "3600"))
+        kwargs["pool_size"] = env_int("DB_POOL_SIZE", 10)
+        kwargs["max_overflow"] = env_int("DB_MAX_OVERFLOW", 20)
+        kwargs["pool_timeout"] = env_int("DB_POOL_TIMEOUT", 30)
+        kwargs["pool_recycle"] = env_int("DB_POOL_RECYCLE", 3600)
 
     engine = create_engine(URL_BANCO, **kwargs)
 
@@ -1106,9 +1089,9 @@ def _seed_dev() -> None:
     from sqlalchemy import select
     from app.shared.security import criar_hash_senha
 
-    senha_admin = os.getenv("SEED_ADMIN_SENHA", "Admin@123")
-    senha_inspetor = os.getenv("SEED_INSPETOR_SENHA", "Dev@123456")
-    senha_revisor = os.getenv("SEED_REVISOR_SENHA", "Dev@123456")
+    senha_admin = env_str("SEED_ADMIN_SENHA", "Admin@123")
+    senha_inspetor = env_str("SEED_INSPETOR_SENHA", "Dev@123456")
+    senha_revisor = env_str("SEED_REVISOR_SENHA", "Dev@123456")
 
     if senha_admin == "Admin@123":
         logger.warning("Seed DEV usando senha padrão para admin. Não use isso fora de desenvolvimento.")

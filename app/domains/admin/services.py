@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -20,6 +19,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.settings import get_settings
 from app.shared.database import Empresa, Laudo, NivelAcesso, PlanoEmpresa, Usuario
 from app.shared.security import (
     criar_hash_senha,
@@ -29,21 +29,7 @@ from app.shared.security import (
 
 logger = logging.getLogger("tariel.saas")
 
-_AMBIENTE_BRUTO = os.getenv("AMBIENTE", "").strip()
-if not _AMBIENTE_BRUTO:
-    raise RuntimeError(
-        "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-    )
-
-_AMBIENTE = _AMBIENTE_BRUTO.lower()
-_AMBIENTES_DEV = {"dev", "development", "local"}
-_AMBIENTES_PRODUCAO = {"producao", "production", "prod"}
-if _AMBIENTE not in (_AMBIENTES_DEV | _AMBIENTES_PRODUCAO):
-    raise RuntimeError(
-        "AMBIENTE inválido. Use: dev, development, local, producao, production ou prod."
-    )
-
-_MODO_DEV = _AMBIENTE in _AMBIENTES_DEV
+_MODO_DEV = not get_settings().em_producao
 
 # =========================================================
 # NORMALIZAÇÃO / CONTRATO COMERCIAL

@@ -13,7 +13,6 @@ Responsabilidades:
 from __future__ import annotations
 
 import logging
-import os
 import secrets
 from typing import Any, Optional, TypeGuard
 from urllib.parse import quote
@@ -24,6 +23,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.settings import get_settings
 from app.shared.database import NivelAcesso, Usuario, obter_banco
 from app.shared.security import (
     criar_hash_senha,
@@ -52,21 +52,9 @@ logger = logging.getLogger("tariel.admin")
 # CONFIGURAÇÃO
 # =========================================================
 
-_AMBIENTE_BRUTO = os.getenv("AMBIENTE", "").strip()
-if not _AMBIENTE_BRUTO:
-    raise RuntimeError(
-        "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-    )
-
-AMBIENTE = _AMBIENTE_BRUTO.lower()
-_AMBIENTES_DEV = {"dev", "development", "local"}
-_AMBIENTES_PRODUCAO = {"producao", "production", "prod"}
-if AMBIENTE not in (_AMBIENTES_DEV | _AMBIENTES_PRODUCAO):
-    raise RuntimeError(
-        "AMBIENTE inválido. Use: dev, development, local, producao, production ou prod."
-    )
-
-EM_PRODUCAO = AMBIENTE in _AMBIENTES_PRODUCAO
+_settings = get_settings()
+AMBIENTE = _settings.ambiente
+EM_PRODUCAO = _settings.em_producao
 
 URL_LOGIN = "/admin/login"
 URL_PAINEL = "/admin/painel"

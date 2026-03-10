@@ -51,6 +51,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from starlette.background import BackgroundTask
 
+from app.core.settings import get_settings
 from app.shared.database import (
     LIMITES_PADRAO,
     CitacaoLaudo,
@@ -119,6 +120,7 @@ except ImportError:
     configuracoes = None
 
 logger = logging.getLogger("tariel.rotas_inspetor")
+_settings = get_settings()
 
 roteador_inspetor = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -2136,7 +2138,7 @@ async def pagina_inicial(
 
     ambiente_atual = (
         (getattr(configuracoes, "AMBIENTE", "") if configuracoes else "")
-        or os.getenv("AMBIENTE", "")
+        or _settings.ambiente
     )
 
     return templates.TemplateResponse(

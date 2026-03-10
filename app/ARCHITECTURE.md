@@ -12,7 +12,7 @@
 ## Compartilhado
 - `app/shared/database.py`: models SQLAlchemy, engine e sessão
 - `app/shared/security.py`: autenticação, sessão e RBAC
-- `app/core/settings.py`: configuração central de ambiente
+- `app/core/settings.py`: configuração central de ambiente (`AMBIENTE` validado em um único lugar)
 
 ## Frontend (assets)
 - `static/js/chat`: scripts do portal do inspetor/chat

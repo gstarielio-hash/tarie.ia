@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import secrets
 import string
 import threading
@@ -21,6 +20,7 @@ from passlib.exc import PasslibSecurityError, UnknownHashError
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.core.settings import env_bool, env_int, get_settings
 from app.shared.database import (
     NivelAcesso,
     SessaoAtiva,
@@ -36,42 +36,24 @@ logger = logging.getLogger("tariel.seguranca")
 # CONFIGURAÇÃO
 # =========================================================
 
+_settings = get_settings()
+AMBIENTE = _settings.ambiente
+EM_PRODUCAO = _settings.em_producao
 
-def _bool_env(nome: str, padrao: bool = False) -> bool:
-    valor = str(os.getenv(nome, str(padrao))).strip().lower()
-    return valor in {"1", "true", "yes", "on", "sim"}
+BCRYPT_ROUNDS = env_int("BCRYPT_ROUNDS", 12)
+TTL_SESSAO_HORAS = env_int("SESSAO_TTL_HORAS", 8)
+TTL_SESSAO_LEMBRAR_DIAS = env_int("SESSAO_TTL_LEMBRAR_DIAS", 30)
+MAX_SESSOES_POR_USUARIO = env_int("SESSAO_MAX_POR_USUARIO", 5)
 
-
-_AMBIENTE_BRUTO = os.getenv("AMBIENTE", "").strip()
-if not _AMBIENTE_BRUTO:
-    raise RuntimeError(
-        "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-    )
-
-AMBIENTE = _AMBIENTE_BRUTO.lower()
-_AMBIENTES_DEV = {"dev", "development", "local"}
-_AMBIENTES_PRODUCAO = {"producao", "production", "prod"}
-if AMBIENTE not in (_AMBIENTES_DEV | _AMBIENTES_PRODUCAO):
-    raise RuntimeError(
-        "AMBIENTE inválido. Use: dev, development, local, producao, production ou prod."
-    )
-
-EM_PRODUCAO = AMBIENTE in _AMBIENTES_PRODUCAO
-
-BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", "12"))
-TTL_SESSAO_HORAS = int(os.getenv("SESSAO_TTL_HORAS", "8"))
-TTL_SESSAO_LEMBRAR_DIAS = int(os.getenv("SESSAO_TTL_LEMBRAR_DIAS", "30"))
-MAX_SESSOES_POR_USUARIO = int(os.getenv("SESSAO_MAX_POR_USUARIO", "5"))
-
-SESSAO_VINCULAR_USER_AGENT = _bool_env("SESSAO_VINCULAR_USER_AGENT", False)
-SESSAO_VINCULAR_IP = _bool_env("SESSAO_VINCULAR_IP", False)
-SESSAO_RENOVACAO_ATIVA = _bool_env("SESSAO_RENOVACAO_ATIVA", True)
+SESSAO_VINCULAR_USER_AGENT = env_bool("SESSAO_VINCULAR_USER_AGENT", False)
+SESSAO_VINCULAR_IP = env_bool("SESSAO_VINCULAR_IP", False)
+SESSAO_RENOVACAO_ATIVA = env_bool("SESSAO_RENOVACAO_ATIVA", True)
 
 # Quando faltar menos que isso para expirar, a sessão é renovada.
-JANELA_RENOVACAO_MINUTOS = int(os.getenv("SESSAO_JANELA_RENOVACAO_MINUTOS", "30"))
+JANELA_RENOVACAO_MINUTOS = env_int("SESSAO_JANELA_RENOVACAO_MINUTOS", 30)
 
 # Limpeza lazy: 1 em N requests.
-_CHANCE_LIMPEZA = max(int(os.getenv("SESSAO_CHANCE_LIMPEZA", "100")), 1)
+_CHANCE_LIMPEZA = max(env_int("SESSAO_CHANCE_LIMPEZA", 100), 1)
 
 contexto_senha = CryptContext(
     schemes=["bcrypt"],

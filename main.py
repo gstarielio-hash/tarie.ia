@@ -43,6 +43,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.core.settings import env_int, env_log_level, env_str, get_settings
 from app.shared.database import (
     NivelAcesso,
     SessaoLocal,
@@ -76,38 +77,9 @@ DIR_STATIC: Final[Path] = DIR_BASE / "static"
 # HELPERS DE AMBIENTE
 # =============================================================================
 
-
-def _obter_str_env(nome: str, padrao: str = "") -> str:
-    return os.getenv(nome, padrao).strip()
-
-
-def _obter_int_env(nome: str, padrao: int) -> int:
-    bruto = _obter_str_env(nome, str(padrao))
-    try:
-        return int(bruto)
-    except (TypeError, ValueError):
-        return padrao
-
-
-def _obter_bool_env(nome: str, padrao: bool = False) -> bool:
-    bruto = _obter_str_env(nome, "1" if padrao else "0").lower()
-    return bruto in {"1", "true", "t", "sim", "yes", "y", "on"}
-
-
-def _obter_nivel_log_env(nome: str, padrao: int) -> int:
-    bruto = _obter_str_env(nome, "")
-    if not bruto:
-        return padrao
-
-    texto = bruto.upper()
-    valor = getattr(logging, texto, None)
-    if isinstance(valor, int):
-        return valor
-
-    try:
-        return int(bruto)
-    except (TypeError, ValueError):
-        return padrao
+_obter_str_env = env_str
+_obter_int_env = env_int
+_obter_nivel_log_env = env_log_level
 
 
 def _normalizar_host(valor: str) -> str:
@@ -147,24 +119,13 @@ def _deduplicar_preservando_ordem(valores: list[str]) -> list[str]:
 # AMBIENTE
 # =============================================================================
 
-_ambiente_bruto = _obter_str_env("AMBIENTE", "")
-if not _ambiente_bruto:
-    raise RuntimeError(
-        "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-    )
-
-AMBIENTE: Final[str] = _ambiente_bruto.lower()
-AMBIENTES_PRODUCAO: Final[set[str]] = {"producao", "production", "prod"}
-AMBIENTES_DEV: Final[set[str]] = {"dev", "development", "local"}
-
-if AMBIENTE not in (AMBIENTES_PRODUCAO | AMBIENTES_DEV):
-    raise RuntimeError("AMBIENTE inválido. Use: dev, development, local, producao, production ou prod.")
-
-EM_PRODUCAO: Final[bool] = AMBIENTE in AMBIENTES_PRODUCAO
-APP_VERSAO: Final[str] = _obter_str_env("APP_VERSAO", "2.0-SaaS")
-PORTA_APP: Final[int] = _obter_int_env("PORTA", 8000)
+_settings = get_settings()
+AMBIENTE: Final[str] = _settings.ambiente
+EM_PRODUCAO: Final[bool] = _settings.em_producao
+APP_VERSAO: Final[str] = _settings.app_versao
+PORTA_APP: Final[int] = _settings.porta
 HOST_BIND_APP: Final[str] = _normalizar_host(
-    _obter_str_env("HOST_BIND", "0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
+    _settings.host_bind
 ) or ("0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
 LOG_LEVEL_DEV_ROOT: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_ROOT", logging.INFO)
 LOG_LEVEL_DEV_TARIEL: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_TARIEL", logging.DEBUG)
