@@ -70,6 +70,8 @@
     };
 
     const LIMITE_RECONEXAO_SSE_OFFLINE = 3;
+    const MENSAGEM_MESA_EXIGE_INSPECAO =
+        "A conversa com a mesa avaliadora só é permitida após iniciar uma nova inspeção.";
 
     // =========================================================
     // ESTADO LOCAL DA PÁGINA
@@ -116,6 +118,11 @@
         btnFecharModal: document.querySelector(".btn-fechar-modal"),
         btnConfirmarInspecao: document.getElementById("btn-confirmar-inspecao"),
         selectTemplate: document.getElementById("select-template-inspecao"),
+        selectTemplateCustom: document.getElementById("select-template-custom"),
+        btnSelectTemplateCustom: document.getElementById("btn-select-template-custom"),
+        valorSelectTemplateCustom: document.getElementById("valor-select-template-custom"),
+        painelSelectTemplateCustom: document.getElementById("painel-select-template-custom"),
+        listaSelectTemplateCustom: document.getElementById("lista-select-template-custom"),
         inputClienteInspecao: document.getElementById("input-cliente-inspecao"),
         inputUnidadeInspecao: document.getElementById("input-unidade-inspecao"),
         textareaObjetivoInspecao: document.getElementById("textarea-objetivo-inspecao"),
@@ -243,7 +250,12 @@
             container.querySelectorAll(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             )
-        ).filter((node) => !node.disabled && !node.hidden);
+        ).filter((node) =>
+            !node.disabled &&
+            !node.hidden &&
+            !node.classList?.contains("select-proxy-ativo") &&
+            node.getClientRects().length > 0
+        );
     }
 
     function limparTimerBanner() {
@@ -303,8 +315,108 @@
         return Number(window.TarielAPI?.obterLaudoAtualId?.() || 0) || null;
     }
 
+    function avisarMesaExigeInspecao() {
+        mostrarToast(MENSAGEM_MESA_EXIGE_INSPECAO, "aviso", 3200);
+    }
+
     function obterTokenCsrf() {
         return document.querySelector('meta[name="csrf-token"]')?.content || "";
+    }
+
+    function limparEstadoHomeNoCliente() {
+        try {
+            localStorage.removeItem("wf_laudo_atual");
+        } catch (_) {
+            // silêncio intencional
+        }
+
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("laudo");
+            history.replaceState({ laudoId: null }, "", url.toString());
+        } catch (_) {
+            // silêncio intencional
+        }
+
+        document.body.dataset.laudoAtualId = "";
+    }
+
+    function submeterLogoutPortal() {
+        const csrf = obterTokenCsrf();
+        if (!csrf) {
+            window.location.assign("/app/login");
+            return;
+        }
+
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/app/logout";
+        form.hidden = true;
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "csrf_token";
+        input.value = csrf;
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    async function desativarContextoAtivoParaHome() {
+        const laudoAtivo = obterLaudoAtivo();
+        const estadoAtual = obterEstadoRelatorioAtualSeguro();
+
+        if (!laudoAtivo && estadoAtual !== "relatorio_ativo") {
+            return true;
+        }
+
+        try {
+            const resposta = await fetch("/app/api/laudo/desativar", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Accept": "application/json",
+                    "X-CSRF-Token": obterTokenCsrf(),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+
+            return resposta.ok;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function navegarParaHome(destino = "/app/") {
+        const homeDestino = String(destino || "/app/").trim() || "/app/";
+        const desativou = await desativarContextoAtivoParaHome();
+
+        if (!desativou) {
+            mostrarToast(
+                "Não foi possível limpar o contexto ativo. Recarregando a central.",
+                "aviso",
+                2400
+            );
+        }
+
+        limparEstadoHomeNoCliente();
+        window.location.assign(homeDestino);
+    }
+
+    async function processarCliqueHomeCabecalho() {
+        const laudoAtivo = obterLaudoAtivo();
+        const estadoAtual = obterEstadoRelatorioAtualSeguro();
+        const haLaudoEmAndamento = !!laudoAtivo || estadoAtual === "relatorio_ativo";
+
+        if (haLaudoEmAndamento) {
+            await desativarContextoAtivoParaHome();
+            limparEstadoHomeNoCliente();
+            submeterLogoutPortal();
+            return;
+        }
+
+        navegarParaHome("/app/");
     }
 
     function resumirTexto(texto, limite = 140) {
@@ -578,7 +690,7 @@
         const texto = String(el.mesaWidgetInput?.value || "").trim();
 
         if (!laudoId) {
-            mostrarToast("Selecione um laudo ativo para conversar com a mesa.", "aviso", 2400);
+            avisarMesaExigeInspecao();
             return;
         }
 
@@ -640,6 +752,12 @@
     }
 
     async function abrirMesaWidget() {
+        const laudoId = obterLaudoAtivo();
+        if (!laudoId) {
+            avisarMesaExigeInspecao();
+            return;
+        }
+
         limparTimerFecharMesaWidget();
         estado.mesaWidgetAberto = true;
         estado.mesaWidgetNaoLidas = 0;
@@ -1454,6 +1572,294 @@
     // MODAL DE NOVA INSPEÇÃO
     // =========================================================
 
+    function obterOpcaoSelecionadaTemplate() {
+        if (!el.selectTemplate) return null;
+        const indice = Number(el.selectTemplate.selectedIndex);
+        if (Number.isInteger(indice) && indice >= 0) {
+            return el.selectTemplate.options[indice] || null;
+        }
+        return el.selectTemplate.options?.[0] || null;
+    }
+
+    function selectTemplateCustomEstaAberto() {
+        return !!el.selectTemplateCustom?.classList.contains("aberto");
+    }
+
+    function atualizarValorSelectTemplateCustom() {
+        if (!el.valorSelectTemplateCustom) return;
+        const opcaoSelecionada = obterOpcaoSelecionadaTemplate();
+        el.valorSelectTemplateCustom.textContent =
+            opcaoSelecionada?.textContent?.trim() || "Selecionar tipo de relatório";
+    }
+
+    function atualizarEstadoOpcoesSelectTemplateCustom() {
+        if (!el.listaSelectTemplateCustom || !el.selectTemplate) return;
+        const valorAtual = String(el.selectTemplate.value || "");
+
+        el.listaSelectTemplateCustom
+            .querySelectorAll(".modal-select-opcao")
+            .forEach((botao) => {
+                const selecionada = String(botao.dataset?.valor || "") === valorAtual;
+                botao.setAttribute("aria-selected", String(selecionada));
+            });
+    }
+
+    function renderizarOpcoesSelectTemplateCustom() {
+        if (!el.selectTemplate || !el.listaSelectTemplateCustom) return;
+
+        const fragmento = document.createDocumentFragment();
+        el.listaSelectTemplateCustom.innerHTML = "";
+
+        const adicionarOpcao = (opcao) => {
+            const item = document.createElement("li");
+            item.setAttribute("role", "presentation");
+
+            const botao = document.createElement("button");
+            botao.type = "button";
+            botao.className = "modal-select-opcao";
+            botao.setAttribute("role", "option");
+            botao.dataset.valor = String(opcao.value || "");
+            botao.setAttribute("aria-selected", String(!!opcao.selected));
+
+            if (opcao.disabled) {
+                botao.disabled = true;
+            }
+
+            const texto = document.createElement("span");
+            texto.textContent = opcao.textContent?.trim() || opcao.value || "Sem rótulo";
+
+            const icone = document.createElement("span");
+            icone.className = "material-symbols-rounded";
+            icone.setAttribute("aria-hidden", "true");
+            icone.textContent = "check";
+
+            botao.append(texto, icone);
+            item.appendChild(botao);
+            fragmento.appendChild(item);
+        };
+
+        Array.from(el.selectTemplate.children).forEach((node) => {
+            const tag = String(node.tagName || "").toUpperCase();
+
+            if (tag === "OPTGROUP") {
+                const titulo = document.createElement("li");
+                titulo.className = "modal-select-grupo-label";
+                titulo.setAttribute("role", "presentation");
+                titulo.textContent = String(node.label || "Categoria");
+                fragmento.appendChild(titulo);
+
+                Array.from(node.querySelectorAll("option")).forEach((opcao) => {
+                    adicionarOpcao(opcao);
+                });
+                return;
+            }
+
+            if (tag === "OPTION") {
+                adicionarOpcao(node);
+            }
+        });
+
+        el.listaSelectTemplateCustom.appendChild(fragmento);
+        atualizarEstadoOpcoesSelectTemplateCustom();
+        atualizarValorSelectTemplateCustom();
+    }
+
+    function fecharSelectTemplateCustom({ devolverFoco = true } = {}) {
+        if (!el.selectTemplateCustom || !el.painelSelectTemplateCustom || !el.btnSelectTemplateCustom) return;
+        if (!selectTemplateCustomEstaAberto()) return;
+
+        el.selectTemplateCustom.classList.remove("aberto");
+        el.painelSelectTemplateCustom.hidden = true;
+        el.btnSelectTemplateCustom.setAttribute("aria-expanded", "false");
+
+        if (devolverFoco) {
+            el.btnSelectTemplateCustom.focus();
+        }
+    }
+
+    function abrirSelectTemplateCustom() {
+        if (!el.selectTemplateCustom || !el.painelSelectTemplateCustom || !el.btnSelectTemplateCustom) return;
+        if (selectTemplateCustomEstaAberto()) return;
+
+        el.selectTemplateCustom.classList.add("aberto");
+        el.painelSelectTemplateCustom.hidden = false;
+        el.btnSelectTemplateCustom.setAttribute("aria-expanded", "true");
+
+        const opcaoSelecionada = el.listaSelectTemplateCustom?.querySelector(
+            '.modal-select-opcao[aria-selected="true"]:not(:disabled)'
+        );
+        const primeiraOpcao = el.listaSelectTemplateCustom?.querySelector(
+            ".modal-select-opcao:not(:disabled)"
+        );
+        (opcaoSelecionada || primeiraOpcao)?.focus();
+    }
+
+    function selecionarValorSelectTemplateCustom(
+        valor,
+        { emitirEvento = true, fechar = true, devolverFoco = true } = {}
+    ) {
+        if (!el.selectTemplate) return;
+
+        const valorLimpo = String(valor || "");
+        const existe = Array.from(el.selectTemplate.options || []).some(
+            (opcao) => String(opcao.value || "") === valorLimpo
+        );
+
+        if (!existe) return;
+
+        const alterou = String(el.selectTemplate.value || "") !== valorLimpo;
+        el.selectTemplate.value = valorLimpo;
+
+        atualizarValorSelectTemplateCustom();
+        atualizarEstadoOpcoesSelectTemplateCustom();
+
+        if (emitirEvento && alterou) {
+            el.selectTemplate.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        if (fechar) {
+            fecharSelectTemplateCustom({ devolverFoco });
+        }
+    }
+
+    function moverFocoOpcaoSelectTemplateCustom(direcao = 1, destinoFixo = "") {
+        if (!el.listaSelectTemplateCustom) return;
+
+        const opcoes = Array.from(
+            el.listaSelectTemplateCustom.querySelectorAll(".modal-select-opcao:not(:disabled)")
+        );
+        if (!opcoes.length) return;
+
+        if (destinoFixo === "inicio") {
+            opcoes[0]?.focus();
+            return;
+        }
+
+        if (destinoFixo === "fim") {
+            opcoes[opcoes.length - 1]?.focus();
+            return;
+        }
+
+        const atual = document.activeElement?.closest?.(".modal-select-opcao");
+        const indiceAtual = opcoes.indexOf(atual);
+        const proximoIndice =
+            indiceAtual < 0
+                ? 0
+                : (indiceAtual + direcao + opcoes.length) % opcoes.length;
+
+        opcoes[proximoIndice]?.focus();
+    }
+
+    function inicializarSelectTemplateCustom() {
+        if (
+            !el.selectTemplate ||
+            !el.selectTemplateCustom ||
+            !el.btnSelectTemplateCustom ||
+            !el.painelSelectTemplateCustom ||
+            !el.listaSelectTemplateCustom
+        ) {
+            return;
+        }
+
+        renderizarOpcoesSelectTemplateCustom();
+        el.selectTemplateCustom.hidden = false;
+        el.selectTemplate.classList.add("select-proxy-ativo");
+        el.selectTemplate.setAttribute("tabindex", "-1");
+        el.selectTemplate.setAttribute("aria-hidden", "true");
+        el.painelSelectTemplateCustom.hidden = true;
+        el.btnSelectTemplateCustom.setAttribute("aria-expanded", "false");
+
+        el.selectTemplate.addEventListener("change", () => {
+            atualizarValorSelectTemplateCustom();
+            atualizarEstadoOpcoesSelectTemplateCustom();
+        });
+
+        el.btnSelectTemplateCustom.addEventListener("click", () => {
+            if (selectTemplateCustomEstaAberto()) {
+                fecharSelectTemplateCustom({ devolverFoco: false });
+                return;
+            }
+            abrirSelectTemplateCustom();
+        });
+
+        el.btnSelectTemplateCustom.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && selectTemplateCustomEstaAberto()) {
+                event.preventDefault();
+                fecharSelectTemplateCustom();
+                return;
+            }
+
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                if (!selectTemplateCustomEstaAberto()) {
+                    abrirSelectTemplateCustom();
+                    return;
+                }
+                moverFocoOpcaoSelectTemplateCustom(event.key === "ArrowDown" ? 1 : -1);
+                return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                if (selectTemplateCustomEstaAberto()) {
+                    fecharSelectTemplateCustom({ devolverFoco: false });
+                } else {
+                    abrirSelectTemplateCustom();
+                }
+            }
+        });
+
+        el.listaSelectTemplateCustom.addEventListener("click", (event) => {
+            const botao = event.target?.closest?.(".modal-select-opcao");
+            if (!botao || botao.disabled) return;
+            selecionarValorSelectTemplateCustom(botao.dataset?.valor || "");
+        });
+
+        el.listaSelectTemplateCustom.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                moverFocoOpcaoSelectTemplateCustom(event.key === "ArrowDown" ? 1 : -1);
+                return;
+            }
+
+            if (event.key === "Home") {
+                event.preventDefault();
+                moverFocoOpcaoSelectTemplateCustom(0, "inicio");
+                return;
+            }
+
+            if (event.key === "End") {
+                event.preventDefault();
+                moverFocoOpcaoSelectTemplateCustom(0, "fim");
+                return;
+            }
+
+            if (event.key === "Escape") {
+                event.preventDefault();
+                fecharSelectTemplateCustom();
+                return;
+            }
+
+            if (event.key === "Tab") {
+                fecharSelectTemplateCustom({ devolverFoco: false });
+                return;
+            }
+
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                const botao = event.target?.closest?.(".modal-select-opcao");
+                if (!botao || botao.disabled) return;
+                selecionarValorSelectTemplateCustom(botao.dataset?.valor || "");
+            }
+        });
+
+        document.addEventListener("pointerdown", (event) => {
+            if (!selectTemplateCustomEstaAberto()) return;
+            if (el.selectTemplateCustom.contains(event.target)) return;
+            fecharSelectTemplateCustom({ devolverFoco: false });
+        });
+    }
+
     function abrirModalNovaInspecao() {
         if (!el.modal) return;
 
@@ -1467,6 +1873,10 @@
         document.body.style.overflow = "hidden";
 
         window.setTimeout(() => {
+            if (el.btnSelectTemplateCustom && !el.selectTemplateCustom?.hidden) {
+                el.btnSelectTemplateCustom.focus();
+                return;
+            }
             el.selectTemplate?.focus();
         }, 0);
     }
@@ -1480,6 +1890,7 @@
         el.btnAbrirModal?.setAttribute("aria-expanded", "false");
 
         document.body.style.overflow = "";
+        fecharSelectTemplateCustom({ devolverFoco: false });
         estado.ultimoElementoFocado?.focus?.();
     }
 
@@ -1805,6 +2216,10 @@
 
         document.addEventListener("keydown", (event) => {
             if (event.key !== "Escape") return;
+            if (el.modal?.classList.contains("ativo") && selectTemplateCustomEstaAberto()) {
+                fecharSelectTemplateCustom();
+                return;
+            }
             if (el.modalGateQualidade?.classList.contains("ativo")) {
                 fecharModalGateQualidade();
                 return;
@@ -1819,6 +2234,31 @@
     }
 
     function bindEventosPagina() {
+        document.addEventListener("click", (event) => {
+            const btnHomeCabecalho = event.target?.closest?.(".btn-home-cabecalho");
+            if (btnHomeCabecalho) {
+                // Mantém comportamento nativo de nova aba/janela.
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+
+                event.preventDefault();
+                processarCliqueHomeCabecalho();
+                return;
+            }
+
+            const linkBreadcrumbHome = event.target?.closest?.(".thread-breadcrumb [data-bc='home']");
+            if (!linkBreadcrumbHome) return;
+
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+
+            event.preventDefault();
+            const destino = linkBreadcrumbHome.getAttribute("href") || "/app/";
+            navegarParaHome(destino);
+        });
+
         el.btnFinalizarInspecao?.addEventListener("click", finalizarInspecao);
         el.btnFecharBanner?.addEventListener("click", fecharBannerEngenharia);
         el.btnAbrirPendenciasMesa?.addEventListener("click", async () => {
@@ -2050,6 +2490,11 @@
     // =========================================================
 
     async function boot() {
+        if (el.btnMesaWidgetToggle && el.painelMesaWidget) {
+            document.body.classList.add("pagina-chat-mesa");
+        }
+
+        inicializarSelectTemplateCustom();
         bindEventosModal();
         bindEventosPagina();
         bindEventosSistema();
