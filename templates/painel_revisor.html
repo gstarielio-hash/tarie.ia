@@ -130,10 +130,31 @@
             max-width: 220px;
         }
 
+        .btn-link-topbar,
         .btn-sair,
         .btn,
         .btn-enviar-chat {
             transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .15s ease, opacity .2s ease;
+        }
+
+        .btn-link-topbar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--borda);
+            background: transparent;
+            color: var(--texto-mutado);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .btn-link-topbar:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(244, 123, 32, 0.48);
+            color: #fff;
         }
 
         .btn-sair {
@@ -1008,6 +1029,10 @@
         </div>
 
         <div class="topbar-usuario">
+            <a href="/revisao/templates-laudo" class="btn-link-topbar">
+                <span class="material-symbols-rounded" aria-hidden="true" style="font-size:18px;">library_books</span>
+                <span>Templates</span>
+            </a>
             <span class="topbar-usuario-nome">{{ usuario.nome_completo }}</span>
             <form action="/revisao/logout" method="POST" style="margin: 0;">
                 <input type="hidden" name="csrf_token" id="global-csrf" value="{{ csrf_token }}">

@@ -13,3 +13,5 @@ __pycache__/
 
 .env
 
+# Artefatos locais de preview de PDF (não versionar)
+_tmp_pdf_preview/

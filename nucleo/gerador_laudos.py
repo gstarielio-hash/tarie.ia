@@ -18,6 +18,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
 from app.shared.database import SessaoLocal
+from app.domains.chat.templates_ai import MAPA_VERIFICACOES_CBMGO, TITULOS_SECOES_CBMGO
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +241,60 @@ class GeradorLaudos:
         """Desenha as tabelas do Bombeiro a partir do JSON gerado pela IA."""
         json_dados = dados["dados_formulario"]
 
-        # 1. Resumo Executivo
+        # 1. Informações gerais (quando disponíveis)
+        info_gerais = json_dados.get("informacoes_gerais")
+        if isinstance(info_gerais, dict):
+            possui_info = any(str(valor or "").strip() for valor in info_gerais.values())
+            if possui_info:
+                pdf.set_font("helvetica", "B", 10)
+                pdf.set_fill_color(235, 240, 246)
+                pdf.set_text_color(15, 43, 70)
+                pdf.cell(
+                    0,
+                    8,
+                    "  INFORMACOES GERAIS DA INSPECAO",
+                    new_x=XPos.LMARGIN,
+                    new_y=YPos.NEXT,
+                    fill=True,
+                )
+
+                campos_info = [
+                    ("Responsavel pela inspecao", info_gerais.get("responsavel_pela_inspecao")),
+                    ("Data da inspecao", info_gerais.get("data_inspecao")),
+                    ("Local da inspecao", info_gerais.get("local_inspecao")),
+                    ("CNPJ", info_gerais.get("cnpj")),
+                    ("Projeto CBMGO", info_gerais.get("numero_projeto_cbmgo")),
+                    ("CERCON", info_gerais.get("possui_cercon")),
+                    ("Nr CERCON", info_gerais.get("numero_cercon")),
+                    ("Validade CERCON", info_gerais.get("validade_cercon")),
+                    (
+                        "Responsavel empresa",
+                        info_gerais.get("responsavel_empresa_acompanhamento"),
+                    ),
+                    ("Tipologia", info_gerais.get("tipologia")),
+                ]
+
+                pdf.set_font("helvetica", "", 9)
+                pdf.set_text_color(0, 0, 0)
+                for rotulo, valor in campos_info:
+                    valor_limpo = str(valor or "").strip()
+                    if not valor_limpo:
+                        continue
+
+                    pdf.set_font("helvetica", "B", 8)
+                    pdf.cell(52, 6, f"{rotulo}:", border=1)
+                    pdf.set_font("helvetica", "", 8)
+                    pdf.cell(
+                        138,
+                        6,
+                        GeradorLaudos._sanitizar_texto_para_pdf(valor_limpo),
+                        border=1,
+                        new_x=XPos.LMARGIN,
+                        new_y=YPos.NEXT,
+                    )
+                pdf.ln(4)
+
+        # 2. Resumo Executivo
         if "resumo_executivo" in json_dados:
             pdf.set_font("helvetica", "B", 11)
             pdf.set_fill_color(240, 245, 250)
@@ -259,18 +313,44 @@ class GeradorLaudos:
             pdf.multi_cell(0, 6, resumo)
             pdf.ln(5)
 
-        secoes_map = [
-            ("seguranca_estrutural", "SEGURANCA ESTRUTURAL"),
-            ("cmar", "CMAR - CONTROLE DE MATERIAL DE ACABAMENTO"),
-            ("verificacao_documental", "VERIFICACAO DOCUMENTAL"),
-            ("recomendacoes_gerais", "RECOMENDACOES GERAIS"),
-        ]
+        # 3. Bloco TRRF (texto corrido)
+        trrf_observacoes = str(json_dados.get("trrf_observacoes") or "").strip()
+        if trrf_observacoes:
+            pdf.set_font("helvetica", "B", 10)
+            pdf.set_fill_color(245, 245, 245)
+            pdf.set_text_color(15, 43, 70)
+            pdf.cell(
+                0,
+                8,
+                "  TRRF - TEMPO REQUERIDO DE RESISTENCIA AO FOGO",
+                new_x=XPos.LMARGIN,
+                new_y=YPos.NEXT,
+                fill=True,
+            )
+            pdf.set_font("helvetica", "", 8)
+            pdf.set_text_color(0, 0, 0)
+            pdf.multi_cell(
+                0,
+                6,
+                GeradorLaudos._sanitizar_texto_para_pdf(trrf_observacoes),
+                border=1,
+            )
+            pdf.ln(4)
 
-        # 2. Desenhar as Tabelas
-        for chave_secao, titulo in secoes_map:
+        secoes_map = (
+            "seguranca_estrutural",
+            "cmar",
+            "verificacao_documental",
+            "recomendacoes_gerais",
+        )
+
+        # 4. Desenhar as tabelas principais
+        for chave_secao in secoes_map:
             conteudo_secao = json_dados.get(chave_secao)
-            if not conteudo_secao:
+            if not isinstance(conteudo_secao, dict):
                 continue
+
+            titulo = TITULOS_SECOES_CBMGO.get(chave_secao, chave_secao.upper())
 
             # Título da Tabela
             pdf.ln(4)
@@ -285,12 +365,27 @@ class GeradorLaudos:
             pdf.set_text_color(0, 0, 0)
             pdf.cell(110, 8, " Item / Verificacao", border=1)
             pdf.cell(20, 8, " Condicao", align="C", border=1)
-            pdf.cell(60, 8, " Observacao", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            pdf.cell(
+                60,
+                8,
+                " Localizacao / Observacao",
+                border=1,
+                new_x=XPos.LMARGIN,
+                new_y=YPos.NEXT,
+            )
 
             pdf.set_font("helvetica", "", 8)
+            mapa_verificacao = MAPA_VERIFICACOES_CBMGO.get(chave_secao, {})
+            chaves_ordenadas = [chave for chave in mapa_verificacao if chave in conteudo_secao]
+            chaves_ordenadas.extend(
+                chave
+                for chave in conteudo_secao.keys()
+                if chave not in mapa_verificacao
+            )
 
             # Linhas da Tabela
-            for key, val in conteudo_secao.items():
+            for key in chaves_ordenadas:
+                val = conteudo_secao.get(key)
                 if key == "outros" and isinstance(val, str):
                     pdf.set_font("helvetica", "B", 8)
                     pdf.cell(30, 8, " Outros:", border="L B")
@@ -306,14 +401,28 @@ class GeradorLaudos:
                     continue
 
                 if isinstance(val, dict) and "condicao" in val:
-                    # Limpeza do nome da chave (ex: item_01_fissuras -> Item 01 Fissuras)
-                    nome_limpo = " ".join(key.split("_")).title()
+                    nome_limpo = mapa_verificacao.get(key) or " ".join(key.split("_")).title()
 
-                    cond = val.get("condicao", "N/A")
-                    obs = GeradorLaudos._sanitizar_texto_para_pdf(val.get("observacao", "") or "-")
+                    cond = str(val.get("condicao", "N/A")).strip().upper() or "N/A"
+                    if cond not in {"C", "NC", "N/A"}:
+                        cond = "N/A"
+                    localizacao = str(val.get("localizacao", "") or "").strip()
+                    observacao = str(val.get("observacao", "") or "").strip()
+
+                    if localizacao and observacao:
+                        detalhe = f"Local: {localizacao} | Obs: {observacao}"
+                    elif localizacao:
+                        detalhe = f"Local: {localizacao}"
+                    elif observacao:
+                        detalhe = observacao
+                    else:
+                        detalhe = "-"
+
+                    nome_limpo = GeradorLaudos._sanitizar_texto_para_pdf(nome_limpo)
+                    detalhe = GeradorLaudos._sanitizar_texto_para_pdf(detalhe)
 
                     # Calcula a altura necessária para a observação (se for muito longa)
-                    linhas_obs = len(pdf.multi_cell(60, 6, obs, split_only=True))
+                    linhas_obs = len(pdf.multi_cell(60, 6, detalhe, split_only=True))
                     linhas_nome = len(pdf.multi_cell(110, 6, nome_limpo, split_only=True))
                     alt_linha = max(linhas_obs, linhas_nome) * 6
 
@@ -334,7 +443,42 @@ class GeradorLaudos:
                     pdf.set_text_color(0, 0, 0)  # Volta pro preto
 
                     pdf.set_xy(x_inicio + 130, y_inicio)
-                    pdf.multi_cell(60, 6, obs, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    pdf.multi_cell(60, 6, detalhe, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        # 5. Coleta de assinaturas (quando houver)
+        assinaturas = json_dados.get("coleta_assinaturas")
+        if isinstance(assinaturas, dict):
+            possui_assinatura = any(str(valor or "").strip() for valor in assinaturas.values())
+            if possui_assinatura:
+                pdf.ln(4)
+                pdf.set_font("helvetica", "B", 10)
+                pdf.set_fill_color(245, 245, 245)
+                pdf.set_text_color(15, 43, 70)
+                pdf.cell(
+                    0,
+                    8,
+                    "  COLETA DE ASSINATURAS",
+                    new_x=XPos.LMARGIN,
+                    new_y=YPos.NEXT,
+                    fill=True,
+                )
+
+                campos_assinaturas = [
+                    ("Responsavel pela inspecao", assinaturas.get("responsavel_pela_inspecao")),
+                    ("Assinatura", assinaturas.get("assinatura_responsavel")),
+                    (
+                        "Responsavel empresa",
+                        assinaturas.get("responsavel_empresa_acompanhamento"),
+                    ),
+                    ("Assinatura", assinaturas.get("assinatura_empresa")),
+                ]
+
+                for rotulo, valor in campos_assinaturas:
+                    valor_limpo = GeradorLaudos._sanitizar_texto_para_pdf(str(valor or "").strip())
+                    pdf.set_font("helvetica", "B", 8)
+                    pdf.cell(58, 6, f"{rotulo}:", border=1)
+                    pdf.set_font("helvetica", "", 8)
+                    pdf.cell(132, 6, valor_limpo, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # ── Função de Orquestração (O Maestro) ───────────────────────────────────
 

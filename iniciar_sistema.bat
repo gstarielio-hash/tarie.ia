@@ -15,4 +15,7 @@ if not defined PYTHON_EXE (
 set "APP_PORTA=8000"
 if not "%PORTA%"=="" set "APP_PORTA=%PORTA%"
 
-"%PYTHON_EXE%" -m uvicorn main:app --host 127.0.0.1 --port %APP_PORTA% --reload
+set "APP_HOST=0.0.0.0"
+if not "%HOST_BIND%"=="" set "APP_HOST=%HOST_BIND%"
+
+"%PYTHON_EXE%" -m uvicorn main:app --host %APP_HOST% --port %APP_PORTA% --reload
