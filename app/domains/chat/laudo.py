@@ -20,12 +20,11 @@ from app.domains.chat.routes import (
     api_obter_gate_qualidade_laudo,
     api_status_relatorio,
     obter_laudo_do_inspetor,
-    pagina_inicial,
-    pagina_planos,
     resposta_json_ok,
     rota_deletar_laudo,
     rota_pin_laudo,
 )
+from app.domains.chat.auth import pagina_inicial, pagina_planos
 from app.shared.database import LaudoRevisao, Usuario, obter_banco
 from app.shared.security import exigir_inspetor
 
