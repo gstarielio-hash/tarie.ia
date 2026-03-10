@@ -102,7 +102,6 @@ from app.domains.chat.schemas import (
     DadosFeedback,  # noqa: F401
     DadosPDF,  # noqa: F401
     MensagemHistorico,
-    DadosPin,
 )
 
 try:
@@ -1913,55 +1912,3 @@ async def api_desativar_relatorio_ativo(
 # ============================================================================
 # APIs CRUD / AUXILIARES
 # ============================================================================
-
-
-async def rota_pin_laudo(
-    laudo_id: int,
-    request: Request,
-    dados: DadosPin,
-    usuario: Usuario = Depends(exigir_inspetor),
-    banco: Session = Depends(obter_banco),
-):
-    exigir_csrf(request)
-
-    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
-    laudo.pinado = dados.pinado
-    laudo.pinado_em = agora_utc() if dados.pinado else None
-    laudo.atualizado_em = agora_utc()
-    banco.commit()
-
-    return resposta_json_ok(
-        {
-            "pinado": laudo.pinado,
-            "pinado_em": laudo.pinado_em.isoformat() if laudo.pinado_em else None,
-        }
-    )
-
-
-async def rota_deletar_laudo(
-    laudo_id: int,
-    request: Request,
-    usuario: Usuario = Depends(exigir_inspetor),
-    banco: Session = Depends(obter_banco),
-):
-    exigir_csrf(request)
-
-    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
-
-    if laudo.status_revisao in (
-        StatusRevisao.AGUARDANDO.value,
-        StatusRevisao.APROVADO.value,
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail="Esse laudo não pode ser excluído no estado atual.",
-        )
-
-    if laudo_id_sessao(request) == laudo_id:
-        request.session.pop("laudo_ativo_id", None)
-        request.session["estado_relatorio"] = "sem_relatorio"
-
-    banco.delete(laudo)
-    banco.commit()
-
-    return resposta_json_ok({"ok": True})

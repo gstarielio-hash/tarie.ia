@@ -4,28 +4,30 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
+from app.domains.chat.schemas import DadosPin
 from app.domains.chat.routes import (
     _gerar_diff_revisoes,
     _obter_revisao_por_versao,
     _resumo_diff_revisoes,
     _serializar_revisao_laudo,
+    agora_utc,
     api_cancelar_relatorio,
     api_desativar_relatorio_ativo,
     api_finalizar_relatorio,
     api_iniciar_relatorio,
     api_obter_gate_qualidade_laudo,
     api_status_relatorio,
+    exigir_csrf,
+    laudo_id_sessao,
     obter_laudo_do_inspetor,
     resposta_json_ok,
-    rota_deletar_laudo,
-    rota_pin_laudo,
 )
 from app.domains.chat.auth import pagina_inicial, pagina_planos
-from app.shared.database import LaudoRevisao, Usuario, obter_banco
+from app.shared.database import LaudoRevisao, StatusRevisao, Usuario, obter_banco
 from app.shared.security import exigir_inspetor
 
 
@@ -103,6 +105,58 @@ async def obter_diff_revisoes_laudo(
             "diff_unificado": diff_texto,
         }
     )
+
+
+async def rota_pin_laudo(
+    laudo_id: int,
+    request: Request,
+    dados: DadosPin,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+
+    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+    laudo.pinado = dados.pinado
+    laudo.pinado_em = agora_utc() if dados.pinado else None
+    laudo.atualizado_em = agora_utc()
+    banco.commit()
+
+    return resposta_json_ok(
+        {
+            "pinado": laudo.pinado,
+            "pinado_em": laudo.pinado_em.isoformat() if laudo.pinado_em else None,
+        }
+    )
+
+
+async def rota_deletar_laudo(
+    laudo_id: int,
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+
+    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+
+    if laudo.status_revisao in (
+        StatusRevisao.AGUARDANDO.value,
+        StatusRevisao.APROVADO.value,
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Esse laudo não pode ser excluído no estado atual.",
+        )
+
+    if laudo_id_sessao(request) == laudo_id:
+        request.session.pop("laudo_ativo_id", None)
+        request.session["estado_relatorio"] = "sem_relatorio"
+
+    banco.delete(laudo)
+    banco.commit()
+
+    return resposta_json_ok({"ok": True})
 
 pinar_laudo = rota_pin_laudo
 excluir_laudo = rota_deletar_laudo
