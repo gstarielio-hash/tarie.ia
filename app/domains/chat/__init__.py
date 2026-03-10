@@ -7,13 +7,17 @@ responsabilidades e permitem extração incremental dos roteadores.
 
 from app.domains.chat import auth, chat, laudo, mesa, pendencias
 from app.domains.chat.auth import roteador_auth
+from app.domains.chat.chat import roteador_chat
 from app.domains.chat.laudo import roteador_laudo
+from app.domains.chat.mesa import roteador_mesa
 from app.domains.chat.pendencias import roteador_pendencias
 from app.domains.chat.routes import roteador_inspetor
 
-# Fase 3.1: rotas de autenticação/páginas já vivem em router dedicado.
+# Fases 3.x: extração incremental dos blocos de rota para subrouters dedicados.
 roteador_inspetor.include_router(roteador_auth)
 roteador_inspetor.include_router(roteador_laudo)
+roteador_inspetor.include_router(roteador_chat)
+roteador_inspetor.include_router(roteador_mesa)
 roteador_inspetor.include_router(roteador_pendencias)
 
 __all__ = [

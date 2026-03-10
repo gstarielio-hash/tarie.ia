@@ -2187,7 +2187,6 @@ async def pagina_planos(
 # ============================================================================
 
 
-@roteador_inspetor.get("/api/notificacoes/sse")
 async def sse_notificacoes_inspetor(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -2229,7 +2228,6 @@ async def sse_notificacoes_inspetor(
 # ============================================================================
 
 
-@roteador_inspetor.post("/api/chat")
 async def rota_chat(
     dados: DadosChat,
     request: Request,
@@ -2736,7 +2734,6 @@ async def salvar_mensagem_ia(
 # ============================================================================
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/mensagens")
 async def obter_mensagens_laudo(
     laudo_id: int,
     cursor: int | None = Query(default=None, gt=0),
@@ -2852,7 +2849,6 @@ async def obter_mensagens_laudo(
     }
 
 
-@roteador_inspetor.get("/api/laudo/{laudo_id}/mesa/mensagens")
 async def listar_mensagens_mesa_laudo(
     laudo_id: int,
     cursor: int | None = Query(default=None, gt=0),
@@ -2889,7 +2885,6 @@ async def listar_mensagens_mesa_laudo(
     )
 
 
-@roteador_inspetor.post("/api/laudo/{laudo_id}/mesa/mensagem")
 async def enviar_mensagem_mesa_laudo(
     laudo_id: int,
     dados: DadosMesaMensagem,
@@ -3213,7 +3208,6 @@ async def exportar_pendencias_laudo_pdf(
         )
 
 
-@roteador_inspetor.post("/api/gerar_pdf")
 async def rota_pdf(
     request: Request,
     dados: DadosPDF,
@@ -3287,7 +3281,6 @@ async def rota_pdf(
         )
 
 
-@roteador_inspetor.post("/api/upload_doc")
 async def rota_upload_doc(
     request: Request,
     arquivo: UploadFile = File(...),
@@ -3394,7 +3387,6 @@ async def rota_deletar_laudo(
     return resposta_json_ok({"ok": True})
 
 
-@roteador_inspetor.post("/api/feedback")
 async def rota_feedback(
     request: Request,
     dados: DadosFeedback,
