@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Final, Optional
 
 import uvicorn
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -43,17 +43,19 @@ from sqlalchemy.orm import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from banco_dados import (
+from app.shared.database import (
     NivelAcesso,
     SessaoLocal,
     Usuario,
     inicializar_banco,
     obter_banco,
 )
-from rotas_admin import roteador_admin
-from rotas_inspetor import roteador_inspetor
-from rotas_revisor import roteador_revisor
-from seguranca import (
+from app.domains.router_registry import (
+    roteador_admin,
+    roteador_inspetor,
+    roteador_revisor,
+)
+from app.shared.security import (
     SESSOES_ATIVAS,
     obter_dados_sessao_portal,
     portal_por_caminho,
@@ -161,6 +163,9 @@ if AMBIENTE not in (AMBIENTES_PRODUCAO | AMBIENTES_DEV):
 EM_PRODUCAO: Final[bool] = AMBIENTE in AMBIENTES_PRODUCAO
 APP_VERSAO: Final[str] = _obter_str_env("APP_VERSAO", "2.0-SaaS")
 PORTA_APP: Final[int] = _obter_int_env("PORTA", 8000)
+HOST_BIND_APP: Final[str] = _normalizar_host(
+    _obter_str_env("HOST_BIND", "0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
+) or ("0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
 LOG_LEVEL_DEV_ROOT: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_ROOT", logging.INFO)
 LOG_LEVEL_DEV_TARIEL: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_TARIEL", logging.DEBUG)
 
@@ -180,7 +185,12 @@ _allowed_hosts_env = _obter_str_env("ALLOWED_HOSTS", "")
 if _allowed_hosts_env:
     allowed_hosts_base = [_normalizar_host(item) for item in _allowed_hosts_env.split(",") if _normalizar_host(item)]
 else:
-    allowed_hosts_base = ["wf.com.br", "*.wf.com.br"] if EM_PRODUCAO else ["localhost", "127.0.0.1", "::1", "testserver", "testclient"]
+    if EM_PRODUCAO:
+        allowed_hosts_base = ["wf.com.br", "*.wf.com.br"]
+    else:
+        # Em dev, permite acesso por IP local (ex.: celular via 192.168.x.x)
+        # sem exigir ajuste manual de ALLOWED_HOSTS.
+        allowed_hosts_base = ["*"]
 
 if APP_HOST_PUBLICO:
     allowed_hosts_base.append(APP_HOST_PUBLICO)
@@ -448,7 +458,7 @@ def _redirecionar_por_nivel(usuario: Usuario) -> RedirectResponse:
 
 
 def _rota_api(path: str) -> bool:
-    return path.startswith("/api/")
+    return path.startswith(("/api/", "/app/api/", "/revisao/api/", "/admin/api/"))
 
 
 def _rota_protegida_html(path: str) -> bool:
@@ -692,10 +702,19 @@ def create_app() -> FastAPI:
         caminho = request.url.path
 
         if _rota_api(caminho):
+            detalhe: object = "Recurso não encontrado."
+            if isinstance(exc, HTTPException):
+                detalhe_exc = getattr(exc, "detail", None)
+                if isinstance(detalhe_exc, str):
+                    if detalhe_exc.strip().lower() not in {"not found"}:
+                        detalhe = detalhe_exc
+                elif isinstance(detalhe_exc, (dict, list)):
+                    detalhe = detalhe_exc
+
             return JSONResponse(
                 status_code=404,
                 content={
-                    "detail": "Recurso não encontrado.",
+                    "detail": detalhe,
                     "correlation_id": correlation_id,
                 },
             )
@@ -797,7 +816,7 @@ def create_app() -> FastAPI:
 
     @app.get("/app/trabalhador_servico.js", include_in_schema=False)
     async def service_worker():
-        caminho = DIR_STATIC / "js" / "trabalhador_servico.js"
+        caminho = DIR_STATIC / "js" / "shared" / "trabalhador_servico.js"
         if not caminho.is_file():
             return Response(status_code=404)
 
@@ -952,7 +971,7 @@ app = create_app()
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
-        host="127.0.0.1" if not EM_PRODUCAO else "0.0.0.0",
+        host=HOST_BIND_APP,
         port=PORTA_APP,
         reload=not EM_PRODUCAO,
         log_level="debug" if not EM_PRODUCAO else "info",

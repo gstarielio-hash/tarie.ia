@@ -23,11 +23,12 @@ exclude = [
 ]
 files = [
     "main.py",
-    "rotas_admin.py",
-    "rotas_inspetor.py",
-    "rotas_revisor.py",
-    "seguranca.py",
-    "servicos_saas.py",
+    "app/domains/admin/routes.py",
+    "app/domains/chat/routes.py",
+    "app/domains/revisor/routes.py",
+    "app/domains/admin/services.py",
+    "app/shared/security.py",
+    "app/shared/database.py",
     "nucleo/cliente_ia.py",
     "nucleo/gerador_laudos.py",
 ]

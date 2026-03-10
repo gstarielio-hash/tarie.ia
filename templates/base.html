@@ -11,7 +11,7 @@
        ========================================================= #}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0F2B46">
+    <meta name="theme-color" content="#1A1D22">
     <meta name="description" content="Tariel IA — Assistente Técnico de Inspeções Industriais WF">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token }}">
@@ -54,13 +54,13 @@
        6. css específico da página do chat
        7. shell global reaproveitável
        --------------------------------------------------------- #}
-    <link rel="stylesheet" href="/static/css/global.css">
-    <link rel="stylesheet" href="/static/css/layout.css">
-    <link rel="stylesheet" href="/static/css/material-symbols.css">
-    <link rel="stylesheet" href="/static/css/chat_base.css">
-    <link rel="stylesheet" href="/static/css/chat_mobile.css">
-    <link rel="stylesheet" href="/static/css/chat_index.css">
-    <link rel="stylesheet" href="/static/css/app_shell.css">
+    <link rel="stylesheet" href="/static/css/shared/global.css">
+    <link rel="stylesheet" href="/static/css/shared/layout.css">
+    <link rel="stylesheet" href="/static/css/shared/material-symbols.css">
+    <link rel="stylesheet" href="/static/css/chat/chat_base.css">
+    <link rel="stylesheet" href="/static/css/chat/chat_mobile.css">
+    <link rel="stylesheet" href="/static/css/chat/chat_index.css">
+    <link rel="stylesheet" href="/static/css/shared/app_shell.css">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -198,7 +198,7 @@
        - gerenciar service worker
        - expor toast global
        ========================================================= #}
-    <script src="/static/js/app_shell.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+    <script src="/static/js/shared/app_shell.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 
     {# Scripts específicos da página filha #}
     {% block extra_scripts %}{% endblock %}

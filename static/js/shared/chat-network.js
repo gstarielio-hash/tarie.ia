@@ -705,6 +705,8 @@
                         empresa: getNomeEmpresa(),
                         setor: sanitizarSetor(setorSelect?.value || "geral"),
                         data: obterDataAtualBR(),
+                        laudo_id: Number(getLaudoAtualId?.() || 0) || null,
+                        tipo_template: String(window.tipoTemplateAtivo || "padrao").trim().toLowerCase(),
                     }),
                 });
 

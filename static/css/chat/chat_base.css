@@ -135,7 +135,7 @@ body.sidebar-colapsada .thread-nav-inner {
     background: transparent;
     color: rgba(176, 196, 222, 0.55);
     font: inherit;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
@@ -158,8 +158,8 @@ body.sidebar-colapsada .thread-nav-inner {
 }
 
 .thread-tab:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 /* ==========================================
@@ -174,18 +174,19 @@ body.sidebar-colapsada .thread-nav-inner {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    gap: 18px;
-    padding: 24px 24px 26px;
-    scroll-padding-top: 18px;
-    scroll-padding-bottom: 180px;
+    gap: 16px;
+    padding: 18px 20px 24px;
+    scroll-padding-top: var(--space-5, 20px);
+    scroll-padding-bottom: 196px;
     overscroll-behavior-y: contain;
     scroll-behavior: smooth;
     scrollbar-width: auto;
     scrollbar-color: rgba(124, 156, 186, 0.62) rgba(10, 27, 45, 0.38);
     scrollbar-gutter: stable both-edges;
     background:
-        radial-gradient(circle at 15% 12%, rgba(244, 123, 32, 0.07), transparent 26%),
-        radial-gradient(circle at 80% 8%, rgba(58, 128, 196, 0.08), transparent 28%);
+        radial-gradient(circle at 14% 10%, rgba(214, 122, 50, 0.07), transparent 24%),
+        radial-gradient(circle at 80% 8%, rgba(210, 216, 226, 0.05), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.016), rgba(255, 255, 255, 0));
 }
 
 .area-mensagens::-webkit-scrollbar {
@@ -213,7 +214,7 @@ body.sidebar-colapsada .thread-nav-inner {
 .area-mensagens > .mensagem-boas-vindas,
 .area-mensagens > .bloco-texto-solto {
     width: 100%;
-    max-width: 940px;
+    max-width: 1120px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -223,7 +224,7 @@ body.sidebar-colapsada .area-mensagens > .tela-boas-vindas,
 body.sidebar-colapsada .area-mensagens > .skeleton-carregamento,
 body.sidebar-colapsada .area-mensagens > .mensagem-boas-vindas,
 body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
-    max-width: 1040px;
+    max-width: 1220px;
 }
 
 /* ==========================================
@@ -232,22 +233,22 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .tela-boas-vindas {
     width: 100%;
-    max-width: 980px;
+    max-width: 960px;
     max-height: min(820px, calc(100dvh - var(--header-h, 68px) - 210px));
     margin: auto auto 0;
-    padding: 28px 24px 22px;
+    padding: 30px 26px 24px;
     overflow-y: auto;
     overscroll-behavior: contain;
     text-align: center;
     background: linear-gradient(
         180deg,
-        rgba(15, 43, 70, 0.42),
-        rgba(8, 22, 36, 0.32)
+        rgba(47, 52, 61, 0.5),
+        rgba(28, 31, 37, 0.36)
     );
-    border: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
-    border-radius: 24px;
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.18);
-    animation: fadeUp .5s ease-out forwards;
+    border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
+    border-radius: var(--radius-xl, 22px);
+    box-shadow: var(--shadow-lg, 0 8px 32px rgba(0, 0, 0, 0.5));
+    animation: fadeUp var(--t-slow, .38s) var(--ease, ease) forwards;
 }
 
 .tela-boas-vindas[hidden] {
@@ -257,7 +258,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 @keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(14px);
     }
     to {
         opacity: 1;
@@ -380,8 +381,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .btn-acao-rapida:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .icone-acao {
@@ -485,13 +486,13 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     align-items: flex-end;
     opacity: 0;
     will-change: opacity, transform;
-    animation: slideIn .3s ease-out forwards;
+    animation: slideIn var(--t-base, .22s) var(--ease, ease) forwards;
 }
 
 @keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -512,63 +513,66 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: flex;
     flex-direction: row;
     align-items: flex-end;
-    gap: 12px;
+    gap: 8px;
     width: fit-content;
-    max-width: min(900px, 92%);
+    max-width: min(1080px, 95%);
 }
 
 .mensagem-inspetor .conteudo-mensagem,
 .mensagem-usuario .conteudo-mensagem {
     flex-direction: row-reverse;
-    max-width: min(760px, 82%);
+    max-width: min(860px, 88%);
 }
 
 .corpo-texto {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 180px;
-    max-width: 100%;
-    padding: 15px 18px;
+    width: fit-content;
+    min-width: 0;
+    max-width: min(820px, 100%);
+    padding: 10px 12px;
     background: linear-gradient(
         180deg,
-        rgba(15, 43, 70, 0.94),
-        rgba(10, 29, 47, 0.96)
+        rgba(47, 52, 61, 0.96),
+        rgba(35, 38, 45, 0.98)
     );
-    border: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
-    border-radius: 12px 20px 20px 20px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-soft, rgba(191, 198, 209, 0.18));
+    border-radius: 14px 20px 20px 20px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 
 .mensagem-inspetor .corpo-texto,
 .mensagem-usuario .corpo-texto {
     background: linear-gradient(
         180deg,
-        rgba(19, 49, 77, 0.98),
-        rgba(14, 39, 63, 0.98)
+        rgba(58, 63, 73, 0.96),
+        rgba(43, 48, 56, 0.98)
     );
-    border: 1px solid rgba(244, 123, 32, 0.28);
-    border-radius: 20px 12px 20px 20px;
+    border: 1px solid var(--user-accent-border, rgba(175, 182, 195, 0.34));
+    border-radius: 20px 14px 20px 20px;
+    box-shadow: 0 7px 20px rgba(0, 0, 0, 0.28);
+    max-width: min(560px, 100%);
 }
 
 .nome-remetente {
     display: block;
-    margin-bottom: 2px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .01em;
+    margin-bottom: 1px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .02em;
     color: var(--text-secondary, #c6d5e3);
 }
 
 .mensagem-inspetor .nome-remetente,
 .mensagem-usuario .nome-remetente {
-    color: var(--accent-wf, #F47B20);
+    color: var(--user-accent, #AFB6C3);
     text-align: right;
 }
 
 .texto-msg {
-    font-size: 15px;
-    line-height: 1.72;
+    font-size: 13.5px;
+    line-height: 1.58;
     word-wrap: break-word;
     overflow-wrap: anywhere;
     color: var(--text-primary, #ffffff);
@@ -583,29 +587,30 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
    ========================================== */
 
 .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     background-color: var(--bg-panel, #10263d);
     border: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
 }
 
 .avatar .material-symbols-rounded {
-    font-size: 20px !important;
+    font-size: 16px !important;
 }
 
 .mensagem-ia .avatar {
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-soft, #F1BA8F);
     background: linear-gradient(
         180deg,
-        rgba(15, 43, 70, 1),
-        rgba(11, 31, 49, 1)
+        rgba(45, 49, 57, 1),
+        rgba(34, 37, 43, 1)
     );
+    border-color: rgba(214, 122, 50, 0.26);
 }
 
 .mensagem-inspetor .avatar,
@@ -613,10 +618,10 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     color: var(--text-primary, #ffffff);
     background: linear-gradient(
         180deg,
-        rgba(244, 123, 32, 0.85),
-        rgba(214, 99, 10, 0.95)
+        rgba(86, 92, 105, 0.92),
+        rgba(70, 75, 87, 0.98)
     );
-    border-color: rgba(244, 123, 32, 0.28);
+    border-color: var(--user-accent-border, rgba(175, 182, 195, 0.34));
 }
 
 .img-anexo {
@@ -637,11 +642,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     overflow: hidden;
     margin-bottom: 6px;
     padding: 4px 10px;
-    background: rgba(15, 43, 70, 0.6);
+    background: rgba(49, 54, 63, 0.64);
     border: 1px solid rgba(176, 196, 222, 0.15);
     border-radius: 8px;
-    font-size: 11px;
-    color: #B0C4DE;
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-secondary, #90AAC0);
 }
 
 .chip-documento .material-symbols-rounded {
@@ -705,7 +710,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     margin-top: 10px;
     padding-left: 48px;
     opacity: 0;
-    transition: opacity .15s ease;
+    transition: opacity var(--t-fast, .12s) var(--ease, ease);
 }
 
 .mensagem-ia:hover .acoes-mensagem,
@@ -720,17 +725,19 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     gap: 6px;
     padding: 6px 10px;
     border: 1px solid rgba(176, 196, 222, 0.12);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text-tertiary, rgba(176, 196, 222, 0.55));
+    border-radius: var(--radius-sm, 8px);
+    background: var(--bg-soft-light, rgba(255, 255, 255, 0.03));
+    color: var(--text-secondary, #90AAC0);
     font: inherit;
     font-size: 12px;
     white-space: nowrap;
     cursor: pointer;
     transition:
-        color .15s ease,
-        background-color .15s ease,
-        border-color .15s ease;
+        color var(--t-fast, .12s) var(--ease, ease),
+        background-color var(--t-fast, .12s) var(--ease, ease),
+        border-color var(--t-fast, .12s) var(--ease, ease),
+        transform var(--t-fast, .12s) var(--ease, ease),
+        box-shadow var(--t-fast, .12s) var(--ease, ease);
 }
 
 .btn-acao-msg .material-symbols-rounded {
@@ -741,11 +748,17 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     color: var(--text-primary, #ffffff);
     background: var(--bg-hover, rgba(255, 255, 255, 0.04));
     border-color: rgba(244, 123, 32, 0.24);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(3, 11, 20, 0.22);
+}
+
+.btn-acao-msg:active {
+    transform: translateY(0);
 }
 
 .btn-acao-msg:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .btn-acao-msg.copiado {
@@ -785,17 +798,17 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .texto-msg h1 {
-    font-size: 18px;
+    font-size: 17px;
 }
 
 .texto-msg h2 {
     padding-bottom: 6px;
-    font-size: 16px;
+    font-size: 15px;
     border-bottom: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
 }
 
 .texto-msg h3 {
-    font-size: 14px;
+    font-size: 13.5px;
     color: var(--accent-wf, #F47B20);
 }
 
@@ -861,8 +874,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .texto-msg a:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
     border-radius: 2px;
 }
 
@@ -929,7 +942,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .bloco-codigo-lang {
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-family: "Courier New", monospace;
     text-transform: uppercase;
     letter-spacing: .5px;
@@ -946,7 +959,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     background: transparent;
     color: var(--text-tertiary, rgba(176, 196, 222, 0.55));
     font: inherit;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     cursor: pointer;
     transition:
         color .15s ease,
@@ -959,8 +972,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .btn-copiar-codigo:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .btn-copiar-codigo .material-symbols-rounded {
@@ -1028,9 +1041,9 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .bloco-citacoes {
     margin-top: 16px;
     padding: 10px 14px;
-    border: 1px solid rgba(30, 136, 229, 0.2);
+    border: 1px solid rgba(191, 198, 209, 0.24);
     border-radius: 10px;
-    background: rgba(30, 136, 229, 0.06);
+    background: rgba(191, 198, 209, 0.08);
 }
 
 .citacoes-titulo {
@@ -1038,11 +1051,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     align-items: center;
     gap: 6px;
     margin-bottom: 8px;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 700;
     letter-spacing: .05em;
     text-transform: uppercase;
-    color: #64B5F6;
+    color: var(--accent-soft, #F1BA8F);
 }
 
 .citacoes-titulo .material-symbols-rounded {
@@ -1066,14 +1079,14 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .citacao-norma {
     display: block;
     font-weight: 600;
-    color: #90CAF9;
+    color: #d1d7e0;
 }
 
 .citacao-trecho {
     display: block;
     margin-top: 2px;
     padding-left: 8px;
-    border-left: 2px solid rgba(30, 136, 229, 0.3);
+    border-left: 2px solid rgba(191, 198, 209, 0.34);
     color: rgba(176, 196, 222, 0.7);
     font-style: italic;
 }
@@ -1107,7 +1120,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     padding: 2px 8px;
     border-radius: 999px;
     border: 1px solid transparent;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
@@ -1162,7 +1175,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .confianca-validacao-humana .titulo-validacao {
     display: block;
     margin-bottom: 6px;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 700;
     color: #ef9a9a;
     letter-spacing: .03em;
@@ -1243,8 +1256,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .preview-item:not(.chip-documento-preview) .btn-remover-preview:focus-visible {
-    outline: 2px solid #ffffff;
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.88), 0 0 0 5px rgba(198, 40, 40, 0.38);
 }
 
 .preview-item.chip-documento-preview {
@@ -1255,9 +1268,9 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     padding: 6px 10px;
     border: 1px solid rgba(176, 196, 222, 0.15);
     border-radius: 8px;
-    background: rgba(15, 43, 70, 0.6);
-    color: #B0C4DE;
-    font-size: 11px;
+    background: rgba(49, 54, 63, 0.64);
+    color: var(--text-secondary, #90AAC0);
+    font-size: var(--font-size-xs, 12px);
 }
 
 .chip-doc-icone {
@@ -1275,8 +1288,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .chip-doc-status {
     flex-shrink: 0;
-    font-size: 10px;
-    color: rgba(176, 196, 222, 0.55);
+    font-size: var(--font-size-xs, 12px);
+    color: var(--text-tertiary, #6E8CAA);
     white-space: nowrap;
 }
 
@@ -1308,7 +1321,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(8, 22, 36, 0.88);
+    background-color: rgba(16, 18, 22, 0.88);
     backdrop-filter: blur(6px);
     opacity: 0;
     pointer-events: none;
@@ -1375,63 +1388,63 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     width: 100%;
-    padding: 12px 24px 14px;
-    padding-bottom: calc(14px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(176, 196, 222, 0.10);
+    padding: 10px 18px 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
     background: linear-gradient(
         180deg,
-        rgba(8, 22, 36, 0.06) 0%,
-        rgba(8, 22, 36, 0.86) 22%,
-        rgba(8, 22, 36, 0.98) 100%
+        rgba(20, 23, 28, 0.06) 0%,
+        rgba(20, 23, 28, 0.84) 22%,
+        rgba(20, 23, 28, 0.98) 100%
     );
-    box-shadow: 0 -16px 34px rgba(3, 11, 20, 0.45);
-    backdrop-filter: blur(14px);
+    box-shadow: 0 -12px 26px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(16px);
 }
 
 .pilula-entrada {
     width: 100%;
-    max-width: 940px;
+    max-width: 1080px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 10px 12px;
-    border: 1px solid rgba(176, 196, 222, 0.18);
-    border-radius: 22px;
+    padding: 9px 10px;
+    border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
+    border-radius: 18px;
     background: linear-gradient(
         180deg,
-        rgba(17, 51, 82, 0.82),
-        rgba(10, 32, 52, 0.92)
+        rgba(47, 52, 61, 0.86),
+        rgba(34, 37, 44, 0.95)
     );
     box-shadow:
-        0 12px 32px rgba(0, 0, 0, 0.26),
+        0 10px 24px rgba(0, 0, 0, 0.26),
         inset 0 1px 0 rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(12px);
     transition:
-        border-color .2s ease,
-        box-shadow .2s ease,
-        transform .2s ease,
-        background-color .2s ease;
+        border-color var(--t-base, .22s) var(--ease, ease),
+        box-shadow var(--t-base, .22s) var(--ease, ease),
+        transform var(--t-base, .22s) var(--ease, ease),
+        background-color var(--t-base, .22s) var(--ease, ease);
 }
 
 body.sidebar-colapsada .pilula-entrada {
-    max-width: 1040px;
+    max-width: 1160px;
 }
 
 .pilula-entrada:hover {
-    border-color: rgba(176, 196, 222, 0.22);
+    border-color: rgba(176, 196, 222, 0.30);
 }
 
 .pilula-entrada:focus-within {
     border-color: rgba(244, 123, 32, 0.70);
     box-shadow:
-        0 0 0 4px rgba(244, 123, 32, 0.12),
+        var(--ring-wf, 0 0 0 3px rgba(244, 123, 32, 0.16)),
         0 14px 36px rgba(0, 0, 0, 0.28);
     background: linear-gradient(
         180deg,
-        rgba(23, 58, 91, 0.9),
-        rgba(12, 35, 56, 0.95)
+        rgba(56, 62, 72, 0.9),
+        rgba(37, 41, 49, 0.96)
     );
 }
 
@@ -1440,14 +1453,14 @@ body.sidebar-colapsada .pilula-entrada {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: flex-end;
-    gap: 8px;
+    gap: 10px;
 }
 
 .btns-entrada-esquerda,
 .btns-entrada-direita {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex-shrink: 0;
 }
 
@@ -1462,16 +1475,16 @@ body.sidebar-colapsada .pilula-entrada {
     z-index: 2;
     width: 100%;
     min-width: 0;
-    min-height: 26px;
-    max-height: 220px;
+    min-height: 24px;
+    max-height: 180px;
     margin: 0;
-    padding: 10px 8px 11px;
+    padding: 8px 8px 9px;
     border: none;
     outline: none;
     background: transparent;
     color: var(--text-primary, #ffffff);
     font: inherit;
-    font-size: 15px;
+    font-size: 13.5px;
     line-height: 1.55;
     resize: none;
     overflow-y: auto;
@@ -1480,7 +1493,9 @@ body.sidebar-colapsada .pilula-entrada {
     word-break: break-word;
     scrollbar-width: thin;
     scrollbar-color: var(--border-color, rgba(176, 196, 222, 0.18)) transparent;
-    transition: color .2s ease;
+    transition:
+        color var(--t-fast, .12s) var(--ease, ease),
+        filter var(--t-fast, .12s) var(--ease, ease);
 }
 
 #campo-mensagem::-webkit-scrollbar {
@@ -1511,7 +1526,7 @@ body.sidebar-colapsada .pilula-entrada {
     padding: 0 6px 2px;
     text-align: right;
     line-height: 1;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     color: var(--text-tertiary, rgba(176, 196, 222, 0.55));
     transition: color .2s ease;
 }
@@ -1522,34 +1537,37 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .rodape-entrada .btn-icone {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid rgba(176, 196, 222, 0.16);
-    border-radius: 12px;
-    background: rgba(12, 34, 54, 0.82);
+    border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
+    border-radius: 10px;
+    background: rgba(37, 41, 49, 0.84);
     color: var(--text-secondary, #c6d5e3);
     cursor: pointer;
     font: inherit;
     transition:
-        background-color .18s ease,
-        color .18s ease,
-        transform .18s ease,
-        box-shadow .18s ease;
+        background-color var(--t-fast, .12s) var(--ease, ease),
+        color var(--t-fast, .12s) var(--ease, ease),
+        transform var(--t-fast, .12s) var(--ease, ease),
+        box-shadow var(--t-fast, .12s) var(--ease, ease),
+        border-color var(--t-fast, .12s) var(--ease, ease);
 }
 
 .rodape-entrada .btn-icone:hover:not(:disabled) {
-    background-color: rgba(176, 196, 222, 0.12);
-    border-color: rgba(176, 196, 222, 0.34);
+    background-color: rgba(191, 198, 209, 0.14);
+    border-color: rgba(191, 198, 209, 0.36);
     color: var(--text-primary, #ffffff);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(2, 10, 18, 0.28);
 }
 
 .rodape-entrada .btn-icone:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .rodape-entrada .btn-icone:disabled {
@@ -1598,21 +1616,23 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .aviso-rodape {
-    max-width: 940px;
-    margin-top: 6px;
+    max-width: 1080px;
+    margin-top: 2px;
     text-align: center;
-    line-height: 1.5;
-    font-size: 11px;
-    color: var(--text-tertiary, rgba(176, 196, 222, 0.55));
+    line-height: 1.45;
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+    color: rgba(173, 182, 194, 0.58);
 }
 
 .dica-composer {
-    max-width: 940px;
-    margin: 6px 0 0;
+    max-width: 1080px;
+    margin: 2px 0 0;
     text-align: center;
-    line-height: 1.4;
-    font-size: 12px;
-    color: rgba(255, 224, 195, 0.88);
+    line-height: 1.42;
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+    color: rgba(173, 182, 194, 0.74);
 }
 
 .dica-composer strong {
@@ -1621,22 +1641,22 @@ body.sidebar-colapsada .pilula-entrada {
 
 .btn-ir-fim-chat {
     position: absolute;
-    right: 26px;
-    bottom: 128px;
+    right: 16px;
+    bottom: 102px;
     z-index: 40;
-    width: 42px;
-    height: 42px;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(176, 196, 222, 0.24);
-    border-radius: 14px;
+    border: 1px solid rgba(191, 198, 209, 0.28);
+    border-radius: 10px;
     background: linear-gradient(
         180deg,
-        rgba(20, 57, 90, 0.98),
-        rgba(12, 38, 62, 0.98)
+        rgba(54, 59, 69, 0.98),
+        rgba(40, 44, 52, 0.98)
     );
-    color: rgba(219, 232, 245, 0.9);
+    color: rgba(226, 232, 240, 0.92);
     box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -1651,7 +1671,7 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .btn-ir-fim-chat .material-symbols-rounded {
-    font-size: 20px !important;
+    font-size: 17px !important;
 }
 
 .btn-ir-fim-chat.visivel {
@@ -1666,12 +1686,33 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .btn-ir-fim-chat:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 body.sidebar-colapsada .btn-ir-fim-chat {
-    right: 30px;
+    right: 18px;
+}
+
+body.pagina-chat-mesa {
+    --dock-right: 16px;
+    --dock-bottom: 16px;
+    --dock-gap: 10px;
+    --dock-size-widget: 54px;
+    --dock-size-ui: 38px;
+}
+
+body.pagina-chat-mesa .btn-ir-fim-chat {
+    position: fixed;
+    right: var(--dock-right);
+    bottom: calc(
+        var(--dock-bottom) +
+        var(--dock-size-widget) +
+        var(--dock-gap) +
+        var(--dock-size-ui) +
+        var(--dock-gap)
+    );
+    z-index: 73;
 }
 
 /* ==========================================
@@ -1689,20 +1730,21 @@ body.sidebar-colapsada .btn-ir-fim-chat {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 10px;
-    border: 1px solid rgba(176, 196, 222, 0.2);
+    padding: 4px 10px;
+    border: 1px solid var(--border-soft, rgba(176, 196, 222, 0.14));
     border-radius: 20px;
-    background: transparent;
-    color: rgba(176, 196, 222, 0.55);
+    background: var(--bg-soft-light, rgba(255, 255, 255, 0.03));
+    color: var(--text-secondary, #90AAC0);
     font: inherit;
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
     transition:
-        border-color .15s ease,
-        color .15s ease,
-        background-color .15s ease;
+        border-color var(--t-fast, .12s) var(--ease, ease),
+        color var(--t-fast, .12s) var(--ease, ease),
+        background-color var(--t-fast, .12s) var(--ease, ease),
+        transform var(--t-fast, .12s) var(--ease, ease);
 }
 
 .chip-modo-resposta .material-symbols-rounded {
@@ -1710,26 +1752,29 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 .chip-modo-resposta:hover {
-    border-color: rgba(244, 123, 32, 0.4);
-    color: #B0C4DE;
+    border-color: rgba(244, 123, 32, 0.50);
+    color: var(--text-primary, #F0F6FC);
+    background: var(--accent-subtle, rgba(244, 123, 32, 0.1));
+    transform: translateY(-1px);
 }
 
 .chip-modo-resposta.ativo {
-    border-color: var(--accent-wf, #F47B20);
-    background: rgba(244, 123, 32, 0.12);
+    border-color: rgba(244, 123, 32, 0.68);
+    background: var(--accent-subtle-strong, rgba(244, 123, 32, 0.16));
     color: var(--accent-wf, #F47B20);
+    box-shadow: inset 0 0 0 1px rgba(244, 123, 32, 0.24);
 }
 
 .chip-modo-resposta:focus-visible {
-    outline: 2px solid var(--accent-wf, #F47B20);
-    outline-offset: 2px;
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .chip-modo-resposta[data-modo="deep_research"].ativo,
 .chip-modo-resposta[data-modo="deepresearch"].ativo {
-    border-color: #1E88E5;
-    background: rgba(30, 136, 229, 0.12);
-    color: #64B5F6;
+    border-color: rgba(214, 122, 50, 0.48);
+    background: rgba(214, 122, 50, 0.12);
+    color: var(--accent-soft, #F1BA8F);
 }
 
 .chip-modo-resposta.chip-bloqueado-plano {
@@ -1753,7 +1798,7 @@ body.sidebar-colapsada .btn-ir-fim-chat {
     margin-bottom: 6px;
     padding: 2px 8px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 600;
 }
 
@@ -1762,9 +1807,9 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 .badge-deep-research {
-    border: 1px solid rgba(30, 136, 229, 0.3);
-    background: rgba(30, 136, 229, 0.15);
-    color: #64B5F6;
+    border: 1px solid rgba(214, 122, 50, 0.34);
+    background: rgba(214, 122, 50, 0.14);
+    color: var(--accent-soft, #F1BA8F);
 }
 
 .badge-modo-curto {
@@ -1953,7 +1998,7 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 .toast-notificacao.toast-info {
-    border-color: rgba(30, 136, 229, 0.4);
+    border-color: rgba(191, 198, 209, 0.42);
 }
 
 /* ==========================================
@@ -1964,39 +2009,75 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 .mensagem-inspetor.whisper-msg .corpo-texto {
     background: linear-gradient(
         180deg,
-        rgba(244, 123, 32, 0.14),
-        rgba(19, 49, 77, 0.98)
+        rgba(214, 122, 50, 0.15),
+        rgba(50, 55, 64, 0.98)
     );
-    border-color: rgba(244, 123, 32, 0.45);
+    border-color: rgba(214, 122, 50, 0.42);
 }
 
 .mensagem-ia.whisper-eng .corpo-texto,
 .mensagem-ia.resposta-engenheiro .corpo-texto {
-    background: rgba(30, 136, 229, 0.08);
-    border-left: 3px solid #64B5F6;
+    background: rgba(72, 77, 88, 0.28);
+    border-left: 3px solid var(--mesa-accent, #C7773C);
 }
 
 .mensagem-ia.whisper-eng .nome-remetente,
 .mensagem-ia.resposta-engenheiro .nome-remetente {
-    color: #64B5F6;
+    color: var(--mesa-accent-soft, #F4CAA9);
 }
 
 .mensagem-ia.whisper-eng .avatar,
 .mensagem-ia.resposta-engenheiro .avatar {
-    color: #64B5F6;
-    background: rgba(30, 136, 229, 0.15);
-    border-color: rgba(30, 136, 229, 0.3);
+    color: #211a12;
+    background: linear-gradient(
+        180deg,
+        rgba(243, 202, 160, 0.94),
+        rgba(214, 162, 101, 0.96)
+    );
+    border-color: rgba(214, 162, 101, 0.58);
 }
 
 .mensagem-ia.whisper-insp .corpo-texto,
 .mensagem-ia.resposta-humano .corpo-texto {
-    background: rgba(30, 136, 229, 0.06);
-    border-left: 3px solid rgba(100, 181, 246, 0.7);
+    background: rgba(67, 72, 82, 0.24);
+    border-left: 3px solid var(--user-accent, #AFB6C3);
 }
 
 .mensagem-ia.whisper-insp .nome-remetente,
 .mensagem-ia.resposta-humano .nome-remetente {
-    color: #64B5F6;
+    color: var(--user-accent-soft, #D6DBE3);
+}
+
+.mensagem-ia.whisper-insp .avatar,
+.mensagem-ia.resposta-humano .avatar {
+    color: #e8ecf2;
+    background: linear-gradient(
+        180deg,
+        rgba(96, 103, 116, 0.92),
+        rgba(72, 78, 90, 0.96)
+    );
+    border-color: var(--user-accent-border, rgba(175, 182, 195, 0.34));
+}
+
+.mensagem-ia.whisper-eng .texto-msg,
+.mensagem-ia.resposta-engenheiro .texto-msg,
+.mensagem-ia.whisper-insp .texto-msg,
+.mensagem-ia.resposta-humano .texto-msg {
+    margin-top: 4px;
+    padding: 10px 12px;
+    border-radius: 12px;
+}
+
+.mensagem-ia.whisper-eng .texto-msg,
+.mensagem-ia.resposta-engenheiro .texto-msg {
+    border: 1px solid rgba(199, 119, 60, 0.4);
+    background: rgba(124, 84, 52, 0.14);
+}
+
+.mensagem-ia.whisper-insp .texto-msg,
+.mensagem-ia.resposta-humano .texto-msg {
+    border: 1px solid rgba(175, 182, 195, 0.34);
+    background: rgba(86, 92, 105, 0.2);
 }
 
 /* tags de menção usadas pelo render */
@@ -2009,13 +2090,13 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 .tag-eng {
-    background: rgba(30, 136, 229, 0.14);
-    color: #64B5F6 !important;
+    background: rgba(214, 122, 50, 0.14);
+    color: var(--accent-soft, #F1BA8F) !important;
 }
 
 .tag-insp {
-    background: rgba(244, 123, 32, 0.14);
-    color: var(--accent-wf, #F47B20) !important;
+    background: var(--user-accent-subtle, rgba(175, 182, 195, 0.14));
+    color: var(--user-accent, #AFB6C3) !important;
 }
 
 .bloco-referencia-chat {
@@ -2047,7 +2128,7 @@ body.sidebar-colapsada .btn-ir-fim-chat {
 }
 
 .bloco-referencia-chat .ref-conteudo strong {
-    font-size: 11px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 700;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -2114,7 +2195,7 @@ body.modo-foco .tela-boas-vindas {
     align-items: center;
     padding: 3px 8px;
     border-radius: 999px;
-    font-size: 10px;
+    font-size: var(--font-size-xs, 12px);
     font-weight: 700;
     letter-spacing: 0.03em;
     color: rgba(255, 230, 205, 0.9);
@@ -2177,6 +2258,23 @@ body.modo-foco .tela-boas-vindas {
         padding-right: 16px;
     }
 
+    .area-mensagens {
+        gap: 16px;
+    }
+
+    .pilula-entrada {
+        padding: 9px 10px;
+    }
+
+    .controles-entrada {
+        gap: 6px;
+    }
+
+    .rodape-entrada .btn-icone {
+        width: 38px;
+        height: 38px;
+    }
+
     .thread-nav-inner {
         flex-direction: column;
         align-items: stretch;
@@ -2216,6 +2314,17 @@ body.modo-foco .tela-boas-vindas {
     .acoes-mensagem {
         padding-left: 0;
         opacity: 1;
+    }
+
+    body.pagina-chat-mesa {
+        --dock-right: 10px;
+        --dock-bottom: 12px;
+        --dock-size-widget: 56px;
+        --dock-size-ui: 36px;
+    }
+
+    body.pagina-chat-mesa .btn-ir-fim-chat {
+        right: var(--dock-right);
     }
 }
 
@@ -2306,7 +2415,7 @@ body.modo-foco .tela-boas-vindas {
 
     .texto-msg a::after {
         content: " (" attr(href) ")";
-        font-size: 10px;
+        font-size: var(--font-size-xs, 12px);
         color: #666666;
     }
 }

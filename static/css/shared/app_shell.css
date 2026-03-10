@@ -34,10 +34,10 @@
     gap: 12px;
     max-width: calc(100vw - 32px);
     padding: 12px 16px;
-    border: 1px solid rgba(244, 123, 32, 0.5);
+    border: 1px solid rgba(214, 122, 50, 0.45);
     border-radius: 10px;
-    background: #0F2B46;
-    color: #fff;
+    background: #2B2F36;
+    color: #ECEEF2;
     font-size: 13px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     white-space: nowrap;
@@ -71,14 +71,14 @@
 
 .toast-sw__btn--primary {
     padding: 6px 12px;
-    background: #F47B20;
+    background: var(--accent-wf, #D67A32);
     color: #fff;
     font-size: 12px;
     font-weight: 700;
 }
 
 .toast-sw__btn--primary:hover {
-    background: #d4690f;
+    background: var(--accent-hover, #BE6B2E);
 }
 
 .toast-sw__btn--ghost {
@@ -149,12 +149,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border: 1px solid rgba(176, 196, 222, 0.22);
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(17, 50, 80, 0.96), rgba(12, 36, 58, 0.96));
-    color: rgba(206, 222, 236, 0.9);
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(191, 198, 209, 0.24);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(54, 59, 69, 0.96), rgba(40, 44, 52, 0.96));
+    color: rgba(219, 224, 232, 0.92);
     cursor: pointer;
     backdrop-filter: blur(8px);
     box-shadow:
@@ -169,18 +169,20 @@
 }
 
 .btn-toggle-ui:hover {
-    background: linear-gradient(180deg, rgba(20, 57, 91, 0.98), rgba(14, 42, 68, 0.98));
+    background: linear-gradient(180deg, rgba(63, 69, 80, 0.98), rgba(45, 50, 59, 0.98));
     color: #ffffff;
-    border-color: rgba(244, 123, 32, 0.45);
+    border-color: rgba(214, 122, 50, 0.45);
     transform: translateY(-1px) scale(1.01);
     box-shadow:
         0 14px 30px rgba(0, 0, 0, 0.4),
-        0 0 0 3px rgba(244, 123, 32, 0.12);
+        0 0 0 3px rgba(214, 122, 50, 0.14);
 }
 
 .btn-toggle-ui:focus-visible {
-    outline: 2px solid #F47B20;
-    outline-offset: 2px;
+    outline: none;
+    box-shadow:
+        var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22)),
+        0 14px 30px rgba(0, 0, 0, 0.4);
 }
 
 .btn-toggle-ui::after {
@@ -191,8 +193,8 @@
     padding: 4px 9px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    background: rgba(15, 43, 70, 0.95);
-    color: #B0C4DE;
+    background: rgba(42, 46, 54, 0.96);
+    color: #D3D9E2;
     font-size: 11px;
     white-space: nowrap;
     opacity: 0;

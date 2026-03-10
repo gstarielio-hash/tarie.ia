@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0F2B46">
+    <meta name="theme-color" content="#1A1D22">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="csrf-token" content="{{ csrf_token }}">
@@ -26,30 +26,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin/admin.css">
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --wf-text: #0F2B46;
-            --wf-text-soft: #667085;
-            --wf-surface: #fff;
-            --wf-border: #E7ECF3;
+            --wf-bg: #15191F;
+            --wf-text: #ECEEF2;
+            --wf-text-soft: #B5BDC8;
+            --wf-surface: #1E232B;
+            --wf-border: #3A424F;
             --wf-accent: #F47B20;
             --wf-accent-dark: #D86815;
-            --wf-success: #2E7D32;
-            --wf-success-bg: #E8F5E9;
-            --wf-danger: #C62828;
-            --wf-danger-bg: #FFEBEE;
-            --wf-warning: #E65100;
-            --wf-warning-bg: #FFF3E0;
-            --wf-info: #2196F3;
-            --wf-info-bg: rgba(33, 150, 243, .1);
-            --wf-green: #4CAF50;
-            --wf-green-bg: rgba(76, 175, 80, .1);
+            --wf-success: #8FD49B;
+            --wf-success-bg: rgba(46, 125, 50, .16);
+            --wf-danger: #F1A9A9;
+            --wf-danger-bg: rgba(198, 40, 40, .18);
+            --wf-warning: #FFC282;
+            --wf-warning-bg: rgba(179, 71, 0, .16);
+            --wf-info: #D6DBE3;
+            --wf-info-bg: rgba(191, 198, 209, .12);
+            --wf-green: #8FD49B;
+            --wf-green-bg: rgba(46, 125, 50, .16);
             --wf-orange-bg: rgba(244, 123, 32, .1);
             --wf-radius-sm: 8px;
             --wf-radius-md: 12px;
-            --wf-shadow-sm: 0 1px 4px rgba(0, 0, 0, .07);
+            --wf-shadow-sm: 0 8px 22px rgba(0, 0, 0, .24);
+            color-scheme: dark;
         }
 
         .material-symbols-rounded {
@@ -240,7 +242,7 @@
             margin-top: auto;
             padding: 12px 16px;
             border-top: 1px solid rgba(255, 255, 255, .08);
-            color: #B0C4DE;
+            color: var(--wf-text-soft);
             font-size: 13px;
         }
 
@@ -259,7 +261,7 @@
         }
 
         .cnpj-mascarado {
-            color: #666;
+            color: var(--wf-text-soft);
             font-size: 13px;
             font-variant-numeric: tabular-nums;
         }
@@ -320,7 +322,7 @@
 
         .texto-vazio-tabela {
             padding: 24px;
-            color: #888;
+            color: var(--wf-text-soft);
             text-align: center;
         }
     </style>
@@ -524,7 +526,7 @@
         integrity="sha384-e6cc9LaIG7xZ3XD5B+jtr1NhTWPQGQdRCh6xiZ+ZFUtWCpg4ycv3Sh+SkZoopvUY" crossorigin="anonymous"
         nonce="{{ csp_nonce }}"></script>
 
-    <script src="/static/js/painel.js" defer nonce="{{ csp_nonce }}"></script>
+    <script src="/static/js/admin/painel.js" defer nonce="{{ csp_nonce }}"></script>
 
     <script nonce="{{ csp_nonce }}">
         (() => {

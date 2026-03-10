@@ -675,11 +675,36 @@
                 Selecione a modalidade para iniciar o laudo com estrutura WF.
             </p>
 
-            <label for="select-template-inspecao" class="modal-label">
+            <label id="label-template-inspecao" for="select-template-inspecao" class="modal-label">
                 Tipo de relatório / norma
             </label>
 
-            <select id="select-template-inspecao" class="modal-select">
+            <div id="select-template-custom" class="modal-select-custom" hidden>
+                <button
+                    type="button"
+                    id="btn-select-template-custom"
+                    class="modal-select-trigger"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                    aria-labelledby="label-template-inspecao valor-select-template-custom"
+                    aria-controls="lista-select-template-custom"
+                >
+                    <span id="valor-select-template-custom" class="modal-select-value">Selecionar tipo de relatório</span>
+                    <span class="material-symbols-rounded" aria-hidden="true">expand_more</span>
+                </button>
+
+                <div id="painel-select-template-custom" class="modal-select-panel" hidden>
+                    <ul
+                        id="lista-select-template-custom"
+                        class="modal-select-list"
+                        role="listbox"
+                        tabindex="-1"
+                        aria-labelledby="label-template-inspecao"
+                    ></ul>
+                </div>
+            </div>
+
+            <select id="select-template-inspecao" class="modal-select modal-select-native">
                 <optgroup label="Bombeiros e Incêndio">
                     <option value="avcb">Laudo AVCB (Projeto e Conformidade)</option>
                     <option value="cbmgo">Checklist CBM-GO (CMAR / Estrutura)</option>
@@ -819,20 +844,20 @@
    5. módulos do painel
    ============================================================ #}
 {% block extra_scripts %}
-<script src="/static/js/api-core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat-render.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat-network-utils.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat-network.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/api.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/ui.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/hardware.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_sidebar.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_index_page.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/api-core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/chat-render.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/chat-network-utils.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/chat-network.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/api.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/ui.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/shared/hardware.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_sidebar.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_index_page.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 
-<script src="/static/js/chat_painel_core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_painel_laudos.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_painel_historico_acoes.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_painel_mesa.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_painel_relatorio.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
-<script src="/static/js/chat_painel_index.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_laudos.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_historico_acoes.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_mesa.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_relatorio.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_painel_index.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 {% endblock %}

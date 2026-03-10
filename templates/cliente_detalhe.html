@@ -22,27 +22,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
         rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin/admin.css">
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --wf-bg: #f6f8fb;
-            --wf-surface: #ffffff;
-            --wf-text: #0f2b46;
-            --wf-text-soft: #667085;
-            --wf-border: #e7ecf3;
+            --wf-bg: #15191f;
+            --wf-surface: #1e232b;
+            --wf-text: #eceef2;
+            --wf-text-soft: #b5bdc8;
+            --wf-border: #3a424f;
             --wf-accent: #f47b20;
             --wf-accent-dark: #d4690f;
-            --wf-danger: #c62828;
-            --wf-danger-bg: #ffebee;
-            --wf-success: #2e7d32;
-            --wf-success-bg: #e8f5e9;
-            --wf-warning: #e65100;
-            --wf-warning-bg: #fff3e0;
-            --wf-shadow: 0 8px 26px rgba(15, 43, 70, .08);
+            --wf-danger: #f1a9a9;
+            --wf-danger-bg: rgba(198, 40, 40, .18);
+            --wf-success: #8fd49b;
+            --wf-success-bg: rgba(46, 125, 50, .16);
+            --wf-warning: #ffc282;
+            --wf-warning-bg: rgba(179, 71, 0, .16);
+            --wf-shadow: 0 8px 26px rgba(0, 0, 0, .28);
             --wf-radius-sm: 8px;
             --wf-radius-md: 12px;
             --wf-radius-lg: 14px;
+            color-scheme: dark;
         }
 
         .voltar {
@@ -128,7 +129,7 @@
         }
 
         .valor-auxiliar {
-            color: #888;
+            color: var(--wf-text-soft);
             font-size: 13px;
             font-weight: 400;
         }
@@ -138,7 +139,7 @@
             margin-top: 8px;
             overflow: hidden;
             border-radius: 999px;
-            background: #eee;
+            background: rgba(191, 198, 209, .16);
         }
 
         .barra-uso-fill {
@@ -207,19 +208,19 @@
         .btn-block {
             background: var(--wf-danger-bg);
             color: var(--wf-danger);
-            border-color: #ef9a9a;
+            border-color: rgba(198, 40, 40, .42);
         }
 
         .btn-unblock {
             background: var(--wf-success-bg);
             color: var(--wf-success);
-            border-color: #a5d6a7;
+            border-color: rgba(46, 125, 50, .42);
         }
 
         .btn-plano {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-color: #90caf9;
+            background: rgba(191, 198, 209, .14);
+            color: var(--wf-text);
+            border-color: rgba(191, 198, 209, .34);
         }
 
         .badge {
@@ -304,7 +305,7 @@
             gap: 8px;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--wf-border);
         }
 
         .campo-form {
@@ -315,7 +316,7 @@
         .form-inline label {
             display: block;
             margin-bottom: 4px;
-            color: #888;
+            color: var(--wf-text-soft);
             font-size: 12px;
         }
 
@@ -323,11 +324,11 @@
         .modal-plano select {
             width: 100%;
             padding: 9px 12px;
-            border: 1px solid #d8dde6;
+            border: 1px solid var(--wf-border);
             border-radius: 6px;
             font: inherit;
             font-size: 13px;
-            background: #fff;
+            background: var(--wf-surface);
         }
 
         .form-inline input:focus,
@@ -341,7 +342,7 @@
             padding: 9px 14px;
             border: none;
             border-radius: 6px;
-            background: var(--wf-text);
+            background: var(--wf-accent);
             color: #fff;
             font-size: 13px;
             font-weight: 700;
@@ -367,11 +368,11 @@
         .form-crea-inline input {
             width: 130px;
             padding: 6px 8px;
-            border: 1px solid #d8dde6;
+            border: 1px solid var(--wf-border);
             border-radius: 6px;
             font: inherit;
             font-size: 12px;
-            background: #fff;
+            background: var(--wf-surface);
         }
 
         .form-crea-inline input:focus {
@@ -382,10 +383,10 @@
 
         .btn-salvar-crea {
             padding: 6px 9px;
-            border: 1px solid #90caf9;
+            border: 1px solid rgba(191, 198, 209, .34);
             border-radius: 6px;
-            background: #e3f2fd;
-            color: #1565c0;
+            background: rgba(191, 198, 209, .14);
+            color: var(--wf-text);
             font-size: 12px;
             font-weight: 700;
             cursor: pointer;
@@ -393,12 +394,12 @@
 
         .estado-vazio-tabela {
             padding: 20px;
-            color: #999;
+            color: var(--wf-text-soft);
             text-align: center;
         }
 
         .texto-suave {
-            color: #666;
+            color: var(--wf-text-soft);
             font-size: 13px;
         }
 
@@ -423,7 +424,7 @@
             max-width: 380px;
             padding: 28px;
             border-radius: 12px;
-            background: #fff;
+            background: var(--wf-surface);
             box-shadow: 0 20px 40px rgba(0, 0, 0, .22);
         }
 
@@ -442,7 +443,7 @@
             padding: 9px 16px;
             border: none;
             border-radius: 6px;
-            background: #eee;
+            background: rgba(191, 198, 209, .14);
             font-size: 13px;
         }
 
@@ -466,14 +467,14 @@
             right: 14px;
             border: none;
             background: none;
-            color: #888;
+            color: var(--wf-text-soft);
             font-size: 20px;
             line-height: 1;
             cursor: pointer;
         }
 
         .modal-fechar-x:hover {
-            color: #333;
+            color: var(--wf-text);
         }
 
         .sr-only {

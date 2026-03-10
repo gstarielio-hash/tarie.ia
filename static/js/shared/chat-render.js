@@ -412,7 +412,7 @@
 
             const avatarIcone = ehEngenharia ? "engineering" : "person";
             const titulo = ehEngenharia ? "Mesa de Engenharia" : "Inspetor";
-            const cor = ehEngenharia ? "#F47B20" : "#0F2B46";
+            const origemClasse = ehEngenharia ? "origem-mesa" : "origem-insp";
             const blocoReferencia = criarBlocoReferenciaMensagem(
                 opts.referenciaMensagemId,
                 opts.referenciaTexto
@@ -420,12 +420,12 @@
 
             linha.innerHTML = `
                 <div class="conteudo-mensagem">
-                    <div class="avatar" style="background:${cor};color:#fff;">
+                    <div class="avatar avatar-origem ${origemClasse}">
                         <span class="material-symbols-rounded">${avatarIcone}</span>
                     </div>
                     <div class="corpo-texto">
-                        <span class="nome-remetente" style="color:${cor};">${escapeHTML(titulo)}</span>
-                        <div class="texto-msg" style="border:1px solid rgba(244,123,32,0.3);padding:12px;border-radius:8px;margin-top:6px;">
+                        <span class="nome-remetente nome-remetente-origem ${origemClasse}">${escapeHTML(titulo)}</span>
+                        <div class="texto-msg texto-msg-origem ${origemClasse}">
                             ${quebrasDeLinhaParaBr(destacarMencoes(escapeHTML(textoSeguro(texto))))}
                         </div>
                     </div>

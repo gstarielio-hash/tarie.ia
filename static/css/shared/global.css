@@ -12,55 +12,59 @@
 
 :root {
     /* ── Marca ──────────────────────────────── */
-    --cor-primaria: #0F2B46;
-    --cor-primaria-2: #123554;
-    --cor-secundaria: #F47B20;
-    --cor-secundaria-2: #FF9A4A;
-    --cor-fundo-chat: #081624;
-    --cor-fundo-deep: #071320;
+    --cor-primaria: #22252B;
+    --cor-primaria-2: #2B2F36;
+    --cor-secundaria: #D67A32;
+    --cor-secundaria-2: #E79A5E;
+    --cor-fundo-chat: #1A1D22;
+    --cor-fundo-deep: #14171C;
 
     /* ── Status ─────────────────────────────── */
     --cor-aprovado: #1F7A3E;
     --cor-alerta: #C62828;
     --cor-aviso: #F5A623;
-    --cor-info: #42A5F5;
+    --cor-info: #AAB3C1;
 
     /* ── Fundos ─────────────────────────────── */
     --bg-app: var(--cor-fundo-chat);
-    --bg-app-elevado: #0A1B2C;
+    --bg-app-elevado: #20242B;
     --bg-panel: var(--cor-primaria);
     --bg-panel-elevado: var(--cor-primaria-2);
-    --bg-input: #173654;
-    --bg-hover: #1E446A;
-    --bg-hover-soft: rgba(176, 196, 222, 0.06);
-    --bg-card: rgba(23, 54, 84, 0.50);
-    --bg-card-strong: rgba(23, 54, 84, 0.72);
-    --bg-overlay: rgba(6, 15, 24, 0.72);
-    --bg-overlay-strong: rgba(6, 15, 24, 0.88);
+    --bg-input: #2F333B;
+    --bg-hover: #363B45;
+    --bg-hover-soft: rgba(213, 219, 229, 0.05);
+    --bg-card: rgba(47, 53, 61, 0.54);
+    --bg-card-strong: rgba(47, 53, 61, 0.76);
+    --bg-overlay: rgba(10, 11, 14, 0.72);
+    --bg-overlay-strong: rgba(10, 11, 14, 0.88);
     --bg-soft-light: rgba(255, 255, 255, 0.03);
     --bg-soft-lighter: rgba(255, 255, 255, 0.05);
 
     /* ── Texto ──────────────────────────────── */
-    --text-primary: #F0F6FC;
-    --text-secondary: #90AAC0;
-    --text-tertiary: #5A7490;
-    --text-muted: rgba(176, 196, 222, 0.42);
+    --text-primary: #ECEEF2;
+    --text-secondary: #BCC3CE;
+    --text-tertiary: #8C94A2;
+    --text-muted: rgba(191, 198, 209, 0.42);
     --text-on-accent: #FFFFFF;
 
     /* ── Acento ─────────────────────────────── */
     --accent-wf: var(--cor-secundaria);
-    --accent-hover: #D86815;
-    --accent-active: #BF5910;
-    --accent-soft: #FFB066;
-    --accent-subtle: rgba(244, 123, 32, 0.10);
-    --accent-subtle-strong: rgba(244, 123, 32, 0.16);
-    --accent-glow: rgba(244, 123, 32, 0.28);
+    --accent-hover: #BE6B2E;
+    --accent-active: #A55B23;
+    --accent-soft: #F1BA8F;
+    --accent-subtle: rgba(214, 122, 50, 0.10);
+    --accent-subtle-strong: rgba(214, 122, 50, 0.16);
+    --accent-glow: rgba(214, 122, 50, 0.26);
+    --user-accent: #AFB6C3;
+    --user-accent-soft: #D6DBE3;
+    --user-accent-subtle: rgba(175, 182, 195, 0.14);
+    --user-accent-border: rgba(175, 182, 195, 0.34);
 
     /* ── Bordas ─────────────────────────────── */
-    --border-color: #1E446A;
-    --border-color-strong: #295178;
-    --border-muted: rgba(176, 196, 222, 0.10);
-    --border-soft: rgba(176, 196, 222, 0.14);
+    --border-color: #3A404B;
+    --border-color-strong: #4A5160;
+    --border-muted: rgba(191, 198, 209, 0.12);
+    --border-soft: rgba(191, 198, 209, 0.18);
     --border-subtle: 1px solid var(--border-color);
     --border-strong: 1px solid var(--border-color-strong);
 
@@ -114,23 +118,44 @@
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
 
     /* ── Focus / A11y ───────────────────────── */
-    --focus-ring: 0 0 0 3px rgba(244, 123, 32, 0.22);
-    --ring-wf: 0 0 0 3px rgba(244, 123, 32, 0.16);
+    --focus-ring: 0 0 0 3px rgba(214, 122, 50, 0.24);
+    --ring-wf: 0 0 0 3px rgba(214, 122, 50, 0.18);
 
     /* ── Badges ─────────────────────────────── */
     --badge-conforme: #4CAF50;
     --badge-pendente: #FFCA28;
     --badge-nao-conforme: #EF5350;
-    --badge-info: #64B5F6;
+    --badge-info: #B9C1CE;
 
     /* ── Tipografia ─────────────────────────── */
-    --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-base: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-md: 14px;
+    --font-size-lg: 15px;
+    --font-size-xl: 16px;
+    --line-height-tight: 1.32;
+    --line-height-normal: 1.58;
+
+    /* ── Mesa Avaliadora (Widget) ─────────── */
+    --mesa-fg-primary: #ECEEF2;
+    --mesa-fg-secondary: #C5CCD6;
+    --mesa-fg-muted: #97A0AF;
+    --mesa-border: rgba(86, 94, 108, 0.88);
+    --mesa-border-soft: rgba(120, 130, 146, 0.42);
+    --mesa-accent: #D67A32;
+    --mesa-accent-soft: #F1BA8F;
+    --mesa-info: #AAB3C1;
+    --mesa-warning: #CF9F52;
+    --mesa-alert: #C96868;
+    --mesa-surface-1: rgba(33, 36, 43, 0.985);
+    --mesa-surface-2: rgba(22, 24, 29, 0.985);
+    --mesa-input-bg: rgba(44, 49, 58, 0.82);
 
     /* ── Color scheme ───────────────────────── */
     color-scheme: dark;
 }
-
 /* ==========================================
    RESET E BASE
    ========================================== */
@@ -165,12 +190,12 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    line-height: 1.5;
+    line-height: var(--line-height-normal);
     color: var(--text-primary);
     font-family: var(--font-base);
     background:
-        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 34%),
-        linear-gradient(180deg, rgba(7, 19, 32, 0.96), rgba(8, 22, 36, 1));
+        radial-gradient(circle at top center, rgba(214, 122, 50, 0.07), transparent 36%),
+        linear-gradient(180deg, rgba(20, 22, 27, 0.98), rgba(18, 20, 24, 1));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -372,8 +397,8 @@ b {
 }
 
 .superficie-glass {
-    background: linear-gradient(180deg, rgba(15, 43, 70, 0.78), rgba(12, 34, 54, 0.84));
-    border: 1px solid rgba(176, 196, 222, 0.14);
+    background: linear-gradient(180deg, rgba(47, 52, 61, 0.82), rgba(34, 38, 45, 0.88));
+    border: 1px solid rgba(191, 198, 209, 0.14);
     box-shadow:
         var(--shadow-smooth),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -579,7 +604,7 @@ body *::-webkit-scrollbar-thumb:hover {
 }
 
 .is-glass {
-    background: linear-gradient(180deg, rgba(15, 43, 70, 0.78), rgba(12, 34, 54, 0.84)) !important;
+    background: linear-gradient(180deg, rgba(47, 52, 61, 0.82), rgba(34, 38, 45, 0.88)) !important;
     backdrop-filter: blur(12px);
 }
 

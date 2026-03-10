@@ -16,6 +16,17 @@ Backlog mestre da etapa antiga (priorizado e com status):
 - Integrações opcionais: Google Gemini e Google Vision
 - Qualidade: Ruff, Mypy, Pytest
 
+## Estrutura por domínios
+
+- `app/domains/chat`: portal do inspetor, chat IA e fluxo de laudos
+- `app/domains/mesa`: contratos e serviços da mesa avaliadora
+- `app/domains/admin`: painel administrativo e serviços SaaS
+- `app/domains/revisor`: painel da engenharia/revisão
+- `app/shared`: banco de dados, segurança e utilitários compartilhados
+- `static/js/chat`, `static/js/admin`, `static/js/shared`: organização de scripts por domínio
+
+Observação: os arquivos legados na raiz (`rotas_*.py`, `banco_dados.py`, `seguranca.py`, etc.) permanecem como wrappers de compatibilidade durante a transição.
+
 ## Setup local (do zero)
 
 1. Criar e ativar ambiente virtual:
@@ -87,6 +98,34 @@ python -m mypy
 python -m pytest -q
 python -m compileall -q .
 ```
+
+## Testes E2E (Playwright)
+
+Os testes E2E estão em `tests/e2e` e sobem a aplicação automaticamente em uma porta local com:
+
+- banco SQLite temporário (não usa seu banco real),
+- seed DEV habilitado (`SEED_DEV_BOOTSTRAP=1`) para usuários de teste.
+
+Usuários seed usados nos E2E:
+
+- `inspetor@wf.com.br` / `Dev@123456`
+- `revisor@wf.com.br` / `Dev@123456`
+- `admin@wf.com.br` / `Admin@123`
+
+Executar:
+
+```powershell
+$env:RUN_E2E="1"
+python -m pytest tests/e2e -q --browser chromium
+```
+
+Com trace/vídeo/screenshot em falha:
+
+```powershell
+.\tests\e2e\run_playwright.ps1
+```
+
+Por padrão os E2E ficam desativados (skip) quando `RUN_E2E` não é `1`.
 
 ## Migrações de banco (Alembic)
 

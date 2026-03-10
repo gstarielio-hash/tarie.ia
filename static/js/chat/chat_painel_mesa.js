@@ -26,6 +26,8 @@
     // ao fluxo da mesa avaliadora / engenharia.
     const PREFIXO_BASE = String(TP.config?.ATALHO_MESA_AVALIADORA || "@insp").trim() || "@insp";
     const PREFIXO_MESA = `${PREFIXO_BASE} `;
+    const MENSAGEM_MESA_EXIGE_INSPECAO =
+        "A conversa com a mesa avaliadora só é permitida após iniciar uma nova inspeção.";
 
     // Todos os aliases aceitos no início da mensagem.
     // Exemplo:
@@ -54,8 +56,18 @@
         );
     }
 
+    function obterLaudoAtivo() {
+        const laudoId = Number(window.TarielAPI?.obterLaudoAtualId?.() || 0);
+        return Number.isFinite(laudoId) && laudoId > 0 ? laudoId : null;
+    }
+
     function abrirWidgetMesaDedicado(texto = "") {
-        if (!possuiWidgetMesaDedicado()) return false;
+        if (!possuiWidgetMesaDedicado()) return null;
+
+        if (!obterLaudoAtivo()) {
+            TP.toast?.(MENSAGEM_MESA_EXIGE_INSPECAO, "aviso", 3200);
+            return false;
+        }
 
         const painel = document.getElementById("painel-mesa-widget");
         const botaoToggle = document.getElementById("btn-mesa-widget-toggle");
@@ -190,9 +202,11 @@
     // Apenas ativa/preenche o composer com o prefixo @insp.
     // Não dispara envio automático.
     function ativarMesaAvaliadora(texto = "") {
-        if (abrirWidgetMesaDedicado(texto)) {
+        const resultadoWidget = abrirWidgetMesaDedicado(texto);
+        if (resultadoWidget === true) {
             return true;
         }
+        if (resultadoWidget === false) return false;
 
         const campo = obterCampoMensagem();
         if (!campo) return false;
@@ -222,6 +236,9 @@
         const ok = ativarMesaAvaliadora(texto);
 
         if (!ok) {
+            if (possuiWidgetMesaDedicado()) {
+                return false;
+            }
             TP.toast?.("Campo de mensagem não encontrado.", "erro", 3000);
             return false;
         }
@@ -311,6 +328,8 @@
     // =========================================================
 
     function wireBotaoComposerMesa() {
+        if (possuiWidgetMesaDedicado()) return;
+
         const botao = obterBotaoComposerMesa();
         if (!botao || botao.dataset.boundMesa === "true") return;
 

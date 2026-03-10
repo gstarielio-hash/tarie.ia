@@ -11,7 +11,7 @@
 // Verifique main.py — a rota deve ser:
 //   @app.get("/app/trabalhador_servico.js")
 //   async def service_worker():
-//       return FileResponse("static/js/trabalhador_servico.js",
+//       return FileResponse("static/js/shared/trabalhador_servico.js",
 //                           media_type="application/javascript",
 //                           headers={"Service-Worker-Allowed": "/app/"})
 // ==========================================
@@ -34,13 +34,13 @@ const EM_PRODUCAO =
 
 const ARQUIVOS_NUCLEO = [
     `${ESCOPO_APP}/`,
-    "/static/css/global.css",
-    "/static/css/layout.css",
-    "/static/css/chat_base.css",
-    "/static/css/chat_index.css",
-    "/static/js/api.js",
-    "/static/js/ui.js",
-    "/static/js/hardware.js",
+    "/static/css/shared/global.css",
+    "/static/css/shared/layout.css",
+    "/static/css/chat/chat_base.css",
+    "/static/css/chat/chat_index.css",
+    "/static/js/shared/api.js",
+    "/static/js/shared/ui.js",
+    "/static/js/shared/hardware.js",
     `${ESCOPO_APP}/manifesto.json`,
 ];
 
