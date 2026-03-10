@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import difflib
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Callable
@@ -20,6 +19,12 @@ from app.domains.chat.pendencias_helpers import (
     listar_pendencias_mesa_laudo,
     normalizar_filtro_pendencias,
 )
+from app.domains.chat.revisao_helpers import (
+    _gerar_diff_revisoes,
+    _obter_revisao_por_versao,
+    _obter_ultima_revisao_laudo,
+    _resumo_diff_revisoes,
+)
 from app.shared.database import Laudo, LaudoRevisao, MensagemLaudo, TipoMensagem, Usuario
 from nucleo.inspetor.confianca_ia import (
     CONFIANCA_MEDIA,
@@ -31,56 +36,6 @@ from nucleo.inspetor.confianca_ia import (
 def _mensagem_representa_foto(conteudo: str) -> bool:
     texto = (conteudo or "").strip().lower()
     return texto in {"[imagem]", "imagem enviada", "[foto]"}
-
-
-def _obter_ultima_revisao_laudo(banco: Session, laudo_id: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id)
-        .order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc())
-        .first()
-    )
-
-
-def _obter_revisao_por_versao(banco: Session, laudo_id: int, versao: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id, LaudoRevisao.numero_versao == versao)
-        .first()
-    )
-
-
-def _gerar_diff_revisoes(base: str, comparar: str) -> str:
-    linhas_base = (base or "").splitlines()
-    linhas_comparar = (comparar or "").splitlines()
-
-    diff = difflib.unified_diff(
-        linhas_base,
-        linhas_comparar,
-        fromfile="versao_base",
-        tofile="versao_comparada",
-        lineterm="",
-        n=2,
-    )
-    return "\n".join(diff).strip()
-
-
-def _resumo_diff_revisoes(diff_texto: str) -> dict[str, int]:
-    adicionadas = 0
-    removidas = 0
-    for linha in (diff_texto or "").splitlines():
-        if not linha or linha.startswith(("+++", "---", "@@")):
-            continue
-        if linha.startswith("+"):
-            adicionadas += 1
-        elif linha.startswith("-"):
-            removidas += 1
-
-    return {
-        "linhas_adicionadas": adicionadas,
-        "linhas_removidas": removidas,
-        "total_alteracoes": adicionadas + removidas,
-    }
 
 
 def _avaliar_gate_padrao(banco: Session, laudo: Laudo) -> dict[str, Any]:

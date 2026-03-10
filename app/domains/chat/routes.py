@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import asyncio
-import difflib
 import io  # noqa: F401
 import json
 import logging
@@ -53,7 +52,6 @@ from app.shared.database import (
     CitacaoLaudo,  # noqa: F401
     Empresa,  # noqa: F401
     Laudo,
-    LaudoRevisao,
     LimitePlano,
     ModoResposta,
     MensagemLaudo,
@@ -80,7 +78,6 @@ from nucleo.inspetor.comandos_chat import (  # noqa: F401
 )
 from nucleo.inspetor.confianca_ia import (
     CONFIANCA_MEDIA,  # noqa: F401
-    _resumo_texto_curto,
     _titulo_confianca_humano,  # noqa: F401
     analisar_confianca_resposta_ia,  # noqa: F401
     normalizar_payload_confianca_ia,
@@ -122,6 +119,14 @@ from app.domains.chat.commands_helpers import (
     montar_resposta_comando_rapido,  # noqa: F401
     montar_resposta_comando_resumo,  # noqa: F401
     registrar_comando_rapido_historico,  # noqa: F401
+)
+from app.domains.chat.revisao_helpers import (
+    _gerar_diff_revisoes,  # noqa: F401
+    _obter_revisao_por_versao,  # noqa: F401
+    _obter_ultima_revisao_laudo,  # noqa: F401
+    _registrar_revisao_laudo,  # noqa: F401
+    _resumo_diff_revisoes,  # noqa: F401
+    _serializar_revisao_laudo,  # noqa: F401
 )
 from app.domains.chat.schemas import (
     DadosChat,  # noqa: F401
@@ -860,101 +865,6 @@ def estado_relatorio_sanitizado(
         "estado": estado,
         "laudo_id": laudo.id if estado == "relatorio_ativo" else None,
         "tipos_relatorio": TIPOS_TEMPLATE_VALIDOS,
-    }
-
-
-def _obter_ultima_revisao_laudo(banco: Session, laudo_id: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id)
-        .order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc())
-        .first()
-    )
-
-
-def _obter_revisao_por_versao(banco: Session, laudo_id: int, versao: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id, LaudoRevisao.numero_versao == versao)
-        .first()
-    )
-
-
-def _registrar_revisao_laudo(
-    banco: Session,
-    laudo: Laudo,
-    *,
-    conteudo: str,
-    origem: str,
-    confianca: dict[str, Any] | None = None,
-) -> LaudoRevisao | None:
-    texto = str(conteudo or "").strip()
-    if not texto:
-        return None
-
-    ultima = _obter_ultima_revisao_laudo(banco, laudo.id)
-    if ultima and (ultima.conteudo or "").strip() == texto:
-        return ultima
-
-    proxima_versao = (int(ultima.numero_versao) + 1) if ultima else 1
-    payload_confianca = normalizar_payload_confianca_ia(confianca or {})
-
-    revisao = LaudoRevisao(
-        laudo_id=laudo.id,
-        numero_versao=proxima_versao,
-        origem=str(origem or "ia").strip().lower()[:20] or "ia",
-        resumo=_resumo_texto_curto(texto, limite=220),
-        conteudo=texto,
-        confianca_geral=payload_confianca.get("geral"),
-        confianca_json=payload_confianca or None,
-    )
-    banco.add(revisao)
-    return revisao
-
-
-def _serializar_revisao_laudo(revisao: LaudoRevisao) -> dict[str, Any]:
-    payload_confianca = normalizar_payload_confianca_ia(revisao.confianca_json or {})
-    return {
-        "id": revisao.id,
-        "versao": int(revisao.numero_versao),
-        "origem": revisao.origem,
-        "resumo": revisao.resumo or "",
-        "criado_em": revisao.criado_em.isoformat() if revisao.criado_em else "",
-        "confianca_geral": payload_confianca.get("geral") or str(revisao.confianca_geral or "").strip().lower(),
-        "confianca": payload_confianca,
-    }
-
-
-def _gerar_diff_revisoes(base: str, comparar: str) -> str:
-    linhas_base = (base or "").splitlines()
-    linhas_comparar = (comparar or "").splitlines()
-
-    diff = difflib.unified_diff(
-        linhas_base,
-        linhas_comparar,
-        fromfile="versao_base",
-        tofile="versao_comparada",
-        lineterm="",
-        n=2,
-    )
-    return "\n".join(diff).strip()
-
-
-def _resumo_diff_revisoes(diff_texto: str) -> dict[str, int]:
-    adicionadas = 0
-    removidas = 0
-    for linha in (diff_texto or "").splitlines():
-        if not linha or linha.startswith(("+++", "---", "@@")):
-            continue
-        if linha.startswith("+"):
-            adicionadas += 1
-        elif linha.startswith("-"):
-            removidas += 1
-
-    return {
-        "linhas_adicionadas": adicionadas,
-        "linhas_removidas": removidas,
-        "total_alteracoes": adicionadas + removidas,
     }
 
 

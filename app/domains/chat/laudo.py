@@ -15,14 +15,16 @@ from app.domains.chat.normalization import (
     nome_template_humano,
     normalizar_tipo_template,
 )
-from app.domains.chat.schemas import DadosPin
-from app.domains.chat.templates_ai import RelatorioCBMGO
-from app.domains.chat.routes import (
-    MODO_DETALHADO,
+from app.domains.chat.revisao_helpers import (
     _gerar_diff_revisoes,
     _obter_revisao_por_versao,
     _resumo_diff_revisoes,
     _serializar_revisao_laudo,
+)
+from app.domains.chat.schemas import DadosPin
+from app.domains.chat.templates_ai import RelatorioCBMGO
+from app.domains.chat.routes import (
+    MODO_DETALHADO,
     agora_utc,
     avaliar_gate_qualidade_laudo,
     exigir_csrf,

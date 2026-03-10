@@ -29,6 +29,7 @@ from app.domains.chat.commands_helpers import (
     montar_resposta_comando_rapido,
     registrar_comando_rapido_historico,
 )
+from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
 from app.domains.chat.routes import (
     LIMITE_DOC_BYTES,
     LIMITE_DOC_CHARS,
@@ -43,7 +44,6 @@ from app.domains.chat.routes import (
     TIMEOUT_KEEPALIVE_SSE_SEGUNDOS,
     TEM_DOCX,
     TEM_PYPDF,
-    _registrar_revisao_laudo,
     agora_utc,
     evento_sse,
     exigir_csrf,
