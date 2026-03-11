@@ -2200,9 +2200,13 @@ body.modo-foco .tela-boas-vindas,
 body.modo-foco .linha-mensagem,
 body.modo-foco .indicador-digitando {
     width: 100% !important;
-    max-width: 900px !important;
+    max-width: 100% !important;
     margin-left: auto !important;
     margin-right: auto !important;
+}
+
+body.modo-foco .thread-nav-inner {
+    max-width: 100% !important;
 }
 
 body.modo-foco .rodape-entrada {
@@ -2215,7 +2219,7 @@ body.modo-foco .rodape-entrada {
 
 body.modo-foco .pilula-entrada {
     width: 100% !important;
-    max-width: 900px !important;
+    max-width: 100% !important;
     margin-left: auto !important;
     margin-right: auto !important;
 }

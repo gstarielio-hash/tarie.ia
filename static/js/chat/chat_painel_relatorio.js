@@ -3,13 +3,9 @@
 // Papel: fluxo de relatório no painel do chat.
 // Responsável por:
 // - finalizar inspeção / relatório
-// - sincronizar badge visual do histórico
-// - bloquear/desbloquear rodapé durante finalização
-// - refletir estado do relatório na UI
-//
-// Dependência:
-// - window.TarielChatPainel (core + laudos)
-// - window.TarielAPI (network)
+// - refletir estado do laudo na UI
+// - bloquear/desbloquear composer em modo leitura
+// - oferecer reabertura manual após ajustes da mesa
 // ==========================================
 
 (function () {
@@ -19,9 +15,7 @@
     if (!TP || TP.__relatorioWired__) return;
     TP.__relatorioWired__ = true;
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
+    const ESTADOS_LEITURA = new Set(["aguardando", "ajustes", "aprovado"]);
 
     function normalizarEstadoRelatorio(valor) {
         const estado = String(valor || "").trim().toLowerCase();
@@ -36,6 +30,10 @@
 
         if (estado === "aguardando" || estado === "aguardando_avaliacao") {
             return "aguardando";
+        }
+
+        if (estado === "ajustes" || estado === "aprovado") {
+            return estado;
         }
 
         return estado || "sem_relatorio";
@@ -64,22 +62,108 @@
         return normalizarEstadoRelatorio(viaApi || viaState || "sem_relatorio");
     }
 
+    function homeForcadoAtivo() {
+        return document.body.dataset.forceHomeLanding === "true";
+    }
+
     function definirLaudoAtualNoCore(laudoId) {
         const id = Number(laudoId);
         const laudoNormalizado = Number.isFinite(id) && id > 0 ? id : null;
 
         TP.state.laudoAtualId = laudoNormalizado;
         TP.persistirLaudoAtual?.(laudoNormalizado || "");
-
-        document.body.dataset.laudoAtualId = laudoNormalizado
-            ? String(laudoNormalizado)
-            : "";
+        document.body.dataset.laudoAtualId = laudoNormalizado ? String(laudoNormalizado) : "";
     }
 
     function definirEstadoRelatorioNoCore(estado) {
         const estadoNormalizado = normalizarEstadoRelatorio(estado);
         TP.state.estadoRelatorio = estadoNormalizado;
         document.body.dataset.estadoRelatorio = estadoNormalizado;
+    }
+
+    function obterAvisoBloqueio() {
+        return document.getElementById("aviso-laudo-bloqueado");
+    }
+
+    function obterTituloAviso() {
+        return document.getElementById("aviso-laudo-bloqueado-titulo");
+    }
+
+    function obterDescricaoAviso() {
+        return document.getElementById("aviso-laudo-bloqueado-descricao");
+    }
+
+    function obterBotaoReabrir() {
+        return document.getElementById("btn-reabrir-laudo");
+    }
+
+    function obterBotaoFinalizar() {
+        return document.getElementById("btn-finalizar-inspecao");
+    }
+
+    function obterCampoMensagem() {
+        return document.getElementById("campo-mensagem");
+    }
+
+    function obterMesaWidgetInput() {
+        return document.getElementById("mesa-widget-input");
+    }
+
+    function obterMesaWidgetEnviar() {
+        return document.getElementById("mesa-widget-enviar");
+    }
+
+    function atualizarAcaoFinalizar({ visivel, desabilitado = false, busy = false } = {}) {
+        const btn = obterBotaoFinalizar();
+        if (!btn) return;
+
+        btn.hidden = !visivel;
+        btn.disabled = !!desabilitado;
+        btn.setAttribute("aria-busy", String(!!busy));
+    }
+
+    function configurarCampoMensagemSomenteLeitura(ativo, placeholderBloqueio = "") {
+        const campo = obterCampoMensagem();
+        if (!campo) return;
+
+        if (!campo.dataset.placeholderOriginal) {
+            campo.dataset.placeholderOriginal = campo.getAttribute("placeholder") || "";
+        }
+
+        campo.readOnly = !!ativo;
+        campo.setAttribute("aria-readonly", String(!!ativo));
+        campo.classList.toggle("campo-somente-leitura", !!ativo);
+
+        if (ativo && placeholderBloqueio) {
+            campo.setAttribute("placeholder", placeholderBloqueio);
+            return;
+        }
+
+        campo.setAttribute("placeholder", campo.dataset.placeholderOriginal || "");
+    }
+
+    function configurarMesaWidgetSomenteLeitura(ativo, placeholderBloqueio = "") {
+        const input = obterMesaWidgetInput();
+        const btnEnviar = obterMesaWidgetEnviar();
+
+        if (input) {
+            if (!input.dataset.placeholderOriginal) {
+                input.dataset.placeholderOriginal = input.getAttribute("placeholder") || "";
+            }
+            input.disabled = !!ativo;
+            input.setAttribute("aria-disabled", String(!!ativo));
+            input.setAttribute(
+                "placeholder",
+                ativo && placeholderBloqueio
+                    ? placeholderBloqueio
+                    : (input.dataset.placeholderOriginal || "")
+            );
+        }
+
+        if (btnEnviar) {
+            btnEnviar.disabled = !!ativo;
+            btnEnviar.setAttribute("aria-disabled", String(!!ativo));
+        }
     }
 
     function bloquearUIFinalizacao() {
@@ -98,55 +182,131 @@
         return document.body.dataset.finalizandoLaudo === "true";
     }
 
-    function limparBadgeAtivo() {
-        TP.limparBadgesRelatorio?.("ativo");
+    function ocultarAvisoLaudoBloqueado() {
+        const aviso = obterAvisoBloqueio();
+        const btnReabrir = obterBotaoReabrir();
+        if (aviso) {
+            aviso.hidden = true;
+            aviso.dataset.status = "";
+        }
+        if (btnReabrir) {
+            btnReabrir.hidden = true;
+            btnReabrir.disabled = false;
+            btnReabrir.removeAttribute("aria-busy");
+        }
     }
 
-    function limparBadgeAguardando() {
-        TP.limparBadgesRelatorio?.("aguardando");
+    function mostrarAvisoLaudoBloqueado(estado, { permiteReabrir = false } = {}) {
+        const aviso = obterAvisoBloqueio();
+        const titulo = obterTituloAviso();
+        const descricao = obterDescricaoAviso();
+        const btnReabrir = obterBotaoReabrir();
+        if (!aviso || !titulo || !descricao) return;
+
+        let tituloTexto = "Laudo em modo leitura";
+        let descricaoTexto = "Este laudo está temporariamente bloqueado para novas mensagens.";
+
+        if (estado === "aguardando") {
+            tituloTexto = "Laudo aguardando análise da mesa";
+            descricaoTexto = "A mesa avaliadora ainda está revisando este laudo. Novas mensagens ficam bloqueadas até haver retorno.";
+        } else if (estado === "ajustes") {
+            tituloTexto = "Ajustes solicitados pela mesa";
+            descricaoTexto = "A mesa respondeu com ajustes. Reabra a inspeção para continuar a conversa e complementar o laudo.";
+        } else if (estado === "aprovado") {
+            tituloTexto = "Laudo aprovado pela mesa";
+            descricaoTexto = "Este laudo foi aprovado e agora está disponível apenas para consulta.";
+        }
+
+        titulo.textContent = tituloTexto;
+        descricao.textContent = descricaoTexto;
+        aviso.dataset.status = estado;
+        aviso.hidden = false;
+
+        if (btnReabrir) {
+            btnReabrir.hidden = !(estado === "ajustes" && permiteReabrir);
+        }
     }
 
-    function limparTodosBadgesDeRelatorio() {
-        limparBadgeAtivo();
-        limparBadgeAguardando();
+    function obterPlaceholderBloqueio(estado) {
+        if (estado === "aguardando") {
+            return "Laudo aguardando retorno da mesa avaliadora...";
+        }
+        if (estado === "ajustes") {
+            return "Reabra a inspeção para continuar após os ajustes da mesa...";
+        }
+        if (estado === "aprovado") {
+            return "Laudo aprovado. Este histórico está somente leitura.";
+        }
+        return "";
     }
 
-    function marcarLaudoComoAtivo(laudoId) {
+    function obterStatusCardPorEstado(estado) {
+        if (estado === "relatorio_ativo") return "aberto";
+        if (estado === "aguardando") return "aguardando";
+        if (estado === "ajustes") return "ajustes";
+        if (estado === "aprovado") return "aprovado";
+        return null;
+    }
+
+    function selecionarCardHistorico(laudoId) {
         const id = Number(laudoId);
         if (!Number.isFinite(id) || id <= 0) return;
 
-        limparBadgeAtivo();
-        TP.atualizarBadgeRelatorio?.(id, "ativo");
         TP.setAtivoNoHistorico?.(id);
         TP.atualizarBreadcrumb?.(id);
-        TP.persistirLaudoAtual?.(id);
         TP.definirLaudoIdNaURL?.(id, { replace: true });
-
-        definirLaudoAtualNoCore(id);
-        definirEstadoRelatorioNoCore("relatorio_ativo");
     }
 
-    function marcarLaudoComoAguardando(laudoId) {
+    function aplicarModoLaudoSelecionado({ laudoId, estado, permiteReabrir = false } = {}) {
         const id = Number(laudoId);
-        if (!Number.isFinite(id) || id <= 0) return;
+        if (!Number.isFinite(id) || id <= 0) {
+            TP.limparSelecaoAtual?.();
+            ocultarAvisoLaudoBloqueado();
+            desbloquearUIFinalizacao();
+            configurarCampoMensagemSomenteLeitura(false);
+            configurarMesaWidgetSomenteLeitura(false);
+            atualizarAcaoFinalizar({ visivel: false });
+            definirEstadoRelatorioNoCore("sem_relatorio");
+            return;
+        }
 
-        limparBadgeAtivo();
-        TP.atualizarBadgeRelatorio?.(id, "aguardando");
-        TP.persistirLaudoAtual?.(id);
+        const estadoNormalizado = normalizarEstadoRelatorio(estado);
+        const statusCard = obterStatusCardPorEstado(estadoNormalizado);
 
+        document.body.dataset.forceHomeLanding = "false";
+        selecionarCardHistorico(id);
         definirLaudoAtualNoCore(id);
-        definirEstadoRelatorioNoCore("aguardando");
-    }
+        definirEstadoRelatorioNoCore(estadoNormalizado);
 
-    function limparEstadoVisualDeRelatorioAtivo() {
-        limparBadgeAtivo();
+        if (statusCard) {
+            TP.atualizarBadgeRelatorio?.(id, statusCard);
+        }
+
+        if (estadoNormalizado === "relatorio_ativo") {
+            ocultarAvisoLaudoBloqueado();
+            configurarCampoMensagemSomenteLeitura(false);
+            configurarMesaWidgetSomenteLeitura(false);
+            atualizarAcaoFinalizar({ visivel: true, desabilitado: false });
+            desbloquearUIFinalizacao();
+            return;
+        }
+
+        if (ESTADOS_LEITURA.has(estadoNormalizado)) {
+            mostrarAvisoLaudoBloqueado(estadoNormalizado, { permiteReabrir });
+            configurarCampoMensagemSomenteLeitura(true, obterPlaceholderBloqueio(estadoNormalizado));
+            configurarMesaWidgetSomenteLeitura(true, obterPlaceholderBloqueio(estadoNormalizado));
+            atualizarAcaoFinalizar({ visivel: false, desabilitado: true });
+            desbloquearUIFinalizacao();
+            TP.setRodapeBloqueado?.(true);
+            return;
+        }
+
+        ocultarAvisoLaudoBloqueado();
+        configurarCampoMensagemSomenteLeitura(false);
+        configurarMesaWidgetSomenteLeitura(false);
+        atualizarAcaoFinalizar({ visivel: false });
         desbloquearUIFinalizacao();
-        definirEstadoRelatorioNoCore("sem_relatorio");
     }
-
-    // =========================================================
-    // FINALIZAÇÃO PRINCIPAL
-    // =========================================================
 
     async function finalizarInspecaoCompleta() {
         const laudoId = obterLaudoAtualSeguro();
@@ -154,7 +314,7 @@
         const estadoAtual = obterEstadoAtualSeguro();
 
         if (!laudoId) {
-            TP.toast?.("Não há laudo ativo para finalizar.", "erro", 3000);
+            TP.toast?.("Não há laudo selecionado para finalizar.", "erro", 3000);
             return null;
         }
 
@@ -164,14 +324,18 @@
         }
 
         if (estadoAtual !== "relatorio_ativo") {
-            TP.toast?.("Este laudo não está em estado ativo para finalização.", "aviso", 3000);
+            TP.toast?.("Somente laudos abertos podem ser finalizados.", "aviso", 3000);
             return null;
         }
 
         TP.log?.("info", `Finalizando laudo ${laudoId} com template ${tipoTemplate}.`);
 
         bloquearUIFinalizacao();
-        marcarLaudoComoAguardando(laudoId);
+        aplicarModoLaudoSelecionado({
+            laudoId,
+            estado: "aguardando",
+            permiteReabrir: false,
+        });
 
         try {
             const resposta = await window.TarielAPI?.finalizarRelatorio?.({
@@ -182,8 +346,7 @@
                 throw new Error("FINALIZACAO_SEM_RESPOSTA");
             }
 
-            marcarLaudoComoAguardando(laudoId);
-            desbloquearUIFinalizacao();
+            sincronizarEstadoRelatorioNaUI(resposta);
 
             TP.emitir?.("tariel:finalizacao-ui-concluida", {
                 laudoId,
@@ -193,18 +356,62 @@
             return resposta;
         } catch (erro) {
             TP.log?.("error", "Falha ao finalizar inspeção:", erro);
-
+            aplicarModoLaudoSelecionado({
+                laudoId,
+                estado: "relatorio_ativo",
+                permiteReabrir: false,
+            });
             desbloquearUIFinalizacao();
-            marcarLaudoComoAtivo(laudoId);
-
             TP.toast?.("Erro ao tentar finalizar a inspeção.", "erro", 3500);
             return null;
         }
     }
 
-    // =========================================================
-    // SINCRONIZAÇÃO DE ESTADO NA UI
-    // =========================================================
+    async function reabrirLaudoAtual() {
+        const laudoId = obterLaudoAtualSeguro();
+        const btn = obterBotaoReabrir();
+
+        if (!laudoId) {
+            TP.toast?.("Nenhum laudo selecionado para reabrir.", "aviso", 2600);
+            return null;
+        }
+
+        if (!window.TarielAPI?.reabrirLaudo) {
+            TP.toast?.("A reabertura do laudo não está disponível agora.", "erro", 3200);
+            return null;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+        }
+
+        try {
+            const resposta = await window.TarielAPI.reabrirLaudo(laudoId);
+            if (resposta) {
+                sincronizarEstadoRelatorioNaUI(resposta);
+                TP.toast?.(
+                    resposta?.message || "Inspeção reaberta com sucesso.",
+                    "sucesso",
+                    2400
+                );
+            }
+            return resposta;
+        } catch (erro) {
+            TP.log?.("error", "Falha ao reabrir laudo:", erro);
+            TP.toast?.(
+                String(erro?.message || "Não foi possível reabrir este laudo."),
+                "erro",
+                3200
+            );
+            return null;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.removeAttribute("aria-busy");
+            }
+        }
+    }
 
     function sincronizarEstadoRelatorioNaUI(dados = {}) {
         const estadoRecebido =
@@ -216,38 +423,37 @@
         const laudoIdRecebido =
             dados.laudo_id ??
             dados.laudoId ??
+            dados?.laudo_card?.id ??
             window.TarielAPI?.obterLaudoAtualId?.() ??
             TP.state?.laudoAtualId ??
             TP.obterLaudoIdDaURL?.();
 
         const estado = normalizarEstadoRelatorio(estadoRecebido);
         const laudoId = Number(laudoIdRecebido) || null;
+        const permiteReabrir = !!(dados.permite_reabrir ?? dados?.laudo_card?.permite_reabrir);
 
         TP.log?.("info", "Sincronizando estado do relatório na UI:", {
             estado,
             laudoId,
+            permiteReabrir,
         });
 
-        if (estado === "relatorio_ativo" && laudoId) {
-            marcarLaudoComoAtivo(laudoId);
-            desbloquearUIFinalizacao();
-            return;
-        }
-
-        if (estado === "aguardando" && laudoId) {
-            marcarLaudoComoAguardando(laudoId);
-            desbloquearUIFinalizacao();
+        if (homeForcadoAtivo() && estado !== "sem_relatorio") {
+            TP.log?.("info", "Sincronização automática ignorada por Home forçado.");
             return;
         }
 
         if (estado === "sem_relatorio") {
-            limparEstadoVisualDeRelatorioAtivo();
+            aplicarModoLaudoSelecionado({ laudoId: null, estado });
+            return;
         }
-    }
 
-    // =========================================================
-    // HANDLERS DE EVENTOS
-    // =========================================================
+        aplicarModoLaudoSelecionado({
+            laudoId,
+            estado,
+            permiteReabrir,
+        });
+    }
 
     function handleRelatorioIniciado(evento) {
         const laudoId = Number(
@@ -259,9 +465,11 @@
         if (!laudoId) return;
 
         TP.log?.("info", `Evento de relatório iniciado recebido para laudo ${laudoId}.`);
-
-        marcarLaudoComoAtivo(laudoId);
-        desbloquearUIFinalizacao();
+        aplicarModoLaudoSelecionado({
+            laudoId,
+            estado: "relatorio_ativo",
+            permiteReabrir: false,
+        });
     }
 
     function handleRelatorioFinalizado(evento) {
@@ -273,31 +481,29 @@
 
         if (!laudoId) {
             desbloquearUIFinalizacao();
-            definirEstadoRelatorioNoCore("aguardando");
             return;
         }
 
         TP.log?.("info", `Evento de relatório finalizado recebido para laudo ${laudoId}.`);
-
-        marcarLaudoComoAguardando(laudoId);
-        desbloquearUIFinalizacao();
+        aplicarModoLaudoSelecionado({
+            laudoId,
+            estado: "aguardando",
+            permiteReabrir: false,
+        });
     }
 
     function handleRelatorioCancelado() {
         TP.log?.("info", "Evento de cancelamento de relatório recebido.");
-
-        limparBadgeAtivo();
-        desbloquearUIFinalizacao();
-        definirEstadoRelatorioNoCore("sem_relatorio");
+        aplicarModoLaudoSelecionado({
+            laudoId: null,
+            estado: "sem_relatorio",
+            permiteReabrir: false,
+        });
     }
 
     function handleEstadoRelatorio(evento) {
         sincronizarEstadoRelatorioNaUI(evento?.detail || {});
     }
-
-    // =========================================================
-    // BIND
-    // =========================================================
 
     function bindEventosRelatorio() {
         document.addEventListener("tariel:relatorio-iniciado", handleRelatorioIniciado);
@@ -310,6 +516,14 @@
         document.addEventListener("tarielrelatorio-cancelado", handleRelatorioCancelado);
 
         document.addEventListener("tariel:estado-relatorio", handleEstadoRelatorio);
+
+        const btnReabrir = obterBotaoReabrir();
+        if (btnReabrir && btnReabrir.dataset.relatorioBound !== "true") {
+            btnReabrir.dataset.relatorioBound = "true";
+            btnReabrir.addEventListener("click", () => {
+                reabrirLaudoAtual();
+            });
+        }
     }
 
     function bindFinalizacaoAoUnload() {
@@ -319,10 +533,6 @@
         });
     }
 
-    // =========================================================
-    // BOOT
-    // =========================================================
-
     TP.registrarBootTask("chat_painel_relatorio", () => {
         bindEventosRelatorio();
         bindFinalizacaoAoUnload();
@@ -330,11 +540,11 @@
         return true;
     });
 
-    // Compatibilidade com index/page e legado.
     window.finalizarInspecaoCompleta = finalizarInspecaoCompleta;
 
     Object.assign(TP, {
         finalizarInspecaoCompleta,
+        reabrirLaudoAtual,
         sincronizarEstadoRelatorioNaUI,
         normalizarEstadoRelatorio,
     });

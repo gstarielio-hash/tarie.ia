@@ -61,8 +61,15 @@
 
 {% set usuario_nome = (usuario.nome_completo if usuario else 'Usuário') %}
 {% set empresa_nome = (usuario.empresa.nome_fantasia if usuario and usuario.empresa else 'WF Soluções') %}
+{% set usuario_email = (usuario.email if usuario else '') %}
+{% set usuario_telefone = (usuario.telefone if usuario and usuario.telefone else '') %}
+{% set usuario_foto_url = (usuario.foto_perfil_url if usuario and usuario.foto_perfil_url else '') %}
+{% set _nome_partes = usuario_nome.split() %}
+{% set _ini_a = (_nome_partes[0][0] if _nome_partes and _nome_partes[0] else 'U') %}
+{% set _ini_b = (_nome_partes[-1][0] if _nome_partes|length > 1 and _nome_partes[-1] else '') %}
+{% set usuario_iniciais = (_ini_a ~ _ini_b) | upper %}
 
-{% set laudo_ativo_id = (
+{% set laudo_selecionado_id = (
     estado_relatorio.laudo_id
     if estado_relatorio and estado_relatorio.laudo_id
     else none
@@ -79,7 +86,7 @@
     class="barra-historico"
     aria-label="Histórico de inspeções"
     data-estado-relatorio="{{ estado_relatorio_atual }}"
-    data-laudo-ativo-id="{{ laudo_ativo_id if laudo_ativo_id else '' }}"
+    data-laudo-ativo-id="{{ laudo_selecionado_id if laudo_selecionado_id else '' }}"
 >
     {# ========================================================
        ÁREA PRINCIPAL ROLÁVEL
@@ -151,34 +158,6 @@
         {% endif %}
 
         {# ====================================================
-           BANNER DE RELATÓRIO EM ANDAMENTO
-           Mantido sempre no DOM para atualização via JS
-           ==================================================== #}
-        <section
-            id="banner-relatorio-sidebar"
-            class="banner-relatorio-ativo"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-            {% if estado_relatorio_atual != 'relatorio_ativo' %}hidden{% endif %}
-        >
-            <span class="material-symbols-rounded" aria-hidden="true">edit_document</span>
-
-            <div class="banner-relatorio-texto">
-                <strong>Relatório em andamento</strong>
-                <span id="banner-relatorio-laudo-id">
-                    {% if laudo_ativo_id %}
-                        Laudo #{{ laudo_ativo_id }}
-                    {% else %}
-                        Laudo #—
-                    {% endif %}
-                </span>
-            </div>
-
-            <span class="dot-piscando" aria-hidden="true"></span>
-        </section>
-
-        {# ====================================================
            HISTÓRICO
            ==================================================== #}
         <nav
@@ -227,7 +206,7 @@
                         {% set data_br = laudo.criado_em.strftime('%d/%m/%Y') %}
                         {% set hora_br = laudo.criado_em.strftime('%H:%M') %}
 
-                        {% set item_ativo = (laudo_ativo_id and laudo.id == laudo_ativo_id) %}
+                        {% set item_ativo = (laudo_selecionado_id and laudo.id == laudo_selecionado_id) %}
 
                         <div
                             class="item-historico pinado{% if item_ativo %} ativo{% endif %}"
@@ -238,6 +217,7 @@
                             data-data="{{ data_iso }}"
                             data-status-relatorio="{{ status_cls }}"
                             data-status-revisao="{{ (laudo.status_revisao | default('', true) | lower | replace(' ', '_')) | e }}"
+                            data-card-status="{{ laudo.card_status | default('aberto', true) | e }}"
                             {% if item_ativo %}aria-current="true"{% endif %}
                             aria-label="Laudo {{ setor_label }}, fixado, {{ data_br }}"
                             title="Abrir laudo {{ setor_label }}"
@@ -256,12 +236,9 @@
                                 {% endif %}
                             </span>
 
-                            <span
-                                class="badge-status badge-{{ status_cls }}"
-                                aria-hidden="true"
-                                title="Status: {{ status_raw }}"
-                            >•</span>
-                            <span class="sr-only">Status {{ status_raw }}</span>
+                            <span class="pill-status-laudo pill-status-{{ laudo.card_status | default('aberto', true) | e }}">
+                                {{ laudo.card_status_label | default('Aberto', true) | e }}
+                            </span>
 
                             <button
                                 type="button"
@@ -312,7 +289,7 @@
                             {% set data_br = laudo.criado_em.strftime('%d/%m/%Y') %}
                             {% set hora_br = laudo.criado_em.strftime('%H:%M') %}
 
-                            {% set item_ativo = (laudo_ativo_id and laudo.id == laudo_ativo_id) %}
+                            {% set item_ativo = (laudo_selecionado_id and laudo.id == laudo_selecionado_id) %}
 
                             {% if data_br != ns.data_aberta %}
                                 {% if ns.data_aberta %}
@@ -336,6 +313,7 @@
                                 data-data="{{ data_iso }}"
                                 data-status-relatorio="{{ status_cls }}"
                                 data-status-revisao="{{ (laudo.status_revisao | default('', true) | lower | replace(' ', '_')) | e }}"
+                                data-card-status="{{ laudo.card_status | default('aberto', true) | e }}"
                                 {% if item_ativo %}aria-current="true"{% endif %}
                                 aria-label="Laudo {{ setor_label }}, {{ data_br }}"
                                 title="Abrir laudo {{ setor_label }}"
@@ -354,12 +332,9 @@
                                     {% endif %}
                                 </span>
 
-                                <span
-                                    class="badge-status badge-{{ status_cls }}"
-                                    aria-hidden="true"
-                                    title="Status: {{ status_raw }}"
-                                >•</span>
-                                <span class="sr-only">Status {{ status_raw }}</span>
+                                <span class="pill-status-laudo pill-status-{{ laudo.card_status | default('aberto', true) | e }}">
+                                    {{ laudo.card_status_label | default('Aberto', true) | e }}
+                                </span>
 
                                 <button
                                     type="button"
@@ -428,12 +403,38 @@
        USUÁRIO LOGADO
        ======================================================== #}
     <div class="usuario-logado" aria-label="Usuário conectado">
-        <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+        <button
+            type="button"
+            id="btn-abrir-perfil-chat"
+            class="btn-abrir-perfil-chat"
+            aria-label="Abrir perfil do usuário"
+            data-nome="{{ usuario_nome | e }}"
+            data-email="{{ usuario_email | e }}"
+            data-telefone="{{ usuario_telefone | e }}"
+            data-foto-url="{{ usuario_foto_url | e }}"
+        >
+            <span
+                id="avatar-usuario-sidebar"
+                class="avatar-usuario-sidebar{% if usuario_foto_url %} possui-foto{% endif %}"
+                data-iniciais="{{ usuario_iniciais | e }}"
+            >
+                {% if usuario_foto_url %}
+                    <img
+                        src="{{ usuario_foto_url | e }}"
+                        alt="Foto de perfil de {{ usuario_nome | e }}"
+                        loading="lazy"
+                        decoding="async"
+                    >
+                {% else %}
+                    <span class="avatar-usuario-sidebar__iniciais">{{ usuario_iniciais | e }}</span>
+                {% endif %}
+            </span>
 
-        <div class="info-usuario-container">
-            <strong id="nome-usuario">{{ usuario_nome | e }}</strong>
-            <span class="info-usuario">{{ empresa_nome | e }}</span>
-        </div>
+            <span class="info-usuario-container">
+                <strong id="nome-usuario">{{ usuario_nome | e }}</strong>
+                <span class="info-usuario" id="empresa-usuario">{{ empresa_nome | e }}</span>
+            </span>
+        </button>
 
         <form action="/app/logout" method="POST" class="form-logout-sidebar">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

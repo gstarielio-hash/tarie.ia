@@ -178,7 +178,6 @@
             nomeArquivoLaudo,
             remetenteEhEngenharia,
             normalizarEstadoRelatorio,
-            estadoRelatorioAtivo,
             estadoRelatorioLegacy,
             obterModoAtualSeguro,
             criarHeadersJSON,
@@ -429,6 +428,12 @@
                     estado,
                     laudoId: laudoIdSessao ? Number(laudoIdSessao) : null,
                 });
+                if (dados?.laudo_card?.id) {
+                    emitirEvento("tariel:laudo-card-sincronizado", {
+                        card: dados.laudo_card,
+                        selecionar: false,
+                    });
+                }
 
                 return {
                     ...dados,
@@ -459,11 +464,15 @@
                 return {
                     estado: normalizarEstadoRelatorio(dados?.estado),
                     laudoId: Number(dados?.laudo_id ?? dados?.laudoId ?? dados?.laudoid ?? 0) || null,
+                    permiteEdicao: !!dados?.permite_edicao,
+                    permiteReabrir: !!dados?.permite_reabrir,
                 };
             } catch (_) {
                 return {
                     estado: normalizarEstadoRelatorio(getEstadoRelatorio?.()),
                     laudoId: Number(getLaudoAtualId?.() || 0) || null,
+                    permiteEdicao: normalizarEstadoRelatorio(getEstadoRelatorio?.()) === "relatorio_ativo",
+                    permiteReabrir: false,
                 };
             }
         }
@@ -495,17 +504,22 @@
                 limparAreaMensagens();
                 ocultarBoasVindas();
 
-                setEstadoRelatorio(normalizarEstadoRelatorio(dados?.estado || "relatorio_ativo"));
+                const estadoResposta = normalizarEstadoRelatorio(dados?.estado || "sem_relatorio");
+                setEstadoRelatorio(estadoResposta);
                 setLaudoAtualId(laudoId);
 
-                emitirRelatorioIniciado(laudoId, tipoTemplate);
+                if (estadoResposta === "relatorio_ativo") {
+                    emitirRelatorioIniciado(laudoId, tipoTemplate);
+                } else {
+                    emitirLaudoCriado(laudoId);
+                }
 
                 mostrarToast(dados?.message ?? "Relatório iniciado!", "sucesso", 4000);
                 log("info", `Relatório iniciado. tipo=${tipoTemplate} laudoId=${laudoId}`);
 
                 return {
                     ...dados,
-                    estado: normalizarEstadoRelatorio(dados?.estado || "relatorio_ativo"),
+                    estado: estadoResposta,
                     laudo_id: laudoId,
                 };
             } catch (erro) {
@@ -548,11 +562,15 @@
                 }
 
                 const dados = await response.json();
-
-                setEstadoRelatorio("sem_relatorio");
-                limparEstadoConversa({ limparLaudoAtual: true });
-                limparAreaMensagens();
-                exibirBoasVindas();
+                const estadoResposta = normalizarEstadoRelatorio(dados?.estado || "aguardando");
+                setEstadoRelatorio(estadoResposta);
+                setLaudoAtualId(laudoId);
+                if (dados?.laudo_card?.id) {
+                    emitirEvento("tariel:laudo-card-sincronizado", {
+                        card: dados.laudo_card,
+                        selecionar: true,
+                    });
+                }
                 emitirRelatorioFinalizado(laudoId);
 
                 mostrarToast(
@@ -597,11 +615,7 @@
             );
 
             if (!resposta?.ok) return null;
-
-            setEstadoRelatorio("sem_relatorio");
-            limparEstadoConversa({ limparLaudoAtual: true });
-            limparAreaMensagens();
-            exibirBoasVindas();
+            await sincronizarEstadoRelatorio();
             emitirRelatorioFinalizado(laudoId);
 
             mostrarToast("Relatório enviado para engenharia!", "sucesso", 5000);
@@ -874,6 +888,12 @@
             if (laudoJson) {
                 notificarLaudoCriadoSeMudou(Number(laudoJson));
             }
+            if (dados?.laudo_card?.id) {
+                emitirEvento("tariel:laudo-card-sincronizado", {
+                    card: dados.laudo_card,
+                    selecionar: true,
+                });
+            }
 
             if (!invisivel && elementoTexto) {
                 elementoTexto.innerHTML = renderizarMarkdown(texto);
@@ -904,11 +924,9 @@
                 atualizarTiquesStatus(tmpId, "lido");
             }
 
-            if (estadoRelatorioAtivo()) {
-                try {
-                    await sincronizarEstadoRelatorio();
-                } catch (_) {}
-            }
+            try {
+                await sincronizarEstadoRelatorio();
+            } catch (_) {}
 
             return {
                 ok: true,
@@ -1058,6 +1076,12 @@
                         if (laudoSSE) {
                             notificarLaudoCriadoSeMudou(Number(laudoSSE));
                         }
+                        if (obj?.laudo_card?.id) {
+                            emitirEvento("tariel:laudo-card-sincronizado", {
+                                card: obj.laudo_card,
+                                selecionar: true,
+                            });
+                        }
 
                         if (obj?.tipo && String(obj.tipo).startsWith("humano")) {
                             consumirObjetoHumano(obj, tmpId, invisivel);
@@ -1123,11 +1147,9 @@
                     atualizarTiquesStatus(tmpId, "lido");
                 }
 
-                if (estadoRelatorioAtivo()) {
-                    try {
-                        await sincronizarEstadoRelatorio();
-                    } catch (_) {}
-                }
+                try {
+                    await sincronizarEstadoRelatorio();
+                } catch (_) {}
 
                 return {
                     ok: true,
@@ -1220,16 +1242,17 @@
             const laudoSelecionado = Number(getLaudoAtualId?.() || 0) || null;
 
             if (
-                statusRelatorio.estado === "relatorio_ativo" &&
-                statusRelatorio.laudoId &&
                 laudoSelecionado &&
-                laudoSelecionado !== statusRelatorio.laudoId
+                (statusRelatorio.estado === "aguardando" ||
+                    statusRelatorio.estado === "ajustes" ||
+                    statusRelatorio.estado === "aprovado")
             ) {
-                mostrarToast(
-                    `Você está visualizando o histórico #${laudoSelecionado}. Para enviar, volte ao laudo ativo #${statusRelatorio.laudoId} ou inicie uma nova inspeção.`,
-                    "aviso",
-                    5200
-                );
+                const mensagemBloqueio = statusRelatorio.estado === "ajustes"
+                    ? "Este laudo precisa ser reaberto antes de continuar."
+                    : statusRelatorio.estado === "aprovado"
+                        ? "Este laudo já foi aprovado e está somente leitura."
+                        : "Este laudo está aguardando avaliação e está somente leitura.";
+                mostrarToast(mensagemBloqueio, "aviso", 4200);
                 return null;
             }
 

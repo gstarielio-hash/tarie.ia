@@ -306,7 +306,14 @@
             return;
         }
 
+        if (btnAnexo.dataset.anexoBindSource || inputAnexo.dataset.anexoBindSource) {
+            log("info", "Bind de anexo já realizado por outro módulo.");
+            return;
+        }
+
         inputAnexo.setAttribute("accept", "image/jpeg,image/png,image/webp,image/gif");
+        btnAnexo.dataset.anexoBindSource = "hardware";
+        inputAnexo.dataset.anexoBindSource = "hardware";
 
         btnAnexo.addEventListener("click", () => inputAnexo.click());
 

@@ -4,7 +4,7 @@
 // Responsável por:
 // - botão "Falar com Engenheiro"
 // - fechar sidebar no mobile
-// - sincronizar banner de relatório ativo
+// - manter compatibilidade com métodos legados da sidebar
 // - manter compatibilidade com eventos legados
 // - integrar com o core do painel quando disponível
 // ==========================================
@@ -48,14 +48,6 @@
 
     function getOverlay() {
         return document.getElementById("overlay-sidebar");
-    }
-
-    function getBannerRelatorio() {
-        return document.getElementById("banner-relatorio-sidebar");
-    }
-
-    function getTextoBannerRelatorio() {
-        return document.getElementById("banner-relatorio-laudo-id");
     }
 
     function getBtnMenu() {
@@ -221,44 +213,20 @@
         return true;
     }
 
-    // =========================================================
-    // BANNER DE RELATÓRIO
-    // =========================================================
-    function mostrarBannerRelatorio(laudoId) {
-        const bannerRelatorio = getBannerRelatorio();
-        const textoBannerRelatorio = getTextoBannerRelatorio();
+    function mostrarBannerRelatorio() {}
 
-        if (!bannerRelatorio || !textoBannerRelatorio || !laudoId) return;
+    function ocultarBannerRelatorio() {}
 
-        textoBannerRelatorio.textContent = `Laudo #${laudoId}`;
-        bannerRelatorio.hidden = false;
-        bannerRelatorio.setAttribute("aria-hidden", "false");
-    }
-
-    function ocultarBannerRelatorio() {
-        const bannerRelatorio = getBannerRelatorio();
-        if (!bannerRelatorio) return;
-
-        bannerRelatorio.hidden = true;
-        bannerRelatorio.setAttribute("aria-hidden", "true");
+    function abrirRelatorioEmAndamento(evento = null) {
+        if (evento) {
+            evento.preventDefault();
+            evento.stopPropagation();
+        }
+        return false;
     }
 
     function sincronizarBannerInicial() {
-        const estadoRelatorio =
-            normalizarEstadoRelatorio(
-                window.TarielAPI?.obterEstadoRelatorioNormalizado?.() ||
-                window.TarielAPI?.obterEstadoRelatorio?.() ||
-                obterEstadoInicialDaSidebar()
-            );
-
-        const laudoId = obterLaudoAtualSeguro();
-
-        if (estadoRelatorio === "relatorio_ativo" && laudoId) {
-            mostrarBannerRelatorio(laudoId);
-            return;
-        }
-
-        ocultarBannerRelatorio();
+        return false;
     }
 
     // =========================================================
@@ -313,53 +281,6 @@
     }
 
     // =========================================================
-    // EVENTOS DE RELATÓRIO
-    // =========================================================
-    function onRelatorioIniciado(event) {
-        const laudoId =
-            event?.detail?.laudoId ||
-            event?.detail?.laudo_id ||
-            event?.detail?.id ||
-            null;
-
-        if (!laudoId) return;
-        mostrarBannerRelatorio(laudoId);
-    }
-
-    function onRelatorioFinalizado(event) {
-        const laudoId =
-            event?.detail?.laudoId ||
-            event?.detail?.laudo_id ||
-            null;
-
-        if (laudoId) {
-            ocultarBannerRelatorio();
-            return;
-        }
-
-        ocultarBannerRelatorio();
-    }
-
-    function onRelatorioCancelado() {
-        ocultarBannerRelatorio();
-    }
-
-    function onEstadoRelatorio(event) {
-        const detail = event?.detail || {};
-        const estadoRelatorio = normalizarEstadoRelatorio(detail.estado);
-        const laudoId = Number(detail.laudoId ?? detail.laudo_id ?? 0) || null;
-
-        if (estadoRelatorio === "relatorio_ativo" && laudoId) {
-            mostrarBannerRelatorio(laudoId);
-            return;
-        }
-
-        if (estadoRelatorio === "aguardando" || estadoRelatorio === "sem_relatorio") {
-            ocultarBannerRelatorio();
-        }
-    }
-
-    // =========================================================
     // BINDS
     // =========================================================
     function bindBotaoEngenharia() {
@@ -375,20 +296,6 @@
         btnEngenharia.addEventListener("click", onClickFalarComEngenharia);
     }
 
-    function bindEventosRelatorio() {
-        if (estado.eventosRelatorioBindados) return;
-        estado.eventosRelatorioBindados = true;
-
-        document.addEventListener("tariel:relatorio-iniciado", onRelatorioIniciado);
-        document.addEventListener("tariel:relatorio-finalizado", onRelatorioFinalizado);
-        document.addEventListener("tariel:cancelar-relatorio", onRelatorioCancelado);
-        document.addEventListener("tariel:estado-relatorio", onEstadoRelatorio);
-
-        document.addEventListener("tarielrelatorio-iniciado", onRelatorioIniciado);
-        document.addEventListener("tarielrelatorio-finalizado", onRelatorioFinalizado);
-        document.addEventListener("tarielrelatorio-cancelado", onRelatorioCancelado);
-    }
-
     // =========================================================
     // BOOT
     // =========================================================
@@ -397,8 +304,6 @@
         estado.bootExecutado = true;
 
         bindBotaoEngenharia();
-        bindEventosRelatorio();
-        sincronizarBannerInicial();
 
         log("info", "Chat sidebar pronta.");
     }
@@ -408,17 +313,7 @@
 
         btnEngenharia?.removeEventListener("click", onClickFalarComEngenharia);
 
-        document.removeEventListener("tariel:relatorio-iniciado", onRelatorioIniciado);
-        document.removeEventListener("tariel:relatorio-finalizado", onRelatorioFinalizado);
-        document.removeEventListener("tariel:cancelar-relatorio", onRelatorioCancelado);
-        document.removeEventListener("tariel:estado-relatorio", onEstadoRelatorio);
-
-        document.removeEventListener("tarielrelatorio-iniciado", onRelatorioIniciado);
-        document.removeEventListener("tarielrelatorio-finalizado", onRelatorioFinalizado);
-        document.removeEventListener("tarielrelatorio-cancelado", onRelatorioCancelado);
-
         estado.bootExecutado = false;
-        estado.eventosRelatorioBindados = false;
     }
 
     const TP = obterTP();

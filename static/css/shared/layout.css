@@ -558,7 +558,8 @@ body.modo-foco .cabecalho-wf {
 }
 
 body.modo-foco .container-app {
-    justify-content: center;
+    justify-content: stretch;
+    align-items: stretch;
 }
 
 /* ==========================================
@@ -826,6 +827,22 @@ body.sidebar-colapsada .container-app {
     background: rgba(244, 123, 32, 0.08);
     border: 1px solid rgba(244, 123, 32, 0.22);
     border-radius: 10px;
+    cursor: pointer;
+    transition:
+        border-color var(--t-fast, .12s) var(--ease, ease),
+        background-color var(--t-fast, .12s) var(--ease, ease),
+        transform var(--t-fast, .12s) var(--ease, ease);
+}
+
+.banner-relatorio-ativo:hover {
+    border-color: rgba(244, 123, 32, 0.45);
+    background: rgba(244, 123, 32, 0.13);
+    transform: translateY(-1px);
+}
+
+.banner-relatorio-ativo:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
 }
 
 .banner-relatorio-texto {
@@ -977,6 +994,65 @@ body.sidebar-colapsada .container-app {
     background: rgba(244, 123, 32, 0.18);
     border-radius: 3px;
     padding: 0 1px;
+}
+
+/* ==========================================
+   PILLS DE STATUS DO LAUDO
+   ========================================== */
+
+.pill-status-laudo {
+    flex-shrink: 0;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 84px;
+    min-height: 24px;
+    margin-left: auto;
+    padding: 4px 10px;
+    border: 1px solid rgba(191, 198, 209, 0.16);
+    border-radius: 999px;
+    background: rgba(191, 198, 209, 0.08);
+    color: rgba(214, 221, 231, 0.86);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+    transition:
+        border-color var(--t-fast) var(--ease),
+        background-color var(--t-fast) var(--ease),
+        color var(--t-fast) var(--ease),
+        transform var(--t-fast) var(--ease);
+}
+
+.item-historico:hover .pill-status-laudo,
+.item-historico.ativo .pill-status-laudo {
+    transform: translateY(-1px);
+}
+
+.pill-status-aberto {
+    border-color: rgba(244, 123, 32, 0.28);
+    background: rgba(244, 123, 32, 0.14);
+    color: rgba(255, 215, 182, 0.95);
+}
+
+.pill-status-aguardando {
+    border-color: rgba(207, 159, 82, 0.32);
+    background: rgba(207, 159, 82, 0.14);
+    color: rgba(244, 222, 171, 0.95);
+}
+
+.pill-status-ajustes {
+    border-color: rgba(227, 153, 88, 0.34);
+    background: rgba(227, 153, 88, 0.14);
+    color: rgba(255, 217, 191, 0.96);
+}
+
+.pill-status-aprovado {
+    border-color: rgba(83, 181, 122, 0.32);
+    background: rgba(83, 181, 122, 0.14);
+    color: rgba(190, 243, 211, 0.96);
 }
 
 /* ==========================================
@@ -1252,10 +1328,56 @@ body.sidebar-colapsada .container-app {
     background: rgba(255, 255, 255, 0.015);
 }
 
-.usuario-logado > .material-symbols-rounded {
+.btn-abrir-perfil-chat {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+}
+
+.btn-abrir-perfil-chat:hover .info-usuario-container strong {
+    color: var(--accent-soft, #F1BA8F);
+}
+
+.btn-abrir-perfil-chat:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
+    border-radius: 10px;
+}
+
+.avatar-usuario-sidebar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(191, 198, 209, 0.26);
+    background: rgba(191, 198, 209, 0.15);
+    color: #f7f8fa;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
     flex-shrink: 0;
-    color: rgba(191, 198, 209, 0.56);
-    font-size: 26px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.avatar-usuario-sidebar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-usuario-sidebar.possui-foto {
+    border-color: rgba(244, 123, 32, 0.42);
+    background: rgba(244, 123, 32, 0.12);
 }
 
 .info-usuario-container {
@@ -1306,15 +1428,9 @@ body.sidebar-colapsada .container-app {
 
 body.modo-foco .painel-chat {
     flex: 1;
-    max-width: var(--focus-chat-max);
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     background: transparent;
-}
-
-@media (min-width: 1200px) {
-    body.modo-foco .painel-chat {
-        max-width: var(--focus-chat-max-xl);
-    }
 }
 
 /* ==========================================

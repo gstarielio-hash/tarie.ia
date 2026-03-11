@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#171A20">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Editor Word de Templates • Mesa de Avaliação</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/revisor/templates_laudo.css">
+</head>
+
+<body>
+    <header class="top">
+        <div class="brand-wrap">
+            <div class="brand-logo">TW</div>
+            <div class="brand-copy">
+                <strong>Tariel Word</strong>
+                <small>Criação profissional de templates</small>
+            </div>
+        </div>
+        <div class="links">
+            <a class="chip" href="/revisao/painel">Inbox da Mesa</a>
+            <a class="chip" href="/revisao/templates-laudo">Biblioteca de Templates</a>
+            <a class="chip active" href="/revisao/templates-laudo/editor">Editor Word</a>
+        </div>
+        <form action="/revisao/logout" method="POST" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn ghost">Sair</button>
+        </form>
+    </header>
+
+    <main class="main" style="grid-template-columns:1fr;">
+        <section class="card create-card">
+            <div class="head create-head">
+                <div>
+                    <span>Criação de Modelo</span>
+                    <small>Inicie um template no A4 em branco ou volte para o fluxo legado com PDF base.</small>
+                </div>
+                <div class="actions" style="margin:0;">
+                    <button type="button" id="btn-open-editor-a4" class="btn primary">Criar no Word (A4)</button>
+                    <button type="button" id="btn-open-editor-legacy" class="btn ghost">Modo PDF base</button>
+                    <a href="/revisao/templates-laudo" class="btn ghost">Voltar para biblioteca</a>
+                </div>
+            </div>
+            <div class="body create-body">
+                <div id="status-create-word" class="status"></div>
+                <section class="preset-gallery" aria-label="Modelos rápidos">
+                    <div class="preset-gallery-head">
+                        <strong>Modelos rápidos WF</strong>
+                        <small>Escolha uma base pronta para iniciar mais rápido no editor.</small>
+                    </div>
+                    <div class="preset-grid">
+                        <article class="preset-card">
+                            <h4>Inspeção Geral</h4>
+                            <p>Estrutura padrão com identificação, escopo, achados e plano de ação.</p>
+                            <button type="button" class="btn ghost js-apply-preset" data-preset="inspecao_geral">Usar modelo</button>
+                        </article>
+                        <article class="preset-card">
+                            <h4>NR-12 Máquinas</h4>
+                            <p>Template técnico para avaliação de segurança de máquinas e dispositivos.</p>
+                            <button type="button" class="btn ghost js-apply-preset" data-preset="nr12_maquinas">Usar modelo</button>
+                        </article>
+                        <article class="preset-card">
+                            <h4>RTI Elétrica</h4>
+                            <p>Modelo com campos para diagnóstico elétrico, riscos e recomendações.</p>
+                            <button type="button" class="btn ghost js-apply-preset" data-preset="rti_eletrica">Usar modelo</button>
+                        </article>
+                        <article class="preset-card">
+                            <h4>AVCB Bombeiros</h4>
+                            <p>Base para conformidade de incêndio com checklist e pendências técnicas.</p>
+                            <button type="button" class="btn ghost js-apply-preset" data-preset="avcb_bombeiros">Usar modelo</button>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <article class="card word-workspace-card" id="card-editor-word">
+            <div class="head word-head">
+                <div class="word-head-title">
+                    <strong>Workspace Word de Templates</strong>
+                    <small>Editor com visual A4, placeholders, imagens, tabelas e publicação de versão. Atalhos: Ctrl+B, Ctrl+I, Ctrl+U e Ctrl+S.</small>
+                </div>
+                <div class="word-head-actions">
+                    <select id="editor-template-select">
+                        <option value="">Selecione...</option>
+                    </select>
+                    <button type="button" id="btn-editor-load" class="btn ghost">Abrir</button>
+                    <button type="button" id="btn-editor-save" class="btn ghost">Salvar</button>
+                    <button type="button" id="btn-editor-preview" class="btn ghost">Preview PDF</button>
+                    <button type="button" id="btn-editor-publish" class="btn primary">Publicar versão</button>
+                    <span id="word-save-indicator" class="save-indicator">Sem alterações</span>
+                </div>
+            </div>
+
+            <div class="body editor-word word-layout">
+                <nav class="word-tabs" aria-label="Abas do editor">
+                    <button type="button" class="word-tab active" data-tab="inicio">Início</button>
+                    <button type="button" class="word-tab" data-tab="inserir">Inserir</button>
+                    <button type="button" class="word-tab" data-tab="layout">Layout</button>
+                    <button type="button" class="word-tab" data-tab="exibir">Exibir</button>
+                </nav>
+
+                <section class="word-ribbon">
+                    <div class="ribbon-group ribbon-meta" data-ribbon-tab="inicio">
+                        <span class="ribbon-title">Template</span>
+                        <div class="field">
+                            <label for="editor-nome">Nome do template</label>
+                            <input id="editor-nome" type="text" maxlength="180" placeholder="Template Técnico WF">
+                        </div>
+                        <div class="row">
+                            <div class="field">
+                                <label for="editor-codigo">Código</label>
+                                <input id="editor-codigo" type="text" maxlength="80" placeholder="rti_eletrica">
+                            </div>
+                            <div class="field">
+                                <label for="editor-versao">Versão</label>
+                                <input id="editor-versao" type="number" min="1" value="1">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="editor-obs">Observações</label>
+                            <textarea id="editor-obs" placeholder="Opcional"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group" data-ribbon-tab="inicio">
+                        <span class="ribbon-title">Fonte</span>
+                        <div class="ribbon-row">
+                            <button type="button" id="btn-ed-bold" class="btn ghost">
+                                <span class="toolbar-icon">B</span>Negrito
+                            </button>
+                            <button type="button" id="btn-ed-italic" class="btn ghost">
+                                <span class="toolbar-icon italic">I</span>Itálico
+                            </button>
+                            <button type="button" id="btn-ed-underline" class="btn ghost">
+                                <span class="toolbar-icon underline">U</span>Sublinhado
+                            </button>
+                            <button type="button" id="btn-ed-undo" class="btn ghost">
+                                <span class="toolbar-icon">↶</span>Desfazer
+                            </button>
+                            <button type="button" id="btn-ed-redo" class="btn ghost">
+                                <span class="toolbar-icon">↷</span>Refazer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group" data-ribbon-tab="inicio">
+                        <span class="ribbon-title">Parágrafo</span>
+                        <div class="ribbon-row">
+                            <button type="button" id="btn-ed-ul" class="btn ghost">
+                                <span class="toolbar-icon">•</span>Lista
+                            </button>
+                            <button type="button" id="btn-ed-ol" class="btn ghost">
+                                <span class="toolbar-icon">1.</span>Lista num.
+                            </button>
+                            <button type="button" id="btn-ed-align-left" class="btn ghost">
+                                <span class="toolbar-icon">≡</span>Esquerda
+                            </button>
+                            <button type="button" id="btn-ed-align-center" class="btn ghost">
+                                <span class="toolbar-icon">≣</span>Centro
+                            </button>
+                            <button type="button" id="btn-ed-align-right" class="btn ghost">
+                                <span class="toolbar-icon">≢</span>Direita
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group" data-ribbon-tab="inicio">
+                        <span class="ribbon-title">Estilos</span>
+                        <div class="ribbon-row">
+                            <button type="button" id="btn-ed-style-normal" class="btn ghost">
+                                <span class="toolbar-icon">N</span>Normal
+                            </button>
+                            <button type="button" id="btn-ed-style-title1" class="btn ghost">
+                                <span class="toolbar-icon">T1</span>Título 1
+                            </button>
+                            <button type="button" id="btn-ed-style-title2" class="btn ghost">
+                                <span class="toolbar-icon">T2</span>Título 2
+                            </button>
+                            <button type="button" id="btn-ed-h2" class="btn ghost">
+                                <span class="toolbar-icon">ST</span>Subtítulo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group" data-ribbon-tab="inserir" hidden>
+                        <span class="ribbon-title">Inserir</span>
+                        <div class="ribbon-row">
+                            <button type="button" id="btn-ed-table" class="btn ghost">
+                                <span class="toolbar-icon">▦</span>Tabela
+                            </button>
+                            <button type="button" id="btn-ed-placeholder-json" class="btn ghost">
+                                <span class="toolbar-icon">{ }</span>+ JSON Path
+                            </button>
+                            <button type="button" id="btn-ed-placeholder-token" class="btn ghost">
+                                <span class="toolbar-icon">@</span>+ Token
+                            </button>
+                        </div>
+                        <div class="field">
+                            <label for="editor-image-file">Imagem / logo (upload interno)</label>
+                            <div class="ribbon-row">
+                                <input id="editor-image-file" type="file" accept="image/png,image/jpeg,image/webp">
+                                <button type="button" id="btn-ed-upload-image" class="btn ghost">Enviar e inserir</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group ribbon-layout" data-ribbon-tab="layout" hidden>
+                        <span class="ribbon-title">Layout A4</span>
+                        <div class="field">
+                            <label for="editor-header">Cabeçalho</label>
+                            <input id="editor-header" type="text" maxlength="200" placeholder='Ex: WF Engenharia • {% raw %}{{token:cliente_nome}}{% endraw %}'>
+                        </div>
+                        <div class="field">
+                            <label for="editor-footer">Rodapé</label>
+                            <input id="editor-footer" type="text" maxlength="200" placeholder="Ex: Documento interno WF">
+                        </div>
+                        <div class="ribbon-mini-grid">
+                            <div class="field">
+                                <label for="editor-margin-top">Topo</label>
+                                <input id="editor-margin-top" type="number" min="5" max="40" value="18">
+                            </div>
+                            <div class="field">
+                                <label for="editor-margin-right">Direita</label>
+                                <input id="editor-margin-right" type="number" min="5" max="40" value="14">
+                            </div>
+                            <div class="field">
+                                <label for="editor-margin-bottom">Baixo</label>
+                                <input id="editor-margin-bottom" type="number" min="5" max="40" value="18">
+                            </div>
+                            <div class="field">
+                                <label for="editor-margin-left">Esquerda</label>
+                                <input id="editor-margin-left" type="number" min="5" max="40" value="14">
+                            </div>
+                        </div>
+                        <div class="ribbon-mini-grid">
+                            <div class="field">
+                                <label for="editor-watermark">Marca d'água</label>
+                                <input id="editor-watermark" type="text" maxlength="120" placeholder="CONFIDENCIAL">
+                            </div>
+                            <div class="field">
+                                <label for="editor-watermark-opacity">Opacidade</label>
+                                <input id="editor-watermark-opacity" type="number" min="0.02" max="0.35" step="0.01" value="0.08">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group" data-ribbon-tab="exibir" hidden>
+                        <span class="ribbon-title">Exibição</span>
+                        <div class="ribbon-row">
+                            <button type="button" id="btn-word-toggle-side" class="btn ghost">Ocultar painel lateral</button>
+                        </div>
+                        <p class="ribbon-note">Use a aba <strong>Layout</strong> para configurar margens/cabeçalho/rodapé e visualizar o A4 com precisão.</p>
+                    </div>
+                </section>
+
+                <section class="word-stage" id="word-stage">
+                    <div class="word-canvas">
+                        <div class="word-canvas-toolbar">
+                            <span class="canvas-chip">Formato A4</span>
+                            <span class="canvas-chip muted">Escala 100%</span>
+                        </div>
+                        <div class="word-page-shell">
+                            <div id="page-watermark-ghost" class="page-watermark-ghost" aria-hidden="true"></div>
+                            <div id="page-header-ghost" class="page-header-ghost" aria-hidden="true"></div>
+                            <div class="word-page-content">
+                                <div id="editor-word-surface" class="editor-surface"></div>
+                            </div>
+                            <div id="page-footer-ghost" class="page-footer-ghost" aria-hidden="true"></div>
+                        </div>
+                    </div>
+
+                    <aside class="word-side-panel">
+                        <div class="field">
+                            <label for="editor-preview-dados">Dados JSON para preview</label>
+                            <textarea id="editor-preview-dados">{{ dados_preview_exemplo_json | e }}</textarea>
+                        </div>
+                        <div id="status-editor-word" class="status"></div>
+                        <iframe id="frame-editor-preview" title="Preview Editor Word"></iframe>
+                    </aside>
+                </section>
+            </div>
+        </article>
+    </main>
+
+    <script nonce="{{ csp_nonce }}">
+        window.__TARIEL_TEMPLATE_CONFIG__ = {
+            csrfToken: {{ csrf_token | tojson }},
+            dadosPreviewExemploJson: {{ dados_preview_exemplo_json | tojson }}
+        };
+    </script>
+    <script type="module" nonce="{{ csp_nonce }}" src="/static/js/revisor/templates_editor_word.js"></script>
+</body>
+
+</html>

@@ -560,6 +560,8 @@ class Usuario(MixinAuditoria, Base):
     )
     nome_completo = Column(String(150), nullable=False)
     email = Column(String(254), nullable=False, unique=True, index=True)
+    telefone = Column(String(30), nullable=True)
+    foto_perfil_url = Column(String(512), nullable=True)
     crea = Column(String(40), nullable=True)
     senha_hash = Column(String(256), nullable=False)
     nivel_acesso = Column(Integer, nullable=False, default=int(NivelAcesso.INSPETOR))
@@ -717,6 +719,9 @@ class Laudo(MixinAuditoria, Base):
         nullable=True,
     )
     motivo_rejeicao = Column(Text, nullable=True)
+    encerrado_pelo_inspetor_em = Column(DateTime(timezone=True), nullable=True)
+    reabertura_pendente_em = Column(DateTime(timezone=True), nullable=True)
+    reaberto_em = Column(DateTime(timezone=True), nullable=True)
     dados_formulario = Column(JSON, nullable=True)
     parecer_ia = Column(Text, nullable=True)
     confianca_ia_json = Column(JSON, nullable=True)
@@ -801,6 +806,10 @@ class TemplateLaudo(MixinAuditoria, Base):
     __tablename__ = "templates_laudo"
     __table_args__ = (
         CheckConstraint("versao >= 1", name="ck_template_laudo_versao_positiva"),
+        CheckConstraint(
+            "modo_editor IN ('legado_pdf', 'editor_rico')",
+            name="ck_template_laudo_modo_editor",
+        ),
         UniqueConstraint(
             "empresa_id",
             "codigo_template",
@@ -828,8 +837,11 @@ class TemplateLaudo(MixinAuditoria, Base):
     codigo_template = Column(String(80), nullable=False)
     versao = Column(Integer, nullable=False, default=1)
     ativo = Column(Boolean, nullable=False, default=True)
+    modo_editor = Column(String(20), nullable=False, default="legado_pdf")
     arquivo_pdf_base = Column(String(500), nullable=False)
     mapeamento_campos_json = Column(JSON, nullable=True)
+    documento_editor_json = Column(JSON, nullable=True)
+    assets_json = Column(JSON, nullable=True)
     estilo_json = Column(JSON, nullable=True)
     observacoes = Column(Text, nullable=True)
 

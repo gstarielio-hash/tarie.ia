@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#171A20">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Biblioteca de Templates • Mesa de Avaliação</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/revisor/templates_biblioteca.css">
+</head>
+
+<body>
+    <header class="top top-light">
+        <div class="brand-wrap">
+            <div class="brand-logo">TW</div>
+            <div class="brand-copy">
+                <strong>Tariel Templates</strong>
+                <small>Biblioteca profissional de laudos</small>
+            </div>
+        </div>
+        <div class="links links-light">
+            <a class="chip chip-light" href="/revisao/painel">Inbox da Mesa</a>
+            <a class="chip chip-light active" href="/revisao/templates-laudo">Biblioteca</a>
+            <a class="chip chip-light" href="/revisao/templates-laudo/editor?novo=1">Editor Word</a>
+        </div>
+        <form action="/revisao/logout" method="POST" style="margin:0;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn ghost ghost-light">Sair</button>
+        </form>
+    </header>
+
+    <main class="main">
+        <section class="hero hero-light">
+            <div class="hero-copy">
+                <h1>Biblioteca Profissional de Templates</h1>
+                <p>Visualize modelos já criados, filtre por tipo e abra no editor Word para evoluir o layout com padrão WF.</p>
+            </div>
+            <div class="hero-actions">
+                <input id="search-templates" type="search" placeholder="Buscar por nome ou código...">
+                <select id="filter-modo">
+                    <option value="todos">Todos os modos</option>
+                    <option value="word">Word</option>
+                    <option value="pdf">PDF base</option>
+                </select>
+                <select id="sort-templates">
+                    <option value="recentes">Mais recentes</option>
+                    <option value="ativos">Ativos primeiro</option>
+                    <option value="nome">Nome (A-Z)</option>
+                </select>
+                <button id="btn-refresh" class="btn ghost ghost-light" type="button">Atualizar</button>
+                <a href="/revisao/templates-laudo/editor?novo=1" class="btn primary">Criar seu modelo</a>
+            </div>
+        </section>
+
+        <section class="overview-cards" aria-label="Resumo da biblioteca">
+            <article class="overview-card">
+                <h4>Total de Templates</h4>
+                <strong id="metric-total">0</strong>
+                <small>Todos os modelos cadastrados</small>
+            </article>
+            <article class="overview-card">
+                <h4>Modelos Word</h4>
+                <strong id="metric-word">0</strong>
+                <small>Editor rico habilitado</small>
+            </article>
+            <article class="overview-card">
+                <h4>Ativos</h4>
+                <strong id="metric-ativo">0</strong>
+                <small>Prontos para uso imediato</small>
+            </article>
+            <article class="overview-card">
+                <h4>Última atualização</h4>
+                <strong id="metric-recente">-</strong>
+                <small>Mais recente na biblioteca</small>
+            </article>
+        </section>
+
+        <section class="content-grid">
+            <aside class="filters filters-light">
+                <h3>Categorias</h3>
+                <label class="check"><input type="checkbox" checked disabled> Inspeções Industriais</label>
+                <label class="check"><input type="checkbox" checked disabled> Conformidade NR</label>
+                <label class="check"><input type="checkbox" checked disabled> Segurança de Máquinas</label>
+                <label class="check"><input type="checkbox" checked disabled> Elétrica e SPDA</label>
+                <hr>
+                <h3>Estado</h3>
+                <label class="check"><input type="checkbox" id="flt-ativo" checked> Apenas ativos</label>
+                <label class="check"><input type="checkbox" id="flt-rascunho" checked> Incluir rascunhos</label>
+                <button id="btn-limpar-filtros" type="button" class="btn ghost ghost-light btn-full">Limpar filtros</button>
+                <p class="hint">Clique em <strong>Criar seu modelo</strong> para abrir o editor Word em tela separada.</p>
+            </aside>
+
+            <section class="templates-panel templates-panel-light">
+                <div class="panel-head">
+                    <div class="panel-head-copy">
+                        <h2>Templates da Empresa</h2>
+                        <p>Catálogo com visualização rápida e ativação em um clique.</p>
+                    </div>
+                    <span id="status-lista" class="status"></span>
+                </div>
+                <div id="lista" class="templates-grid"></div>
+            </section>
+        </section>
+    </main>
+
+    <script nonce="{{ csp_nonce }}">
+        window.__TARIEL_TEMPLATE_CONFIG__ = {
+            csrfToken: {{ csrf_token | tojson }},
+            pdfWorkerUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"
+        };
+    </script>
+    <script nonce="{{ csp_nonce }}" src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script nonce="{{ csp_nonce }}" src="/static/js/revisor/templates_biblioteca_page.js"></script>
+</body>
+
+</html>

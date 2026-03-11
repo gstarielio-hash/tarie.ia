@@ -12,7 +12,7 @@ import uuid
 import logging
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
@@ -145,6 +145,36 @@ class PDF_MESA_PENDENCIAS(FPDF):
             0,
             8,
             f"Relatorio de Pendencias | Pagina {self.page_no()} / {{nb}}",
+            align="C",
+        )
+
+
+class PDF_MESA_PACOTE(FPDF):
+    """Template dedicado para pacote consolidado da mesa avaliadora."""
+
+    def header(self) -> None:
+        self.set_font("helvetica", "B", 9)
+        self.set_text_color(110, 110, 110)
+        self.cell(
+            0,
+            6,
+            "WF Engenharia | Mesa Avaliadora",
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+            align="R",
+        )
+        self.line(10, self.get_y() + 1, 200, self.get_y() + 1)
+        self.ln(5)
+
+    def footer(self) -> None:
+        self.set_y(-14)
+        self.set_font("helvetica", "I", 8)
+        self.set_text_color(120, 120, 120)
+        self.line(10, self.get_y(), 200, self.get_y())
+        self.cell(
+            0,
+            8,
+            f"Pacote Tecnico da Mesa | Pagina {self.page_no()} / {{nb}}",
             align="C",
         )
 
@@ -721,3 +751,263 @@ class GeradorLaudos:
         pdf.output(str(caminho_seguro))
         logger.info("PDF Pendencias Gerado | hash=%s caminho=%s", codigo_hash, caminho_seguro.name)
         return codigo_hash
+
+    @classmethod
+    def gerar_pdf_pacote_mesa(
+        cls,
+        *,
+        caminho_saida: str,
+        laudo_id: int,
+        codigo_hash: str,
+        empresa: str,
+        inspetor: str,
+        data_geracao: str,
+        tipo_template: str,
+        setor_industrial: str,
+        status_revisao: str,
+        status_conformidade: str,
+        ultima_interacao: str,
+        tempo_em_campo_minutos: int | None,
+        resumo_mensagens: dict[str, Any] | None,
+        resumo_evidencias: dict[str, Any] | None,
+        resumo_pendencias: dict[str, Any] | None,
+        pendencias_abertas: list[dict[str, Any]] | None,
+        whispers_recentes: list[dict[str, Any]] | None,
+        revisoes_recentes: list[dict[str, Any]] | None,
+        engenheiro_nome: str = "Mesa Avaliadora WF",
+        engenheiro_cargo: str = "Engenheiro Revisor",
+        engenheiro_crea: str = "Nao informado",
+        carimbo_texto: str = "CARIMBO DIGITAL WF",
+    ) -> str:
+        caminho_seguro = cls._validar_caminho_saida(caminho_saida)
+        hash_seguro = cls._sanitizar_texto_para_pdf(str(codigo_hash or f"WFP-{uuid.uuid4().hex[:10].upper()}")[:40])
+
+        resumo_mensagens = resumo_mensagens or {}
+        resumo_evidencias = resumo_evidencias or {}
+        resumo_pendencias = resumo_pendencias or {}
+        pendencias_abertas = pendencias_abertas or []
+        whispers_recentes = whispers_recentes or []
+        revisoes_recentes = revisoes_recentes or []
+
+        def inteiro(valor: Any) -> int:
+            try:
+                return int(valor or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        def texto_seguro(valor: Any, limite: int = 240) -> str:
+            return cls._sanitizar_texto_para_pdf(str(valor or "-")[:limite])
+
+        pdf = PDF_MESA_PACOTE()
+        pdf.alias_nb_pages()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=18)
+
+        pdf.set_font("helvetica", "B", 15)
+        pdf.set_text_color(15, 43, 70)
+        pdf.cell(
+            0,
+            9,
+            cls._sanitizar_texto_para_pdf("PACOTE TECNICO DA MESA AVALIADORA"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+            align="L",
+        )
+        pdf.ln(2)
+
+        pdf.set_font("helvetica", "", 10)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 6, f"Laudo: #{inteiro(laudo_id)} | Hash: {hash_seguro}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 6, f"Empresa: {texto_seguro(empresa, _MAX_TEXTO_CAMPO_META)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 6, f"Inspetor: {texto_seguro(inspetor, _MAX_TEXTO_CAMPO_META)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(0, 6, f"Data de geracao: {texto_seguro(data_geracao, 40)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Template: {texto_seguro(tipo_template, 80)} | "
+                f"Setor: {texto_seguro(setor_industrial, 80)}"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Status revisao: {texto_seguro(status_revisao, 60)} | "
+                f"Conformidade: {texto_seguro(status_conformidade, 60)}"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Ultima interacao: {texto_seguro(ultima_interacao, 40)} | "
+                f"Tempo em campo: {inteiro(tempo_em_campo_minutos)} min"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.ln(4)
+
+        pdf.set_font("helvetica", "B", 10)
+        pdf.set_fill_color(240, 245, 250)
+        pdf.set_text_color(15, 43, 70)
+        pdf.cell(
+            0,
+            8,
+            cls._sanitizar_texto_para_pdf(" RESUMO CONSOLIDADO"),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+            fill=True,
+        )
+
+        pdf.set_font("helvetica", "", 10)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Mensagens: total {inteiro(resumo_mensagens.get('total'))}, "
+                f"inspetor {inteiro(resumo_mensagens.get('inspetor'))}, "
+                f"IA {inteiro(resumo_mensagens.get('ia'))}, "
+                f"mesa {inteiro(resumo_mensagens.get('mesa'))}"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Evidencias: total {inteiro(resumo_evidencias.get('total'))}, "
+                f"textuais {inteiro(resumo_evidencias.get('textuais'))}, "
+                f"fotos {inteiro(resumo_evidencias.get('fotos'))}, "
+                f"documentos {inteiro(resumo_evidencias.get('documentos'))}"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.cell(
+            0,
+            6,
+            (
+                f"Pendencias: total {inteiro(resumo_pendencias.get('total'))}, "
+                f"abertas {inteiro(resumo_pendencias.get('abertas'))}, "
+                f"resolvidas {inteiro(resumo_pendencias.get('resolvidas'))}"
+            ),
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+        )
+        pdf.ln(3)
+
+        pdf.set_font("helvetica", "B", 10)
+        pdf.set_fill_color(15, 43, 70)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 8, " PENDENCIAS ABERTAS", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
+        pdf.ln(2)
+
+        if pendencias_abertas:
+            for idx, item in enumerate(pendencias_abertas[:20], start=1):
+                texto = texto_seguro(item.get("texto"), 1200)
+                criado_em = texto_seguro(item.get("criado_em"), 40)
+                pdf.set_font("helvetica", "B", 9)
+                pdf.set_text_color(15, 43, 70)
+                pdf.cell(0, 5, f"{idx}. Pendencia #{texto_seguro(item.get('id'), 20)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font("helvetica", "", 9)
+                pdf.set_text_color(80, 80, 80)
+                pdf.cell(0, 5, f"Criada em: {criado_em}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_text_color(0, 0, 0)
+                pdf.multi_cell(0, 6, texto)
+                pdf.ln(2)
+        else:
+            pdf.set_font("helvetica", "", 10)
+            pdf.set_text_color(0, 0, 0)
+            pdf.multi_cell(0, 6, "Nenhuma pendencia aberta no momento.")
+
+        pdf.ln(2)
+        pdf.set_font("helvetica", "B", 10)
+        pdf.set_fill_color(240, 245, 250)
+        pdf.set_text_color(15, 43, 70)
+        pdf.cell(0, 8, " REVISOES RECENTES", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
+        pdf.ln(2)
+        pdf.set_font("helvetica", "", 9)
+        pdf.set_text_color(0, 0, 0)
+        if revisoes_recentes:
+            for revisao in revisoes_recentes[:12]:
+                linha = (
+                    f"v{inteiro(revisao.get('numero_versao'))} | "
+                    f"{texto_seguro(revisao.get('origem'), 30)} | "
+                    f"{texto_seguro(revisao.get('confianca_geral'), 30)} | "
+                    f"{texto_seguro(revisao.get('criado_em'), 40)}"
+                )
+                pdf.cell(0, 5, linha, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                resumo = texto_seguro(revisao.get("resumo"), 500)
+                pdf.multi_cell(0, 5, f"Resumo: {resumo}")
+                pdf.ln(1)
+        else:
+            pdf.multi_cell(0, 6, "Sem revisoes recentes.")
+
+        pdf.ln(1)
+        pdf.set_font("helvetica", "B", 10)
+        pdf.set_fill_color(240, 245, 250)
+        pdf.set_text_color(15, 43, 70)
+        pdf.cell(0, 8, " WHISPERS RECENTES", new_x=XPos.LMARGIN, new_y=YPos.NEXT, fill=True)
+        pdf.ln(2)
+        pdf.set_font("helvetica", "", 9)
+        pdf.set_text_color(0, 0, 0)
+        if whispers_recentes:
+            for whisper in whispers_recentes[:20]:
+                texto = texto_seguro(whisper.get("texto"), 400)
+                criado = texto_seguro(whisper.get("criado_em"), 40)
+                pdf.multi_cell(0, 5, f"[{criado}] {texto}")
+        else:
+            pdf.multi_cell(0, 6, "Sem whispers recentes.")
+
+        if pdf.get_y() > 235:
+            pdf.add_page()
+            pdf.ln(12)
+
+        assinatura_nome = texto_seguro(engenheiro_nome, 160)
+        assinatura_cargo = texto_seguro(engenheiro_cargo, 120)
+        assinatura_crea = texto_seguro(engenheiro_crea, 80)
+        carimbo = texto_seguro(carimbo_texto, 120)
+
+        pdf.ln(8)
+        y_linha = pdf.get_y()
+        pdf.set_draw_color(110, 110, 110)
+        pdf.line(58, y_linha, 152, y_linha)
+        pdf.ln(3)
+
+        pdf.set_font("helvetica", "B", 10)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 6, assinatura_nome, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+
+        pdf.set_font("helvetica", "", 9)
+        pdf.set_text_color(40, 40, 40)
+        pdf.cell(
+            0,
+            5,
+            f"{assinatura_cargo} | CREA: {assinatura_crea}",
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+            align="C",
+        )
+
+        pdf.set_font("helvetica", "I", 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.cell(
+            0,
+            5,
+            f"{carimbo} / Assinatura digital da mesa",
+            new_x=XPos.LMARGIN,
+            new_y=YPos.NEXT,
+            align="C",
+        )
+
+        pdf.output(str(caminho_seguro))
+        logger.info("PDF Pacote Mesa Gerado | hash=%s caminho=%s", hash_seguro, caminho_seguro.name)
+        return hash_seguro

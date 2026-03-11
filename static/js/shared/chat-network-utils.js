@@ -72,6 +72,14 @@
                 return "aguardando";
             }
 
+            if (estado === "ajustes") {
+                return "ajustes";
+            }
+
+            if (estado === "aprovado") {
+                return "aprovado";
+            }
+
             return estado || "sem_relatorio";
         }
 
@@ -80,7 +88,10 @@
         }
 
         function estadoRelatorioLegacy(valor = getEstadoRelatorio()) {
-            return estadoRelatorioAtivo(valor) ? "relatorioativo" : "semrelatorio";
+            const estado = normalizarEstadoRelatorio(valor);
+            if (estado === "relatorio_ativo") return "relatorioativo";
+            if (estado === "sem_relatorio") return "semrelatorio";
+            return estado;
         }
 
         function obterModoAtualSeguro() {
@@ -375,4 +386,3 @@
         };
     };
 })();
-

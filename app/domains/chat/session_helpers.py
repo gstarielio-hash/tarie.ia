@@ -9,8 +9,15 @@ from typing import Any, Optional
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
+from app.domains.chat.laudo_state_helpers import (
+    laudo_permite_edicao_inspetor,
+    laudo_permite_reabrir,
+    laudo_tem_interacao,
+    obter_estado_api_laudo,
+    obter_status_card_laudo,
+)
 from app.domains.chat.normalization import TIPOS_TEMPLATE_VALIDOS
-from app.shared.database import Laudo, StatusRevisao, Usuario
+from app.shared.database import Laudo, Usuario
 
 CHAVE_CSRF_INSPETOR = "csrf_token_inspetor"
 VERSAO_APP = os.getenv("APP_BUILD_ID", "dev").strip() or "dev"
@@ -50,6 +57,30 @@ def laudo_id_sessao(request: Request) -> Optional[int]:
         return None
 
 
+def aplicar_contexto_laudo_selecionado(
+    request: Request,
+    banco: Session,
+    laudo: Laudo | None,
+    usuario: Usuario | None,
+) -> dict[str, Any]:
+    if not laudo:
+        request.session.pop("laudo_ativo_id", None)
+        request.session["estado_relatorio"] = "sem_relatorio"
+        return {
+            "estado": "sem_relatorio",
+            "laudo_id": None,
+            "status_card": "oculto",
+            "permite_edicao": False,
+            "permite_reabrir": False,
+        }
+
+    request.session["laudo_ativo_id"] = int(laudo.id)
+    if usuario is None:
+        raise HTTPException(status_code=500, detail="Usuário inválido para contexto do laudo.")
+    payload = estado_relatorio_sanitizado(request, banco, usuario, mutar_sessao=True)
+    return payload
+
+
 def estado_relatorio_sanitizado(
     request: Request,
     banco: Session,
@@ -67,6 +98,9 @@ def estado_relatorio_sanitizado(
         return {
             "estado": "sem_relatorio",
             "laudo_id": None,
+            "status_card": "oculto",
+            "permite_edicao": False,
+            "permite_reabrir": False,
             "tipos_relatorio": TIPOS_TEMPLATE_VALIDOS,
         }
 
@@ -87,22 +121,25 @@ def estado_relatorio_sanitizado(
         return {
             "estado": "sem_relatorio",
             "laudo_id": None,
+            "status_card": "oculto",
+            "permite_edicao": False,
+            "permite_reabrir": False,
             "tipos_relatorio": TIPOS_TEMPLATE_VALIDOS,
         }
 
-    if laudo.status_revisao == StatusRevisao.RASCUNHO.value:
-        estado = "relatorio_ativo"
-    else:
-        estado = "sem_relatorio"
-        if mutar_sessao:
-            request.session.pop("laudo_ativo_id", None)
+    estado = obter_estado_api_laudo(banco, laudo)
+    status_card = obter_status_card_laudo(banco, laudo)
 
     if mutar_sessao:
         request.session["estado_relatorio"] = estado
 
     return {
         "estado": estado,
-        "laudo_id": laudo.id if estado == "relatorio_ativo" else None,
+        "laudo_id": laudo.id if status_card != "oculto" else None,
+        "status_card": status_card,
+        "permite_edicao": laudo_permite_edicao_inspetor(laudo),
+        "permite_reabrir": laudo_permite_reabrir(banco, laudo),
+        "tem_interacao": laudo_tem_interacao(banco, laudo.id),
         "tipos_relatorio": TIPOS_TEMPLATE_VALIDOS,
     }
 
@@ -114,5 +151,7 @@ __all__ = [
     "validar_csrf",
     "exigir_csrf",
     "laudo_id_sessao",
+    "aplicar_contexto_laudo_selecionado",
     "estado_relatorio_sanitizado",
+    "laudo_tem_interacao",
 ]

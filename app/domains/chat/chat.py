@@ -66,9 +66,19 @@ from app.domains.chat.limits_helpers import (
     garantir_limite_laudos,
     garantir_upload_documento_habilitado,
 )
+from app.domains.chat.laudo_state_helpers import (
+    laudo_permite_edicao_inspetor,
+    laudo_possui_historico_visivel,
+    laudo_tem_interacao,
+    serializar_card_laudo,
+)
 from app.domains.chat.notifications import inspetor_notif_manager
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
-from app.domains.chat.session_helpers import exigir_csrf, laudo_id_sessao
+from app.domains.chat.session_helpers import (
+    aplicar_contexto_laudo_selecionado,
+    exigir_csrf,
+    laudo_id_sessao,
+)
 from app.domains.chat.template_helpers import selecionar_template_ativo_para_tipo
 from app.domains.chat.schemas import DadosChat, DadosFeedback, DadosPDF
 from app.domains.chat.templates_ai import RelatorioCBMGO
@@ -96,6 +106,13 @@ from nucleo.inspetor.confianca_ia import (
     normalizar_payload_confianca_ia,
 )
 from nucleo.inspetor.referencias_mensagem import compor_texto_com_referencia
+from nucleo.template_editor_word import (
+    MODO_EDITOR_RICO,
+    documento_editor_padrao,
+    estilo_editor_padrao,
+    gerar_pdf_editor_rico_bytes,
+    normalizar_modo_editor,
+)
 from nucleo.template_laudos import gerar_preview_pdf_template
 
 roteador_chat = APIRouter()
@@ -167,36 +184,29 @@ async def rota_chat(
     if dados.modo == MODO_DEEP:
         garantir_deep_research_habilitado(usuario, banco)
 
-    estado_sessao = request.session.get("estado_relatorio", "sem_relatorio")
-    laudo_sessao = laudo_id_sessao(request)
     laudo_id_requisitado = dados.laudo_id
 
-    if estado_sessao == "relatorio_ativo":
-        if laudo_id_requisitado and laudo_id_requisitado != laudo_sessao:
-            raise HTTPException(status_code=403, detail="Use apenas o relatório ativo.")
-
-        dados.laudo_id = laudo_sessao
-    else:
-        if not laudo_id_requisitado:
-            garantir_limite_laudos(usuario, banco)
+    if not laudo_id_requisitado:
+        garantir_limite_laudos(usuario, banco)
 
     laudo: Laudo | None = None
+    primeira_interacao_real = False
     if dados.laudo_id:
         laudo = obter_laudo_do_inspetor(banco, dados.laudo_id, usuario)
+        primeira_interacao_real = not laudo_tem_interacao(banco, laudo.id)
 
-        if laudo.status_revisao == StatusRevisao.APROVADO.value:
+        if not laudo_permite_edicao_inspetor(laudo):
+            if laudo.status_revisao == StatusRevisao.APROVADO.value:
+                detalhe = "Laudo aprovado não pode ser editado."
+            elif laudo.status_revisao == StatusRevisao.REJEITADO.value:
+                detalhe = "Laudo em ajustes precisa ser reaberto antes de receber novas mensagens."
+            elif getattr(laudo, "reabertura_pendente_em", None):
+                detalhe = "Laudo com ajustes da mesa precisa ser reaberto antes de continuar."
+            else:
+                detalhe = "Laudo aguardando avaliação não pode receber novas mensagens."
             raise HTTPException(
                 status_code=400,
-                detail="Laudo aprovado não pode ser editado.",
-            )
-
-        if (
-            laudo.status_revisao == StatusRevisao.AGUARDANDO.value
-            and not (mensagem_bruta_eh_mesa or comando_rapido_eh_mesa)
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="Laudo aguardando avaliação não pode receber novas mensagens.",
+                detail=detalhe,
             )
 
     if comando_rapido:
@@ -240,13 +250,7 @@ async def rota_chat(
                 resposta=texto_comando,
             )
             banco.commit()
-
-            request.session["laudo_ativo_id"] = laudo.id
-            request.session["estado_relatorio"] = (
-                "relatorio_ativo"
-                if laudo.status_revisao == StatusRevisao.RASCUNHO.value
-                else "sem_relatorio"
-            )
+            aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
             return JSONResponse(
                 {
@@ -254,6 +258,7 @@ async def rota_chat(
                     "tipo": "comando_rapido",
                     "comando": f"/{comando_rapido}",
                     "laudo_id": laudo.id,
+                    "laudo_card": serializar_card_laudo(banco, laudo),
                 }
             )
 
@@ -264,16 +269,13 @@ async def rota_chat(
             setor_industrial=dados.setor,
             tipo_template="padrao",
             codigo_hash=uuid.uuid4().hex,
-            primeira_mensagem=obter_preview_primeira_mensagem(
-                mensagem_limpa,
-                nome_documento=nome_documento,
-                tem_imagem=bool(dados_imagem_validos),
-            ),
+            primeira_mensagem=None,
             modo_resposta=dados.modo,
             is_deep_research=(dados.modo == MODO_DEEP),
             status_revisao=StatusRevisao.RASCUNHO.value,
         )
         banco.add(laudo)
+        primeira_interacao_real = True
 
         try:
             banco.flush()
@@ -285,8 +287,7 @@ async def rota_chat(
                 detail="Erro ao criar sessão de laudo.",
             )
 
-    request.session["laudo_ativo_id"] = laudo.id
-    request.session["estado_relatorio"] = "relatorio_ativo"
+    aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -342,16 +343,25 @@ async def rota_chat(
         )
 
     banco.commit()
+    aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     laudo_id_atual = laudo.id
     empresa_id_atual = usuario.empresa_id
     usuario_id_atual = usuario.id
     usuario_nome_atual = usuario_nome(usuario)
+    card_laudo_payload = (
+        serializar_card_laudo(banco, laudo)
+        if primeira_interacao_real and laudo_possui_historico_visivel(banco, laudo)
+        else None
+    )
 
     if eh_whisper_para_mesa:
 
         async def gerador_humano():
-            yield evento_sse({"laudo_id": laudo_id_atual})
+            payload_inicial = {"laudo_id": laudo_id_atual}
+            if card_laudo_payload:
+                payload_inicial["laudo_card"] = card_laudo_payload
+            yield evento_sse(payload_inicial)
 
             await notificar_mesa_whisper(
                 empresa_id=empresa_id_atual,
@@ -408,6 +418,8 @@ async def rota_chat(
         garantir_gate_qualidade_laudo(banco, laudo)
 
         laudo.status_revisao = StatusRevisao.AGUARDANDO.value
+        laudo.encerrado_pelo_inspetor_em = agora_utc()
+        laudo.reabertura_pendente_em = None
         banco.add(
             MensagemLaudo(
                 laudo_id=laudo.id,
@@ -417,12 +429,16 @@ async def rota_chat(
             )
         )
 
-        request.session.pop("laudo_ativo_id", None)
-        request.session["estado_relatorio"] = "sem_relatorio"
         banco.commit()
+        aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
         async def gerador_envio():
-            yield evento_sse({"laudo_id": laudo.id})
+            yield evento_sse(
+                {
+                    "laudo_id": laudo.id,
+                    "laudo_card": serializar_card_laudo(banco, laudo),
+                }
+            )
             yield evento_sse({"texto": texto_resposta})
             yield "data: [FIM]\n\n"
 
@@ -467,7 +483,10 @@ async def rota_chat(
             finally:
                 asyncio.run_coroutine_threadsafe(fila.put(None), loop)
 
-        yield evento_sse({"laudo_id": laudo_id_atual})
+        payload_inicial = {"laudo_id": laudo_id_atual}
+        if card_laudo_payload:
+            payload_inicial["laudo_card"] = card_laudo_payload
+        yield evento_sse(payload_inicial)
         future = loop.run_in_executor(executor_stream, executar_stream)
 
         try:
@@ -637,12 +656,19 @@ async def salvar_mensagem_ia(
 
 async def obter_mensagens_laudo(
     laudo_id: int,
+    request: Request,
     cursor: int | None = Query(default=None, gt=0),
     limite: int = Query(default=80, ge=20, le=200),
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
     laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+    estado_contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
+    card_laudo = (
+        serializar_card_laudo(banco, laudo)
+        if laudo_possui_historico_visivel(banco, laudo)
+        else None
+    )
 
     citacoes_laudo = (
         banco.query(CitacaoLaudo)
@@ -712,6 +738,11 @@ async def obter_mensagens_laudo(
             "tem_mais": False,
             "laudo_id": laudo_id,
             "limite": limite,
+            "estado": estado_contexto["estado"],
+            "status_card": estado_contexto["status_card"],
+            "permite_edicao": estado_contexto["permite_edicao"],
+            "permite_reabrir": estado_contexto["permite_reabrir"],
+            "laudo_card": card_laudo,
         }
 
     if not mensagens_pagina:
@@ -721,6 +752,11 @@ async def obter_mensagens_laudo(
             "tem_mais": False,
             "laudo_id": laudo_id,
             "limite": limite,
+            "estado": estado_contexto["estado"],
+            "status_card": estado_contexto["status_card"],
+            "permite_edicao": estado_contexto["permite_edicao"],
+            "permite_reabrir": estado_contexto["permite_reabrir"],
+            "laudo_card": card_laudo,
         }
 
     ultima_ia_id = (
@@ -752,6 +788,11 @@ async def obter_mensagens_laudo(
         "tem_mais": tem_mais,
         "laudo_id": laudo_id,
         "limite": limite,
+        "estado": estado_contexto["estado"],
+        "status_card": estado_contexto["status_card"],
+        "permite_edicao": estado_contexto["permite_edicao"],
+        "permite_reabrir": estado_contexto["permite_reabrir"],
+        "laudo_card": card_laudo,
     }
 
 
@@ -782,11 +823,20 @@ async def rota_pdf(
     try:
         if template_ativo:
             try:
-                pdf_template = gerar_preview_pdf_template(
-                    caminho_pdf_base=template_ativo.arquivo_pdf_base,
-                    mapeamento_campos=template_ativo.mapeamento_campos_json or {},
-                    dados_formulario=laudo.dados_formulario or {},
-                )
+                modo_editor = normalizar_modo_editor(getattr(template_ativo, "modo_editor", None))
+                if modo_editor == MODO_EDITOR_RICO:
+                    pdf_template = await gerar_pdf_editor_rico_bytes(
+                        documento_editor_json=template_ativo.documento_editor_json or documento_editor_padrao(),
+                        estilo_json=template_ativo.estilo_json or estilo_editor_padrao(),
+                        assets_json=template_ativo.assets_json or [],
+                        dados_formulario=laudo.dados_formulario or {},
+                    )
+                else:
+                    pdf_template = gerar_preview_pdf_template(
+                        caminho_pdf_base=template_ativo.arquivo_pdf_base,
+                        mapeamento_campos=template_ativo.mapeamento_campos_json or {},
+                        dados_formulario=laudo.dados_formulario or {},
+                    )
                 with open(caminho_pdf, "wb") as arquivo_saida:
                     arquivo_saida.write(pdf_template)
                 return FileResponse(

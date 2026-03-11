@@ -90,14 +90,20 @@
 
         if (estado === "relatorio_ativo" || estado === "relatorioativo") return "relatorio_ativo";
         if (estado === "sem_relatorio" || estado === "semrelatorio") return "sem_relatorio";
+        if (estado === "aguardando" || estado === "aguardando_aval" || estado === "aguardando_avaliacao") {
+            return "aguardando";
+        }
+        if (estado === "ajustes") return "ajustes";
+        if (estado === "aprovado") return "aprovado";
 
         return estado || "sem_relatorio";
     }
 
     function estadoParaLegado(valor) {
-        return normalizarEstadoRelatorio(valor) === "relatorio_ativo"
-            ? "relatorioativo"
-            : "semrelatorio";
+        const estado = normalizarEstadoRelatorio(valor);
+        if (estado === "relatorio_ativo") return "relatorioativo";
+        if (estado === "sem_relatorio") return "semrelatorio";
+        return estado;
     }
 
     function estadoRelatorioAtivo(valor = _estadoRelatorio) {
@@ -177,6 +183,21 @@
         );
 
         return compat;
+    }
+
+    function emitirCardLaudo(payload = {}, { selecionar = false } = {}) {
+        const card = payload?.laudo_card || payload?.laudoCard || payload?.card || null;
+        if (!card?.id) return null;
+
+        emitirEventos(
+            ["tariel:laudo-card-sincronizado"],
+            {
+                card,
+                selecionar: !!selecionar,
+            }
+        );
+
+        return card;
     }
 
     function limparBackdropEntrada() {
@@ -268,9 +289,7 @@
     // =========================================================================
 
     let _estadoRelatorio = normalizarEstadoRelatorio(window.WF?.estadoRelatorio ?? "sem_relatorio");
-    if (_estadoRelatorio !== "relatorio_ativo") {
-        laudoAtualId = null;
-    } else if (!laudoAtualId) {
+    if (!_estadoRelatorio) {
         _estadoRelatorio = "sem_relatorio";
     }
 
@@ -675,6 +694,7 @@
 
     async function sincronizarEstadoRelatorioWrapper(...args) {
         const dados = await ChatNetwork.sincronizarEstadoRelatorio(...args);
+        emitirCardLaudo(dados, { selecionar: false });
         const compat = emitirEstadoRelatorio(
             dados || {
                 estado_normalizado: _estadoRelatorio,
@@ -691,7 +711,7 @@
         const laudoId = normalizarNumero(dados.laudo_id ?? dados.laudoid ?? laudoAtualId);
         const compat = emitirEstadoRelatorio({
             ...dados,
-            estado_normalizado: dados.estado ?? "relatorio_ativo",
+            estado_normalizado: dados.estado ?? "sem_relatorio",
             laudo_id: laudoId,
         });
 
@@ -699,38 +719,53 @@
             laudoAtualId = compat.laudo_id;
         }
 
-        emitirEventos(
-            ["tariel:relatorio-iniciado", "tarielrelatorio-iniciado"],
-            {
-                laudoId: compat.laudo_id,
-                laudo_id: compat.laudo_id,
-                tipoTemplate: args[0] ?? null,
-                estado: compat.estado,
-                estado_normalizado: compat.estado_normalizado,
-            }
-        );
+        if (compat.estado_normalizado === "relatorio_ativo") {
+            emitirEventos(
+                ["tariel:relatorio-iniciado", "tarielrelatorio-iniciado"],
+                {
+                    laudoId: compat.laudo_id,
+                    laudo_id: compat.laudo_id,
+                    tipoTemplate: args[0] ?? null,
+                    estado: compat.estado,
+                    estado_normalizado: compat.estado_normalizado,
+                }
+            );
+        } else {
+            emitirEventos(
+                ["tariel:laudo-criado", "tariellaudo-criado"],
+                {
+                    laudoId: compat.laudo_id,
+                    laudo_id: compat.laudo_id,
+                    tipoTemplate: args[0] ?? null,
+                    estado: compat.estado,
+                    estado_normalizado: compat.estado_normalizado,
+                }
+            );
+        }
 
         return compat;
     }
 
     async function finalizarRelatorioWrapper(...args) {
-        const laudoIdAntes = laudoAtualId;
         const dados = await ChatNetwork.finalizarRelatorio(...args);
         if (!dados) return dados;
-
-        laudoAtualId = null;
+        const laudoIdFinal = normalizarNumero(dados.laudo_id ?? dados.laudoid ?? laudoAtualId);
+        if (laudoIdFinal) {
+            laudoAtualId = laudoIdFinal;
+        }
+        emitirCardLaudo(dados, { selecionar: true });
 
         const compat = emitirEstadoRelatorio({
             ...dados,
-            estado_normalizado: "sem_relatorio",
-            laudo_id: null,
+            estado_normalizado: dados.estado ?? "aguardando",
+            laudo_id: laudoIdFinal,
         });
 
         emitirEventos(
             ["tariel:relatorio-finalizado", "tarielrelatorio-finalizado"],
             {
-                laudoId: normalizarNumero(laudoIdAntes ?? dados.laudo_id ?? dados.laudoid),
-                laudo_id: normalizarNumero(laudoIdAntes ?? dados.laudo_id ?? dados.laudoid),
+                laudoId: laudoIdFinal,
+                laudo_id: laudoIdFinal,
                 estado: compat.estado,
                 estado_normalizado: compat.estado_normalizado,
             }
@@ -764,6 +799,33 @@
         return compat;
     }
 
+    async function reabrirLaudoWrapper(laudoId) {
+        const alvo = normalizarNumero(laudoId ?? laudoAtualId);
+        if (!alvo) return null;
+
+        const resposta = await fetch(`/app/api/laudo/${alvo}/reabrir`, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: comCabecalhoCSRF({
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            }),
+        });
+
+        const dados = await resposta.json().catch(() => ({}));
+        if (!resposta.ok) {
+            throw new Error(String(dados?.detail || dados?.erro || "Falha ao reabrir laudo."));
+        }
+
+        laudoAtualId = alvo;
+        emitirCardLaudo(dados, { selecionar: true });
+        return emitirEstadoRelatorio({
+            ...dados,
+            estado_normalizado: dados.estado ?? "relatorio_ativo",
+            laudo_id: alvo,
+        });
+    }
+
     // =========================================================================
     // API PÚBLICA
     // =========================================================================
@@ -793,6 +855,7 @@
         iniciarRelatorio: (...args) => iniciarRelatorioWrapper(...args),
         finalizarRelatorio: (...args) => finalizarRelatorioWrapper(...args),
         cancelarRelatorio: (...args) => cancelarRelatorioWrapper(...args),
+        reabrirLaudo: (...args) => reabrirLaudoWrapper(...args),
         sincronizarEstadoRelatorio: (...args) => sincronizarEstadoRelatorioWrapper(...args),
 
         obterLaudoAtualId: () => laudoAtualId,
@@ -1122,11 +1185,13 @@
             imagemBase64Pendente = null;
             textoDocumentoPendente = null;
             nomeDocumentoPendente = null;
-            _estadoRelatorio = "relatorio_ativo";
-
+            emitirCardLaudo(pagina, { selecionar: false });
             emitirEstadoRelatorio({
-                estado_normalizado: "relatorio_ativo",
+                estado_normalizado: pagina?.estado ?? _estadoRelatorio,
                 laudo_id: alvo,
+                status_card: pagina?.status_card,
+                permite_edicao: !!pagina?.permite_edicao,
+                permite_reabrir: !!pagina?.permite_reabrir,
             });
 
             renderizarHistoricoCarregado({ rolarAoFinal: true });
@@ -1304,16 +1369,22 @@
         }
     });
 
-    btnAnexo?.addEventListener("click", () => {
-        inputAnexo?.click();
-    });
+    if (btnAnexo && !btnAnexo.dataset.anexoBindSource) {
+        btnAnexo.dataset.anexoBindSource = "api";
+        btnAnexo.addEventListener("click", () => {
+            inputAnexo?.click();
+        });
+    }
 
-    inputAnexo?.addEventListener("change", function () {
-        if (this.files?.[0]) {
-            ChatNetwork.prepararArquivoParaEnvio(this.files[0]);
-        }
-        this.value = "";
-    });
+    if (inputAnexo && !inputAnexo.dataset.anexoBindSource) {
+        inputAnexo.dataset.anexoBindSource = "api";
+        inputAnexo.addEventListener("change", function () {
+            if (this.files?.[0]) {
+                ChatNetwork.prepararArquivoParaEnvio(this.files[0]);
+            }
+            this.value = "";
+        });
+    }
 
     document.addEventListener("paste", (e) => {
         const itens = e.clipboardData?.items;

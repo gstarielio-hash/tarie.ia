@@ -9,15 +9,25 @@ from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
 from app.domains.chat.auth_helpers import usuario_nome
-from app.domains.chat.core_helpers import agora_utc, resposta_json_ok
+from app.domains.chat.core_helpers import (
+    agora_utc,
+    obter_preview_primeira_mensagem,
+    resposta_json_ok,
+)
 from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
+from app.domains.chat.laudo_state_helpers import (
+    laudo_permite_edicao_inspetor,
+    laudo_possui_historico_visivel,
+    laudo_tem_interacao,
+    serializar_card_laudo,
+)
 from app.domains.chat.mensagem_helpers import (
     notificar_mesa_whisper,
     serializar_mensagem_mesa,
 )
-from app.domains.chat.session_helpers import exigir_csrf
+from app.domains.chat.session_helpers import aplicar_contexto_laudo_selecionado, exigir_csrf
 from app.domains.chat.schemas import DadosMesaMensagem
-from app.shared.database import MensagemLaudo, TipoMensagem, Usuario, obter_banco
+from app.shared.database import MensagemLaudo, StatusRevisao, TipoMensagem, Usuario, obter_banco
 from app.shared.security import exigir_inspetor
 from nucleo.inspetor.referencias_mensagem import compor_texto_com_referencia
 
@@ -26,12 +36,14 @@ roteador_mesa = APIRouter()
 
 async def listar_mensagens_mesa_laudo(
     laudo_id: int,
+    request: Request,
     cursor: int | None = Query(default=None, gt=0),
     limite: int = Query(default=40, ge=10, le=120),
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
-    _ = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+    contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     consulta = banco.query(MensagemLaudo).filter(
         MensagemLaudo.laudo_id == laudo_id,
@@ -56,6 +68,12 @@ async def listar_mensagens_mesa_laudo(
             "itens": [serializar_mensagem_mesa(item) for item in mensagens_pagina],
             "cursor_proximo": int(cursor_proximo) if cursor_proximo else None,
             "tem_mais": tem_mais,
+            "estado": contexto["estado"],
+            "permite_edicao": contexto["permite_edicao"],
+            "permite_reabrir": contexto["permite_reabrir"],
+            "laudo_card": serializar_card_laudo(banco, laudo)
+            if laudo_possui_historico_visivel(banco, laudo)
+            else None,
         }
     )
 
@@ -70,9 +88,22 @@ async def enviar_mensagem_mesa_laudo(
     exigir_csrf(request)
     laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
 
+    if not laudo_permite_edicao_inspetor(laudo):
+        if laudo.status_revisao == StatusRevisao.APROVADO.value:
+            detalhe = "Laudo aprovado não pode receber novas mensagens."
+        elif laudo.status_revisao == StatusRevisao.REJEITADO.value:
+            detalhe = "Laudo em ajustes precisa ser reaberto antes de responder à mesa."
+        elif getattr(laudo, "reabertura_pendente_em", None):
+            detalhe = "Laudo com ajustes da mesa precisa ser reaberto antes de responder."
+        else:
+            detalhe = "Laudo aguardando avaliação não aceita novas mensagens até ser reaberto."
+        raise HTTPException(status_code=400, detail=detalhe)
+
     texto_limpo = (dados.texto or "").strip()
     if not texto_limpo:
         raise HTTPException(status_code=400, detail="Mensagem para a mesa está vazia.")
+
+    primeira_interacao_real = not laudo_tem_interacao(banco, laudo.id)
 
     referencia_mensagem_id = int(dados.referencia_mensagem_id or 0) or None
     if referencia_mensagem_id:
@@ -96,7 +127,10 @@ async def enviar_mensagem_mesa_laudo(
     )
     banco.add(mensagem)
     laudo.atualizado_em = agora_utc()
+    if primeira_interacao_real:
+        laudo.primeira_mensagem = obter_preview_primeira_mensagem(texto_limpo)
     banco.commit()
+    contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     await notificar_mesa_whisper(
         empresa_id=usuario.empresa_id,
@@ -107,7 +141,17 @@ async def enviar_mensagem_mesa_laudo(
     )
 
     payload = serializar_mensagem_mesa(mensagem)
-    return resposta_json_ok({"laudo_id": laudo.id, "mensagem": payload}, status_code=201)
+    return resposta_json_ok(
+        {
+            "laudo_id": laudo.id,
+            "mensagem": payload,
+            "laudo_card": serializar_card_laudo(banco, laudo),
+            "estado": contexto["estado"],
+            "permite_edicao": contexto["permite_edicao"],
+            "permite_reabrir": contexto["permite_reabrir"],
+        },
+        status_code=201,
+    )
 
 
 listar_mensagens_mesa = listar_mensagens_mesa_laudo

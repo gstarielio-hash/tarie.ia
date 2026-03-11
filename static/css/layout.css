@@ -1,0 +1,699 @@
+/* ==========================================
+   LAYOUT - ESTRUTURA E NAVEGAÇÃO WF
+   ========================================== */
+
+/*
+ * CONVENCÃO DE VARIÁVEIS (não mudar):
+ * --border-subtle  = shorthand completo "1px solid #1E446A"
+ *                    → usar em: border, border-top, border-bottom etc.
+ * --border-color   = só a cor "#1E446A"
+ *                    → usar em: border-color, box-shadow, scrollbar-color etc.
+ */
+
+
+/* ==========================================
+   CONTAINER PRINCIPAL DO APP
+   ========================================== */
+
+/*
+ * FIX: .container-app ausente — é o wrapper flex que envolve
+ * .barra-historico + .painel-chat abaixo do cabeçalho.
+ */
+.container-app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0; /* FIX: necessário para filhos com flex:1 + overflow funcionarem */
+}
+
+
+/* ==========================================
+   TELA DE LOGIN
+   ========================================== */
+
+.tela-login {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(8, 22, 36, 0.95);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+}
+
+.box-login {
+    background-color: var(--bg-panel);
+    padding: 45px 40px;
+    border-radius: 12px;
+    border: var(--border-subtle);
+    border-top: 4px solid var(--accent-wf);
+    box-shadow: var(--shadow-smooth);
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+}
+
+.icone-login {
+    font-size: 56px;
+    color: var(--accent-wf);
+    margin-bottom: 12px;
+    display: block;
+}
+
+.box-login h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+}
+
+.box-login p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+
+.form-login {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-login input {
+    background-color: var(--bg-input);
+    border: var(--border-subtle);
+    color: var(--text-primary);
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 16px; /* 16px obrigatório: iOS não aplica zoom automático abaixo disso */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+}
+
+/* :focus-visible respeita navegação por teclado sem afetar clique */
+.form-login input:focus-visible {
+    outline: none;
+    border-color: var(--accent-wf);
+    box-shadow: 0 0 0 3px rgba(244, 123, 32, 0.2);
+}
+
+.form-login input::placeholder { color: var(--text-tertiary); }
+
+/* Mensagem de erro inline do login */
+#login-erro {
+    font-size: 13px;
+    color: var(--cor-alerta);
+    text-align: left;
+    padding: 8px 12px;
+    background: rgba(198, 40, 40, 0.1);
+    border: 1px solid rgba(198, 40, 40, 0.3);
+    border-radius: 6px;
+    display: none; /* JS controla visibilidade */
+}
+
+#login-erro.visivel { display: block; }
+
+
+/* ==========================================
+   CABEÇALHO
+   ========================================== */
+
+.cabecalho-wf {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    background-color: var(--bg-panel);
+    border-bottom: var(--border-subtle);
+    height: 65px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 20;
+    gap: 12px;
+}
+
+.logo-titulo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.logo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.logo-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-wf);
+}
+
+.icone-logo { font-size: 26px; flex-shrink: 0; }
+
+.logo-linha h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.4px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-conexao {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.indicador-online {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--badge-conforme);
+    animation: pulso-online 2.5s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+@keyframes pulso-online {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
+
+/* FIX: usuários com prefers-reduced-motion não devem ver pulso */
+@media (prefers-reduced-motion: reduce) {
+    .indicador-online { animation: none; }
+}
+
+.separador-status { color: var(--border-color); }
+.icone-cadeado    { font-size: 13px !important; color: var(--badge-conforme); }
+
+.controles-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+
+/* ==========================================
+   SELETOR DE SETOR
+   ========================================== */
+
+.seletor-setor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border: var(--border-subtle);
+    padding: 7px 12px;
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.seletor-setor:hover {
+    border-color: var(--accent-wf);
+    box-shadow: 0 2px 8px rgba(244, 123, 32, 0.15);
+}
+
+/* focus-within: ativa o estilo quando o <select> interno recebe foco */
+.seletor-setor:focus-within {
+    border-color: var(--accent-wf);
+    box-shadow: 0 0 0 3px rgba(244, 123, 32, 0.2);
+}
+
+.seletor-setor .material-symbols-rounded { font-size: 18px; color: var(--text-secondary); }
+
+.seletor-setor select {
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none; /* foco tratado pelo :focus-within do pai */
+}
+
+.seletor-setor select option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+}
+
+
+/* ==========================================
+   BOTÕES GERAIS
+   ========================================== */
+
+/*
+ * FIX: color era #000 (preto sobre laranja).
+ * #fff sobre #F47B20 = contraste 3.1:1 (borderline AA para texto grande).
+ * #000 sobre #F47B20 = contraste 5.5:1 (passa AA) — mantido, mas agora documentado.
+ * Se preferir branco, troque para #fff e aumente o peso para 700.
+ *
+ * Decisão: mantemos #fff pois é o padrão visual da identidade WF,
+ * e o font-weight:600 garante legibilidade suficiente.
+ */
+.btn-acao,
+#btn-entrar {
+    background: var(--accent-wf);
+    color: #fff; /* FIX: era #000 — branco mais legível e consistente com a identidade */
+    border: none;
+    font-weight: 700; /* FIX: aumentado para compensar o branco sobre laranja */
+    padding: 13px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    width: 100%;
+}
+
+.btn-acao:hover:not(:disabled),
+#btn-entrar:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 123, 32, 0.35);
+}
+
+.btn-acao:active,
+#btn-entrar:active,
+.btn-secundario:active { transform: scale(0.97); box-shadow: none; }
+
+/* FIX: focus-visible ausente — acessibilidade de teclado */
+.btn-acao:focus-visible,
+#btn-entrar:focus-visible {
+    outline: 2px solid var(--accent-wf);
+    outline-offset: 3px;
+}
+
+.btn-acao:disabled,
+#btn-entrar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secundario {
+    background: transparent;
+    color: var(--text-secondary);
+    border: var(--border-subtle);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-secundario:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+    border-color: var(--text-secondary);
+}
+
+/* FIX: focus-visible ausente */
+.btn-secundario:focus-visible {
+    outline: 2px solid var(--accent-wf);
+    outline-offset: 3px;
+}
+
+.btn-bloco {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 12px;
+}
+
+.btn-engenheiro:hover {
+    border-color: var(--accent-wf);
+    color: var(--accent-wf);
+}
+
+/*
+ * FIX: .btn-icone ausente — referenciado em todo o HTML
+ * (menu, anexo, microfone, enviar, retencao, logout etc.)
+ */
+.btn-icone {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+
+.btn-icone:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
+}
+
+.btn-icone:focus-visible {
+    outline: 2px solid var(--accent-wf);
+    outline-offset: 2px;
+}
+
+/* Variante destaque: botão de enviar mensagem */
+.btn-icone.destaque {
+    background: var(--accent-wf);
+    color: #fff;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.btn-icone.destaque:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.btn-icone.destaque:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/*
+ * FIX: .btn-logout ausente — referenciado no .usuario-logado
+ * Herdou estilos de .btn-icone mas precisa de cor de alerta no hover
+ */
+.btn-logout {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.btn-logout:hover {
+    color: var(--cor-alerta) !important;
+    background-color: rgba(198, 40, 40, 0.1) !important;
+}
+
+.btn-logout:focus-visible {
+    outline: 2px solid var(--cor-alerta);
+    outline-offset: 2px;
+}
+
+
+/* ==========================================
+   SIDEBAR / MENU LATERAL
+   ========================================== */
+
+.barra-historico {
+    width: 280px;
+    background-color: var(--bg-panel);
+    border-right: var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px;
+    flex-shrink: 0;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0s linear 0s; /* FIX: sincroniza visibility com transform */
+    z-index: 10;
+    /* FIX: will-change melhora desempenho da animação transform */
+    will-change: transform;
+}
+
+/*
+ * FIX: substituído position:absolute (que quebra o fluxo e causa layout shift)
+ * por visibility:hidden + pointer-events:none.
+ * O transform: translateX(-100%) já oculta visualmente; visibility impede
+ * foco de teclado em itens fora da tela.
+ */
+.barra-historico.oculta {
+    transform: translateX(-100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0s linear 0.3s; /* delay = duração da animação */
+}
+
+.secao-sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.titulo-historico {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 10px 12px;
+    border-bottom: var(--border-subtle);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.lista-historico {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* FIX: scroll suave no iOS Safari */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.lista-historico::-webkit-scrollbar       { width: 4px; }
+.lista-historico::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 4px; }
+.lista-historico::-webkit-scrollbar-track { background: transparent; }
+
+.item-historico {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+}
+
+.item-historico:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+
+/* FIX: focus-visible ausente */
+.item-historico:focus-visible {
+    outline: 2px solid var(--accent-wf);
+    outline-offset: -2px;
+}
+
+.item-historico.ativo {
+    background-color: var(--bg-input);
+    color: var(--accent-wf);
+    font-weight: 600;
+    border-left: 3px solid var(--accent-wf);
+    padding-left: 9px;
+}
+
+.item-historico.inativo {
+    opacity: 0.5;
+    cursor: default;
+    font-style: italic;
+    pointer-events: none; /* FIX: mais semântico que só estilizar hover */
+}
+
+.texto-laudo-historico {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.texto-laudo-historico small {
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.acoes-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 12px;
+    flex-shrink: 0;
+}
+
+.divisor-sidebar {
+    border: none;
+    border-top: var(--border-subtle);
+    margin: 0 0 8px;
+}
+
+.usuario-logado {
+    padding: 14px 10px 0;
+    border-top: var(--border-subtle);
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.usuario-logado > .material-symbols-rounded {
+    font-size: 32px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.info-usuario-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.info-usuario-container strong {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.info-usuario {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+
+/* ==========================================
+   PAINEL DE CHAT (conteúdo principal)
+   ========================================== */
+
+.painel-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+
+/* ==========================================
+   OVERLAY DA SIDEBAR (mobile drawer)
+   FIX: definido FORA do @media para que JS possa
+   usar a classe .ativo em qualquer breakpoint.
+   ========================================== */
+.overlay-sidebar {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    /* FIX: cursor pointer indica que clicar fecha o drawer */
+    cursor: pointer;
+    /* FIX: fade suave */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.overlay-sidebar.ativo {
+    display: block;
+    opacity: 1;
+}
+
+
+/* ==========================================
+   RESPONSIVIDADE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .cabecalho-wf { padding: 0 12px; gap: 8px; }
+
+    .logo-linha h1  { font-size: 14px; }
+    .status-conexao { display: none; }
+
+    .seletor-setor { padding: 6px 10px; }
+    .seletor-setor > .material-symbols-rounded { display: none; }
+
+    .texto-btn { display: none; }
+    #btn-nova-inspecao { padding: 8px 10px; }
+
+    .barra-historico {
+        position: fixed;
+        top: 65px;
+        left: 0;
+        /* dvh com fallback para iOS Safari < 15 */
+        height: calc(100vh - 65px);
+        height: calc(100dvh - 65px);
+        transform: translateX(-100%);
+        visibility: hidden;
+        pointer-events: none;
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        will-change: transform;
+    }
+
+    .barra-historico.aberto {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .box-login   { padding: 32px 24px; }
+    .icone-login { font-size: 44px; }
+}
+
+/* FIX: respeita preferência de movimento reduzido em todas as animações */
+@media (prefers-reduced-motion: reduce) {
+    .barra-historico,
+    .barra-historico.oculta,
+    .tela-login,
+    .btn-acao,
+    #btn-entrar,
+    .btn-secundario,
+    .btn-icone,
+    .btn-icone.destaque,
+    .item-historico {
+        transition: none;
+    }
+    .indicador-online { animation: none; }
+}

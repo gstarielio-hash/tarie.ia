@@ -6,7 +6,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
+import tempfile
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -24,11 +27,14 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
+from app.domains.chat.media_helpers import safe_remove_file
 from app.shared.database import (
     Laudo,
     MensagemLaudo,
@@ -39,6 +45,7 @@ from app.shared.database import (
     Usuario,
     obter_banco,
 )
+from app.domains.mesa.service import montar_pacote_mesa_laudo
 from app.domains.revisor.common import (
     CHAVE_CSRF_REVISOR,
     _contexto_base,
@@ -46,6 +53,7 @@ from app.domains.revisor.common import (
     _validar_csrf,
 )
 from app.domains.revisor.templates_laudo import roteador_templates_laudo
+from nucleo.gerador_laudos import GeradorLaudos
 from nucleo.inspetor.referencias_mensagem import (
     compor_texto_com_referencia,
     extrair_referencia_do_texto,
@@ -115,6 +123,14 @@ def _normalizar_data_utc(data: datetime | None) -> datetime | None:
     if data.tzinfo is None:
         return data.replace(tzinfo=timezone.utc)
     return data.astimezone(timezone.utc)
+
+
+def _formatar_data_local(valor: datetime | None, *, incluir_ano: bool = True) -> str:
+    data_utc = _normalizar_data_utc(valor)
+    if data_utc is None:
+        return "-"
+    formato = "%d/%m/%Y %H:%M" if incluir_ano else "%d/%m %H:%M"
+    return data_utc.astimezone().strftime(formato)
 
 
 def _resumo_tempo_em_campo(inicio: datetime | None) -> tuple[str, str]:
@@ -756,6 +772,7 @@ async def avaliar_laudo(
         laudo.status_revisao = StatusRevisao.APROVADO.value
         laudo.revisado_por = usuario.id
         laudo.motivo_rejeicao = None
+        laudo.reabertura_pendente_em = None
         laudo.atualizado_em = _agora_utc()
         texto_notificacao_inspetor = "✅ Seu laudo foi aprovado pela mesa avaliadora."
 
@@ -775,6 +792,7 @@ async def avaliar_laudo(
         laudo.status_revisao = StatusRevisao.REJEITADO.value
         laudo.revisado_por = usuario.id
         laudo.motivo_rejeicao = motivo
+        laudo.reabertura_pendente_em = _agora_utc()
         laudo.atualizado_em = _agora_utc()
         texto_notificacao_inspetor = f"⚠️ Seu laudo foi rejeitado. Motivo: {motivo}"
 
@@ -920,6 +938,8 @@ async def responder_chat_campo(
         tipo=TipoMensagem.HUMANO_ENG,
         conteudo=compor_texto_com_referencia(texto_limpo, referencia_mensagem_id),
     )
+    if laudo.status_revisao == StatusRevisao.AGUARDANDO.value:
+        laudo.reabertura_pendente_em = _agora_utc()
     laudo.atualizado_em = _agora_utc()
     banco.commit()
 
@@ -1288,3 +1308,132 @@ async def obter_laudo_completo(
             },
         }
     )
+
+
+@roteador_revisor.get("/api/laudo/{laudo_id}/pacote")
+async def obter_pacote_mesa_laudo(
+    laudo_id: int,
+    limite_whispers: int = Query(default=80, ge=20, le=300),
+    limite_pendencias: int = Query(default=80, ge=20, le=300),
+    limite_revisoes: int = Query(default=10, ge=1, le=50),
+    usuario: Usuario = Depends(exigir_revisor),
+    banco: Session = Depends(obter_banco),
+):
+    laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    pacote = montar_pacote_mesa_laudo(
+        banco,
+        laudo=laudo,
+        limite_whispers=limite_whispers,
+        limite_pendencias=limite_pendencias,
+        limite_revisoes=limite_revisoes,
+    )
+    return JSONResponse(pacote.model_dump(mode="json"))
+
+
+@roteador_revisor.get("/api/laudo/{laudo_id}/pacote/exportar-pdf")
+async def exportar_pacote_mesa_laudo_pdf(
+    laudo_id: int,
+    limite_whispers: int = Query(default=80, ge=20, le=300),
+    limite_pendencias: int = Query(default=80, ge=20, le=300),
+    limite_revisoes: int = Query(default=10, ge=1, le=50),
+    usuario: Usuario = Depends(exigir_revisor),
+    banco: Session = Depends(obter_banco),
+):
+    laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    pacote = montar_pacote_mesa_laudo(
+        banco,
+        laudo=laudo,
+        limite_whispers=limite_whispers,
+        limite_pendencias=limite_pendencias,
+        limite_revisoes=limite_revisoes,
+    )
+
+    nome_arquivo_tmp = f"Pacote_Mesa_{laudo_id}_{uuid.uuid4().hex[:12]}.pdf"
+    caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo_tmp)
+
+    nome_empresa = (
+        getattr(usuario.empresa, "nome_fantasia", None)
+        or getattr(usuario.empresa, "razao_social", None)
+        or f"Empresa #{usuario.empresa_id}"
+    )
+
+    inspetor_nome = "Nao informado"
+    if pacote.inspetor_id:
+        inspetor = banco.get(Usuario, pacote.inspetor_id)
+        if inspetor and inspetor.empresa_id == usuario.empresa_id:
+            inspetor_nome = inspetor.nome
+
+    revisoes_payload = [
+        {
+            "numero_versao": revisao.numero_versao,
+            "origem": revisao.origem,
+            "resumo": revisao.resumo,
+            "confianca_geral": revisao.confianca_geral,
+            "criado_em": _formatar_data_local(revisao.criado_em),
+        }
+        for revisao in pacote.revisoes_recentes
+    ]
+    pendencias_payload = [
+        {
+            "id": item.id,
+            "tipo": item.tipo,
+            "texto": item.texto,
+            "criado_em": _formatar_data_local(item.criado_em),
+            "referencia_mensagem_id": item.referencia_mensagem_id,
+        }
+        for item in pacote.pendencias_abertas
+    ]
+    whispers_payload = [
+        {
+            "id": item.id,
+            "tipo": item.tipo,
+            "texto": item.texto,
+            "criado_em": _formatar_data_local(item.criado_em),
+            "referencia_mensagem_id": item.referencia_mensagem_id,
+        }
+        for item in pacote.whispers_recentes
+    ]
+
+    try:
+        GeradorLaudos.gerar_pdf_pacote_mesa(
+            caminho_saida=caminho_pdf,
+            laudo_id=laudo.id,
+            codigo_hash=pacote.codigo_hash,
+            empresa=nome_empresa,
+            inspetor=inspetor_nome,
+            data_geracao=_formatar_data_local(_agora_utc()),
+            tipo_template=pacote.tipo_template,
+            setor_industrial=pacote.setor_industrial,
+            status_revisao=pacote.status_revisao,
+            status_conformidade=pacote.status_conformidade,
+            ultima_interacao=_formatar_data_local(pacote.ultima_interacao_em),
+            tempo_em_campo_minutos=pacote.tempo_em_campo_minutos,
+            resumo_mensagens=pacote.resumo_mensagens.model_dump(mode="json"),
+            resumo_evidencias=pacote.resumo_evidencias.model_dump(mode="json"),
+            resumo_pendencias=pacote.resumo_pendencias.model_dump(mode="json"),
+            pendencias_abertas=pendencias_payload,
+            whispers_recentes=whispers_payload,
+            revisoes_recentes=revisoes_payload,
+            engenheiro_nome=usuario.nome,
+            engenheiro_cargo="Engenheiro Revisor",
+            engenheiro_crea=(str(usuario.crea or "").strip()[:40] or "Nao informado"),
+            carimbo_texto="CARIMBO DIGITAL WF",
+        )
+
+        return FileResponse(
+            path=caminho_pdf,
+            filename=f"pacote_mesa_laudo_{laudo.id}.pdf",
+            media_type="application/pdf",
+            background=BackgroundTask(safe_remove_file, caminho_pdf),
+        )
+    except Exception:
+        safe_remove_file(caminho_pdf)
+        logger.exception(
+            "Falha ao exportar pacote da mesa em PDF | laudo_id=%s empresa_id=%s",
+            laudo.id,
+            usuario.empresa_id,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"erro": "Falha ao exportar o PDF do pacote da mesa."},
+        )

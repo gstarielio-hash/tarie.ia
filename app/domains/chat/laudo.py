@@ -19,6 +19,11 @@ from app.domains.chat.gate_helpers import (
     garantir_gate_qualidade_laudo,
 )
 from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
+from app.domains.chat.laudo_state_helpers import (
+    laudo_permite_reabrir,
+    laudo_tem_interacao,
+    serializar_card_laudo,
+)
 from app.domains.chat.limits_helpers import garantir_limite_laudos
 from app.domains.chat.normalization import (
     ALIASES_TEMPLATE,
@@ -32,6 +37,7 @@ from app.domains.chat.revisao_helpers import (
     _serializar_revisao_laudo,
 )
 from app.domains.chat.session_helpers import (
+    aplicar_contexto_laudo_selecionado,
     estado_relatorio_sanitizado,
     exigir_csrf,
     laudo_id_sessao,
@@ -58,13 +64,25 @@ async def api_status_relatorio(
 ):
     # Endpoint de consulta deve ser leitura pura para evitar corrida de cookie
     # entre requests paralelas (ex.: /status vs /iniciar).
+    payload = estado_relatorio_sanitizado(
+        request,
+        banco,
+        usuario,
+        mutar_sessao=False,
+    )
+
+    laudo_card = None
+    laudo_id = payload.get("laudo_id")
+    if laudo_id:
+        laudo = obter_laudo_do_inspetor(banco, int(laudo_id), usuario)
+        if laudo_tem_interacao(banco, laudo.id) or laudo.status_revisao != StatusRevisao.RASCUNHO.value:
+            laudo_card = serializar_card_laudo(banco, laudo)
+
     return resposta_json_ok(
-        estado_relatorio_sanitizado(
-            request,
-            banco,
-            usuario,
-            mutar_sessao=False,
-        )
+        {
+            **payload,
+            "laudo_card": laudo_card,
+        }
     )
 
 
@@ -103,37 +121,13 @@ async def api_iniciar_relatorio(
 
     garantir_limite_laudos(usuario, banco)
 
-    laudo_id_ativo = laudo_id_sessao(request)
-    if laudo_id_ativo:
-        laudo_ativo = (
-            banco.query(Laudo)
-            .filter(
-                Laudo.id == laudo_id_ativo,
-                Laudo.empresa_id == usuario.empresa_id,
-                Laudo.usuario_id == usuario.id,
-                Laudo.status_revisao == StatusRevisao.RASCUNHO.value,
-            )
-            .first()
-        )
-        if laudo_ativo:
-            return resposta_json_ok(
-                {
-                    "success": True,
-                    "laudo_id": laudo_ativo.id,
-                    "hash": laudo_ativo.codigo_hash[-6:],
-                    "message": "Já existe um relatório ativo em andamento.",
-                    "estado": "relatorio_ativo",
-                    "tipo_template": laudo_ativo.tipo_template,
-                }
-            )
-
     laudo = Laudo(
         empresa_id=usuario.empresa_id,
         usuario_id=usuario.id,
         tipo_template=tipo_template_normalizado,
         status_revisao=StatusRevisao.RASCUNHO.value,
         setor_industrial=nome_template_humano(tipo_template_normalizado),
-        primeira_mensagem=f"Relatório {tipo_template_normalizado.upper()} iniciado",
+        primeira_mensagem=None,
         modo_resposta=MODO_DETALHADO,
         codigo_hash=uuid.uuid4().hex,
         is_deep_research=False,
@@ -143,8 +137,7 @@ async def api_iniciar_relatorio(
     banco.commit()
     banco.refresh(laudo)
 
-    request.session["laudo_ativo_id"] = laudo.id
-    request.session["estado_relatorio"] = "relatorio_ativo"
+    aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     logger.info(
         "Relatório iniciado | usuario_id=%s | tipo=%s | laudo_id=%s",
@@ -158,8 +151,8 @@ async def api_iniciar_relatorio(
             "success": True,
             "laudo_id": laudo.id,
             "hash": laudo.codigo_hash[-6:],
-            "message": f"✅ Relatório {nome_template_humano(tipo_template_normalizado)} iniciado!",
-            "estado": "relatorio_ativo",
+            "message": f"✅ Inspeção {nome_template_humano(tipo_template_normalizado)} criada. Envie a primeira mensagem para iniciar o laudo.",
+            "estado": "sem_relatorio",
             "tipo_template": tipo_template_normalizado,
         }
     )
@@ -214,12 +207,11 @@ async def api_finalizar_relatorio(
     garantir_gate_qualidade_laudo(banco, laudo)
 
     laudo.status_revisao = StatusRevisao.AGUARDANDO.value
+    laudo.encerrado_pelo_inspetor_em = agora_utc()
+    laudo.reabertura_pendente_em = None
     laudo.atualizado_em = agora_utc()
     banco.commit()
-
-    if laudo_id_sessao(request) == laudo.id:
-        request.session.pop("laudo_ativo_id", None)
-    request.session["estado_relatorio"] = "sem_relatorio"
+    contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     logger.info("Relatório finalizado | usuario_id=%s | laudo_id=%s", usuario.id, laudo_id)
 
@@ -227,6 +219,10 @@ async def api_finalizar_relatorio(
         {
             "success": True,
             "message": "✅ Relatório enviado para engenharia! Já aparece na Mesa de Avaliação.",
+            "laudo_id": laudo.id,
+            "estado": contexto["estado"],
+            "permite_reabrir": contexto["permite_reabrir"],
+            "laudo_card": serializar_card_laudo(banco, laudo),
         }
     )
 
@@ -244,6 +240,42 @@ async def api_obter_gate_qualidade_laudo(
 
     status_http = 200 if bool(resultado.get("aprovado", False)) else 422
     return JSONResponse(resultado, status_code=status_http)
+
+
+async def api_reabrir_laudo(
+    laudo_id: int,
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+
+    laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
+
+    if not laudo_permite_reabrir(banco, laudo):
+        raise HTTPException(
+            status_code=400,
+            detail="Este laudo ainda não possui ajustes liberados para reabertura.",
+        )
+
+    laudo.status_revisao = StatusRevisao.RASCUNHO.value
+    laudo.reaberto_em = agora_utc()
+    laudo.reabertura_pendente_em = None
+    laudo.atualizado_em = agora_utc()
+    banco.commit()
+
+    contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
+
+    return resposta_json_ok(
+        {
+            "success": True,
+            "message": "Inspeção reaberta. Você já pode continuar o laudo.",
+            "laudo_id": laudo.id,
+            "estado": contexto["estado"],
+            "permite_reabrir": contexto["permite_reabrir"],
+            "laudo_card": serializar_card_laudo(banco, laudo),
+        }
+    )
 
 
 async def api_cancelar_relatorio(
@@ -464,6 +496,11 @@ roteador_laudo.add_api_route(
     methods=["GET"],
 )
 roteador_laudo.add_api_route(
+    "/api/laudo/{laudo_id}/reabrir",
+    api_reabrir_laudo,
+    methods=["POST"],
+)
+roteador_laudo.add_api_route(
     "/api/laudo/cancelar",
     api_cancelar_relatorio,
     methods=["POST"],
@@ -501,6 +538,7 @@ __all__ = [
     "api_finalizar_relatorio",
     "api_obter_gate_qualidade_laudo",
     "api_gate_qualidade_laudo",
+    "api_reabrir_laudo",
     "api_cancelar_relatorio",
     "api_desativar_relatorio_ativo",
     "listar_revisoes_laudo",

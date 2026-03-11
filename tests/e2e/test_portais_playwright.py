@@ -255,7 +255,7 @@ def test_e2e_modal_nova_inspecao_ativa_barra_de_sessao(
     expect(page.locator("#nome-template-ativo")).to_contain_text(re.compile(r"Inspeção Geral|Chat Livre", re.IGNORECASE))
 
 
-def test_e2e_home_com_laudo_ativo_desloga_para_login(
+def test_e2e_home_com_laudo_ativo_retorna_para_tela_inicial_sem_deslogar(
     page: Page,
     live_server_url: str,
     credenciais_seed: dict[str, dict[str, str]],
@@ -277,27 +277,28 @@ def test_e2e_home_com_laudo_ativo_desloga_para_login(
         method="GET",
     )
     assert status_antes["status"] == 200
-    assert status_antes["body"]["estado"] == "relatorio_ativo"
-    assert int(status_antes["body"]["laudo_id"]) > 0
+    assert status_antes["body"]["estado"] == "sem_relatorio"
+    assert status_antes["body"]["laudo_id"] is None
 
     page.locator(".btn-home-cabecalho").click()
     expect(page).to_have_url(
-        re.compile(rf"{re.escape(live_server_url)}/app/login/?$")
+        re.compile(rf"{re.escape(live_server_url)}/app/?(\?home=1)?$")
     )
-    expect(page.locator('form.form-login')).to_be_visible()
+    expect(page.locator("#tela-boas-vindas")).to_be_visible()
+    expect(page.locator("#btn-abrir-modal-novo")).to_be_visible()
 
     status_depois = _api_fetch(
         page,
         path="/app/api/laudo/status",
         method="GET",
     )
-    assert status_depois["status"] in (200, 303, 401, 403)
+    assert status_depois["status"] == 200
 
     page.goto(f"{live_server_url}/app/", wait_until="domcontentloaded")
     expect(page).to_have_url(
-        re.compile(rf"{re.escape(live_server_url)}/app/login/?$")
+        re.compile(rf"{re.escape(live_server_url)}/app/?(\?laudo=\d+)?$")
     )
-    assert "/app/login" in page.url
+    assert "/app/login" not in page.url
 
 
 def test_e2e_acao_rapida_inicia_inspecao_e_preenche_composer(

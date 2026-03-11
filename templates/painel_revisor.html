@@ -900,6 +900,79 @@
             color: var(--texto-claro);
         }
 
+        .pacote-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .pacote-card {
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+        }
+
+        .pacote-card h4 {
+            margin: 0 0 8px;
+            font-size: 13px;
+            color: var(--texto-claro);
+            letter-spacing: .03em;
+            text-transform: uppercase;
+        }
+
+        .pacote-kpi {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--texto-mutado);
+        }
+
+        .pacote-kpi strong {
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .pacote-meta {
+            margin: 8px 0 14px;
+            color: var(--texto-mutado);
+            font-size: 12px;
+        }
+
+        .pacote-lista {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .pacote-lista li {
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            padding: 10px;
+            background: rgba(22, 27, 34, 0.58);
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--texto-claro);
+        }
+
+        .pacote-lista strong {
+            color: #fff;
+        }
+
+        .pacote-lista .meta {
+            display: block;
+            margin-top: 5px;
+            color: var(--texto-mutado);
+            font-size: 11px;
+        }
+
         .cond-C {
             color: var(--cor-aprovado-soft);
             font-weight: 700;
@@ -987,6 +1060,10 @@
         @media (max-width: 980px) {
             .layout-inbox {
                 grid-template-columns: 320px 1fr;
+            }
+
+            .pacote-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -1207,6 +1284,23 @@
         </div>
     </div>
 
+    <div id="modal-pacote" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="titulo-modal-pacote" aria-hidden="true">
+        <div class="modal-container" role="document">
+            <div class="modal-header">
+                <h2 id="titulo-modal-pacote">
+                    <span class="material-symbols-rounded" aria-hidden="true">dataset</span>
+                    Pacote Técnico da Mesa
+                </h2>
+                <button class="btn-sair" id="btn-fechar-pacote" type="button" aria-label="Fechar pacote"
+                    style="border:none;">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-pacote-conteudo"></div>
+        </div>
+    </div>
+
     <div id="dialog-motivo" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-dialog-motivo"
         aria-describedby="texto-dialog-motivo" aria-hidden="true">
         <div class="dialog-motivo" role="document">
@@ -1259,6 +1353,9 @@
                 modalRelatorio: document.getElementById("modal-relatorio"),
                 btnFecharRelatorio: document.getElementById("btn-fechar-relatorio"),
                 modalConteudo: document.getElementById("modal-conteudo"),
+                modalPacote: document.getElementById("modal-pacote"),
+                btnFecharPacote: document.getElementById("btn-fechar-pacote"),
+                modalPacoteConteudo: document.getElementById("modal-pacote-conteudo"),
                 dialogMotivo: document.getElementById("dialog-motivo"),
                 inputMotivo: document.getElementById("input-motivo"),
                 btnCancelarMotivo: document.getElementById("btn-cancelar-motivo"),
@@ -1269,6 +1366,7 @@
             const state = {
                 laudoAtivoId: null,
                 jsonEstruturadoAtivo: null,
+                pacoteMesaAtivo: null,
                 socketWhisper: null,
                 wsReconnectTimer: null,
                 lastFocusedElement: null,
@@ -1317,6 +1415,55 @@
                 const base = String(texto || "").replace(/\s+/g, " ").trim();
                 if (!base) return "Mensagem sem conteúdo";
                 return base.length > 140 ? `${base.slice(0, 140)}...` : base;
+            };
+
+            const formatarDataHora = (valor) => {
+                if (!valor) return "-";
+                try {
+                    const data = new Date(valor);
+                    if (Number.isNaN(data.getTime())) return "-";
+                    return data.toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    });
+                } catch (_) {
+                    return "-";
+                }
+            };
+
+            const downloadJson = (nomeArquivo, payload) => {
+                const nomeSeguro = (nomeArquivo || "pacote_mesa_laudo.json")
+                    .replace(/[^\w.\-]/g, "_")
+                    .slice(0, 120);
+                const conteudo = JSON.stringify(payload || {}, null, 2);
+                const blob = new Blob([conteudo], { type: "application/json;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = nomeSeguro;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            };
+
+            const obterPacoteMesaLaudo = async ({ forcar = false } = {}) => {
+                if (!state.laudoAtivoId) return null;
+                if (!forcar && state.pacoteMesaAtivo) return state.pacoteMesaAtivo;
+
+                const res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/pacote`, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                });
+                if (!res.ok) {
+                    throw new Error(`Falha HTTP ${res.status}`);
+                }
+
+                const pacote = await res.json();
+                state.pacoteMesaAtivo = pacote;
+                return pacote;
             };
 
             const limparReferenciaMensagemAtiva = () => {
@@ -1456,6 +1603,27 @@
 
             const renderActionButtons = (dados) => {
                 const partes = [];
+
+                partes.push(`
+                    <button class="btn btn-ver js-btn-pacote-resumo" type="button">
+                        <span class="material-symbols-rounded" aria-hidden="true">insights</span>
+                        <span>Resumo Mesa</span>
+                    </button>
+                `);
+
+                partes.push(`
+                    <button class="btn btn-ver js-btn-pacote-json" type="button">
+                        <span class="material-symbols-rounded" aria-hidden="true">download</span>
+                        <span>Pacote JSON</span>
+                    </button>
+                `);
+
+                partes.push(`
+                    <button class="btn btn-ver js-btn-pacote-pdf" type="button">
+                        <span class="material-symbols-rounded" aria-hidden="true">picture_as_pdf</span>
+                        <span>Pacote PDF</span>
+                    </button>
+                `);
 
                 if (dados.dados_formulario) {
                     partes.push(`
@@ -1612,7 +1780,7 @@
                 overlay.classList.remove("ativo");
                 overlay.setAttribute("aria-hidden", "true");
 
-                if (![els.modalRelatorio, els.dialogMotivo].some((el) => el.classList.contains("ativo"))) {
+                if (![els.modalRelatorio, els.modalPacote, els.dialogMotivo].some((el) => el.classList.contains("ativo"))) {
                     document.body.style.overflow = "";
                 }
 
@@ -1709,6 +1877,7 @@
 
                     const dados = await res.json();
                     state.jsonEstruturadoAtivo = dados.dados_formulario || null;
+                    state.pacoteMesaAtivo = null;
                     state.historicoMensagens = [];
                     state.historicoCursorProximo = null;
                     state.historicoTemMais = false;
@@ -1816,6 +1985,122 @@
                 }
             };
 
+            const renderListaPacote = (itens, mensagemVazia) => {
+                if (!Array.isArray(itens) || !itens.length) {
+                    return `<li>${escapeHtml(mensagemVazia || "Sem registros no momento.")}</li>`;
+                }
+
+                return itens.slice(0, 8).map((item) => {
+                    const texto = resumoMensagem(item?.texto || "");
+                    const data = formatarDataHora(item?.criado_em);
+                    const tipo = String(item?.tipo || "mensagem");
+                    const status = item?.resolvida_em
+                        ? `Resolvida em ${formatarDataHora(item.resolvida_em)}`
+                        : "Aberta";
+
+                    return `
+                        <li>
+                            <strong>#${escapeHtml(String(item?.id || "-"))} · ${escapeHtml(tipo)}</strong><br>
+                            ${escapeHtml(texto)}
+                            <span class="meta">${escapeHtml(data)} · ${escapeHtml(status)}</span>
+                        </li>
+                    `;
+                }).join("");
+            };
+
+            const renderizarModalPacote = (pacote) => {
+                if (!pacote || typeof pacote !== "object") {
+                    els.modalPacoteConteudo.innerHTML = "<p>Pacote técnico indisponível para este laudo.</p>";
+                    return;
+                }
+
+                const resumoMensagens = pacote.resumo_mensagens || {};
+                const resumoEvidencias = pacote.resumo_evidencias || {};
+                const resumoPendencias = pacote.resumo_pendencias || {};
+                const hashCurto = String(pacote.codigo_hash || "").slice(-6) || "-";
+
+                els.modalPacoteConteudo.innerHTML = `
+                    <div class="pacote-meta">
+                        <strong>Laudo #${escapeHtml(hashCurto)}</strong> ·
+                        Template ${escapeHtml(String(pacote.tipo_template || "").toUpperCase())} ·
+                        Setor ${escapeHtml(String(pacote.setor_industrial || "-"))} ·
+                        Última interação: ${escapeHtml(formatarDataHora(pacote.ultima_interacao_em))}
+                    </div>
+
+                    <div class="pacote-grid">
+                        <section class="pacote-card">
+                            <h4>Mensagens</h4>
+                            <div class="pacote-kpi"><span>Total</span><strong>${escapeHtml(String(resumoMensagens.total || 0))}</strong></div>
+                            <div class="pacote-kpi"><span>Inspetor</span><span>${escapeHtml(String(resumoMensagens.inspetor || 0))}</span></div>
+                            <div class="pacote-kpi"><span>IA</span><span>${escapeHtml(String(resumoMensagens.ia || 0))}</span></div>
+                            <div class="pacote-kpi"><span>Mesa</span><span>${escapeHtml(String(resumoMensagens.mesa || 0))}</span></div>
+                        </section>
+
+                        <section class="pacote-card">
+                            <h4>Evidências</h4>
+                            <div class="pacote-kpi"><span>Total</span><strong>${escapeHtml(String(resumoEvidencias.total || 0))}</strong></div>
+                            <div class="pacote-kpi"><span>Textuais</span><span>${escapeHtml(String(resumoEvidencias.textuais || 0))}</span></div>
+                            <div class="pacote-kpi"><span>Fotos</span><span>${escapeHtml(String(resumoEvidencias.fotos || 0))}</span></div>
+                            <div class="pacote-kpi"><span>Documentos</span><span>${escapeHtml(String(resumoEvidencias.documentos || 0))}</span></div>
+                        </section>
+
+                        <section class="pacote-card">
+                            <h4>Pendências</h4>
+                            <div class="pacote-kpi"><span>Total</span><strong>${escapeHtml(String(resumoPendencias.total || 0))}</strong></div>
+                            <div class="pacote-kpi"><span>Abertas</span><span>${escapeHtml(String(resumoPendencias.abertas || 0))}</span></div>
+                            <div class="pacote-kpi"><span>Resolvidas</span><span>${escapeHtml(String(resumoPendencias.resolvidas || 0))}</span></div>
+                            <div class="pacote-kpi"><span>Tempo em campo</span><span>${escapeHtml(String(pacote.tempo_em_campo_minutos || 0))} min</span></div>
+                        </section>
+                    </div>
+
+                    <h3 style="margin:0 0 10px; color:var(--cor-secundaria);">Pendências Abertas</h3>
+                    <ul class="pacote-lista">${renderListaPacote(pacote.pendencias_abertas, "Sem pendências abertas.")}</ul>
+
+                    <h3 style="margin:18px 0 10px; color:var(--cor-secundaria);">Whispers Recentes</h3>
+                    <ul class="pacote-lista">${renderListaPacote(pacote.whispers_recentes, "Sem whispers registrados.")}</ul>
+                `;
+            };
+
+            const abrirResumoPacoteMesa = async () => {
+                if (!state.laudoAtivoId) return;
+                try {
+                    showStatus("Carregando pacote técnico...", "sync");
+                    const pacote = await obterPacoteMesaLaudo({ forcar: true });
+                    renderizarModalPacote(pacote);
+                    openModal(els.modalPacote, els.btnFecharPacote);
+                } catch (erro) {
+                    showStatus("Erro ao carregar pacote técnico.", "error");
+                    console.error("[Tariel] Falha ao carregar pacote técnico:", erro);
+                }
+            };
+
+            const baixarPacoteMesaJson = async () => {
+                if (!state.laudoAtivoId) return;
+                try {
+                    const pacote = await obterPacoteMesaLaudo({ forcar: false });
+                    if (!pacote) return;
+                    const hashCurto = String(pacote.codigo_hash || state.laudoAtivoId).slice(-6);
+                    downloadJson(`pacote_mesa_${hashCurto}.json`, pacote);
+                    showStatus("Pacote JSON baixado.", "download_done");
+                } catch (erro) {
+                    showStatus("Erro ao baixar pacote JSON.", "error");
+                    console.error("[Tariel] Falha ao baixar pacote JSON:", erro);
+                }
+            };
+
+            const baixarPacoteMesaPdf = () => {
+                if (!state.laudoAtivoId) return;
+                const url = `/revisao/api/laudo/${state.laudoAtivoId}/pacote/exportar-pdf`;
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+                link.rel = "noopener";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showStatus("Gerando PDF do pacote...", "picture_as_pdf");
+            };
+
             const renderizarModalRelatorio = () => {
                 if (!state.jsonEstruturadoAtivo) {
                     els.modalConteudo.innerHTML = "<p>Sem dados estruturados.</p>";
@@ -1919,6 +2204,21 @@
             });
 
             els.viewAcoes.addEventListener("click", (event) => {
+                if (event.target.closest(".js-btn-pacote-resumo")) {
+                    abrirResumoPacoteMesa();
+                    return;
+                }
+
+                if (event.target.closest(".js-btn-pacote-json")) {
+                    baixarPacoteMesaJson();
+                    return;
+                }
+
+                if (event.target.closest(".js-btn-pacote-pdf")) {
+                    baixarPacoteMesaPdf();
+                    return;
+                }
+
                 if (event.target.closest(".js-btn-abrir-rel")) {
                     renderizarModalRelatorio();
                     openModal(els.modalRelatorio, els.btnFecharRelatorio);
@@ -1944,6 +2244,7 @@
             });
 
             els.btnFecharRelatorio.addEventListener("click", () => closeModal(els.modalRelatorio));
+            els.btnFecharPacote.addEventListener("click", () => closeModal(els.modalPacote));
             els.btnCancelarMotivo.addEventListener("click", () => closeModal(els.dialogMotivo));
             els.btnConfirmarMotivo.addEventListener("click", confirmarDevolucao);
 
@@ -1951,16 +2252,22 @@
                 if (event.target === els.modalRelatorio) closeModal(els.modalRelatorio);
             });
 
+            els.modalPacote.addEventListener("click", (event) => {
+                if (event.target === els.modalPacote) closeModal(els.modalPacote);
+            });
+
             els.dialogMotivo.addEventListener("click", (event) => {
                 if (event.target === els.dialogMotivo) closeModal(els.dialogMotivo);
             });
 
             els.modalRelatorio.addEventListener("keydown", (event) => trapFocus(els.modalRelatorio, event));
+            els.modalPacote.addEventListener("keydown", (event) => trapFocus(els.modalPacote, event));
             els.dialogMotivo.addEventListener("keydown", (event) => trapFocus(els.dialogMotivo, event));
 
             document.addEventListener("keydown", (event) => {
                 if (event.key !== "Escape") return;
                 if (els.dialogMotivo.classList.contains("ativo")) closeModal(els.dialogMotivo);
+                else if (els.modalPacote.classList.contains("ativo")) closeModal(els.modalPacote);
                 else if (els.modalRelatorio.classList.contains("ativo")) closeModal(els.modalRelatorio);
             });
 

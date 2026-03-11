@@ -215,7 +215,15 @@
             return "aguardando";
         }
 
+        if (estadoBruto === "ajustes" || estadoBruto === "aprovado") {
+            return estadoBruto;
+        }
+
         return estadoBruto || "sem_relatorio";
+    }
+
+    function estadoRelatorioPossuiContexto(valor) {
+        return normalizarEstadoRelatorio(valor) !== "sem_relatorio";
     }
 
     function normalizarFiltroPendencias(valor) {
@@ -319,6 +327,31 @@
         mostrarToast(MENSAGEM_MESA_EXIGE_INSPECAO, "aviso", 3200);
     }
 
+    function emitirSincronizacaoLaudo(payload = {}, { selecionar = false } = {}) {
+        if (payload?.laudo_card?.id) {
+            document.dispatchEvent(new CustomEvent("tariel:laudo-card-sincronizado", {
+                detail: {
+                    card: payload.laudo_card,
+                    selecionar,
+                },
+                bubbles: true,
+            }));
+        }
+
+        if (!payload?.estado) return;
+
+        document.dispatchEvent(new CustomEvent("tariel:estado-relatorio", {
+            detail: {
+                estado: payload.estado,
+                laudo_id: payload.laudo_id ?? payload.laudoId ?? payload?.laudo_card?.id ?? null,
+                permite_reabrir: !!payload.permite_reabrir,
+                permite_edicao: !!payload.permite_edicao,
+                status_card: payload.status_card || payload?.laudo_card?.status_card || "",
+            },
+            bubbles: true,
+        }));
+    }
+
     function obterTokenCsrf() {
         return document.querySelector('meta[name="csrf-token"]')?.content || "";
     }
@@ -339,28 +372,6 @@
         }
 
         document.body.dataset.laudoAtualId = "";
-    }
-
-    function submeterLogoutPortal() {
-        const csrf = obterTokenCsrf();
-        if (!csrf) {
-            window.location.assign("/app/login");
-            return;
-        }
-
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = "/app/logout";
-        form.hidden = true;
-
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "csrf_token";
-        input.value = csrf;
-
-        form.appendChild(input);
-        document.body.appendChild(form);
-        form.submit();
     }
 
     async function desativarContextoAtivoParaHome() {
@@ -388,11 +399,27 @@
         }
     }
 
-    async function navegarParaHome(destino = "/app/") {
-        const homeDestino = String(destino || "/app/").trim() || "/app/";
-        const desativou = await desativarContextoAtivoParaHome();
+    function marcarForcaTelaInicial() {
+        try {
+            sessionStorage.setItem("wf_force_home_landing", "1");
+        } catch (_) {
+            // silêncio intencional
+        }
+    }
 
-        if (!desativou) {
+    function homeForcadoAtivo() {
+        return document.body.dataset.forceHomeLanding === "true";
+    }
+
+    async function navegarParaHome(destino = "/app/", { preservarContexto = true } = {}) {
+        const homeDestino = String(destino || "/app/").trim() || "/app/";
+        let desativou = true;
+
+        if (!preservarContexto) {
+            desativou = await desativarContextoAtivoParaHome();
+        }
+
+        if (!desativou && !preservarContexto) {
             mostrarToast(
                 "Não foi possível limpar o contexto ativo. Recarregando a central.",
                 "aviso",
@@ -401,22 +428,14 @@
         }
 
         limparEstadoHomeNoCliente();
+        if (preservarContexto) {
+            marcarForcaTelaInicial();
+        }
         window.location.assign(homeDestino);
     }
 
     async function processarCliqueHomeCabecalho() {
-        const laudoAtivo = obterLaudoAtivo();
-        const estadoAtual = obterEstadoRelatorioAtualSeguro();
-        const haLaudoEmAndamento = !!laudoAtivo || estadoAtual === "relatorio_ativo";
-
-        if (haLaudoEmAndamento) {
-            await desativarContextoAtivoParaHome();
-            limparEstadoHomeNoCliente();
-            submeterLogoutPortal();
-            return;
-        }
-
-        navegarParaHome("/app/");
+        navegarParaHome("/app/?home=1", { preservarContexto: true });
     }
 
     function resumirTexto(texto, limite = 140) {
@@ -659,6 +678,8 @@
                 .map(normalizarMensagemMesa)
                 .filter(Boolean);
 
+            emitirSincronizacaoLaudo(payload, { selecionar: false });
+
             if (append) {
                 estado.mesaWidgetMensagens = [...normalizados, ...estado.mesaWidgetMensagens];
             } else {
@@ -729,6 +750,11 @@
                 );
                 throw new Error(detalhe);
             }
+
+            const dados = await resposta.json().catch(() => ({}));
+            const payload = dados?.dados || dados || {};
+            emitirSincronizacaoLaudo(payload, { selecionar: true });
+            await window.TarielAPI?.sincronizarEstadoRelatorio?.();
 
             el.mesaWidgetInput.value = "";
             limparReferenciaMesaWidget();
@@ -2256,7 +2282,10 @@
 
             event.preventDefault();
             const destino = linkBreadcrumbHome.getAttribute("href") || "/app/";
-            navegarParaHome(destino);
+            const destinoNormalizado = destino.startsWith("/app")
+                ? "/app/?home=1"
+                : destino;
+            navegarParaHome(destinoNormalizado, { preservarContexto: true });
         });
 
         el.btnFinalizarInspecao?.addEventListener("click", finalizarInspecao);
@@ -2390,6 +2419,7 @@
     function bindEventosSistema() {
         const onRelatorioIniciado = (event) => {
             const laudoId = Number(event?.detail?.laudoId ?? event?.detail?.laudo_id ?? 0) || null;
+            document.body.dataset.forceHomeLanding = "false";
             exibirInterfaceInspecaoAtiva(
                 obterTipoTemplateDoPayload(event?.detail || {})
             );
@@ -2404,7 +2434,17 @@
             }
         };
 
-        const onRelatorioFinalizadoOuCancelado = () => {
+        const onRelatorioFinalizado = (event) => {
+            const laudoId = Number(event?.detail?.laudoId ?? event?.detail?.laudo_id ?? 0) || null;
+            fecharModalGateQualidade();
+            exibirInterfaceInspecaoAtiva(obterTipoTemplateDoPayload(event?.detail || {}));
+            carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+            if (estado.mesaWidgetAberto) {
+                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+            }
+        };
+
+        const onRelatorioCancelado = () => {
             fecharModalGateQualidade();
             resetarInterfaceInspecao();
             estado.mesaWidgetMensagens = [];
@@ -2449,23 +2489,42 @@
             }
         };
 
+        const onEstadoRelatorio = (event) => {
+            const detail = event?.detail || {};
+            const estadoRelatorio = normalizarEstadoRelatorio(detail.estado);
+            const laudoId = Number(detail?.laudo_id ?? detail?.laudoId ?? 0) || null;
+
+            if (homeForcadoAtivo() && estadoRelatorio !== "sem_relatorio") {
+                return;
+            }
+
+            if (estadoRelatorioPossuiContexto(estadoRelatorio)) {
+                exibirInterfaceInspecaoAtiva(obterTipoTemplateDoPayload(detail));
+                carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+                return;
+            }
+
+            resetarInterfaceInspecao();
+        };
+
         const onGateQualidadeFalhou = (event) => {
             abrirModalGateQualidade(event?.detail || {});
         };
 
         document.addEventListener("tariel:relatorio-iniciado", onRelatorioIniciado);
-        document.addEventListener("tariel:relatorio-finalizado", onRelatorioFinalizadoOuCancelado);
-        document.addEventListener("tariel:cancelar-relatorio", onRelatorioFinalizadoOuCancelado);
+        document.addEventListener("tariel:relatorio-finalizado", onRelatorioFinalizado);
+        document.addEventListener("tariel:cancelar-relatorio", onRelatorioCancelado);
 
         document.addEventListener("tarielrelatorio-iniciado", onRelatorioIniciado);
-        document.addEventListener("tarielrelatorio-finalizado", onRelatorioFinalizadoOuCancelado);
-        document.addEventListener("tarielrelatorio-cancelado", onRelatorioFinalizadoOuCancelado);
+        document.addEventListener("tarielrelatorio-finalizado", onRelatorioFinalizado);
+        document.addEventListener("tarielrelatorio-cancelado", onRelatorioCancelado);
 
         document.addEventListener("tariel:mesa-avaliadora-ativada", onMesaAtivada);
         document.addEventListener("tarielmesa-avaliadora-ativada", onMesaAtivada);
         document.addEventListener("tariel:mesa-status", onMesaStatus);
         document.addEventListener("tarielmesa-status", onMesaStatus);
         document.addEventListener("tariel:laudo-selecionado", onLaudoSelecionado);
+        document.addEventListener("tariel:estado-relatorio", onEstadoRelatorio);
         document.addEventListener("tariel:gate-qualidade-falhou", onGateQualidadeFalhou);
         document.addEventListener("tarielgate-qualidade-falhou", onGateQualidadeFalhou);
 
@@ -2512,7 +2571,11 @@
             const dados = await window.TarielAPI?.sincronizarEstadoRelatorio?.();
             const estadoRelatorio = normalizarEstadoRelatorio(dados?.estado);
 
-            if (estadoRelatorio === "relatorio_ativo") {
+            if (estadoRelatorioPossuiContexto(estadoRelatorio)) {
+                if (homeForcadoAtivo()) {
+                    resetarInterfaceInspecao();
+                    return;
+                }
                 exibirInterfaceInspecaoAtiva(obterTipoTemplateDoPayload(dados));
                 const laudoId = Number(dados?.laudo_id ?? dados?.laudoId ?? 0) || null;
                 await carregarPendenciasMesa({ laudoId, silencioso: true });

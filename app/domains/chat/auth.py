@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import re
 import secrets
+from pathlib import Path
 from typing import Optional
+import uuid
 
-from fastapi import Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -29,11 +32,16 @@ from app.domains.chat.app_context import (
     logger,
     templates,
 )
+from app.domains.chat.laudo_state_helpers import (
+    laudo_possui_historico_visivel,
+    serializar_card_laudo,
+)
 from app.domains.chat.limits_helpers import contar_laudos_mes, obter_limite_empresa
 from app.domains.chat.template_helpers import montar_limites_para_template
 from app.domains.chat.session_helpers import (
     CHAVE_CSRF_INSPETOR,
     contexto_base,
+    exigir_csrf,
     estado_relatorio_sanitizado,
     validar_csrf,
 )
@@ -49,11 +57,86 @@ from app.shared.security import (
     obter_dados_sessao_portal,
     obter_usuario_html,
     token_esta_ativo,
+    exigir_inspetor,
     usuario_tem_bloqueio_ativo,
     verificar_senha,
 )
 
 roteador_auth = APIRouter()
+
+PASTA_FOTOS_PERFIL = Path("static/uploads/perfis")
+MIME_FOTO_PERMITIDOS = {
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+}
+MAX_FOTO_PERFIL_BYTES = 4 * 1024 * 1024
+
+
+def _normalizar_telefone(telefone: str) -> str:
+    valor = str(telefone or "").strip()
+    if not valor:
+        return ""
+    valor = re.sub(r"[^0-9()+\-\s]", "", valor)
+    return valor[:30]
+
+
+def _email_valido_basico(email: str) -> bool:
+    return bool(re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email))
+
+
+def _serializar_perfil_usuario(usuario: Usuario) -> dict[str, str]:
+    return {
+        "nome_completo": str(usuario.nome_completo or "").strip(),
+        "email": str(usuario.email or "").strip(),
+        "telefone": str(getattr(usuario, "telefone", "") or "").strip(),
+        "foto_perfil_url": str(getattr(usuario, "foto_perfil_url", "") or "").strip(),
+        "empresa_nome": str(
+            getattr(getattr(usuario, "empresa", None), "nome_fantasia", "")
+            or "WF Soluções"
+        ).strip(),
+    }
+
+
+def _caminho_foto_perfil_local(url_foto: str | None) -> Path | None:
+    valor = str(url_foto or "").strip()
+    if not valor.startswith("/static/uploads/perfis/"):
+        return None
+
+    base = PASTA_FOTOS_PERFIL.resolve()
+    caminho = Path(valor.lstrip("/")).resolve()
+    if base == caminho or base in caminho.parents:
+        return caminho
+    return None
+
+
+def _remover_foto_perfil_antiga(url_foto: str | None) -> None:
+    caminho = _caminho_foto_perfil_local(url_foto)
+    if not caminho:
+        return
+    try:
+        if caminho.exists() and caminho.is_file():
+            caminho.unlink()
+    except Exception:
+        logger.warning("Falha ao remover foto de perfil antiga.", exc_info=True)
+
+
+def _atualizar_nome_sessao_inspetor(request: Request, usuario: Usuario) -> None:
+    dados_sessao = obter_dados_sessao_portal(request.session, portal=PORTAL_INSPETOR)
+    token = dados_sessao.get("token")
+    if not token:
+        return
+
+    definir_sessao_portal(
+        request.session,
+        portal=PORTAL_INSPETOR,
+        token=token,
+        usuario_id=usuario.id,
+        empresa_id=usuario.empresa_id,
+        nivel_acesso=usuario.nivel_acesso,
+        nome=usuario_nome(usuario),
+    )
 
 
 async def tela_login_app(
@@ -251,8 +334,7 @@ async def pagina_inicial(
         return redirecionar_por_nivel(usuario)
 
     estado_relatorio = estado_relatorio_sanitizado(request, banco, usuario)
-
-    laudos_recentes = (
+    laudos_consulta = (
         banco.query(Laudo)
         .filter(
             Laudo.empresa_id == usuario.empresa_id,
@@ -262,9 +344,19 @@ async def pagina_inicial(
             Laudo.pinado.desc(),
             Laudo.criado_em.desc(),
         )
-        .limit(20)
+        .limit(40)
         .all()
     )
+    laudos_recentes: list[Laudo] = []
+    for laudo in laudos_consulta:
+        if not laudo_possui_historico_visivel(banco, laudo):
+            continue
+        resumo_card = serializar_card_laudo(banco, laudo)
+        setattr(laudo, "card_status", resumo_card["status_card"])
+        setattr(laudo, "card_status_label", resumo_card["status_card_label"])
+        laudos_recentes.append(laudo)
+        if len(laudos_recentes) >= 20:
+            break
 
     limite = obter_limite_empresa(usuario, banco)
     laudos_mes_usados = contar_laudos_mes(banco, usuario.empresa_id)
@@ -318,6 +410,110 @@ async def pagina_planos(
         },
     )
 
+
+async def api_obter_perfil_usuario(
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    return JSONResponse(
+        {
+            "ok": True,
+            "perfil": _serializar_perfil_usuario(usuario),
+        }
+    )
+
+
+async def api_atualizar_perfil_usuario(
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+
+    nome = str(payload.get("nome_completo", "")).strip()
+    email = normalizar_email(str(payload.get("email", "")))
+    telefone = _normalizar_telefone(str(payload.get("telefone", "")))
+
+    if len(nome) < 3:
+        raise HTTPException(status_code=400, detail="Informe um nome com pelo menos 3 caracteres.")
+
+    if not email or not _email_valido_basico(email):
+        raise HTTPException(status_code=400, detail="Informe um e-mail válido.")
+
+    usuario_conflito = banco.scalar(
+        select(Usuario).where(
+            Usuario.email == email,
+            Usuario.id != usuario.id,
+        )
+    )
+    if usuario_conflito:
+        raise HTTPException(status_code=409, detail="Este e-mail já está em uso por outro usuário.")
+
+    usuario.nome_completo = nome[:150]
+    usuario.email = email[:254]
+    usuario.telefone = telefone or None
+
+    banco.commit()
+    banco.refresh(usuario)
+    _atualizar_nome_sessao_inspetor(request, usuario)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "perfil": _serializar_perfil_usuario(usuario),
+        }
+    )
+
+
+async def api_upload_foto_perfil_usuario(
+    request: Request,
+    foto: UploadFile = File(...),
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+
+    mime = str(foto.content_type or "").strip().lower()
+    if mime not in MIME_FOTO_PERMITIDOS:
+        raise HTTPException(status_code=415, detail="Formato inválido. Use PNG, JPG ou WebP.")
+
+    conteudo = await foto.read()
+    if not conteudo:
+        raise HTTPException(status_code=400, detail="Arquivo de foto vazio.")
+    if len(conteudo) > MAX_FOTO_PERFIL_BYTES:
+        raise HTTPException(status_code=413, detail="A foto deve ter no máximo 4MB.")
+
+    extensao_por_mime = {
+        "image/jpeg": ".jpg",
+        "image/jpg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+    }
+    extensao = extensao_por_mime.get(mime, ".jpg")
+
+    pasta_empresa = PASTA_FOTOS_PERFIL / str(usuario.empresa_id)
+    pasta_empresa.mkdir(parents=True, exist_ok=True)
+
+    nome_arquivo = f"user_{usuario.id}_{uuid.uuid4().hex[:16]}{extensao}"
+    caminho_destino = pasta_empresa / nome_arquivo
+    caminho_destino.write_bytes(conteudo)
+
+    _remover_foto_perfil_antiga(getattr(usuario, "foto_perfil_url", None))
+    usuario.foto_perfil_url = f"/static/uploads/perfis/{usuario.empresa_id}/{nome_arquivo}"
+    banco.commit()
+    banco.refresh(usuario)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "foto_perfil_url": usuario.foto_perfil_url,
+        }
+    )
+
 # Login / troca de senha
 roteador_auth.add_api_route(
     "/login",
@@ -360,6 +556,21 @@ roteador_auth.add_api_route(
     methods=["GET"],
     response_class=HTMLResponse,
 )
+roteador_auth.add_api_route(
+    "/api/perfil",
+    api_obter_perfil_usuario,
+    methods=["GET"],
+)
+roteador_auth.add_api_route(
+    "/api/perfil",
+    api_atualizar_perfil_usuario,
+    methods=["PUT"],
+)
+roteador_auth.add_api_route(
+    "/api/perfil/foto",
+    api_upload_foto_perfil_usuario,
+    methods=["POST"],
+)
 
 __all__ = [
     "roteador_auth",
@@ -370,4 +581,7 @@ __all__ = [
     "logout_inspetor",
     "pagina_inicial",
     "pagina_planos",
+    "api_obter_perfil_usuario",
+    "api_atualizar_perfil_usuario",
+    "api_upload_foto_perfil_usuario",
 ]

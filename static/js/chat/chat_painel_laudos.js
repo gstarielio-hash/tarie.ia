@@ -30,6 +30,13 @@
         tentativaLaudoInicialTimer: null,
     };
 
+    const STATUS_CARD = {
+        aberto: "Aberto",
+        aguardando: "Aguardando",
+        ajustes: "Ajustes",
+        aprovado: "Aprovado",
+    };
+
     // =========================================================
     // HELPERS LOCAIS
     // =========================================================
@@ -43,6 +50,14 @@
 
         if (estado === "semrelatorio" || estado === "sem_relatorio") {
             return "sem_relatorio";
+        }
+
+        if (estado === "aguardando" || estado === "aguardando_avaliacao") {
+            return "aguardando";
+        }
+
+        if (estado === "ajustes" || estado === "aprovado") {
+            return estado;
         }
 
         return estado || "sem_relatorio";
@@ -101,57 +116,296 @@
     }
 
     // =========================================================
-    // BADGE VISUAL DE RELATÓRIO
+    // HISTÓRICO DINÂMICO / STATUS VISUAL
     // =========================================================
+
+    function escaparHTMLLocal(valor) {
+        return TP.escaparHTML?.(valor) ?? String(valor ?? "");
+    }
+
+    function normalizarStatusCard(status) {
+        const valor = String(status || "").trim().toLowerCase();
+
+        if (valor === "ativo" || valor === "relatorio_ativo") return "aberto";
+        if (valor === "aguardando_aval") return "aguardando";
+        if (valor === "rejeitado") return "ajustes";
+        if (STATUS_CARD[valor]) return valor;
+        return "aberto";
+    }
+
+    function obterLabelStatusCard(status) {
+        const normalizado = normalizarStatusCard(status);
+        return STATUS_CARD[normalizado] || "Aberto";
+    }
+
+    function getListaHistorico() {
+        return document.getElementById("lista-historico");
+    }
+
+    function getEstadoVazioHistorico() {
+        return document.getElementById("estado-vazio-historico");
+    }
+
+    function alternarEstadoVazioHistorico() {
+        const lista = getListaHistorico();
+        const estadoVazio = getEstadoVazioHistorico();
+        if (!lista || !estadoVazio) return;
+
+        const possuiItens = !!lista.querySelector(".item-historico[data-laudo-id]");
+        estadoVazio.hidden = possuiItens;
+    }
+
+    function atualizarPillStatusItem(item, status) {
+        if (!item) return;
+
+        const normalizado = normalizarStatusCard(status);
+        item.dataset.cardStatus = normalizado;
+
+        const pill = item.querySelector(".pill-status-laudo");
+        if (!pill) return;
+
+        pill.className = `pill-status-laudo pill-status-${normalizado}`;
+        pill.textContent = obterLabelStatusCard(normalizado);
+    }
+
+    function atualizarPreviewItem(item, preview, horaBr = "") {
+        if (!item) return;
+        const container = item.querySelector(".texto-laudo-historico");
+        if (!container) return;
+
+        let previewEl = container.querySelector(".preview-mensagem");
+        if (!previewEl) {
+            previewEl = document.createElement("span");
+            previewEl.className = "preview-mensagem";
+            container.appendChild(previewEl);
+        }
+
+        const texto = String(preview || "").trim();
+        previewEl.textContent = texto || horaBr || "";
+    }
+
+    function criarBotaoAcaoLaudo({ acao, title, icone, pinado = false }) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `btn-acao-laudo ${acao === "pin" ? "btn-pin-laudo" : "btn-deletar-laudo"}`;
+        btn.dataset.acaoLaudo = acao;
+        btn.title = title;
+        btn.setAttribute("aria-label", title);
+
+        if (acao === "pin") {
+            btn.setAttribute("aria-pressed", String(!!pinado));
+        }
+
+        const icon = document.createElement("span");
+        icon.className = "material-symbols-rounded";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = icone;
+        btn.appendChild(icon);
+
+        return btn;
+    }
+
+    function obterIconeSetor(titulo) {
+        const chave = String(titulo || "").trim().toLowerCase();
+        if (chave.includes("avcb") || chave.includes("bombeiro")) return "local_fire_department";
+        if (chave.includes("nr-12") || chave.includes("nr12")) return "precision_manufacturing";
+        if (chave.includes("nr-13") || chave.includes("nr13")) return "warehouse";
+        if (chave.includes("rti") || chave.includes("elétrica") || chave.includes("eletrica")) return "bolt";
+        if (chave.includes("spda")) return "thunderstorm";
+        if (chave.includes("pie")) return "schema";
+        if (chave.includes("loto")) return "lock";
+        return "history";
+    }
+
+    function obterOuCriarSecaoPinados(lista) {
+        let secao = document.getElementById("secao-laudos-pinados");
+        if (secao) return secao;
+
+        secao = document.createElement("section");
+        secao.id = "secao-laudos-pinados";
+        secao.className = "secao-pinados";
+        secao.setAttribute("aria-label", "Laudos fixados");
+        secao.hidden = true;
+        secao.innerHTML = `
+            <div class="secao-pinados-titulo">
+                <span class="material-symbols-rounded" aria-hidden="true">keep</span>
+                Fixados
+            </div>
+        `;
+        lista.appendChild(secao);
+        return secao;
+    }
+
+    function obterOuCriarSecaoHistorico(lista) {
+        let secao = document.getElementById("secao-laudos-historico");
+        if (secao) return secao;
+
+        secao = document.createElement("section");
+        secao.id = "secao-laudos-historico";
+        secao.className = "secao-laudos-historico";
+        secao.setAttribute("aria-label", "Laudos recentes");
+        lista.appendChild(secao);
+        return secao;
+    }
+
+    function obterOuCriarGrupoData(secaoHistorico, dataIso, dataBr) {
+        let grupo = secaoHistorico.querySelector(`.grupo-data[data-data="${CSS.escape(String(dataIso))}"]`);
+        if (grupo) return grupo.querySelector(".grupo-data-lista");
+
+        grupo = document.createElement("section");
+        grupo.className = "grupo-data";
+        grupo.dataset.data = String(dataIso || "");
+        grupo.innerHTML = `
+            <div class="grupo-data-header">${escaparHTMLLocal(dataBr || "")}</div>
+            <div class="grupo-data-lista"></div>
+        `;
+
+        const grupos = Array.from(secaoHistorico.querySelectorAll(".grupo-data"));
+        const existenteMaisNovo = grupos.find((el) => String(el.dataset.data || "") < String(dataIso || ""));
+        if (existenteMaisNovo) {
+            secaoHistorico.insertBefore(grupo, existenteMaisNovo);
+        } else {
+            secaoHistorico.appendChild(grupo);
+        }
+
+        return grupo.querySelector(".grupo-data-lista");
+    }
+
+    function criarItemHistorico(card) {
+        const item = document.createElement("div");
+        item.className = "item-historico";
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        item.dataset.laudoId = String(card.id);
+        item.dataset.pinado = String(!!card.pinado);
+        item.dataset.data = String(card.data_iso || "");
+        item.dataset.statusRevisao = String(card.status_revisao || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        item.dataset.cardStatus = normalizarStatusCard(card.status_card);
+        item.title = `Abrir laudo ${card.titulo || ""}`.trim();
+        item.setAttribute("aria-label", item.title || "Abrir laudo");
+
+        if (card.pinado) {
+            item.classList.add("pinado");
+        }
+
+        const icon = document.createElement("span");
+        icon.className = "material-symbols-rounded";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = obterIconeSetor(card.titulo);
+
+        const texto = document.createElement("span");
+        texto.className = "texto-laudo-historico";
+
+        const titulo = document.createElement("span");
+        titulo.textContent = String(card.titulo || "Inspeção");
+        texto.appendChild(titulo);
+
+        const preview = document.createElement("span");
+        preview.className = "preview-mensagem";
+        preview.textContent = String(card.preview || card.hora_br || "");
+        texto.appendChild(preview);
+
+        const pill = document.createElement("span");
+        pill.className = "pill-status-laudo";
+
+        item.appendChild(icon);
+        item.appendChild(texto);
+        item.appendChild(pill);
+        item.appendChild(
+            criarBotaoAcaoLaudo({
+                acao: "pin",
+                title: card.pinado ? "Desafixar laudo" : "Fixar laudo",
+                icone: card.pinado ? "keep" : "push_pin",
+                pinado: !!card.pinado,
+            })
+        );
+        item.appendChild(
+            criarBotaoAcaoLaudo({
+                acao: "delete",
+                title: "Excluir laudo",
+                icone: "delete",
+            })
+        );
+
+        atualizarPillStatusItem(item, card.status_card);
+        return item;
+    }
+
+    function anexarItemHistorico(card) {
+        const lista = getListaHistorico();
+        if (!lista) return null;
+
+        const item = criarItemHistorico(card);
+        if (card.pinado) {
+            const secaoPinados = obterOuCriarSecaoPinados(lista);
+            secaoPinados.hidden = false;
+            const titulo = secaoPinados.querySelector(".secao-pinados-titulo");
+            secaoPinados.insertBefore(item, titulo?.nextSibling || null);
+        } else {
+            const secaoHistorico = obterOuCriarSecaoHistorico(lista);
+            secaoHistorico.hidden = false;
+            const grupoLista = obterOuCriarGrupoData(secaoHistorico, card.data_iso, card.data_br);
+            grupoLista.prepend(item);
+        }
+
+        alternarEstadoVazioHistorico();
+        return item;
+    }
+
+    function sincronizarCardLaudo(card, opts = {}) {
+        const { selecionar = false } = opts;
+        const id = Number(card?.id || 0);
+        if (!id) return null;
+
+        let item = TP.getItemHistoricoPorId(id);
+        if (!item) {
+            item = anexarItemHistorico(card);
+        }
+        if (!item) return null;
+
+        item.dataset.pinado = String(!!card.pinado);
+        item.dataset.data = String(card.data_iso || item.dataset.data || "");
+        item.dataset.statusRevisao = String(card.status_revisao || item.dataset.statusRevisao || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+        item.querySelector(".texto-laudo-historico span:first-child").textContent = String(
+            card.titulo || "Inspeção"
+        );
+        atualizarPreviewItem(item, card.preview, card.hora_br);
+        atualizarPillStatusItem(item, card.status_card);
+
+        const icone = item.querySelector(".material-symbols-rounded");
+        if (icone) {
+            icone.textContent = obterIconeSetor(card.titulo);
+        }
+
+        if (!!card.pinado !== item.classList.contains("pinado")) {
+            item.classList.toggle("pinado", !!card.pinado);
+        }
+
+        if (selecionar) {
+            setAtivoNoHistorico(id);
+        }
+
+        alternarEstadoVazioHistorico();
+        return item;
+    }
 
     function atualizarBadgeRelatorio(laudoId, status) {
         const item = TP.getItemHistoricoPorId(laudoId);
         if (!item) return;
-
-        item.querySelector(".badge-relatorio-status")?.remove();
-
-        if (!status) return;
-
-        const badge = document.createElement("span");
-        badge.className = `badge-relatorio-status badge-rel-${status}`;
-
-        const configs = {
-            ativo: {
-                label: "Relatório em andamento",
-                text: "● Em andamento",
-            },
-            aguardando: {
-                label: "Aguardando avaliação",
-                text: "⏳ Em avaliação",
-            },
-        };
-
-        const cfg = configs[status] ?? {
-            label: String(status),
-            text: String(status),
-        };
-
-        badge.setAttribute("aria-label", cfg.label);
-        badge.textContent = cfg.text;
-
-        const alvoTexto =
-            item.querySelector(".texto-laudo-historico") ||
-            item.querySelector(".preview-mensagem") ||
-            item;
-
-        alvoTexto.appendChild(badge);
+        atualizarPillStatusItem(item, status);
     }
 
     function limparBadgesRelatorio(status = null) {
-        TP.qsa(".badge-relatorio-status").forEach((badge) => {
-            if (!status) {
-                badge.remove();
-                return;
-            }
-
-            if (badge.classList.contains(`badge-rel-${status}`)) {
-                badge.remove();
-            }
+        if (!status) return;
+        const normalizado = normalizarStatusCard(status);
+        TP.qsa(`.item-historico[data-card-status="${normalizado}"]`).forEach((item) => {
+            atualizarPillStatusItem(item, "aberto");
         });
     }
 
@@ -274,7 +528,50 @@
     // LAUDO INICIAL
     // =========================================================
 
+    function urlSolicitaTelaInicial() {
+        try {
+            const url = new URL(window.location.href);
+            return url.searchParams.get("home") === "1";
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function consumirFlagTelaInicial() {
+        let viaUrl = false;
+        let viaSessao = false;
+
+        try {
+            viaUrl = urlSolicitaTelaInicial();
+            viaSessao = sessionStorage.getItem("wf_force_home_landing") === "1";
+            if (viaSessao) {
+                sessionStorage.removeItem("wf_force_home_landing");
+            }
+        } catch (_) {
+            // silêncio intencional
+        }
+
+        if (viaUrl) {
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("home");
+                history.replaceState(history.state || {}, "", url.toString());
+            } catch (_) {
+                // silêncio intencional
+            }
+        }
+
+        const forcarTelaInicial = viaUrl || viaSessao;
+        document.body.dataset.forceHomeLanding = forcarTelaInicial ? "true" : "false";
+
+        return forcarTelaInicial;
+    }
+
     function obterLaudoInicial() {
+        if (consumirFlagTelaInicial()) {
+            return "";
+        }
+
         return (
             TP.obterLaudoIdDaURL() ||
             String(window.TarielAPI?.obterLaudoAtualId?.() || "") ||
@@ -330,23 +627,9 @@
         const id = Number(laudoId);
         if (!Number.isFinite(id) || id <= 0) return false;
 
-        const estadoRelatorio = obterEstadoRelatorioAtual();
-        const laudoAtivoApi = obterLaudoAtivoNaApi();
-
-        if (
-            !ignorarBloqueioRelatorio &&
-            estadoRelatorio === "relatorio_ativo" &&
-            laudoAtivoApi &&
-            Number(laudoAtivoApi) !== id
-        ) {
-            TP.toast(
-                `Você está visualizando outro histórico. Para enviar novas mensagens, volte ao laudo ativo #${laudoAtivoApi}.`,
-                "info",
-                4200
-            );
-        }
-
         TP.log("info", `Selecionando laudo: ${id}`, { origem });
+
+        document.body.dataset.forceHomeLanding = "false";
 
         definirLaudoAtualNoCore(id);
         setAtivoNoHistorico(id);
@@ -399,7 +682,6 @@
             if (!laudoId) return;
 
             setTimeout(() => {
-                setAtivoNoHistorico(laudoId);
                 atualizarBreadcrumb(laudoId);
                 definirLaudoAtualNoCore(laudoId);
                 TP.definirLaudoIdNaURL(laudoId, { replace: true });
@@ -418,15 +700,21 @@
         document.addEventListener("tariel:relatorio-finalizado", (event) => {
             const laudoId = Number(event.detail?.laudoId || 0);
 
-            limparBadgesRelatorio("ativo");
-
             if (!laudoId) return;
 
             atualizarBadgeRelatorio(laudoId, "aguardando");
         });
 
         document.addEventListener("tariel:cancelar-relatorio", () => {
-            limparBadgesRelatorio("ativo");
+            // o card continua existindo normalmente no histórico
+        });
+
+        document.addEventListener("tariel:laudo-card-sincronizado", (event) => {
+            const card = event.detail?.card;
+            if (!card?.id) return;
+            sincronizarCardLaudo(card, {
+                selecionar: !!event.detail?.selecionar,
+            });
         });
 
         window.addEventListener("pagehide", () => {
@@ -467,6 +755,7 @@
     Object.assign(TP, {
         atualizarBadgeRelatorio,
         limparBadgesRelatorio,
+        sincronizarCardLaudo,
         setAtivoNoHistorico,
         selecionarThreadTab,
         garantirThreadNav,

@@ -158,6 +158,29 @@
     </div>
 
     <section
+        id="aviso-laudo-bloqueado"
+        class="aviso-laudo-bloqueado"
+        hidden
+        aria-live="polite"
+    >
+        <div class="aviso-laudo-bloqueado__texto">
+            <strong id="aviso-laudo-bloqueado-titulo">Laudo em modo leitura</strong>
+            <p id="aviso-laudo-bloqueado-descricao">
+                Este laudo está temporariamente bloqueado para novas mensagens.
+            </p>
+        </div>
+
+        <button
+            type="button"
+            id="btn-reabrir-laudo"
+            class="btn-pendencias-acao"
+            hidden
+        >
+            Reabrir inspeção
+        </button>
+    </section>
+
+    <section
         id="painel-pendencias-mesa"
         class="painel-pendencias-mesa"
         aria-live="polite"
@@ -832,6 +855,111 @@
         </div>
     </div>
 </div>
+
+<div
+    id="modal-perfil-chat"
+    class="modal-overlay modal-overlay-perfil"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="perfil-chat-titulo"
+    aria-describedby="perfil-chat-descricao"
+    aria-hidden="true"
+    hidden
+>
+    <div class="modal-container modal-container-perfil" role="document">
+        <div class="modal-header">
+            <h2 id="perfil-chat-titulo">
+                <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+                Perfil do Usuário
+            </h2>
+
+            <button
+                type="button"
+                id="btn-fechar-modal-perfil"
+                class="btn-icone btn-fechar-modal"
+                aria-label="Fechar perfil"
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+
+        <div class="modal-body modal-body-perfil">
+            <p id="perfil-chat-descricao">
+                Atualize os dados do seu perfil de inspeção.
+            </p>
+
+            <div class="perfil-avatar-editor">
+                <div id="perfil-avatar-preview" class="perfil-avatar-preview" aria-hidden="true">
+                    <span id="perfil-avatar-iniciais">US</span>
+                </div>
+
+                <div class="perfil-avatar-acoes">
+                    <button type="button" id="btn-trocar-foto-perfil" class="btn-pendencias-acao">
+                        Trocar foto
+                    </button>
+
+                    <input
+                        type="file"
+                        id="input-foto-perfil"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        hidden
+                        aria-hidden="true"
+                        tabindex="-1"
+                    >
+                </div>
+            </div>
+
+            <div class="modal-campo">
+                <label for="input-perfil-nome" class="modal-label">Nome</label>
+                <input
+                    id="input-perfil-nome"
+                    class="modal-input"
+                    type="text"
+                    maxlength="150"
+                    placeholder="Seu nome completo"
+                    autocomplete="name"
+                >
+            </div>
+
+            <div class="modal-campo">
+                <label for="input-perfil-email" class="modal-label">E-mail</label>
+                <input
+                    id="input-perfil-email"
+                    class="modal-input"
+                    type="email"
+                    maxlength="254"
+                    placeholder="voce@empresa.com"
+                    autocomplete="email"
+                    autocapitalize="off"
+                    spellcheck="false"
+                >
+            </div>
+
+            <div class="modal-campo">
+                <label for="input-perfil-telefone" class="modal-label">Telefone</label>
+                <input
+                    id="input-perfil-telefone"
+                    class="modal-input"
+                    type="tel"
+                    maxlength="30"
+                    placeholder="(11) 99999-9999"
+                    autocomplete="tel"
+                >
+            </div>
+
+            <p id="perfil-chat-feedback" class="perfil-chat-feedback" aria-live="polite"></p>
+
+            <div class="perfil-chat-acoes">
+                <button type="button" id="btn-cancelar-modal-perfil" class="btn-pendencias-acao btn-secundaria">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-salvar-perfil-chat" class="btn-acao">
+                    Salvar perfil
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {# ============================================================
@@ -853,6 +981,7 @@
 <script src="/static/js/shared/hardware.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 <script src="/static/js/chat/chat_sidebar.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 <script src="/static/js/chat/chat_index_page.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
+<script src="/static/js/chat/chat_perfil_usuario.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 
 <script src="/static/js/chat/chat_painel_core.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 <script src="/static/js/chat/chat_painel_laudos.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>

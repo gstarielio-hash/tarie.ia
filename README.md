@@ -160,3 +160,31 @@ Também disponível em:
 ```powershell
 .\iniciar_sistema.bat
 ```
+
+## Preview online (URL pública temporária)
+
+Para testar no navegador fora do `localhost` (celular, cliente, time):
+
+```powershell
+.\scripts\start_online_preview.ps1
+```
+
+O script:
+
+- sobe a app local na porta `8000`;
+- abre um túnel Cloudflare (`trycloudflare.com`);
+- imprime a URL pública no terminal;
+- opcionalmente já abre o navegador.
+
+Por padrão, ele usa um banco SQLite isolado em `.tmp_online/preview_online.db` (não mexe no banco principal).
+Se quiser forçar o banco do projeto:
+
+```powershell
+.\scripts\start_online_preview.ps1 -UseProjectDatabase
+```
+
+Para encerrar tudo:
+
+```powershell
+.\scripts\stop_online_preview.ps1
+```
