@@ -35,6 +35,7 @@ from app.shared.database import (
     MensagemLaudo,
     NivelAcesso,
     PlanoEmpresa,
+    RegistroAuditoriaEmpresa,
     SessaoAtiva,
     StatusRevisao,
     TemplateLaudo,
@@ -645,6 +646,66 @@ def test_admin_cliente_mesa_reescreve_urls_de_anexo_para_o_proprio_portal(ambien
     finally:
         if caminho and os.path.exists(caminho):
             os.unlink(caminho)
+
+
+def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta_plano = client.patch(
+        "/cliente/api/empresa/plano",
+        headers={"X-CSRF-Token": csrf},
+        json={"plano": "Intermediario"},
+    )
+    assert resposta_plano.status_code == 200
+
+    resposta_usuario = client.post(
+        "/cliente/api/usuarios",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "nome": "Auditado Empresa A",
+            "email": "auditado@empresa-a.test",
+            "nivel_acesso": "inspetor",
+            "telefone": "62991110000",
+            "crea": "",
+        },
+    )
+    assert resposta_usuario.status_code == 201
+    usuario_novo_id = int(resposta_usuario.json()["usuario"]["id"])
+
+    resposta_auditoria = client.get("/cliente/api/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens = resposta_auditoria.json()["itens"]
+    acoes = [item["acao"] for item in itens]
+    assert "plano_alterado" in acoes
+    assert "usuario_criado" in acoes
+    assert all(item["portal"] == "cliente" for item in itens)
+    assert any(item["ator_usuario_id"] == ids["admin_cliente_a"] for item in itens)
+    assert any(
+        item["alvo_usuario_id"] == usuario_novo_id
+        for item in itens
+        if item["acao"] == "usuario_criado"
+    )
+
+    resposta_bootstrap = client.get("/cliente/api/bootstrap")
+    assert resposta_bootstrap.status_code == 200
+    bootstrap_itens = resposta_bootstrap.json()["auditoria"]["itens"]
+    assert bootstrap_itens
+    assert {item["acao"] for item in bootstrap_itens} >= {"plano_alterado", "usuario_criado"}
+
+    with SessionLocal() as banco:
+        registros = list(
+            banco.scalars(
+                select(RegistroAuditoriaEmpresa)
+                .where(RegistroAuditoriaEmpresa.empresa_id == ids["empresa_a"])
+                .order_by(RegistroAuditoriaEmpresa.id.desc())
+            ).all()
+        )
+        assert registros
+        assert all(int(item.empresa_id) == ids["empresa_a"] for item in registros)
+        assert {item.acao for item in registros} >= {"plano_alterado", "usuario_criado"}
 
 
 def test_404_em_rotas_api_app_retorna_json_sem_redirect(ambiente_critico) -> None:

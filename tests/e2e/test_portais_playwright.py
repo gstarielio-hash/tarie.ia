@@ -300,6 +300,35 @@ def _login_cliente_primeiro_acesso(
     expect(page).to_have_url(re.compile(rf"{re.escape(base_url)}/cliente/painel/?$"))
 
 
+def _provisionar_cliente_via_admin(
+    page: Page,
+    *,
+    base_url: str,
+    nome: str,
+    email: str,
+    cnpj: str,
+    segmento: str,
+    cidade_estado: str,
+    nome_responsavel: str,
+    observacoes: str,
+) -> str:
+    page.goto(f"{base_url}/admin/novo-cliente", wait_until="domcontentloaded")
+    page.locator('input[name="nome"]').fill(nome)
+    page.locator('input[name="cnpj"]').fill(cnpj)
+    page.locator('select[name="plano"]').select_option("Inicial")
+    page.locator('input[name="email"]').fill(email)
+    page.locator('input[name="segmento"]').fill(segmento)
+    page.locator('input[name="cidade_estado"]').fill(cidade_estado)
+    page.locator('input[name="nome_responsavel"]').fill(nome_responsavel)
+    page.locator('textarea[name="observacoes"]').fill(observacoes)
+    page.locator('button[type="submit"]').click()
+
+    expect(page).to_have_url(
+        re.compile(rf"{re.escape(base_url)}/admin/clientes/\d+/?(?:\?.*)?$")
+    )
+    return _extrair_senha_temporaria(page.locator("body").inner_text())
+
+
 def _assert_controles_flutuantes_sem_sobreposicao(page: Page) -> None:
     ids = ["btn-ir-fim-chat", "btn-toggle-ui", "btn-shell-home", "btn-shell-profile", "btn-mesa-widget-toggle"]
     sobreposicoes = page.evaluate(
@@ -1069,6 +1098,9 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         assert resposta_plano["status"] == 200
         page_cliente.reload(wait_until="domcontentloaded")
         expect(page_cliente.locator("#empresa-cards")).to_contain_text("Intermediario", timeout=10000)
+        auditoria_plano = _api_fetch(page_cliente, path="/cliente/api/auditoria")
+        assert auditoria_plano["status"] == 200
+        assert any(item["acao"] == "plano_alterado" for item in auditoria_plano["body"]["itens"])
 
         email_inspetor = f"inspetor.{sufixo}@empresa.test"
         resposta_inspetor = _api_fetch(
@@ -1087,6 +1119,9 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         assert resposta_inspetor["body"]["senha_temporaria"]
         page_cliente.reload(wait_until="domcontentloaded")
         expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_inspetor, timeout=10000)
+        auditoria_usuario = _api_fetch(page_cliente, path="/cliente/api/auditoria")
+        assert auditoria_usuario["status"] == 200
+        assert any(item["acao"] == "usuario_criado" for item in auditoria_usuario["body"]["itens"])
 
         email_revisor = f"mesa.{sufixo}@empresa.test"
         resposta_revisor = _api_fetch(
@@ -1156,6 +1191,231 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
     finally:
         contexto_admin.close()
         contexto_cliente.close()
+
+
+def test_e2e_admin_cliente_isola_empresas_no_portal_unificado(
+    browser: Browser,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    contexto_admin = browser.new_context()
+    contexto_cliente_a = browser.new_context()
+    contexto_cliente_b = browser.new_context()
+
+    try:
+        page_admin = contexto_admin.new_page()
+        _fazer_login(
+            page_admin,
+            base_url=live_server_url,
+            portal="admin",
+            email=credenciais_seed["admin"]["email"],
+            senha=credenciais_seed["admin"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/admin/painel/?$",
+        )
+
+        sufixo = uuid.uuid4().hex[:8]
+        email_cliente_a = f"cliente.a.{sufixo}@empresa.test"
+        email_cliente_b = f"cliente.b.{sufixo}@empresa.test"
+
+        senha_temp_a = _provisionar_cliente_via_admin(
+            page_admin,
+            base_url=live_server_url,
+            nome=f"Cliente A {sufixo}",
+            email=email_cliente_a,
+            cnpj=f"{uuid.uuid4().int % 10**14:014d}",
+            segmento="Industrial A",
+            cidade_estado="Goiânia/GO",
+            nome_responsavel="Responsável A",
+            observacoes="Cliente A criado para validar isolamento multiempresa.",
+        )
+        senha_temp_b = _provisionar_cliente_via_admin(
+            page_admin,
+            base_url=live_server_url,
+            nome=f"Cliente B {sufixo}",
+            email=email_cliente_b,
+            cnpj=f"{uuid.uuid4().int % 10**14:014d}",
+            segmento="Industrial B",
+            cidade_estado="Anápolis/GO",
+            nome_responsavel="Responsável B",
+            observacoes="Cliente B criado para validar isolamento multiempresa.",
+        )
+
+        page_cliente_a = contexto_cliente_a.new_page()
+        page_cliente_b = contexto_cliente_b.new_page()
+        _login_cliente_primeiro_acesso(
+            page_cliente_a,
+            base_url=live_server_url,
+            email=email_cliente_a,
+            senha_temporaria=senha_temp_a,
+            nova_senha=f"NovaA@{sufixo}12345",
+        )
+        _login_cliente_primeiro_acesso(
+            page_cliente_b,
+            base_url=live_server_url,
+            email=email_cliente_b,
+            senha_temporaria=senha_temp_b,
+            nova_senha=f"NovaB@{sufixo}12345",
+        )
+
+        resposta_plano_a = _api_fetch(
+            page_cliente_a,
+            path="/cliente/api/empresa/plano",
+            method="PATCH",
+            json_body={"plano": "Intermediario"},
+        )
+        resposta_plano_b = _api_fetch(
+            page_cliente_b,
+            path="/cliente/api/empresa/plano",
+            method="PATCH",
+            json_body={"plano": "Intermediario"},
+        )
+        assert resposta_plano_a["status"] == 200
+        assert resposta_plano_b["status"] == 200
+
+        email_inspetor_a = f"insp.a.{sufixo}@empresa.test"
+        email_inspetor_b = f"insp.b.{sufixo}@empresa.test"
+
+        resposta_inspetor_a = _api_fetch(
+            page_cliente_a,
+            path="/cliente/api/usuarios",
+            method="POST",
+            json_body={
+                "nome": "Inspetor A",
+                "email": email_inspetor_a,
+                "nivel_acesso": "inspetor",
+                "telefone": "62990000001",
+                "crea": "",
+            },
+        )
+        assert resposta_inspetor_a["status"] == 201
+
+        resposta_inspetor_b = _api_fetch(
+            page_cliente_b,
+            path="/cliente/api/usuarios",
+            method="POST",
+            json_body={
+                "nome": "Inspetor B",
+                "email": email_inspetor_b,
+                "nivel_acesso": "inspetor",
+                "telefone": "62990000002",
+                "crea": "",
+            },
+        )
+        assert resposta_inspetor_b["status"] == 201
+
+        resposta_laudo_a = _api_fetch(
+            page_cliente_a,
+            path="/cliente/api/chat/laudos",
+            method="POST",
+            form_body={"tipo_template": "padrao"},
+        )
+        resposta_laudo_b = _api_fetch(
+            page_cliente_b,
+            path="/cliente/api/chat/laudos",
+            method="POST",
+            form_body={"tipo_template": "padrao"},
+        )
+        assert resposta_laudo_a["status"] == 200
+        assert resposta_laudo_b["status"] == 200
+        laudo_id_a = int(resposta_laudo_a["body"]["laudo_id"])
+        laudo_id_b = int(resposta_laudo_b["body"]["laudo_id"])
+
+        preview_a = f"Contexto exclusivo empresa A {sufixo}"
+        preview_b = f"Contexto exclusivo empresa B {sufixo}"
+        resposta_chat_a = _api_fetch(
+            page_cliente_a,
+            path="/cliente/api/chat/mensagem",
+            method="POST",
+            json_body={
+                "laudo_id": laudo_id_a,
+                "mensagem": preview_a,
+                "historico": [],
+                "setor": "geral",
+                "modo": "detalhado",
+            },
+        )
+        resposta_chat_b = _api_fetch(
+            page_cliente_b,
+            path="/cliente/api/chat/mensagem",
+            method="POST",
+            json_body={
+                "laudo_id": laudo_id_b,
+                "mensagem": preview_b,
+                "historico": [],
+                "setor": "geral",
+                "modo": "detalhado",
+            },
+        )
+        assert resposta_chat_a["status"] == 200
+        assert resposta_chat_b["status"] == 200
+
+        bootstrap_a = _api_fetch(page_cliente_a, path="/cliente/api/bootstrap")
+        bootstrap_b = _api_fetch(page_cliente_b, path="/cliente/api/bootstrap")
+        assert bootstrap_a["status"] == 200
+        assert bootstrap_b["status"] == 200
+
+        emails_a = {item["email"] for item in bootstrap_a["body"]["usuarios"]}
+        emails_b = {item["email"] for item in bootstrap_b["body"]["usuarios"]}
+        assert email_cliente_a in emails_a
+        assert email_inspetor_a in emails_a
+        assert email_cliente_b not in emails_a
+        assert email_inspetor_b not in emails_a
+        assert email_cliente_b in emails_b
+        assert email_inspetor_b in emails_b
+        assert email_cliente_a not in emails_b
+        assert email_inspetor_a not in emails_b
+
+        ids_laudos_a = {int(item["id"]) for item in bootstrap_a["body"]["chat"]["laudos"]}
+        ids_laudos_b = {int(item["id"]) for item in bootstrap_b["body"]["chat"]["laudos"]}
+        assert laudo_id_a in ids_laudos_a
+        assert laudo_id_b not in ids_laudos_a
+        assert laudo_id_b in ids_laudos_b
+        assert laudo_id_a not in ids_laudos_b
+
+        acesso_cruzado_chat_a = _api_fetch(
+            page_cliente_a,
+            path=f"/cliente/api/chat/laudos/{laudo_id_b}/mensagens",
+        )
+        acesso_cruzado_chat_b = _api_fetch(
+            page_cliente_b,
+            path=f"/cliente/api/chat/laudos/{laudo_id_a}/mensagens",
+        )
+        acesso_cruzado_mesa_a = _api_fetch(
+            page_cliente_a,
+            path=f"/cliente/api/mesa/laudos/{laudo_id_b}/mensagens",
+        )
+        acesso_cruzado_mesa_b = _api_fetch(
+            page_cliente_b,
+            path=f"/cliente/api/mesa/laudos/{laudo_id_a}/mensagens",
+        )
+        assert acesso_cruzado_chat_a["status"] == 404
+        assert acesso_cruzado_chat_b["status"] == 404
+        assert acesso_cruzado_mesa_a["status"] == 404
+        assert acesso_cruzado_mesa_b["status"] == 404
+
+        page_cliente_a.reload(wait_until="domcontentloaded")
+        page_cliente_b.reload(wait_until="domcontentloaded")
+
+        expect(page_cliente_a.locator("#lista-usuarios")).to_contain_text(email_cliente_a)
+        expect(page_cliente_a.locator("#lista-usuarios")).to_contain_text(email_inspetor_a)
+        expect(page_cliente_a.locator("#lista-usuarios")).not_to_contain_text(email_cliente_b)
+        expect(page_cliente_a.locator("#lista-usuarios")).not_to_contain_text(email_inspetor_b)
+
+        expect(page_cliente_b.locator("#lista-usuarios")).to_contain_text(email_cliente_b)
+        expect(page_cliente_b.locator("#lista-usuarios")).to_contain_text(email_inspetor_b)
+        expect(page_cliente_b.locator("#lista-usuarios")).not_to_contain_text(email_cliente_a)
+        expect(page_cliente_b.locator("#lista-usuarios")).not_to_contain_text(email_inspetor_a)
+
+        page_cliente_a.locator("#tab-chat").click()
+        page_cliente_b.locator("#tab-chat").click()
+        expect(page_cliente_a.locator("#lista-chat-laudos")).to_contain_text(preview_a, timeout=10000)
+        expect(page_cliente_a.locator("#lista-chat-laudos")).not_to_contain_text(preview_b)
+        expect(page_cliente_b.locator("#lista-chat-laudos")).to_contain_text(preview_b, timeout=10000)
+        expect(page_cliente_b.locator("#lista-chat-laudos")).not_to_contain_text(preview_a)
+    finally:
+        contexto_admin.close()
+        contexto_cliente_a.close()
+        contexto_cliente_b.close()
 
 
 def test_e2e_fluxo_bilateral_inspetor_e_revisor_no_canal_mesa(

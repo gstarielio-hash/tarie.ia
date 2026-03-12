@@ -318,6 +318,7 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'id="tab-chat"' in portal_cliente
     assert 'id="tab-mesa"' in portal_cliente
     assert 'id="admin-resumo-geral"' in portal_cliente
+    assert 'id="admin-auditoria-lista"' in portal_cliente
     assert 'id="form-plano"' in portal_cliente
     assert 'id="form-usuario"' in portal_cliente
     assert 'id="form-chat-laudo"' in portal_cliente

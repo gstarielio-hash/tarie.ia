@@ -502,6 +502,11 @@ class Empresa(MixinAuditoria, Base):
         back_populates="empresa",
         passive_deletes=True,
     )
+    auditoria_registros = relationship(
+        "RegistroAuditoriaEmpresa",
+        back_populates="empresa",
+        passive_deletes=True,
+    )
 
     @validates("plano_ativo")
     def _validar_plano_ativo(self, _key: str, valor: Any) -> str:
@@ -652,6 +657,55 @@ class Usuario(MixinAuditoria, Base):
             self.status_bloqueio = True
             return True
         return False
+
+
+# =========================================================
+# MODELO: REGISTROAUDITORIAEMPRESA
+# =========================================================
+
+
+class RegistroAuditoriaEmpresa(MixinAuditoria, Base):
+    __tablename__ = "auditoria_empresas"
+    __table_args__ = (
+        Index("ix_auditoria_empresa_criada", "empresa_id", "criado_em"),
+        Index("ix_auditoria_empresa_portal", "empresa_id", "portal"),
+        Index("ix_auditoria_ator_criada", "ator_usuario_id", "criado_em"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(
+        Integer,
+        ForeignKey("empresas.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    ator_usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    alvo_usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    portal = Column(String(30), nullable=False, default="cliente")
+    acao = Column(String(80), nullable=False)
+    resumo = Column(String(220), nullable=False)
+    detalhe = Column(Text, nullable=True)
+    payload_json = Column(JSON, nullable=True)
+
+    empresa = relationship("Empresa", back_populates="auditoria_registros")
+    ator_usuario = relationship("Usuario", foreign_keys=[ator_usuario_id])
+    alvo_usuario = relationship("Usuario", foreign_keys=[alvo_usuario_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<RegistroAuditoriaEmpresa id={self.id} empresa_id={self.empresa_id} "
+            f"acao={self.acao!r} portal={self.portal!r}>"
+        )
 
 
 # =========================================================

@@ -34,6 +34,11 @@ from app.domains.chat.laudo_state_helpers import serializar_card_laudo
 from app.domains.chat.normalization import TIPOS_TEMPLATE_VALIDOS
 from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
 from app.domains.chat.schemas import DadosChat
+from app.domains.cliente.auditoria import (
+    listar_auditoria_empresa,
+    registrar_auditoria_empresa,
+    serializar_registro_auditoria,
+)
 from app.domains.cliente.common import (
     CHAVE_CSRF_CLIENTE,
     contexto_base_cliente,
@@ -54,7 +59,16 @@ from app.domains.revisor.routes import (
     responder_chat_campo_com_anexo,
     atualizar_pendencia_mesa_revisor,
 )
-from app.shared.database import Empresa, Laudo, MensagemLaudo, NivelAcesso, PlanoEmpresa, TipoMensagem, Usuario, obter_banco
+from app.shared.database import (
+    Empresa,
+    Laudo,
+    MensagemLaudo,
+    NivelAcesso,
+    PlanoEmpresa,
+    TipoMensagem,
+    Usuario,
+    obter_banco,
+)
 from app.shared.security import (
     PORTAL_CLIENTE,
     criar_hash_senha,
@@ -534,7 +548,36 @@ def _bootstrap_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
         "mesa": {
             "laudos": _listar_laudos_mesa_empresa(banco, usuario),
         },
+        "auditoria": {
+            "itens": [
+                serializar_registro_auditoria(item)
+                for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id))
+            ]
+        },
     }
+
+
+def _registrar_auditoria_cliente_segura(
+    banco: Session,
+    *,
+    empresa_id: int,
+    ator_usuario_id: int | None,
+    acao: str,
+    resumo: str,
+    detalhe: str = "",
+    alvo_usuario_id: int | None = None,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    registrar_auditoria_empresa(
+        banco,
+        empresa_id=empresa_id,
+        ator_usuario_id=ator_usuario_id,
+        acao=acao,
+        resumo=resumo,
+        detalhe=detalhe,
+        alvo_usuario_id=alvo_usuario_id,
+        payload=payload,
+    )
 
 
 @roteador_cliente.get("/", include_in_schema=False)
@@ -752,6 +795,19 @@ async def api_empresa_resumo_cliente(
     return JSONResponse(_resumo_empresa_cliente(banco, usuario))
 
 
+@roteador_cliente.get("/api/auditoria")
+async def api_auditoria_cliente(
+    limite: int = Query(default=12, ge=1, le=50),
+    usuario: Usuario = Depends(exigir_admin_cliente),
+    banco: Session = Depends(obter_banco),
+):
+    itens = [
+        serializar_registro_auditoria(item)
+        for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id), limite=limite)
+    ]
+    return JSONResponse({"itens": itens})
+
+
 @roteador_cliente.patch("/api/empresa/plano", responses=RESPOSTAS_PLANO_CLIENTE)
 async def api_alterar_plano_cliente(
     dados: DadosPlanoCliente,
@@ -771,6 +827,15 @@ async def api_alterar_plano_cliente(
         usuario.empresa_id,
         usuario.id,
         dados.plano,
+    )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="plano_alterado",
+        resumo=f"Plano alterado para {dados.plano}.",
+        detalhe="Alteração imediata feita pelo portal admin-cliente.",
+        payload={"plano": dados.plano},
     )
     return JSONResponse({"success": True, "empresa": _resumo_empresa_cliente(banco, usuario)})
 
@@ -827,6 +892,19 @@ async def api_criar_usuario_cliente(
         usuario.id,
         novo.id,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        alvo_usuario_id=int(novo.id),
+        acao="usuario_criado",
+        resumo=f"Usuário {novo.nome} criado como {_ROLE_LABELS.get(int(novo.nivel_acesso), 'Usuário')}.",
+        detalhe=f"Cadastro criado com e-mail {novo.email}.",
+        payload={
+            "email": novo.email,
+            "nivel_acesso": int(novo.nivel_acesso),
+        },
+    )
     return JSONResponse(
         {
             "success": True,
@@ -860,6 +938,20 @@ async def api_atualizar_usuario_cliente(
         )
     except ValueError as exc:
         raise _traduzir_erro_servico_cliente(exc) from exc
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        alvo_usuario_id=int(atualizado.id),
+        acao="usuario_atualizado",
+        resumo=f"Cadastro de {atualizado.nome} atualizado.",
+        detalhe="Dados básicos do usuário foram editados pelo admin-cliente.",
+        payload={
+            "email": atualizado.email,
+            "telefone": atualizado.telefone or "",
+            "crea": atualizado.crea or "",
+        },
+    )
     return JSONResponse({"success": True, "usuario": _serializar_usuario_cliente(atualizado)})
 
 
@@ -877,6 +969,16 @@ async def api_bloqueio_usuario_cliente(
         atualizado = alternar_bloqueio_usuario_empresa(banco, int(usuario.empresa_id), usuario_id)
     except ValueError as exc:
         raise _traduzir_erro_servico_cliente(exc) from exc
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        alvo_usuario_id=int(atualizado.id),
+        acao="usuario_bloqueio_alterado",
+        resumo=f"{atualizado.nome} {'desbloqueado' if atualizado.ativo else 'bloqueado'} no portal.",
+        detalhe="Status operacional alterado pelo admin-cliente.",
+        payload={"ativo": bool(atualizado.ativo)},
+    )
     return JSONResponse({"success": True, "usuario": _serializar_usuario_cliente(atualizado)})
 
 
@@ -899,6 +1001,17 @@ async def api_resetar_senha_usuario_cliente(
         usuario.empresa_id,
         usuario.id,
         usuario_id,
+    )
+    usuario_resetado = banco.get(Usuario, int(usuario_id))
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        alvo_usuario_id=int(usuario_id),
+        acao="senha_resetada",
+        resumo=f"Senha temporária regenerada para {getattr(usuario_resetado, 'nome', f'Usuário #{usuario_id}')}.",
+        detalhe="O próximo login exigirá nova troca de senha.",
+        payload={"usuario_id": int(usuario_id)},
     )
     return JSONResponse({"success": True, "senha_temporaria": senha})
 

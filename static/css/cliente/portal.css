@@ -1017,6 +1017,47 @@ td {
     text-decoration: none;
 }
 
+.activity-list {
+    display: grid;
+    gap: 12px;
+}
+
+.activity-item {
+    display: grid;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.activity-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.activity-copy {
+    display: grid;
+    gap: 4px;
+}
+
+.activity-copy strong {
+    font-size: 14px;
+}
+
+.activity-meta,
+.activity-detail {
+    color: var(--cliente-text-soft);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.activity-detail {
+    margin: 0;
+}
+
 .empty-state {
     display: grid;
     gap: 8px;
@@ -1099,6 +1140,7 @@ td {
 
     .hero-actions,
     .toolbar,
+    .activity-head,
     .context-head,
     .context-guidance,
     .context-actions,

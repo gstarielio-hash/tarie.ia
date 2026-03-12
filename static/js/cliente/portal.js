@@ -703,6 +703,35 @@
         `;
     }
 
+    function renderAdminAuditoria() {
+        const container = $("admin-auditoria-lista");
+        if (!container) return;
+
+        const itens = state.bootstrap?.auditoria?.itens || [];
+        if (!itens.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>Nenhuma atividade registrada ainda</strong>
+                    <p>As alteracoes de plano, equipe e acesso passam a aparecer aqui conforme o portal for sendo usado.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = itens.map((item) => `
+            <article class="activity-item">
+                <div class="activity-head">
+                    <div class="activity-copy">
+                        <strong>${escapeHtml(item.resumo || "Ação registrada")}</strong>
+                        <span class="activity-meta">Por ${escapeHtml(item.ator_nome || "Sistema")} • ${escapeHtml(item.criado_em_label || "Agora")}</span>
+                    </div>
+                    <span class="pill" data-kind="priority" data-status="aberto">${escapeHtml(texto(item.acao || "evento").replaceAll("_", " "))}</span>
+                </div>
+                ${item.detalhe ? `<p class="activity-detail">${escapeHtml(item.detalhe)}</p>` : ""}
+            </article>
+        `).join("");
+    }
+
     function renderUsuarios() {
         const usuarios = ordenarPorPrioridade(filtrarUsuarios(), prioridadeUsuario);
         const tbody = $("lista-usuarios");
@@ -796,6 +825,7 @@
     function renderAdmin() {
         renderAdminResumo();
         renderEmpresaCards();
+        renderAdminAuditoria();
         renderUsuarios();
     }
 
