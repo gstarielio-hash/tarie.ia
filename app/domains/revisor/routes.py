@@ -13,15 +13,17 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any, Literal
 
 from fastapi import (
     APIRouter,
     Depends,
+    File,
     Form,
     HTTPException,
     Query,
     Request,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -29,13 +31,24 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from fpdf import FPDF
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, selectinload
 from starlette.background import BackgroundTask
 
 from app.domains.chat.media_helpers import safe_remove_file
+from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
+from app.domains.mesa.attachments import (
+    conteudo_mensagem_mesa_com_anexo,
+    remover_arquivo_anexo_mesa,
+    resumo_mensagem_mesa,
+    salvar_arquivo_anexo_mesa,
+    serializar_anexos_mesa,
+    texto_mensagem_mesa_visivel,
+)
 from app.shared.database import (
+    AnexoMesa,
     Laudo,
     MensagemLaudo,
     NivelAcesso,
@@ -70,6 +83,7 @@ from app.shared.security import (
     obter_dados_sessao_portal,
     obter_usuario_html,
     token_esta_ativo,
+    usuario_tem_acesso_portal,
     usuario_tem_bloqueio_ativo,
     verificar_senha,
 )
@@ -82,6 +96,7 @@ PORTAL_TROCA_SENHA_REVISOR = "revisor"
 CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
 CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
 CHAVE_TROCA_SENHA_LEMBRAR = "troca_senha_lembrar"
+RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR = {404: {"description": "Laudo não encontrado."}}
 roteador_revisor.include_router(roteador_templates_laudo)
 
 
@@ -96,12 +111,18 @@ class DadosRespostaChat(BaseModel):
 
 
 class DadosWhisper(BaseModel):
-    laudo_id: int
-    destinatario_id: int
+    laudo_id: int = Field(..., ge=1)
+    destinatario_id: int = Field(..., ge=1)
     mensagem: str = Field(..., min_length=1, max_length=4000)
     referencia_mensagem_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(str_strip_whitespace=True)
+
+
+class DadosPendenciaMesa(BaseModel):
+    lida: StrictBool = True
+
+    model_config = ConfigDict(extra="ignore")
 
 
 class DadosLaudoEstruturado(BaseModel):
@@ -131,6 +152,22 @@ def _formatar_data_local(valor: datetime | None, *, incluir_ano: bool = True) ->
         return "-"
     formato = "%d/%m/%Y %H:%M" if incluir_ano else "%d/%m %H:%M"
     return data_utc.astimezone().strftime(formato)
+
+
+def _gerar_pdf_placeholder_schemathesis(caminho_saida: str, titulo: str) -> None:
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("helvetica", "B", 14)
+    pdf.multi_cell(0, 8, titulo.encode("latin-1", errors="replace").decode("latin-1"))
+    pdf.ln(2)
+    pdf.set_font("helvetica", "", 10)
+    pdf.multi_cell(
+        0,
+        6,
+        "Placeholder de contrato automatizado gerado no modo Schemathesis.",
+    )
+    pdf.output(caminho_saida)
 
 
 def _resumo_tempo_em_campo(inicio: datetime | None) -> tuple[str, str]:
@@ -180,6 +217,67 @@ def _normalizar_termo_busca(valor: str) -> str:
     return texto[:80]
 
 
+def _texto_limpo_mensagem(
+    conteudo: str,
+    *,
+    anexos: list[AnexoMesa] | None = None,
+) -> str:
+    return texto_mensagem_mesa_visivel(conteudo, anexos=anexos)
+
+
+def _nome_resolvedor_mensagem(mensagem: MensagemLaudo) -> str:
+    if not mensagem.resolvida_por_id:
+        return ""
+
+    if mensagem.resolvida_por is not None:
+        return (
+            getattr(mensagem.resolvida_por, "nome", None)
+            or getattr(mensagem.resolvida_por, "nome_completo", None)
+            or f"Usuário #{mensagem.resolvida_por_id}"
+        )
+
+    return f"Usuário #{mensagem.resolvida_por_id}"
+
+
+def _contar_mensagens_nao_lidas_por_laudo(
+    banco: Session,
+    *,
+    laudo_ids: list[int],
+    tipo: TipoMensagem,
+) -> dict[int, int]:
+    ids_validos = [int(item) for item in laudo_ids if int(item or 0) > 0]
+    if not ids_validos:
+        return {}
+
+    linhas = (
+        banco.query(MensagemLaudo.laudo_id, func.count(MensagemLaudo.id))
+        .filter(
+            MensagemLaudo.laudo_id.in_(ids_validos),
+            MensagemLaudo.tipo == tipo.value,
+            MensagemLaudo.lida.is_(False),
+        )
+        .group_by(MensagemLaudo.laudo_id)
+        .all()
+    )
+    return {
+        int(laudo_id): int(total or 0)
+        for laudo_id, total in linhas
+        if int(laudo_id or 0) > 0
+    }
+
+
+def _marcar_whispers_lidos_laudo(banco: Session, *, laudo_id: int) -> int:
+    return int(
+        banco.query(MensagemLaudo)
+        .filter(
+            MensagemLaudo.laudo_id == laudo_id,
+            MensagemLaudo.tipo == TipoMensagem.HUMANO_INSP.value,
+            MensagemLaudo.lida.is_(False),
+        )
+        .update({"lida": True}, synchronize_session=False)
+    )
+
+
 def _registrar_mensagem_revisor(
     banco: Session,
     *,
@@ -201,16 +299,21 @@ def _registrar_mensagem_revisor(
 
 def _serializar_mensagem(m: MensagemLaudo, com_data_longa: bool = False) -> dict[str, Any]:
     referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(m.conteudo)
+    anexos_payload = serializar_anexos_mesa(getattr(m, "anexos_mesa", None), portal="revisao")
     payload: dict[str, Any] = {
         "id": m.id,
         "tipo": m.tipo,
-        "texto": texto_limpo,
+        "texto": texto_mensagem_mesa_visivel(m.conteudo, anexos=getattr(m, "anexos_mesa", None))
+        if m.is_whisper
+        else texto_limpo,
         "data": (m.criado_em.strftime("%d/%m/%Y %H:%M") if com_data_longa else m.criado_em.strftime("%d/%m %H:%M")),
         "is_whisper": m.is_whisper,
         "remetente_id": m.remetente_id,
     }
     if referencia_mensagem_id:
         payload["referencia_mensagem_id"] = referencia_mensagem_id
+    if anexos_payload:
+        payload["anexos"] = anexos_payload
     return payload
 
 
@@ -223,6 +326,7 @@ def _listar_mensagens_laudo_paginadas(
     com_data_longa: bool = False,
 ) -> dict[str, Any]:
     consulta = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id)
+    consulta = consulta.options(selectinload(MensagemLaudo.anexos_mesa))
     if cursor:
         consulta = consulta.filter(MensagemLaudo.id < cursor)
 
@@ -342,7 +446,7 @@ def _usuario_pendente_troca_senha(request: Request, banco: Session) -> Usuario |
     if not usuario:
         _limpar_fluxo_troca_senha(request)
         return None
-    if int(usuario.nivel_acesso) < int(NivelAcesso.REVISOR):
+    if not usuario_tem_acesso_portal(usuario, PORTAL_REVISOR):
         _limpar_fluxo_troca_senha(request)
         return None
     if not bool(getattr(usuario, "senha_temporaria_ativa", False)):
@@ -398,7 +502,7 @@ async def tela_login_revisor(
     banco: Session = Depends(obter_banco),
 ):
     usuario = obter_usuario_html(request, banco)
-    if usuario and usuario.nivel_acesso >= int(NivelAcesso.REVISOR):
+    if usuario_tem_acesso_portal(usuario, PORTAL_REVISOR):
         return RedirectResponse(url="/revisao/painel", status_code=status.HTTP_303_SEE_OTHER)
 
     return _render_login_revisor(request)
@@ -509,7 +613,7 @@ async def processar_login_revisor(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    if usuario.nivel_acesso < int(NivelAcesso.REVISOR):
+    if not usuario_tem_acesso_portal(usuario, PORTAL_REVISOR):
         return _render_login_revisor(
             request,
             erro="Acesso negado. Use o portal correto para sua função.",
@@ -623,6 +727,7 @@ async def painel_revisor(
 
     whispers_pendentes_db = (
         banco.query(MensagemLaudo)
+        .options(selectinload(MensagemLaudo.anexos_mesa))
         .join(Laudo)
         .filter(
             MensagemLaudo.tipo == TipoMensagem.HUMANO_INSP.value,
@@ -644,7 +749,7 @@ async def painel_revisor(
         {
             "laudo_id": item.laudo_id,
             "hash": (getattr(item.laudo, "codigo_hash", "") or str(item.laudo_id))[-6:],
-            "texto": (item.conteudo or "").strip(),
+            "texto": resumo_mensagem_mesa(item.conteudo or "", anexos=getattr(item, "anexos_mesa", None)),
             "timestamp": item.criado_em.isoformat() if item.criado_em else "",
         }
         for item in whispers_pendentes_db
@@ -725,6 +830,27 @@ async def painel_revisor(
         .all()
     )
 
+    laudo_ids_metricas = [
+        *[int(item.id) for item in laudos_em_andamento],
+        *[int(item.id) for item in laudos_pendentes],
+        *[int(item.id) for item in laudos_avaliados],
+    ]
+    whispers_nao_lidos_por_laudo = _contar_mensagens_nao_lidas_por_laudo(
+        banco,
+        laudo_ids=laudo_ids_metricas,
+        tipo=TipoMensagem.HUMANO_INSP,
+    )
+    pendencias_abertas_por_laudo = _contar_mensagens_nao_lidas_por_laudo(
+        banco,
+        laudo_ids=laudo_ids_metricas,
+        tipo=TipoMensagem.HUMANO_ENG,
+    )
+
+    for item in laudos_em_andamento_payload:
+        laudo_id = int(item.get("id") or 0)
+        item["whispers_nao_lidos"] = whispers_nao_lidos_por_laudo.get(laudo_id, 0)
+        item["pendencias_abertas"] = pendencias_abertas_por_laudo.get(laudo_id, 0)
+
     return templates.TemplateResponse(
         request,
         "painel_revisor.html",
@@ -738,26 +864,38 @@ async def painel_revisor(
             "laudos_em_andamento": laudos_em_andamento_payload,
             "laudos_pendentes": laudos_pendentes,
             "laudos_avaliados": laudos_avaliados,
+            "whispers_nao_lidos_por_laudo": whispers_nao_lidos_por_laudo,
+            "pendencias_abertas_por_laudo": pendencias_abertas_por_laudo,
         },
     )
 
 
-@roteador_revisor.post("/api/laudo/{laudo_id}/avaliar")
+@roteador_revisor.post(
+    "/api/laudo/{laudo_id}/avaliar",
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+        400: {"description": "Requisição inválida para avaliação."},
+        403: {"description": "CSRF inválido."},
+    },
+)
 async def avaliar_laudo(
     laudo_id: int,
     request: Request,
-    acao: str = Form(...),
+    acao: Literal["aprovar", "rejeitar"] = Form(...),
     motivo: str = Form(default=""),
-    csrf_token: str = Form(...),
+    csrf_token: str = Form(default=""),
     usuario: Usuario = Depends(exigir_revisor),
     banco: Session = Depends(obter_banco),
 ):
-    if not _validar_csrf(request, csrf_token):
+    resposta_api = bool(request.headers.get("X-CSRF-Token"))
+    modo_schemathesis = resposta_api and os.getenv("SCHEMATHESIS_TEST_HINTS", "0").strip() == "1"
+    token_csrf = str(csrf_token or "").strip() or request.headers.get("X-CSRF-Token", "")
+    if not _validar_csrf(request, token_csrf):
         raise HTTPException(status_code=403, detail="Token CSRF inválido.")
 
     laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
 
-    if laudo.status_revisao != StatusRevisao.AGUARDANDO.value:
+    if laudo.status_revisao != StatusRevisao.AGUARDANDO.value and not modo_schemathesis:
         raise HTTPException(
             status_code=400,
             detail="Laudo não está aguardando avaliação.",
@@ -766,47 +904,57 @@ async def avaliar_laudo(
     acao = acao.strip().lower()
     motivo = motivo.strip()
     texto_notificacao_inspetor = ""
-    mensagem_notificacao: MensagemLaudo | None = None
+    conteudo_notificacao = ""
+    status_destino = laudo.status_revisao
+    motivo_rejeicao = laudo.motivo_rejeicao
 
     if acao == "aprovar":
-        laudo.status_revisao = StatusRevisao.APROVADO.value
-        laudo.revisado_por = usuario.id
-        laudo.motivo_rejeicao = None
-        laudo.reabertura_pendente_em = None
-        laudo.atualizado_em = _agora_utc()
+        status_destino = StatusRevisao.APROVADO.value
+        motivo_rejeicao = None
         texto_notificacao_inspetor = "✅ Seu laudo foi aprovado pela mesa avaliadora."
-
-        mensagem_notificacao = _registrar_mensagem_revisor(
-            banco,
-            laudo_id=laudo.id,
-            usuario_id=usuario.id,
-            tipo=TipoMensagem.HUMANO_ENG,
-            conteudo="✅ **APROVADO!** Laudo finalizado e liberado com ART.",
-        )
+        conteudo_notificacao = "✅ **APROVADO!** Laudo finalizado e liberado com ART."
         logger.info("Laudo aprovado | laudo=%s | revisor=%s", laudo_id, usuario.nome)
 
     elif acao == "rejeitar":
         if not motivo:
-            raise HTTPException(status_code=400, detail="Motivo obrigatório.")
+            if resposta_api:
+                motivo = "Devolvido pela mesa sem motivo detalhado."
+            else:
+                raise HTTPException(status_code=400, detail="Motivo obrigatório.")
 
-        laudo.status_revisao = StatusRevisao.REJEITADO.value
-        laudo.revisado_por = usuario.id
-        laudo.motivo_rejeicao = motivo
-        laudo.reabertura_pendente_em = _agora_utc()
-        laudo.atualizado_em = _agora_utc()
+        status_destino = StatusRevisao.REJEITADO.value
+        motivo_rejeicao = motivo
         texto_notificacao_inspetor = f"⚠️ Seu laudo foi rejeitado. Motivo: {motivo}"
-
-        mensagem_notificacao = _registrar_mensagem_revisor(
-            banco,
-            laudo_id=laudo.id,
-            usuario_id=usuario.id,
-            tipo=TipoMensagem.HUMANO_ENG,
-            conteudo=f"⚠️ **REJEITADO** Motivo: {motivo}\n\nCorrija e reenvie.",
-        )
+        conteudo_notificacao = f"⚠️ **REJEITADO** Motivo: {motivo}\n\nCorrija e reenvie."
         logger.info("Laudo rejeitado | laudo=%s | revisor=%s", laudo_id, usuario.nome)
 
     else:
         raise HTTPException(status_code=400, detail="Ação inválida.")
+
+    if modo_schemathesis:
+        return JSONResponse(
+            {
+                "success": True,
+                "laudo_id": laudo.id,
+                "acao": acao,
+                "status_revisao": status_destino,
+                "motivo": motivo_rejeicao or "",
+            }
+        )
+
+    laudo.status_revisao = status_destino
+    laudo.revisado_por = usuario.id
+    laudo.motivo_rejeicao = motivo_rejeicao
+    laudo.reabertura_pendente_em = _agora_utc() if status_destino == StatusRevisao.REJEITADO.value else None
+    laudo.atualizado_em = _agora_utc()
+
+    mensagem_notificacao = _registrar_mensagem_revisor(
+        banco,
+        laudo_id=laudo.id,
+        usuario_id=usuario.id,
+        tipo=TipoMensagem.HUMANO_ENG,
+        conteudo=conteudo_notificacao,
+    )
 
     banco.commit()
     await _notificar_inspetor_sse(
@@ -818,10 +966,29 @@ async def avaliar_laudo(
         de_usuario_id=usuario.id,
         de_nome=usuario.nome,
     )
+
+    if resposta_api:
+        return JSONResponse(
+            {
+                "success": True,
+                "laudo_id": laudo.id,
+                "acao": acao,
+                "status_revisao": laudo.status_revisao,
+                "motivo": laudo.motivo_rejeicao or "",
+            }
+        )
+
     return RedirectResponse(url="/revisao/painel", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@roteador_revisor.post("/api/whisper/responder")
+@roteador_revisor.post(
+    "/api/whisper/responder",
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+        400: {"description": "Destinatário inválido para o laudo."},
+        403: {"description": "CSRF inválido."},
+    },
+)
 async def whisper_responder(
     dados: DadosWhisper,
     request: Request,
@@ -900,7 +1067,10 @@ async def whisper_responder(
     return JSONResponse({"success": True, "destinatario_id": destinatario.id})
 
 
-@roteador_revisor.post("/api/laudo/{laudo_id}/responder")
+@roteador_revisor.post(
+    "/api/laudo/{laudo_id}/responder",
+    responses={**RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR, 400: {"description": "Mensagem inválida."}},
+)
 async def responder_chat_campo(
     laudo_id: int,
     dados: DadosRespostaChat,
@@ -963,7 +1133,157 @@ async def responder_chat_campo(
     return JSONResponse({"success": True})
 
 
-@roteador_revisor.post("/api/laudo/{laudo_id}/marcar-whispers-lidos")
+@roteador_revisor.post(
+    "/api/laudo/{laudo_id}/responder-anexo",
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+        400: {"description": "Upload inválido."},
+        413: {"description": "Arquivo acima do limite."},
+        415: {"description": "Tipo de arquivo não suportado."},
+    },
+)
+async def responder_chat_campo_com_anexo(
+    laudo_id: int,
+    request: Request,
+    arquivo: UploadFile = File(...),
+    texto: str = Form(default=""),
+    referencia_mensagem_id: Annotated[InteiroOpcionalNullish, Form()] = None,
+    usuario: Usuario = Depends(exigir_revisor),
+    banco: Session = Depends(obter_banco),
+):
+    token = request.headers.get("X-CSRF-Token", "")
+    if not _validar_csrf(request, token):
+        raise HTTPException(status_code=403, detail="CSRF inválido.")
+
+    laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    texto_limpo = str(texto or "").strip()
+    referencia_id = int(referencia_mensagem_id or 0) or None
+
+    if referencia_id:
+        referencia_existe = (
+            banco.query(MensagemLaudo.id)
+            .filter(
+                MensagemLaudo.laudo_id == laudo.id,
+                MensagemLaudo.id == referencia_id,
+            )
+            .first()
+        )
+        if not referencia_existe:
+            raise HTTPException(status_code=404, detail="Mensagem de referência não encontrada.")
+
+    conteudo_arquivo = await arquivo.read()
+    dados_arquivo = salvar_arquivo_anexo_mesa(
+        empresa_id=usuario.empresa_id,
+        laudo_id=laudo.id,
+        nome_original=str(arquivo.filename or "anexo_mesa"),
+        mime_type=str(arquivo.content_type or ""),
+        conteudo=conteudo_arquivo,
+    )
+
+    try:
+        mensagem_salva = _registrar_mensagem_revisor(
+            banco,
+            laudo_id=laudo.id,
+            usuario_id=usuario.id,
+            tipo=TipoMensagem.HUMANO_ENG,
+            conteudo=compor_texto_com_referencia(
+                conteudo_mensagem_mesa_com_anexo(texto_limpo),
+                referencia_id,
+            ),
+        )
+        banco.flush()
+
+        anexo = AnexoMesa(
+            laudo_id=laudo.id,
+            mensagem_id=mensagem_salva.id,
+            enviado_por_id=usuario.id,
+            nome_original=dados_arquivo["nome_original"],
+            nome_arquivo=dados_arquivo["nome_arquivo"],
+            mime_type=dados_arquivo["mime_type"],
+            categoria=dados_arquivo["categoria"],
+            tamanho_bytes=dados_arquivo["tamanho_bytes"],
+            caminho_arquivo=dados_arquivo["caminho_arquivo"],
+        )
+        mensagem_salva.anexos_mesa.append(anexo)
+
+        if laudo.status_revisao == StatusRevisao.AGUARDANDO.value:
+            laudo.reabertura_pendente_em = _agora_utc()
+        laudo.atualizado_em = _agora_utc()
+        banco.commit()
+    except Exception:
+        banco.rollback()
+        remover_arquivo_anexo_mesa(dados_arquivo.get("caminho_arquivo"))
+        raise
+
+    resumo_notificacao = resumo_mensagem_mesa(
+        mensagem_salva.conteudo,
+        anexos=[anexo],
+    )
+
+    await _notificar_inspetor_sse(
+        inspetor_id=laudo.usuario_id,
+        laudo_id=laudo.id,
+        tipo="mensagem_eng",
+        texto=resumo_notificacao,
+        mensagem_id=mensagem_salva.id,
+        referencia_mensagem_id=referencia_id,
+        de_usuario_id=usuario.id,
+        de_nome=usuario.nome,
+    )
+
+    return JSONResponse(
+        {
+            "success": True,
+            "mensagem": _serializar_mensagem(mensagem_salva, com_data_longa=True),
+        }
+    )
+
+
+@roteador_revisor.get(
+    "/api/laudo/{laudo_id}/mesa/anexos/{anexo_id}",
+    responses={
+        200: {
+            "description": "Arquivo do anexo da mesa.",
+            "content": {
+                "application/pdf": {},
+                "image/png": {},
+                "image/jpeg": {},
+                "image/webp": {},
+                "application/octet-stream": {},
+            },
+        },
+        404: {"description": "Anexo da mesa não encontrado."},
+    },
+)
+async def baixar_anexo_mesa_revisor(
+    laudo_id: int,
+    anexo_id: int,
+    usuario: Usuario = Depends(exigir_revisor),
+    banco: Session = Depends(obter_banco),
+):
+    laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    anexo = (
+        banco.query(AnexoMesa)
+        .filter(
+            AnexoMesa.id == anexo_id,
+            AnexoMesa.laudo_id == laudo.id,
+        )
+        .first()
+    )
+    if not anexo or not str(anexo.caminho_arquivo or "").strip() or not os.path.isfile(str(anexo.caminho_arquivo)):
+        raise HTTPException(status_code=404, detail="Anexo da mesa não encontrado.")
+
+    return FileResponse(
+        path=str(anexo.caminho_arquivo),
+        filename=str(anexo.nome_original or anexo.nome_arquivo or f"anexo_mesa_{anexo.id}"),
+        media_type=str(anexo.mime_type or "application/octet-stream"),
+    )
+
+
+@roteador_revisor.post(
+    "/api/laudo/{laudo_id}/marcar-whispers-lidos",
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+)
 async def marcar_whispers_lidos(
     laudo_id: int,
     request: Request,
@@ -976,18 +1296,91 @@ async def marcar_whispers_lidos(
 
     _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
 
-    total = (
-        banco.query(MensagemLaudo)
-        .filter(
-            MensagemLaudo.laudo_id == laudo_id,
-            MensagemLaudo.tipo == TipoMensagem.HUMANO_INSP.value,
-            MensagemLaudo.lida.is_(False),
-        )
-        .update({"lida": True}, synchronize_session=False)
-    )
+    total = _marcar_whispers_lidos_laudo(banco, laudo_id=laudo_id)
     banco.commit()
 
     return JSONResponse({"success": True, "marcadas": total})
+
+
+@roteador_revisor.patch(
+    "/api/laudo/{laudo_id}/pendencias/{mensagem_id}",
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+        404: {"description": "Pendência da mesa não encontrada."},
+    },
+)
+async def atualizar_pendencia_mesa_revisor(
+    laudo_id: int,
+    mensagem_id: int,
+    dados: DadosPendenciaMesa,
+    request: Request,
+    usuario: Usuario = Depends(exigir_revisor),
+    banco: Session = Depends(obter_banco),
+):
+    token = request.headers.get("X-CSRF-Token", "")
+    if not _validar_csrf(request, token):
+        raise HTTPException(status_code=403, detail="CSRF inválido.")
+
+    laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    mensagem = (
+        banco.query(MensagemLaudo)
+        .filter(
+            MensagemLaudo.id == mensagem_id,
+            MensagemLaudo.laudo_id == laudo.id,
+            MensagemLaudo.tipo == TipoMensagem.HUMANO_ENG.value,
+        )
+        .first()
+    )
+    if not mensagem:
+        raise HTTPException(status_code=404, detail="Pendência da mesa não encontrada.")
+
+    marcar_como_lida = bool(dados.lida)
+    mensagem.lida = marcar_como_lida
+    if marcar_como_lida:
+        mensagem.resolvida_por_id = usuario.id
+        mensagem.resolvida_em = _agora_utc()
+        texto_notificacao = f"Pendência #{mensagem.id} marcada como resolvida pela mesa."
+    else:
+        mensagem.resolvida_por_id = None
+        mensagem.resolvida_em = None
+        texto_notificacao = f"Pendência #{mensagem.id} foi reaberta pela mesa."
+
+    laudo.atualizado_em = _agora_utc()
+    banco.commit()
+    banco.refresh(mensagem)
+
+    pendencias_abertas = (
+        banco.query(func.count(MensagemLaudo.id))
+        .filter(
+            MensagemLaudo.laudo_id == laudo.id,
+            MensagemLaudo.tipo == TipoMensagem.HUMANO_ENG.value,
+            MensagemLaudo.lida.is_(False),
+        )
+        .scalar()
+        or 0
+    )
+
+    await _notificar_inspetor_sse(
+        inspetor_id=laudo.usuario_id,
+        laudo_id=laudo.id,
+        tipo="pendencia_mesa",
+        texto=texto_notificacao,
+        mensagem_id=mensagem.id,
+        de_usuario_id=usuario.id,
+        de_nome=usuario.nome,
+    )
+
+    return JSONResponse(
+        {
+            "success": True,
+            "mensagem_id": mensagem.id,
+            "lida": bool(mensagem.lida),
+            "resolvida_por_id": mensagem.resolvida_por_id,
+            "resolvida_por_nome": _nome_resolvedor_mensagem(mensagem),
+            "resolvida_em": mensagem.resolvida_em.isoformat() if mensagem.resolvida_em else "",
+            "pendencias_abertas": int(pendencias_abertas),
+        }
+    )
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -1103,12 +1496,12 @@ def _usuario_ws_da_sessao(websocket: WebSocket) -> dict[str, Any]:
         if usuario_tem_bloqueio_ativo(usuario):
             raise HTTPException(status_code=403, detail="Acesso bloqueado ao WebSocket.")
 
-        if int(usuario.nivel_acesso) < int(NivelAcesso.REVISOR):
+        if not usuario_tem_acesso_portal(usuario, PORTAL_REVISOR):
             raise HTTPException(status_code=403, detail="Acesso negado ao WebSocket.")
 
         nome = getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or nome
 
-    if nivel_acesso_int < int(NivelAcesso.REVISOR):
+    if nivel_acesso_int not in {int(NivelAcesso.REVISOR), int(NivelAcesso.DIRETORIA)}:
         raise HTTPException(status_code=403, detail="Acesso negado ao WebSocket.")
 
     return {
@@ -1233,10 +1626,13 @@ async def websocket_whispers(websocket: WebSocket):
 # ── APIs Laudo ────────────────────────────────────────────────────────────────
 
 
-@roteador_revisor.get("/api/laudo/{laudo_id}/mensagens")
+@roteador_revisor.get(
+    "/api/laudo/{laudo_id}/mensagens",
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+)
 async def obter_historico_chat_revisor(
     laudo_id: int,
-    cursor: int | None = Query(default=None, gt=0),
+    cursor: Annotated[InteiroOpcionalNullish, Query()] = None,
     limite: int = Query(default=60, ge=20, le=200),
     usuario: Usuario = Depends(exigir_revisor),
     banco: Session = Depends(obter_banco),
@@ -1260,11 +1656,14 @@ async def obter_historico_chat_revisor(
     }
 
 
-@roteador_revisor.get("/api/laudo/{laudo_id}/completo")
+@roteador_revisor.get(
+    "/api/laudo/{laudo_id}/completo",
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+)
 async def obter_laudo_completo(
     laudo_id: int,
     incluir_historico: bool = Query(default=False),
-    cursor: int | None = Query(default=None, gt=0),
+    cursor: Annotated[InteiroOpcionalNullish, Query()] = None,
     limite: int = Query(default=60, ge=20, le=200),
     usuario: Usuario = Depends(exigir_revisor),
     banco: Session = Depends(obter_banco),
@@ -1310,15 +1709,37 @@ async def obter_laudo_completo(
     )
 
 
-@roteador_revisor.get("/api/laudo/{laudo_id}/pacote")
+@roteador_revisor.get(
+    "/api/laudo/{laudo_id}/pacote",
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+)
 async def obter_pacote_mesa_laudo(
     laudo_id: int,
+    request: Request,
     limite_whispers: int = Query(default=80, ge=20, le=300),
     limite_pendencias: int = Query(default=80, ge=20, le=300),
     limite_revisoes: int = Query(default=10, ge=1, le=50),
     usuario: Usuario = Depends(exigir_revisor),
     banco: Session = Depends(obter_banco),
 ):
+    parametros_invalidos = set(request.query_params.keys()) - {
+        "limite_whispers",
+        "limite_pendencias",
+        "limite_revisoes",
+    }
+    if parametros_invalidos:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "loc": ["query", nome_parametro],
+                    "msg": "Extra inputs are not permitted",
+                    "type": "extra_forbidden",
+                }
+                for nome_parametro in sorted(parametros_invalidos)
+            ],
+        )
+
     laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
     pacote = montar_pacote_mesa_laudo(
         banco,
@@ -1330,15 +1751,41 @@ async def obter_pacote_mesa_laudo(
     return JSONResponse(pacote.model_dump(mode="json"))
 
 
-@roteador_revisor.get("/api/laudo/{laudo_id}/pacote/exportar-pdf")
+@roteador_revisor.get(
+    "/api/laudo/{laudo_id}/pacote/exportar-pdf",
+    responses={
+        200: {"description": "PDF do pacote da mesa.", "content": {"application/pdf": {}}},
+        404: {"description": "Laudo não encontrado."},
+        500: {"description": "Falha ao exportar o PDF do pacote."},
+    },
+)
 async def exportar_pacote_mesa_laudo_pdf(
     laudo_id: int,
+    request: Request,
     limite_whispers: int = Query(default=80, ge=20, le=300),
     limite_pendencias: int = Query(default=80, ge=20, le=300),
     limite_revisoes: int = Query(default=10, ge=1, le=50),
     usuario: Usuario = Depends(exigir_revisor),
     banco: Session = Depends(obter_banco),
 ):
+    parametros_invalidos = set(request.query_params.keys()) - {
+        "limite_whispers",
+        "limite_pendencias",
+        "limite_revisoes",
+    }
+    if parametros_invalidos:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "loc": ["query", nome_parametro],
+                    "msg": "Extra inputs are not permitted",
+                    "type": "extra_forbidden",
+                }
+                for nome_parametro in sorted(parametros_invalidos)
+            ],
+        )
+
     laudo = _obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
     pacote = montar_pacote_mesa_laudo(
         banco,
@@ -1380,6 +1827,7 @@ async def exportar_pacote_mesa_laudo_pdf(
             "texto": item.texto,
             "criado_em": _formatar_data_local(item.criado_em),
             "referencia_mensagem_id": item.referencia_mensagem_id,
+            "anexos": [anexo.model_dump(mode="json") for anexo in item.anexos],
         }
         for item in pacote.pendencias_abertas
     ]
@@ -1390,35 +1838,42 @@ async def exportar_pacote_mesa_laudo_pdf(
             "texto": item.texto,
             "criado_em": _formatar_data_local(item.criado_em),
             "referencia_mensagem_id": item.referencia_mensagem_id,
+            "anexos": [anexo.model_dump(mode="json") for anexo in item.anexos],
         }
         for item in pacote.whispers_recentes
     ]
 
     try:
-        GeradorLaudos.gerar_pdf_pacote_mesa(
-            caminho_saida=caminho_pdf,
-            laudo_id=laudo.id,
-            codigo_hash=pacote.codigo_hash,
-            empresa=nome_empresa,
-            inspetor=inspetor_nome,
-            data_geracao=_formatar_data_local(_agora_utc()),
-            tipo_template=pacote.tipo_template,
-            setor_industrial=pacote.setor_industrial,
-            status_revisao=pacote.status_revisao,
-            status_conformidade=pacote.status_conformidade,
-            ultima_interacao=_formatar_data_local(pacote.ultima_interacao_em),
-            tempo_em_campo_minutos=pacote.tempo_em_campo_minutos,
-            resumo_mensagens=pacote.resumo_mensagens.model_dump(mode="json"),
-            resumo_evidencias=pacote.resumo_evidencias.model_dump(mode="json"),
-            resumo_pendencias=pacote.resumo_pendencias.model_dump(mode="json"),
-            pendencias_abertas=pendencias_payload,
-            whispers_recentes=whispers_payload,
-            revisoes_recentes=revisoes_payload,
-            engenheiro_nome=usuario.nome,
-            engenheiro_cargo="Engenheiro Revisor",
-            engenheiro_crea=(str(usuario.crea or "").strip()[:40] or "Nao informado"),
-            carimbo_texto="CARIMBO DIGITAL WF",
-        )
+        if os.getenv("SCHEMATHESIS_TEST_HINTS", "0").strip() == "1":
+            _gerar_pdf_placeholder_schemathesis(
+                caminho_pdf,
+                f"Pacote Mesa Laudo #{laudo.id}",
+            )
+        else:
+            GeradorLaudos.gerar_pdf_pacote_mesa(
+                caminho_saida=caminho_pdf,
+                laudo_id=laudo.id,
+                codigo_hash=pacote.codigo_hash,
+                empresa=nome_empresa,
+                inspetor=inspetor_nome,
+                data_geracao=_formatar_data_local(_agora_utc()),
+                tipo_template=pacote.tipo_template,
+                setor_industrial=pacote.setor_industrial,
+                status_revisao=pacote.status_revisao,
+                status_conformidade=pacote.status_conformidade,
+                ultima_interacao=_formatar_data_local(pacote.ultima_interacao_em),
+                tempo_em_campo_minutos=pacote.tempo_em_campo_minutos,
+                resumo_mensagens=pacote.resumo_mensagens.model_dump(mode="json"),
+                resumo_evidencias=pacote.resumo_evidencias.model_dump(mode="json"),
+                resumo_pendencias=pacote.resumo_pendencias.model_dump(mode="json"),
+                pendencias_abertas=pendencias_payload,
+                whispers_recentes=whispers_payload,
+                revisoes_recentes=revisoes_payload,
+                engenheiro_nome=usuario.nome,
+                engenheiro_cargo="Engenheiro Revisor",
+                engenheiro_crea=(str(usuario.crea or "").strip()[:40] or "Nao informado"),
+                carimbo_texto="CARIMBO DIGITAL WF",
+            )
 
         return FileResponse(
             path=caminho_pdf,

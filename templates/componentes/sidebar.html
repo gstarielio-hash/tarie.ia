@@ -81,6 +81,33 @@
     else 'sem_relatorio'
 ) %}
 
+{% set banner_relatorio_textos = {
+    'relatorio_ativo': {
+        'titulo': 'Laudo em andamento',
+        'descricao': 'Continue a inspeção aberta e mantenha a rastreabilidade do chat.'
+    },
+    'aguardando': {
+        'titulo': 'Laudo aguardando análise',
+        'descricao': 'A mesa avaliadora está revisando este laudo no momento.'
+    },
+    'ajustes': {
+        'titulo': 'Ajustes solicitados',
+        'descricao': 'Reabra a inspeção para complementar o laudo com o retorno da mesa.'
+    },
+    'aprovado': {
+        'titulo': 'Laudo aprovado',
+        'descricao': 'Este laudo segue disponível para consulta no histórico.'
+    }
+} %}
+{% set banner_relatorio = banner_relatorio_textos.get(
+    estado_relatorio_atual,
+    {
+        'titulo': 'Laudo em andamento',
+        'descricao': 'Abra o laudo ativo para continuar a operação.'
+    }
+) %}
+{% set exibir_banner_relatorio = laudo_selecionado_id and estado_relatorio_atual != 'sem_relatorio' %}
+
 <aside
     id="barra-historico"
     class="barra-historico"
@@ -156,6 +183,29 @@
                 </section>
             {% endif %}
         {% endif %}
+
+        {# ====================================================
+           BANNER DE LAUDO EM ANDAMENTO
+           ==================================================== #}
+        <div
+            id="banner-relatorio-sidebar"
+            class="banner-relatorio-ativo"
+            role="button"
+            tabindex="0"
+            data-laudo-id="{{ laudo_selecionado_id if laudo_selecionado_id else '' }}"
+            data-estado-relatorio="{{ estado_relatorio_atual }}"
+            aria-label="{{ banner_relatorio.titulo }}"
+            {% if not exibir_banner_relatorio %}hidden{% endif %}
+        >
+            <span class="dot-piscando" aria-hidden="true"></span>
+
+            <span class="banner-relatorio-texto">
+                <strong id="banner-relatorio-sidebar-titulo">{{ banner_relatorio.titulo }}</strong>
+                <span id="banner-relatorio-sidebar-descricao">{{ banner_relatorio.descricao }}</span>
+            </span>
+
+            <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+        </div>
 
         {# ====================================================
            HISTÓRICO

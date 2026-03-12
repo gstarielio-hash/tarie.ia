@@ -11,6 +11,7 @@ import uuid
 from fastapi import Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.routing import APIRouter
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -72,6 +73,19 @@ MIME_FOTO_PERMITIDOS = {
     "image/webp",
 }
 MAX_FOTO_PERFIL_BYTES = 4 * 1024 * 1024
+
+
+class DadosAtualizarPerfilUsuario(BaseModel):
+    nome_completo: str = Field(..., min_length=3, max_length=150)
+    email: str = Field(
+        ...,
+        min_length=3,
+        max_length=254,
+        pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$",
+    )
+    telefone: str = Field(default="", max_length=30)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
 
 def _normalizar_telefone(telefone: str) -> str:
@@ -424,19 +438,15 @@ async def api_obter_perfil_usuario(
 
 async def api_atualizar_perfil_usuario(
     request: Request,
+    dados: DadosAtualizarPerfilUsuario,
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
     exigir_csrf(request)
 
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
-
-    nome = str(payload.get("nome_completo", "")).strip()
-    email = normalizar_email(str(payload.get("email", "")))
-    telefone = _normalizar_telefone(str(payload.get("telefone", "")))
+    nome = str(dados.nome_completo or "").strip()
+    email = normalizar_email(str(dados.email or ""))
+    telefone = _normalizar_telefone(str(dados.telefone or ""))
 
     if len(nome) < 3:
         raise HTTPException(status_code=400, detail="Informe um nome com pelo menos 3 caracteres.")
@@ -565,11 +575,20 @@ roteador_auth.add_api_route(
     "/api/perfil",
     api_atualizar_perfil_usuario,
     methods=["PUT"],
+    responses={
+        400: {"description": "Dados de perfil inválidos."},
+        409: {"description": "E-mail já está em uso."},
+    },
 )
 roteador_auth.add_api_route(
     "/api/perfil/foto",
     api_upload_foto_perfil_usuario,
     methods=["POST"],
+    responses={
+        400: {"description": "Arquivo de foto inválido ou vazio."},
+        413: {"description": "Arquivo excede o limite permitido."},
+        415: {"description": "Formato de imagem não suportado."},
+    },
 )
 
 __all__ = [

@@ -26,6 +26,7 @@ import app.domains.admin.routes as rotas_admin
 import app.domains.chat.routes as rotas_inspetor
 import app.domains.revisor.routes as rotas_revisor
 from app.shared.database import (
+    AnexoMesa,
     Base,
     Empresa,
     Laudo,
@@ -91,12 +92,13 @@ def _criar_laudo(
     empresa_id: int,
     usuario_id: int,
     status_revisao: str,
+    tipo_template: str = "padrao",
 ) -> int:
     laudo = Laudo(
         empresa_id=empresa_id,
         usuario_id=usuario_id,
         setor_industrial="geral",
-        tipo_template="padrao",
+        tipo_template=tipo_template,
         status_revisao=status_revisao,
         codigo_hash=uuid.uuid4().hex,
         modo_resposta="detalhado",
@@ -187,6 +189,24 @@ def _login_admin(client: TestClient, email: str) -> str:
     return _csrf_pagina(client, "/admin/painel")
 
 
+def _login_cliente(client: TestClient, email: str) -> str:
+    tela_login = client.get("/cliente/login")
+    csrf = _extrair_csrf(tela_login.text)
+
+    resposta = client.post(
+        "/cliente/login",
+        data={
+            "email": email,
+            "senha": SENHA_PADRAO,
+            "csrf_token": csrf,
+        },
+        follow_redirects=False,
+    )
+    assert resposta.status_code == 303
+    assert resposta.headers["location"] == "/cliente/painel"
+    return _csrf_pagina(client, "/cliente/painel")
+
+
 def _csrf_pagina(client: TestClient, rota: str) -> str:
     resposta = client.get(rota)
     assert resposta.status_code == 200
@@ -243,6 +263,13 @@ def ambiente_critico():
             senha_hash=SENHA_HASH_PADRAO,
             nivel_acesso=NivelAcesso.DIRETORIA.value,
         )
+        admin_cliente_a = Usuario(
+            empresa_id=empresa_a.id,
+            nome_completo="Admin Cliente A",
+            email="cliente@empresa-a.test",
+            senha_hash=SENHA_HASH_PADRAO,
+            nivel_acesso=NivelAcesso.ADMIN_CLIENTE.value,
+        )
         inspetor_b = Usuario(
             empresa_id=empresa_b.id,
             nome_completo="Inspetor B",
@@ -250,7 +277,7 @@ def ambiente_critico():
             senha_hash=SENHA_HASH_PADRAO,
             nivel_acesso=NivelAcesso.INSPETOR.value,
         )
-        banco.add_all([inspetor_a, revisor_a, admin_a, inspetor_b])
+        banco.add_all([inspetor_a, revisor_a, admin_a, admin_cliente_a, inspetor_b])
         banco.commit()
 
         ids = {
@@ -259,6 +286,7 @@ def ambiente_critico():
             "inspetor_a": inspetor_a.id,
             "revisor_a": revisor_a.id,
             "admin_a": admin_a.id,
+            "admin_cliente_a": admin_cliente_a.id,
             "inspetor_b": inspetor_b.id,
         }
 
@@ -372,6 +400,251 @@ def test_sessao_revisor_nao_vaza_para_portal_admin(ambiente_critico) -> None:
     resposta_admin = client.get("/admin/painel", follow_redirects=False)
     assert resposta_admin.status_code == 303
     assert resposta_admin.headers["location"] == "/admin/login"
+
+
+def test_admin_cliente_login_funciona_e_painel_abre(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.get("/cliente/painel")
+    assert resposta.status_code == 200
+    assert "Portal unificado da empresa" in resposta.text
+
+
+def test_admin_cliente_nao_acessa_admin_geral(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.get("/admin/painel", follow_redirects=False)
+    assert resposta.status_code == 303
+    assert resposta.headers["location"] == "/admin/login"
+
+
+def test_admin_cliente_bootstrap_fica_restrito_a_propria_empresa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.get("/cliente/api/bootstrap")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["empresa"]["nome_fantasia"] == "Empresa A"
+    emails = {item["email"] for item in corpo["usuarios"]}
+    assert "cliente@empresa-a.test" in emails
+    assert "inspetor@empresa-a.test" in emails
+    assert "inspetor@empresa-b.test" not in emails
+
+
+def test_admin_cliente_nao_acessa_revisao_geral(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.get("/revisao/painel", follow_redirects=False)
+    assert resposta.status_code in {303, 401}
+    if resposta.status_code == 303:
+        assert resposta.headers["location"] == "/revisao/login"
+
+
+def test_admin_cliente_altera_plano_apenas_da_propria_empresa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.patch(
+        "/cliente/api/empresa/plano",
+        headers={"X-CSRF-Token": csrf},
+        json={"plano": "Intermediario"},
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["empresa"]["plano_ativo"] == "Intermediario"
+
+    with SessionLocal() as banco:
+        empresa_a = banco.get(Empresa, ids["empresa_a"])
+        empresa_b = banco.get(Empresa, ids["empresa_b"])
+        assert empresa_a is not None
+        assert empresa_b is not None
+        assert empresa_a.plano_ativo == "Intermediario"
+        assert empresa_b.plano_ativo == PlanoEmpresa.ILIMITADO.value
+
+
+def test_admin_cliente_cria_e_gerencia_usuarios_restritos_a_empresa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta_inspetor = client.post(
+        "/cliente/api/usuarios",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "nome": "Inspetor Operacional A2",
+            "email": "inspetor2@empresa-a.test",
+            "nivel_acesso": "inspetor",
+            "telefone": "62999990000",
+            "crea": "",
+        },
+    )
+
+    assert resposta_inspetor.status_code == 201
+    corpo_inspetor = resposta_inspetor.json()
+    assert corpo_inspetor["usuario"]["papel"] == "Inspetor"
+    assert corpo_inspetor["senha_temporaria"]
+
+    resposta_revisor = client.post(
+        "/cliente/api/usuarios",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "nome": "Mesa Operacional A2",
+            "email": "mesa2@empresa-a.test",
+            "nivel_acesso": "revisor",
+            "telefone": "62999991111",
+            "crea": "123456/GO",
+        },
+    )
+
+    assert resposta_revisor.status_code == 201
+    corpo_revisor = resposta_revisor.json()
+    usuario_revisor_id = int(corpo_revisor["usuario"]["id"])
+    assert corpo_revisor["usuario"]["papel"] == "Mesa Avaliadora"
+    assert corpo_revisor["usuario"]["crea"] == "123456/GO"
+
+    resposta_toggle_outra_empresa = client.patch(
+        f"/cliente/api/usuarios/{ids['inspetor_b']}/bloqueio",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_toggle_outra_empresa.status_code == 404
+
+    resposta_reset = client.post(
+        f"/cliente/api/usuarios/{usuario_revisor_id}/resetar-senha",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_reset.status_code == 200
+    assert resposta_reset.json()["senha_temporaria"]
+
+    with SessionLocal() as banco:
+        novo_inspetor = banco.scalar(select(Usuario).where(Usuario.email == "inspetor2@empresa-a.test"))
+        novo_revisor = banco.scalar(select(Usuario).where(Usuario.email == "mesa2@empresa-a.test"))
+        assert novo_inspetor is not None
+        assert novo_revisor is not None
+        assert int(novo_inspetor.empresa_id) == ids["empresa_a"]
+        assert int(novo_revisor.empresa_id) == ids["empresa_a"]
+        assert int(novo_inspetor.nivel_acesso) == int(NivelAcesso.INSPETOR)
+        assert int(novo_revisor.nivel_acesso) == int(NivelAcesso.REVISOR)
+
+
+def test_admin_cliente_chat_lista_laudos_da_empresa_sem_vazar_outra(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_empresa_a = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        laudo_empresa_b = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_b"],
+            usuario_id=ids["inspetor_b"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta_lista = client.get("/cliente/api/chat/laudos", headers={"X-CSRF-Token": csrf})
+
+    assert resposta_lista.status_code == 200
+    ids_laudos = {int(item["id"]) for item in resposta_lista.json()["itens"]}
+    assert laudo_empresa_a in ids_laudos
+    assert laudo_empresa_b not in ids_laudos
+
+    resposta_mensagens_empresa_a = client.get(
+        f"/cliente/api/chat/laudos/{laudo_empresa_a}/mensagens",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_mensagens_empresa_a.status_code == 200
+
+    resposta_mensagens_empresa_b = client.get(
+        f"/cliente/api/chat/laudos/{laudo_empresa_b}/mensagens",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_mensagens_empresa_b.status_code == 404
+
+
+def test_admin_cliente_mesa_reescreve_urls_de_anexo_para_o_proprio_portal(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    conteudo = _imagem_png_bytes_teste()
+    caminho = ""
+
+    try:
+        with SessionLocal() as banco:
+            laudo_id = _criar_laudo(
+                banco,
+                empresa_id=ids["empresa_a"],
+                usuario_id=ids["inspetor_a"],
+                status_revisao=StatusRevisao.AGUARDANDO.value,
+            )
+
+            mensagem = MensagemLaudo(
+                laudo_id=laudo_id,
+                remetente_id=ids["revisor_a"],
+                tipo=TipoMensagem.HUMANO_ENG.value,
+                conteudo="Pendencia com evidencia anexada.",
+                lida=False,
+                custo_api_reais=Decimal("0.0000"),
+            )
+            banco.add(mensagem)
+            banco.flush()
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as arquivo:
+                arquivo.write(conteudo)
+                caminho = arquivo.name
+
+            anexo = AnexoMesa(
+                laudo_id=laudo_id,
+                mensagem_id=mensagem.id,
+                enviado_por_id=ids["revisor_a"],
+                nome_original="retorno-mesa.png",
+                nome_arquivo="retorno-mesa.png",
+                mime_type="image/png",
+                categoria="imagem",
+                tamanho_bytes=len(conteudo),
+                caminho_arquivo=caminho,
+            )
+            banco.add(anexo)
+            banco.commit()
+            banco.refresh(anexo)
+            anexo_id = int(anexo.id)
+
+        resposta = client.get(
+            f"/cliente/api/mesa/laudos/{laudo_id}/mensagens",
+            headers={"X-CSRF-Token": csrf},
+        )
+
+        assert resposta.status_code == 200
+        itens = resposta.json()["itens"]
+        assert itens
+        anexo_payload = itens[-1]["anexos"][0]
+        assert anexo_payload["nome"] == "retorno-mesa.png"
+        assert anexo_payload["url"] == f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"
+
+        download = client.get(anexo_payload["url"])
+        assert download.status_code == 200
+        assert download.content == conteudo
+    finally:
+        if caminho and os.path.exists(caminho):
+            os.unlink(caminho)
 
 
 def test_404_em_rotas_api_app_retorna_json_sem_redirect(ambiente_critico) -> None:
@@ -794,6 +1067,46 @@ def test_revisor_upload_asset_template_editor_rico(ambiente_critico) -> None:
     assert "image/png" in (resposta_baixar_asset.headers.get("content-type", "").lower())
 
 
+def test_revisor_criar_template_editor_rejeita_ativo_inteiro_por_contrato(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Template Word Estrito",
+            "codigo_template": "word_estrito",
+            "versao": 1,
+            "origem_modo": "a4",
+            "ativo": 0,
+        },
+    )
+
+    assert resposta.status_code == 422
+
+
+def test_revisor_upload_template_rejeita_bool_form_invalido(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Template Bool Invalido",
+            "codigo_template": "bool_invalido",
+            "versao": "1",
+            "ativo": "0",
+        },
+        files={
+            "arquivo_base": ("bool_invalido.pdf", _pdf_base_bytes_teste(), "application/pdf"),
+        },
+    )
+
+    assert resposta.status_code == 422
+
+
 def test_revisor_publicar_template_editor_rico_desativa_ativo_anterior(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
@@ -1210,6 +1523,49 @@ def test_home_app_nao_desloga_inspetor(ambiente_critico) -> None:
     assert status_relatorio.status_code == 200
 
 
+def test_status_relatorio_retorna_405_em_delete_sem_cair_na_rota_dinamica(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    resposta = client.delete("/app/api/laudo/status", follow_redirects=False)
+
+    assert resposta.status_code == 405
+    assert resposta.json()["detail"] == "Method Not Allowed"
+    assert resposta.headers.get("allow") == "GET"
+
+
+def test_rotas_estaticas_laudo_retorna_405_em_delete_sem_cair_na_rota_dinamica(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    for rota in (
+        "/app/api/laudo/iniciar",
+        "/app/api/laudo/cancelar",
+        "/app/api/laudo/desativar",
+    ):
+        resposta = client.delete(rota, follow_redirects=False)
+        assert resposta.status_code == 405
+        assert resposta.json()["detail"] == "Method Not Allowed"
+        assert resposta.headers.get("allow") == "POST"
+
+
+def test_rotas_estaticas_pendencias_retorna_405_em_patch_sem_cair_na_rota_dinamica(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    for rota, allow in (
+        ("/app/api/laudo/1/pendencias/marcar-lidas", "POST"),
+        ("/app/api/laudo/1/pendencias/exportar-pdf", "GET"),
+    ):
+        resposta = client.patch(rota, follow_redirects=False)
+        assert resposta.status_code == 405
+        assert resposta.json()["detail"] == "Method Not Allowed"
+        assert resposta.headers.get("allow") == allow
+
+
 def test_home_desativa_contexto_sem_excluir_laudo(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
@@ -1245,6 +1601,38 @@ def test_home_desativa_contexto_sem_excluir_laudo(ambiente_critico) -> None:
         laudo = banco.get(Laudo, laudo_id)
         assert laudo is not None
         assert laudo.status_revisao == StatusRevisao.RASCUNHO.value
+
+
+def test_iniciar_relatorio_sem_tipo_assume_padrao_por_resiliencia(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    resposta = client.post(
+        "/app/api/laudo/iniciar",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["success"] is True
+    assert corpo["tipo_template"] == "padrao"
+    assert corpo["message"].startswith("✅ Inspeção Inspeção Geral")
+
+
+def test_iniciar_relatorio_com_campo_vazio_assume_padrao_por_resiliencia(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    resposta = client.post(
+        "/app/api/laudo/iniciar",
+        data={"tipotemplate": ""},
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["success"] is True
+    assert corpo["tipo_template"] == "padrao"
 
 
 def test_relatorio_so_fica_ativo_apos_primeira_interacao_no_chat(ambiente_critico) -> None:
@@ -1491,6 +1879,32 @@ def test_revisor_painel_precarrega_whisper_em_laudo_rascunho(ambiente_critico) -
     assert painel.status_code == 200
     assert "Whispers (Chamados)" in painel.text
     assert "Validar item de risco no campo" in painel.text
+
+
+def test_revisor_painel_abre_com_laudo_aguardando_sem_atualizado_em(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    _login_revisor(client, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.AGUARDANDO.value,
+        )
+        laudo = banco.get(Laudo, laudo_id)
+        assert laudo is not None
+        laudo.primeira_mensagem = "Laudo aguardando avaliação sem atualização manual."
+        laudo.atualizado_em = None
+        banco.commit()
+
+    painel = client.get("/revisao/painel")
+
+    assert painel.status_code == 200
+    assert "Aguardando Avaliação" in painel.text
+    assert "Laudo aguardando avaliação sem atualização manual." in painel.text
 
 
 def test_revisor_painel_filtro_por_inspetor_restringe_laudos(ambiente_critico) -> None:
@@ -1895,6 +2309,40 @@ def test_inspetor_gate_qualidade_endpoint_reprova_sem_evidencias(ambiente_critic
     assert corpo["tipo_template"] == "padrao"
     assert isinstance(corpo["faltantes"], list)
     assert len(corpo["faltantes"]) >= 1
+    assert corpo["roteiro_template"]["titulo"] == "Roteiro obrigatório do template"
+    assert isinstance(corpo["roteiro_template"]["itens"], list)
+    assert len(corpo["roteiro_template"]["itens"]) >= 5
+
+
+def test_inspetor_gate_qualidade_cbmgo_expoe_roteiro_com_formulario(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+            tipo_template="cbmgo",
+        )
+
+    resposta = client.get(
+        f"/app/api/laudo/{laudo_id}/gate-qualidade",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta.status_code == 422
+    corpo = resposta.json()
+    assert corpo["tipo_template"] == "cbmgo"
+    faltantes_ids = {item["id"] for item in corpo["faltantes"]}
+    assert "formulario_estruturado" in faltantes_ids
+
+    roteiro_ids = {item["id"] for item in corpo["roteiro_template"]["itens"]}
+    assert "roteiro_formulario_estruturado" in roteiro_ids
+    assert "cbmgo_formulario_estruturado" in roteiro_ids
 
 
 def test_inspetor_finalizacao_bloqueada_por_gate_qualidade(ambiente_critico) -> None:
@@ -2360,6 +2808,89 @@ def test_inspetor_envia_mensagem_mesa_com_referencia_valida(ambiente_critico) ->
         assert ultima.conteudo.startswith(f"[REF_MSG_ID:{referencia_id}]")
 
 
+def test_inspetor_envia_anexo_para_mesa_e_download_fica_protegido(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta = client.post(
+        f"/app/api/laudo/{laudo_id}/mesa/anexo",
+        headers={"X-CSRF-Token": csrf},
+        data={"texto": "Foto da proteção lateral anexada."},
+        files={"arquivo": ("protecao.png", _imagem_png_bytes_teste(), "image/png")},
+    )
+
+    assert resposta.status_code == 201
+    corpo = resposta.json()
+    assert corpo["mensagem"]["tipo"] == TipoMensagem.HUMANO_INSP.value
+    assert "Foto da proteção lateral" in corpo["mensagem"]["texto"]
+    assert len(corpo["mensagem"]["anexos"]) == 1
+    anexo = corpo["mensagem"]["anexos"][0]
+    assert anexo["nome"] == "protecao.png"
+    assert anexo["categoria"] == "imagem"
+    assert anexo["eh_imagem"] is True
+    assert anexo["url"].endswith(f"/app/api/laudo/{laudo_id}/mesa/anexos/{anexo['id']}")
+
+    resposta_lista = client.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
+    assert resposta_lista.status_code == 200
+    itens = resposta_lista.json()["itens"]
+    assert itens[-1]["anexos"][0]["nome"] == "protecao.png"
+
+    resposta_download = client.get(anexo["url"])
+    assert resposta_download.status_code == 200
+    assert resposta_download.content == _imagem_png_bytes_teste()
+    assert "image/png" in resposta_download.headers.get("content-type", "").lower()
+
+    with SessionLocal() as banco:
+        anexo_db = banco.get(AnexoMesa, int(anexo["id"]))
+        assert anexo_db is not None
+        assert anexo_db.laudo_id == laudo_id
+        assert anexo_db.mensagem_id > 0
+        assert anexo_db.categoria == "imagem"
+        assert os.path.isfile(str(anexo_db.caminho_arquivo))
+
+
+def test_mesa_anexo_multipart_invalido_retorna_422_json_serializavel(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    boundary = "mesa-malformado"
+    corpo = (
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="arquivo"\r\n\r\n\r\n'
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="referencia_mensagem_id"; filename="referencia_mensagem_id"\r\n\r\nNone\r\n'
+        f"--{boundary}\r\n"
+        'Content-Disposition: form-data; name="texto"\r\n\r\n\r\n'
+        f"--{boundary}--\r\n"
+    ).encode("utf-8")
+
+    resposta = client.post(
+        "/app/api/laudo/0/mesa/anexo",
+        headers={
+            "X-CSRF-Token": csrf,
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        },
+        content=corpo,
+    )
+
+    assert resposta.status_code == 422
+    detalhe = resposta.json()["detail"]
+    assert isinstance(detalhe, list)
+    assert detalhe[0]["loc"][0] == "body"
+    assert detalhe[1]["input"]["__type__"] == "UploadFile"
+    assert detalhe[1]["input"]["filename"] == "referencia_mensagem_id"
+
+
 def test_primeira_interacao_com_mesa_cria_card_normal_no_historico(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
@@ -2454,6 +2985,50 @@ def test_revisor_responde_e_inspetor_visualiza_no_canal_mesa(ambiente_critico) -
     assert len(itens) >= 1
     assert itens[-1]["tipo"] == TipoMensagem.HUMANO_ENG.value
     assert "Mesa avaliadora" in itens[-1]["texto"]
+    assert itens[-1]["lida"] is False
+    assert itens[-1]["resolvida_por_nome"] == ""
+    assert itens[-1]["resolvida_em"] == ""
+
+
+def test_revisor_responde_com_anexo_e_inspetor_recebe_no_canal_mesa(ambiente_critico) -> None:
+    client_revisor = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf_revisor = _login_revisor(client_revisor, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta_revisor = client_revisor.post(
+        f"/revisao/api/laudo/{laudo_id}/responder-anexo",
+        headers={"X-CSRF-Token": csrf_revisor},
+        data={"texto": "Segue checklist complementar da mesa."},
+        files={"arquivo": ("checklist.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_revisor.status_code == 200
+    corpo_revisor = resposta_revisor.json()
+    assert corpo_revisor["success"] is True
+    assert corpo_revisor["mensagem"]["anexos"][0]["nome"] == "checklist.pdf"
+    assert corpo_revisor["mensagem"]["anexos"][0]["categoria"] == "documento"
+
+    with TestClient(main.app) as client_inspetor:
+        _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+        resposta_mesa = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
+
+    assert resposta_mesa.status_code == 200
+    itens = resposta_mesa.json()["itens"]
+    assert itens[-1]["tipo"] == TipoMensagem.HUMANO_ENG.value
+    assert itens[-1]["anexos"][0]["nome"] == "checklist.pdf"
+
+    resposta_download = client_inspetor.get(itens[-1]["anexos"][0]["url"])
+    assert resposta_download.status_code == 200
+    assert resposta_download.content.startswith(b"%PDF")
+    assert "application/pdf" in resposta_download.headers.get("content-type", "").lower()
 
 
 def test_laudo_com_ajustes_exige_reabertura_manual_para_chat_e_mesa(ambiente_critico) -> None:
@@ -3048,6 +3623,32 @@ def test_inspetor_pendencias_lista_somente_mensagens_da_mesa(ambiente_critico) -
     assert all(item["lida"] is False for item in corpo["pendencias"])
 
 
+def test_inspetor_pendencias_rejeita_parametro_extra_com_formato_padrao_422(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    _csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta = client.get(
+        f"/app/api/laudo/{laudo_id}/pendencias?x-schemathesis-unknown-property=42"
+    )
+
+    assert resposta.status_code == 422
+    corpo = resposta.json()
+    assert isinstance(corpo["detail"], list)
+    assert corpo["detail"][0]["loc"] == ["query", "x-schemathesis-unknown-property"]
+    assert corpo["detail"][0]["msg"] == "Extra inputs are not permitted"
+    assert corpo["detail"][0]["type"] == "extra_forbidden"
+
+
 def test_inspetor_pendencias_filtros_todas_e_resolvidas(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
@@ -3400,6 +4001,39 @@ def test_revisor_aprovar_atualiza_status_e_registra_mensagem(ambiente_critico) -
         assert msg is not None
         assert msg.tipo == TipoMensagem.HUMANO_ENG.value
         assert "APROVADO" in msg.conteudo
+
+
+def test_revisor_rejeitar_via_api_com_header_sem_motivo_assume_padrao(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.AGUARDANDO.value,
+        )
+
+    resposta = client.post(
+        f"/revisao/api/laudo/{laudo_id}/avaliar",
+        data={"acao": "rejeitar", "motivo": "", "csrf_token": ""},
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["success"] is True
+    assert corpo["acao"] == "rejeitar"
+    assert corpo["motivo"] == "Devolvido pela mesa sem motivo detalhado."
+
+    with SessionLocal() as banco:
+        laudo = banco.get(Laudo, laudo_id)
+        assert laudo is not None
+        assert laudo.status_revisao == StatusRevisao.REJEITADO.value
+        assert laudo.motivo_rejeicao == "Devolvido pela mesa sem motivo detalhado."
 
 
 def test_inspetor_login_permite_bloqueio_temporario_expirado(ambiente_critico) -> None:
@@ -3764,8 +4398,275 @@ def test_revisor_api_pacote_mesa_consolida_resumo_e_pendencias(ambiente_critico)
 
     assert len(corpo["pendencias_abertas"]) == 1
     assert len(corpo["pendencias_resolvidas_recentes"]) == 1
+    assert corpo["pendencias_resolvidas_recentes"][0]["resolvida_por_nome"] == "Revisor A"
     assert len(corpo["whispers_recentes"]) == 3
     assert len(corpo["revisoes_recentes"]) == 2
+
+
+def test_revisor_api_pacote_mesa_serializa_anexos_por_mensagem(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+
+    caminho_anexo = os.path.join(tempfile.gettempdir(), f"mesa_pkg_{uuid.uuid4().hex[:8]}.pdf")
+    with open(caminho_anexo, "wb") as arquivo:
+        arquivo.write(_pdf_base_bytes_teste())
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        mensagem = MensagemLaudo(
+            laudo_id=laudo_id,
+            remetente_id=ids["revisor_a"],
+            tipo=TipoMensagem.HUMANO_ENG.value,
+            conteudo="[ANEXO_MESA_SEM_TEXTO]",
+            custo_api_reais=Decimal("0.0000"),
+        )
+        banco.add(mensagem)
+        banco.flush()
+        banco.add(
+            AnexoMesa(
+                laudo_id=laudo_id,
+                mensagem_id=mensagem.id,
+                enviado_por_id=ids["revisor_a"],
+                nome_original="complemento.pdf",
+                nome_arquivo="complemento.pdf",
+                mime_type="application/pdf",
+                categoria="documento",
+                tamanho_bytes=len(_pdf_base_bytes_teste()),
+                caminho_arquivo=caminho_anexo,
+            )
+        )
+        banco.commit()
+
+    _login_revisor(client, "revisor@empresa-a.test")
+    resposta = client.get(f"/revisao/api/laudo/{laudo_id}/pacote")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert len(corpo["pendencias_abertas"]) == 1
+    assert corpo["pendencias_abertas"][0]["texto"] == ""
+    assert corpo["pendencias_abertas"][0]["anexos"][0]["nome"] == "complemento.pdf"
+    assert corpo["pendencias_abertas"][0]["anexos"][0]["categoria"] == "documento"
+
+
+def test_revisor_api_mensagens_e_completo_aceitam_cursor_nullish(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        banco.add(
+            MensagemLaudo(
+                laudo_id=laudo_id,
+                remetente_id=ids["inspetor_a"],
+                tipo=TipoMensagem.USER.value,
+                conteudo="Mensagem seed para histórico do revisor.",
+                custo_api_reais=Decimal("0.0000"),
+            )
+        )
+        banco.commit()
+
+    _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_mensagens = client.get(f"/revisao/api/laudo/{laudo_id}/mensagens?cursor=null")
+    assert resposta_mensagens.status_code == 200
+    assert resposta_mensagens.json()["laudo_id"] == laudo_id
+
+    resposta_completo = client.get(
+        f"/revisao/api/laudo/{laudo_id}/completo?incluir_historico=true&cursor=null"
+    )
+    assert resposta_completo.status_code == 200
+    assert int(resposta_completo.json()["id"]) == laudo_id
+
+
+def test_revisor_api_pacote_rejeita_parametro_extra_com_formato_padrao_422(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    _login_revisor(client, "revisor@empresa-a.test")
+    resposta = client.get(f"/revisao/api/laudo/{laudo_id}/pacote?x-schemathesis-unknown-property=42")
+
+    assert resposta.status_code == 422
+    corpo = resposta.json()
+    assert isinstance(corpo["detail"], list)
+    assert corpo["detail"][0]["loc"] == ["query", "x-schemathesis-unknown-property"]
+    assert corpo["detail"][0]["msg"] == "Extra inputs are not permitted"
+    assert corpo["detail"][0]["type"] == "extra_forbidden"
+
+
+def test_revisor_pode_resolver_e_reabrir_pendencia_da_mesa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        msg = MensagemLaudo(
+            laudo_id=laudo_id,
+            remetente_id=ids["revisor_a"],
+            tipo=TipoMensagem.HUMANO_ENG.value,
+            conteudo="Pendência aberta para validar aterramento.",
+            lida=False,
+            custo_api_reais=Decimal("0.0000"),
+        )
+        banco.add(msg)
+        banco.commit()
+        banco.refresh(msg)
+        mensagem_id = int(msg.id)
+
+    resposta_resolver = client.patch(
+        f"/revisao/api/laudo/{laudo_id}/pendencias/{mensagem_id}",
+        json={"lida": True},
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta_resolver.status_code == 200
+    corpo_resolver = resposta_resolver.json()
+    assert corpo_resolver["success"] is True
+    assert corpo_resolver["lida"] is True
+    assert corpo_resolver["resolvida_por_id"] == ids["revisor_a"]
+    assert corpo_resolver["resolvida_por_nome"] == "Revisor A"
+    assert corpo_resolver["resolvida_em"]
+    assert int(corpo_resolver["pendencias_abertas"]) == 0
+
+    with SessionLocal() as banco:
+        msg_db = banco.get(MensagemLaudo, mensagem_id)
+        assert msg_db is not None
+        assert msg_db.lida is True
+        assert msg_db.resolvida_por_id == ids["revisor_a"]
+        assert msg_db.resolvida_em is not None
+
+    with TestClient(main.app) as client_inspetor:
+        _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+        resposta_mesa_resolvida = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
+
+    assert resposta_mesa_resolvida.status_code == 200
+    item_resolvido = next(
+        item for item in resposta_mesa_resolvida.json()["itens"]
+        if int(item["id"]) == mensagem_id
+    )
+    assert item_resolvido["lida"] is True
+    assert item_resolvido["resolvida_por_nome"] == "Revisor A"
+    assert item_resolvido["resolvida_em"]
+
+    resposta_reabrir = client.patch(
+        f"/revisao/api/laudo/{laudo_id}/pendencias/{mensagem_id}",
+        json={"lida": False},
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta_reabrir.status_code == 200
+    corpo_reabrir = resposta_reabrir.json()
+    assert corpo_reabrir["success"] is True
+    assert corpo_reabrir["lida"] is False
+    assert corpo_reabrir["resolvida_por_id"] is None
+    assert corpo_reabrir["resolvida_por_nome"] == ""
+    assert corpo_reabrir["resolvida_em"] == ""
+    assert int(corpo_reabrir["pendencias_abertas"]) == 1
+
+    with SessionLocal() as banco:
+        msg_db = banco.get(MensagemLaudo, mensagem_id)
+        assert msg_db is not None
+        assert msg_db.lida is False
+        assert msg_db.resolvida_por_id is None
+        assert msg_db.resolvida_em is None
+
+    with TestClient(main.app) as client_inspetor:
+        _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+        resposta_mesa_reaberta = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
+
+    assert resposta_mesa_reaberta.status_code == 200
+    item_reaberto = next(
+        item for item in resposta_mesa_reaberta.json()["itens"]
+        if int(item["id"]) == mensagem_id
+    )
+    assert item_reaberto["lida"] is False
+    assert item_reaberto["resolvida_por_nome"] == ""
+    assert item_reaberto["resolvida_em"] == ""
+
+
+def test_revisor_marca_whispers_como_lidos_no_servidor(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        banco.add_all(
+            [
+                MensagemLaudo(
+                    laudo_id=laudo_id,
+                    remetente_id=ids["inspetor_a"],
+                    tipo=TipoMensagem.HUMANO_INSP.value,
+                    conteudo="Whisper 1",
+                    lida=False,
+                    custo_api_reais=Decimal("0.0000"),
+                ),
+                MensagemLaudo(
+                    laudo_id=laudo_id,
+                    remetente_id=ids["inspetor_a"],
+                    tipo=TipoMensagem.HUMANO_INSP.value,
+                    conteudo="Whisper 2",
+                    lida=False,
+                    custo_api_reais=Decimal("0.0000"),
+                ),
+            ]
+        )
+        banco.commit()
+
+    resposta = client.post(
+        f"/revisao/api/laudo/{laudo_id}/marcar-whispers-lidos",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["success"] is True
+    assert int(corpo["marcadas"]) == 2
+
+    with SessionLocal() as banco:
+        total_aberto = (
+            banco.query(MensagemLaudo)
+            .filter(
+                MensagemLaudo.laudo_id == laudo_id,
+                MensagemLaudo.tipo == TipoMensagem.HUMANO_INSP.value,
+                MensagemLaudo.lida.is_(False),
+            )
+            .count()
+        )
+        assert total_aberto == 0
 
 
 def test_revisor_api_pacote_mesa_respeita_isolamento_multiempresa(ambiente_critico) -> None:
@@ -3853,6 +4754,105 @@ def test_revisor_exportar_pacote_mesa_pdf_retorna_arquivo(ambiente_critico) -> N
     assert "RESUMO CONSOLIDADO" in texto_pdf_maiusculo
     assert "REVISOR A" in texto_pdf_maiusculo
     assert "987654-SP" in texto_pdf_maiusculo
+
+
+def test_revisor_exportar_pacote_mesa_pdf_suporta_anexos_nas_pendencias(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+
+    caminho_anexo = os.path.join(tempfile.gettempdir(), f"mesa_pdf_{uuid.uuid4().hex[:8]}.pdf")
+    with open(caminho_anexo, "wb") as arquivo:
+        arquivo.write(_pdf_base_bytes_teste())
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        mensagem = MensagemLaudo(
+            laudo_id=laudo_id,
+            remetente_id=ids["revisor_a"],
+            tipo=TipoMensagem.HUMANO_ENG.value,
+            conteudo="[ANEXO_MESA_SEM_TEXTO]",
+            lida=False,
+            custo_api_reais=Decimal("0.0000"),
+        )
+        banco.add(mensagem)
+        banco.flush()
+        banco.add(
+            AnexoMesa(
+                laudo_id=laudo_id,
+                mensagem_id=mensagem.id,
+                enviado_por_id=ids["revisor_a"],
+                nome_original="complemento.pdf",
+                nome_arquivo="complemento.pdf",
+                mime_type="application/pdf",
+                categoria="documento",
+                tamanho_bytes=os.path.getsize(caminho_anexo),
+                caminho_arquivo=caminho_anexo,
+            )
+        )
+        banco.commit()
+
+    _login_revisor(client, "revisor@empresa-a.test")
+    resposta = client.get(f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf")
+
+    assert resposta.status_code == 200
+    assert "application/pdf" in (resposta.headers.get("content-type", "").lower())
+    assert len(resposta.content) > 300
+
+
+def test_revisor_exportar_pacote_pdf_rejeita_parametro_extra_com_formato_padrao_422(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    _login_revisor(client, "revisor@empresa-a.test")
+    resposta = client.get(
+        f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf?x-schemathesis-unknown-property=42"
+    )
+
+    assert resposta.status_code == 422
+    corpo = resposta.json()
+    assert isinstance(corpo["detail"], list)
+    assert corpo["detail"][0]["loc"] == ["query", "x-schemathesis-unknown-property"]
+    assert corpo["detail"][0]["msg"] == "Extra inputs are not permitted"
+    assert corpo["detail"][0]["type"] == "extra_forbidden"
+
+
+def test_revisor_exportar_pacote_pdf_em_modo_schemathesis_retorna_placeholder_estavel(
+    ambiente_critico, monkeypatch
+) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    monkeypatch.setenv("SCHEMATHESIS_TEST_HINTS", "1")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    _login_revisor(client, "revisor@empresa-a.test")
+    resposta = client.get(f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf")
+
+    assert resposta.status_code == 200
+    assert "application/pdf" in (resposta.headers.get("content-type", "").lower())
+    assert resposta.content.startswith(b"%PDF")
 
 
 def test_revisor_exportar_pacote_mesa_pdf_respeita_isolamento_multiempresa(ambiente_critico) -> None:

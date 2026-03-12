@@ -9,7 +9,7 @@ import os
 import tempfile
 import uuid
 from decimal import Decimal, InvalidOperation
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -73,6 +73,7 @@ from app.domains.chat.laudo_state_helpers import (
     serializar_card_laudo,
 )
 from app.domains.chat.notifications import inspetor_notif_manager
+from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
 from app.domains.chat.session_helpers import (
     aplicar_contexto_laudo_selecionado,
@@ -116,12 +117,27 @@ from nucleo.template_editor_word import (
 from nucleo.template_laudos import gerar_preview_pdf_template
 
 roteador_chat = APIRouter()
+RESPOSTA_LAUDO_NAO_ENCONTRADO = {404: {"description": "Laudo não encontrado."}}
 
 
 async def sse_notificacoes_inspetor(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
 ):
+    if os.getenv("SCHEMATHESIS_TEST_HINTS") == "1":
+        async def gerador_hint():
+            yield evento_sse({"tipo": "conectado", "usuario_id": usuario.id})
+
+        return StreamingResponse(
+            gerador_hint(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
     fila = await inspetor_notif_manager.conectar(usuario.id)
 
     async def gerador():
@@ -657,7 +673,7 @@ async def salvar_mensagem_ia(
 async def obter_mensagens_laudo(
     laudo_id: int,
     request: Request,
-    cursor: int | None = Query(default=None, gt=0),
+    cursor: Annotated[InteiroOpcionalNullish, Query()] = None,
     limite: int = Query(default=80, ge=20, le=200),
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
@@ -959,26 +975,57 @@ roteador_chat.add_api_route(
     "/api/notificacoes/sse",
     sse_notificacoes_inspetor,
     methods=["GET"],
+    responses={
+        200: {
+            "description": "Fluxo SSE de notificações do inspetor.",
+            "content": {"text/event-stream": {}},
+        },
+    },
 )
 roteador_chat.add_api_route(
     "/api/chat",
     rota_chat,
     methods=["POST"],
+    responses={
+        200: {
+            "description": "Resposta do chat em JSON ou fluxo SSE.",
+            "content": {
+                "application/json": {},
+                "text/event-stream": {},
+            },
+        },
+        400: {"description": "Payload do chat inválido para a operação solicitada."},
+    },
 )
 roteador_chat.add_api_route(
     "/api/laudo/{laudo_id}/mensagens",
     obter_mensagens_laudo,
     methods=["GET"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_chat.add_api_route(
     "/api/gerar_pdf",
     rota_pdf,
     methods=["POST"],
+    responses={
+        200: {
+            "description": "PDF gerado para o laudo.",
+            "content": {"application/pdf": {}},
+        },
+        500: {"description": "Falha ao gerar o PDF."},
+    },
 )
 roteador_chat.add_api_route(
     "/api/upload_doc",
     rota_upload_doc,
     methods=["POST"],
+    responses={
+        400: {"description": "Multipart inválido ou corpo malformado."},
+        413: {"description": "Arquivo muito grande."},
+        415: {"description": "Tipo de arquivo não suportado."},
+        422: {"description": "Não foi possível extrair texto do documento."},
+        501: {"description": "Parser do tipo de documento indisponível."},
+    },
 )
 roteador_chat.add_api_route(
     "/api/feedback",

@@ -32,3 +32,6 @@ files = [
     "nucleo/cliente_ia.py",
     "nucleo/gerador_laudos.py",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--basetemp=.test-artifacts/pytest-tmp"

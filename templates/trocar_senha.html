@@ -4,155 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ titulo_pagina | default("Troca de Senha") | e }}</title>
-    <style>
-        :root {
-            --bg: #111317;
-            --card: #171a20;
-            --borda: #2a303a;
-            --texto: #f3f6fb;
-            --muted: #9ca4b2;
-            --erro-bg: #341517;
-            --erro-borda: #9f363a;
-            --erro-txt: #ffd7d9;
-            --ok: #f08a24;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: grid;
-            place-items: center;
-            padding: 24px;
-            background:
-                radial-gradient(950px 420px at 50% -12%, rgba(240, 138, 36, 0.14), transparent 68%),
-                linear-gradient(180deg, #12151a 0%, var(--bg) 100%);
-            color: var(--texto);
-            font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-
-        .card {
-            width: min(100%, 480px);
-            background: var(--card);
-            border: 1px solid var(--borda);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.4rem;
-        }
-
-        p {
-            margin: 8px 0 0;
-            color: var(--muted);
-            line-height: 1.45;
-        }
-
-        .erro {
-            margin-top: 14px;
-            padding: 10px 12px;
-            border: 1px solid var(--erro-borda);
-            background: var(--erro-bg);
-            color: var(--erro-txt);
-            border-radius: 10px;
-            font-size: 0.92rem;
-        }
-
-        form {
-            margin-top: 18px;
-            display: grid;
-            gap: 12px;
-        }
-
-        label {
-            font-size: 0.92rem;
-            color: var(--muted);
-            display: grid;
-            gap: 6px;
-        }
-
-        input[type="password"] {
-            width: 100%;
-            border: 1px solid var(--borda);
-            border-radius: 10px;
-            background: #121720;
-            color: var(--texto);
-            padding: 10px 12px;
-            font-size: 0.98rem;
-        }
-
-        input[type="password"]:focus-visible {
-            outline: 2px solid var(--ok);
-            outline-offset: 1px;
-        }
-
-        .acoes {
-            margin-top: 4px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            border: none;
-            border-radius: 10px;
-            padding: 10px 14px;
-            background: var(--ok);
-            color: #171a20;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        a {
-            align-self: center;
-            color: var(--muted);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        a:hover {
-            color: #f3f6fb;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/shared/auth_shell.css?v={{ v_app }}">
 </head>
-<body>
-    <section class="card">
-        <h1>{{ titulo_pagina | default("Troca de Senha") | e }}</h1>
-        <p>{{ subtitulo_pagina | default("Atualize sua senha para continuar.") | e }}</p>
-
-        {% if erro %}
-        <div class="erro" role="alert" aria-live="assertive">{{ erro | e }}</div>
-        {% endif %}
-
-        <form method="post" action="{{ acao_form | e }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token | e }}">
-
-            <label for="senha_atual">
-                Senha temporária
-                <input id="senha_atual" name="senha_atual" type="password" autocomplete="current-password" required>
-            </label>
-
-            <label for="nova_senha">
-                Nova senha
-                <input id="nova_senha" name="nova_senha" type="password" autocomplete="new-password" required>
-            </label>
-
-            <label for="confirmar_senha">
-                Confirmar nova senha
-                <input id="confirmar_senha" name="confirmar_senha" type="password" autocomplete="new-password" required>
-            </label>
-
-            <div class="acoes">
-                <button type="submit">Atualizar senha</button>
-                <a href="{{ rota_login | e }}">Voltar para login</a>
+<body class="auth-shell">
+    <main class="auth-layout auth-layout--single">
+        <section class="auth-card" style="width:min(100%, 560px); margin:0 auto;">
+            <div class="auth-card-header">
+                <span class="auth-eyebrow">Seguranca de acesso</span>
+                <h1 class="auth-card-title">{{ titulo_pagina | default("Troca de Senha") | e }}</h1>
+                <p class="auth-card-subtitle">{{ subtitulo_pagina | default("Atualize sua senha para continuar.") | e }}</p>
             </div>
-        </form>
-    </section>
+
+            <div class="auth-chip-row">
+                <span class="auth-chip">Senha temporaria obrigatoria</span>
+                <span class="auth-chip">Liberacao do portal apos confirmacao</span>
+            </div>
+
+            {% if erro %}
+            <div class="auth-error" role="alert" aria-live="assertive">{{ erro | e }}</div>
+            {% endif %}
+
+            <form class="auth-form" method="post" action="{{ acao_form | e }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token | e }}">
+
+                <label for="senha_atual">
+                    Senha temporaria
+                    <input id="senha_atual" name="senha_atual" type="password" autocomplete="current-password" required>
+                </label>
+
+                <label for="nova_senha">
+                    Nova senha
+                    <input id="nova_senha" name="nova_senha" type="password" autocomplete="new-password" required>
+                </label>
+
+                <label for="confirmar_senha">
+                    Confirmar nova senha
+                    <input id="confirmar_senha" name="confirmar_senha" type="password" autocomplete="new-password" required>
+                </label>
+
+                <div class="auth-actions">
+                    <button class="auth-button" type="submit">Atualizar senha</button>
+                    <a href="{{ rota_login | e }}">Voltar para login</a>
+                </div>
+            </form>
+
+            <small class="auth-note">Use uma senha definitiva para liberar o acesso continuo ao portal correspondente.</small>
+        </section>
+    </main>
 </body>
 </html>

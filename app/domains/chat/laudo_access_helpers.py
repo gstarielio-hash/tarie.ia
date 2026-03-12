@@ -17,6 +17,8 @@ def obter_laudo_empresa(banco: Session, laudo_id: int, empresa_id: int) -> Laudo
 
 def obter_laudo_do_inspetor(banco: Session, laudo_id: int, usuario: Usuario) -> Laudo:
     laudo = obter_laudo_empresa(banco, laudo_id, usuario.empresa_id)
+    if bool(getattr(usuario, "eh_admin_cliente", False)):
+        return laudo
     if laudo.usuario_id not in (None, usuario.id):
         raise HTTPException(
             status_code=403,

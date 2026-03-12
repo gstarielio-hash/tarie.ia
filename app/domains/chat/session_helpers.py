@@ -21,6 +21,18 @@ from app.shared.database import Laudo, Usuario
 
 CHAVE_CSRF_INSPETOR = "csrf_token_inspetor"
 VERSAO_APP = os.getenv("APP_BUILD_ID", "dev").strip() or "dev"
+AMBIENTE_APP = os.getenv("AMBIENTE", "producao").strip().lower() or "producao"
+
+
+def _versao_assets(request: Request) -> str:
+    if AMBIENTE_APP == "producao":
+        return VERSAO_APP
+
+    nonce = getattr(request.state, "csp_nonce", "").strip()
+    if not nonce:
+        return VERSAO_APP
+
+    return f"{VERSAO_APP}-{nonce[:8]}"
 
 
 def contexto_base(request: Request) -> dict[str, Any]:
@@ -31,7 +43,7 @@ def contexto_base(request: Request) -> dict[str, Any]:
         "request": request,
         "csrf_token": request.session[CHAVE_CSRF_INSPETOR],
         "csp_nonce": getattr(request.state, "csp_nonce", ""),
-        "v_app": VERSAO_APP,
+        "v_app": _versao_assets(request),
     }
 
 

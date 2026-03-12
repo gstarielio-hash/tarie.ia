@@ -513,6 +513,25 @@
             </button>
         </header>
 
+        <section
+            id="mesa-widget-resumo"
+            class="mesa-widget-resumo"
+            aria-live="polite"
+            data-status-operacional="pronta"
+        >
+            <strong id="mesa-widget-resumo-titulo">Mesa pronta para alinhamento</strong>
+            <p id="mesa-widget-resumo-texto">
+                Abra o canal para alinhar dúvidas, pendências e evidências com a engenharia.
+            </p>
+            <div class="mesa-widget-resumo-chips">
+                <span id="mesa-widget-chip-status" class="mesa-widget-chip">
+                    Canal disponível
+                </span>
+                <span id="mesa-widget-chip-pendencias" class="mesa-widget-chip" hidden>0 pendências abertas</span>
+                <span id="mesa-widget-chip-nao-lidas" class="mesa-widget-chip" hidden>0 retornos novos</span>
+            </div>
+        </section>
+
         <div id="mesa-widget-ref-ativa" class="mesa-widget-ref-ativa" hidden>
             <div>
                 <strong id="mesa-widget-ref-titulo">Respondendo mensagem</strong>
@@ -532,12 +551,37 @@
             Carregar anteriores
         </button>
 
+        <div
+            id="mesa-widget-preview-anexo"
+            class="mesa-widget-preview-anexo"
+            role="status"
+            aria-live="polite"
+            hidden
+        ></div>
+
         <div class="rodape-mesa-widget">
+            <button
+                type="button"
+                id="mesa-widget-btn-anexo"
+                class="mesa-widget-btn-anexo"
+                aria-label="Anexar arquivo no chat da mesa"
+                title="Anexar arquivo no chat da mesa"
+            >
+                <span class="material-symbols-rounded" aria-hidden="true">attach_file</span>
+            </button>
+            <input
+                type="file"
+                id="mesa-widget-input-anexo"
+                accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                hidden
+                aria-hidden="true"
+                tabindex="-1"
+            >
             <textarea
                 id="mesa-widget-input"
                 rows="2"
                 maxlength="8000"
-                placeholder="Escreva para a mesa..."
+                placeholder="Escreva para a mesa ou envie um anexo..."
                 aria-label="Mensagem para mesa avaliadora"
             ></textarea>
             <button type="button" id="mesa-widget-enviar" class="mesa-widget-enviar">
@@ -833,6 +877,17 @@
             </div>
 
             <p id="texto-gate-qualidade-resumo" class="gate-resumo"></p>
+
+            <section
+                id="bloco-gate-roteiro-template"
+                class="bloco-gate-qualidade"
+                aria-labelledby="titulo-gate-roteiro-template"
+                hidden
+            >
+                <h3 id="titulo-gate-roteiro-template">Roteiro obrigatório do template</h3>
+                <p id="texto-gate-roteiro-template" class="gate-roteiro-resumo"></p>
+                <ul id="lista-gate-roteiro-template" class="lista-gate-qualidade"></ul>
+            </section>
 
             <section class="bloco-gate-qualidade" aria-labelledby="titulo-gate-faltantes">
                 <h3 id="titulo-gate-faltantes">Itens pendentes</h3>

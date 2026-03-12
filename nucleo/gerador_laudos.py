@@ -914,6 +914,7 @@ class GeradorLaudos:
             for idx, item in enumerate(pendencias_abertas[:20], start=1):
                 texto = texto_seguro(item.get("texto"), 1200)
                 criado_em = texto_seguro(item.get("criado_em"), 40)
+                anexos = item.get("anexos") or []
                 pdf.set_font("helvetica", "B", 9)
                 pdf.set_text_color(15, 43, 70)
                 pdf.cell(0, 5, f"{idx}. Pendencia #{texto_seguro(item.get('id'), 20)}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -922,6 +923,17 @@ class GeradorLaudos:
                 pdf.cell(0, 5, f"Criada em: {criado_em}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.set_text_color(0, 0, 0)
                 pdf.multi_cell(0, 6, texto)
+                if anexos:
+                    nomes_anexos = ", ".join(
+                        texto_seguro(anexo.get("nome"), 120)
+                        for anexo in anexos[:3]
+                        if anexo.get("nome")
+                    )
+                    if nomes_anexos:
+                        pdf.set_text_color(80, 80, 80)
+                        pdf.set_x(pdf.l_margin)
+                        pdf.multi_cell(pdf.epw, 5, f"Anexos: {nomes_anexos}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        pdf.set_text_color(0, 0, 0)
                 pdf.ln(2)
         else:
             pdf.set_font("helvetica", "", 10)
@@ -963,7 +975,19 @@ class GeradorLaudos:
             for whisper in whispers_recentes[:20]:
                 texto = texto_seguro(whisper.get("texto"), 400)
                 criado = texto_seguro(whisper.get("criado_em"), 40)
+                anexos = whisper.get("anexos") or []
                 pdf.multi_cell(0, 5, f"[{criado}] {texto}")
+                if anexos:
+                    nomes_anexos = ", ".join(
+                        texto_seguro(anexo.get("nome"), 120)
+                        for anexo in anexos[:3]
+                        if anexo.get("nome")
+                    )
+                    if nomes_anexos:
+                        pdf.set_text_color(80, 80, 80)
+                        pdf.set_x(pdf.l_margin)
+                        pdf.multi_cell(pdf.epw, 5, f"Anexos: {nomes_anexos}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                        pdf.set_text_color(0, 0, 0)
         else:
             pdf.multi_cell(0, 6, "Sem whispers recentes.")
 

@@ -30,16 +30,32 @@ from app.shared.security import exigir_inspetor
 from nucleo.gerador_laudos import GeradorLaudos
 
 roteador_pendencias = APIRouter()
+RESPOSTA_LAUDO_NAO_ENCONTRADO = {404: {"description": "Laudo não encontrado."}}
 
 
 async def obter_pendencias_laudo(
     laudo_id: int,
+    request: Request,
     filtro: str = "abertas",
     pagina: int = 1,
     tamanho: int = 25,
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
+    parametros_invalidos = set(request.query_params.keys()) - {"filtro", "pagina", "tamanho"}
+    if parametros_invalidos:
+        raise HTTPException(
+            status_code=422,
+            detail=[
+                {
+                    "loc": ["query", nome_parametro],
+                    "msg": "Extra inputs are not permitted",
+                    "type": "extra_forbidden",
+                }
+                for nome_parametro in sorted(parametros_invalidos)
+            ],
+        )
+
     _ = obter_laudo_do_inspetor(banco, laudo_id, usuario)
     filtro_normalizado = normalizar_filtro_pendencias(filtro)
     pagina_segura, tamanho_seguro = normalizar_paginacao_pendencias(pagina, tamanho)
@@ -228,6 +244,28 @@ async def exportar_pendencias_laudo_pdf(
         )
 
 
+async def api_pendencias_marcar_lidas_patch_nao_suportado(
+    laudo_id: int,
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    raise HTTPException(
+        status_code=405,
+        detail="Method Not Allowed",
+        headers={"Allow": "POST"},
+    )
+
+
+async def api_pendencias_exportar_pdf_patch_nao_suportado(
+    laudo_id: int,
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    raise HTTPException(
+        status_code=405,
+        detail="Method Not Allowed",
+        headers={"Allow": "GET"},
+    )
+
+
 listar_pendencias_laudo = obter_pendencias_laudo
 marcar_pendencias_como_lidas = marcar_pendencias_laudo_como_lidas
 exportar_pendencias_pdf = exportar_pendencias_laudo_pdf
@@ -236,21 +274,43 @@ roteador_pendencias.add_api_route(
     "/api/laudo/{laudo_id}/pendencias",
     obter_pendencias_laudo,
     methods=["GET"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_pendencias.add_api_route(
     "/api/laudo/{laudo_id}/pendencias/marcar-lidas",
     marcar_pendencias_laudo_como_lidas,
     methods=["POST"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
+)
+roteador_pendencias.add_api_route(
+    "/api/laudo/{laudo_id}/pendencias/marcar-lidas",
+    api_pendencias_marcar_lidas_patch_nao_suportado,
+    methods=["PATCH"],
+    include_in_schema=False,
+)
+roteador_pendencias.add_api_route(
+    "/api/laudo/{laudo_id}/pendencias/exportar-pdf",
+    api_pendencias_exportar_pdf_patch_nao_suportado,
+    methods=["PATCH"],
+    include_in_schema=False,
 )
 roteador_pendencias.add_api_route(
     "/api/laudo/{laudo_id}/pendencias/{mensagem_id}",
     atualizar_pendencia_laudo,
     methods=["PATCH"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_pendencias.add_api_route(
     "/api/laudo/{laudo_id}/pendencias/exportar-pdf",
     exportar_pendencias_laudo_pdf,
     methods=["GET"],
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO,
+        200: {
+            "description": "PDF das pendências da mesa.",
+            "content": {"application/pdf": {}},
+        },
+    },
 )
 
 __all__ = [

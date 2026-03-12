@@ -3,7 +3,7 @@
    Ajustes responsivos do chat e da aplicação
    Camada final de responsividade do chat
    Ordem recomendada de carga:
-   layout/app shell -> chat_base.css -> chat_index.css -> chat_mobile.css
+   shared/global -> shared/layout -> chat_base -> chat_mobile -> chat_index -> app_shell
    ========================================== */
 
 /* ==========================================
@@ -87,67 +87,6 @@
         touch-action: manipulation;
     }
 
-    /* ---------- Header / topo ---------- */
-
-    .cabecalho-wf {
-        min-height: var(--header-h-mobile);
-        height: var(--header-h-mobile);
-        padding: 0 12px;
-        gap: 8px;
-    }
-
-    .logo-titulo {
-        gap: 10px;
-    }
-
-    .logo-info {
-        gap: 2px;
-    }
-
-    .logo-linha h1 {
-        font-size: 14px;
-    }
-
-    .avatar-ia {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
-        font-size: 11px;
-    }
-
-    .status-conexao {
-        display: none;
-    }
-
-    .controles-cabecalho {
-        gap: 8px;
-    }
-
-    .seletor-setor {
-        min-height: 36px;
-        padding: 6px 8px;
-    }
-
-    .seletor-setor > .material-symbols-rounded {
-        display: none;
-    }
-
-    .seletor-setor select {
-        font-size: 11px;
-    }
-
-    .texto-btn {
-        display: none;
-    }
-
-    #btn-abrir-modal-novo,
-    #btn-nova-inspecao {
-        min-width: 38px;
-        min-height: 38px;
-        padding: 7px 10px;
-        border-radius: 10px;
-    }
-
     /* ---------- Thread nav ---------- */
 
     .thread-nav {
@@ -162,7 +101,7 @@
 
     .thread-breadcrumb {
         width: 100%;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .thread-tabs {
@@ -173,7 +112,7 @@
     .thread-tab {
         min-height: 32px;
         padding: 5px 10px;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     /* ---------- Área de mensagens ---------- */
@@ -195,8 +134,10 @@
 
     .tela-boas-vindas {
         margin-top: 0;
+        max-height: none;
         padding: 20px 16px 18px;
         border-radius: 18px;
+        overflow: visible;
     }
 
     .icone-boas-vindas span {
@@ -229,11 +170,11 @@
     }
 
     .titulo-acao {
-        font-size: 13px;
+        font-size: 14px;
     }
 
     .subtitulo-acao {
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .estatisticas-wf {
@@ -257,7 +198,7 @@
     }
 
     .stat-label {
-        font-size: 11px;
+        font-size: 12px;
     }
 
     /* ---------- Mensagens ---------- */
@@ -292,7 +233,7 @@
     }
 
     .nome-remetente {
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .texto-msg {
@@ -640,84 +581,6 @@
 
     /* ---------- Banner / barra de inspeção / modal ---------- */
 
-    .barra-status-inspecao {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        padding: 12px 16px;
-    }
-
-    .status-info {
-        font-size: 13px;
-    }
-
-    .texto-status-inspecao {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
-    }
-
-    .btn-finalizar {
-        width: 100%;
-        justify-content: center;
-        min-height: 40px;
-        padding: 10px 14px;
-        font-size: 12px;
-    }
-
-    .banner-engenharia {
-        width: calc(100% - 24px);
-        max-width: 520px;
-        gap: 10px;
-        padding: 10px 14px;
-        border-radius: 16px;
-        white-space: normal;
-    }
-
-    .banner-texto {
-        min-width: 0;
-        font-size: 12px;
-    }
-
-    .banner-texto strong {
-        font-size: 13px;
-    }
-
-    .modal-overlay {
-        padding: 14px;
-    }
-
-    .modal-container {
-        max-width: 100%;
-        border-radius: 14px;
-    }
-
-    .modal-header {
-        padding: 16px 16px 14px;
-    }
-
-    .modal-header h2 {
-        font-size: 16px;
-    }
-
-    .modal-body {
-        gap: 10px;
-        padding: 16px;
-    }
-
-    .modal-body p {
-        font-size: 13px;
-    }
-
-    .modal-label {
-        font-size: 12px;
-    }
-
-    .modal-select {
-        padding: 11px 12px;
-        font-size: 13px;
-    }
-
     /* ---------- Sidebar mobile complementar ---------- */
 
     .sidebar-topo {
@@ -757,71 +620,6 @@
         font-size: 9px;
     }
 
-    .item-historico {
-        width: calc(100% - 12px);
-        margin: 0 6px;
-        padding: 11px 34px 11px 10px;
-        border-radius: 12px;
-    }
-
-    .item-historico > .material-symbols-rounded {
-        font-size: 17px !important;
-    }
-
-    .texto-laudo-historico span:first-child {
-        font-size: 13px;
-    }
-
-    .texto-laudo-historico .preview-mensagem,
-    .texto-laudo-historico small {
-        font-size: 11px;
-    }
-
-    .barra-historico .btn-pin-item,
-    .barra-historico .btn-acao-laudo,
-    .barra-historico .btn-pin-laudo,
-    .barra-historico .btn-deletar-laudo {
-        width: 20px;
-        height: 20px;
-        opacity: 1;
-    }
-
-    .barra-historico .btn-pin-item .material-symbols-rounded,
-    .barra-historico .btn-acao-laudo .material-symbols-rounded,
-    .barra-historico .btn-pin-laudo .material-symbols-rounded,
-    .barra-historico .btn-deletar-laudo .material-symbols-rounded {
-        font-size: 13px !important;
-    }
-
-    .sidebar-acoes-rodape,
-    .acoes-sidebar {
-        gap: 8px;
-        padding: 12px 10px 10px;
-    }
-
-    .btn-sidebar-engenheiro,
-    .btn-sidebar-suporte {
-        padding: 10px 12px;
-        border-radius: 10px;
-        font-size: 13px;
-    }
-
-    .usuario-logado {
-        gap: 10px;
-        padding: 12px 10px;
-    }
-
-    .usuario-logado > .material-symbols-rounded {
-        font-size: 28px;
-    }
-
-    .info-usuario-container strong {
-        font-size: 13px;
-    }
-
-    .info-usuario {
-        font-size: 11px;
-    }
 }
 
 /* ==========================================
@@ -829,20 +627,6 @@
    ========================================== */
 
 @media (max-width: 480px) {
-    .cabecalho-wf {
-        padding: 0 10px;
-    }
-
-    .logo-linha h1 {
-        font-size: 13px;
-    }
-
-    .avatar-ia {
-        width: 32px;
-        height: 32px;
-        font-size: 10px;
-    }
-
     .thread-nav {
         padding: 8px 10px;
     }
@@ -854,8 +638,10 @@
     }
 
     .tela-boas-vindas {
+        max-height: none;
         padding: 18px 12px 16px;
         border-radius: 16px;
+        overflow: visible;
     }
 
     .tela-boas-vindas h2 {
@@ -956,16 +742,6 @@
         white-space: normal;
     }
 
-    .modal-header,
-    .modal-body {
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-
-    .barra-historico {
-        width: min(300px, 90vw);
-        min-width: min(300px, 90vw);
-    }
 }
 
 /* ==========================================

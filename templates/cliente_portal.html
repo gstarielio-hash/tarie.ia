@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{{ empresa.nome_fantasia | e }} • Portal Admin-Cliente</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/cliente/portal.css?v={{ v_app }}">
+</head>
+<body>
+    <div class="cliente-shell">
+        <header class="cliente-hero">
+            <section class="hero-card hero-card--primary">
+                <p class="hero-eyebrow">Portal Admin-Cliente</p>
+                <h1 class="hero-title">{{ empresa.nome_fantasia | e }}</h1>
+                <p class="hero-description">
+                    {{ usuario.nome_completo | e }} administra usuarios, acompanha o chat operacional e atua na Mesa Avaliadora com o mesmo login.
+                </p>
+
+                <div class="hero-meta">
+                    <span class="hero-chip">Responsavel {{ empresa.nome_responsavel | default('nao informado', true) | e }}</span>
+                    <span class="hero-chip">Base {{ empresa.cidade_estado | default('nao informada', true) | e }}</span>
+                    <span class="hero-chip">CNPJ {{ empresa.cnpj | default('nao informado', true) | e }}</span>
+                </div>
+            </section>
+
+            <aside class="hero-side">
+                <section class="hero-card">
+                    <div class="hero-plan">
+                        <div>
+                            <p class="box-subtitle">Plano atual da empresa</p>
+                            <strong>{{ empresa.plano_ativo | e }}</strong>
+                        </div>
+                        <span class="plan-badge">Operando</span>
+                    </div>
+
+                    <div class="hero-side-meta" style="margin-top: 16px;">
+                        <span class="hero-chip">{{ usuario.email | e }}</span>
+                        <span class="hero-chip">Portal unificado da empresa</span>
+                    </div>
+                </section>
+
+                <section class="hero-card">
+                    <div class="stack">
+                        <div>
+                            <h2>Acesso atual</h2>
+                            <p>Gerencie a empresa e opere Chat e Mesa sem trocar de credencial.</p>
+                        </div>
+
+                        <form method="post" action="/cliente/logout">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="hero-actions">
+                                <button class="btn ghost" id="btn-logout-cliente" type="submit">Sair do portal</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+            </aside>
+        </header>
+
+        <nav class="cliente-tabs" aria-label="Abas do portal admin-cliente">
+            <button id="tab-admin" class="cliente-tab active" data-tab="admin" type="button" aria-selected="true">
+                <span class="tab-copy">
+                    <span class="tab-title">Admin</span>
+                    <span class="tab-desc">Empresa, plano e equipe</span>
+                </span>
+                <span class="tab-badge" id="tab-admin-count">0</span>
+            </button>
+            <button id="tab-chat" class="cliente-tab" data-tab="chat" type="button" aria-selected="false">
+                <span class="tab-copy">
+                    <span class="tab-title">Chat</span>
+                    <span class="tab-desc">Operacao e laudos da empresa</span>
+                </span>
+                <span class="tab-badge" id="tab-chat-count">0</span>
+            </button>
+            <button id="tab-mesa" class="cliente-tab" data-tab="mesa" type="button" aria-selected="false">
+                <span class="tab-copy">
+                    <span class="tab-title">Mesa Avaliadora</span>
+                    <span class="tab-desc">Fila, pendencias e aprovacoes</span>
+                </span>
+                <span class="tab-badge" id="tab-mesa-count">0</span>
+            </button>
+        </nav>
+
+        <main class="cliente-main">
+            <section id="panel-admin" class="panel active">
+                <div class="section-intro">
+                    <div>
+                        <h2>Comando da empresa</h2>
+                        <p>Veja limites, distribua acessos e mantenha a operacao da empresa saudavel sem sair deste portal.</p>
+                    </div>
+                </div>
+
+                <div id="admin-resumo-geral" class="summary-grid"></div>
+                <div id="empresa-cards" class="cards-grid"></div>
+
+                <div class="admin-grid" style="margin-top: 18px;">
+                    <div class="stack">
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3>Plano e capacidade</h3>
+                                    <p class="box-subtitle">Troque o plano da empresa e acompanhe a saude operacional do contrato.</p>
+                                </div>
+                            </div>
+
+                            <div id="empresa-resumo-detalhado"></div>
+
+                            <form id="form-plano" class="stack" style="margin-top: 16px;">
+                                <label>
+                                    Plano contratado
+                                    <select id="empresa-plano"></select>
+                                </label>
+                                <button class="btn primary" type="submit">Salvar plano</button>
+                            </form>
+                        </article>
+
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3>Novo usuario da empresa</h3>
+                                    <p class="box-subtitle">Crie administradores, inspetores e usuarios da mesa a partir da mesma base.</p>
+                                </div>
+                            </div>
+
+                            <form id="form-usuario" class="stack">
+                                <label>
+                                    Nome
+                                    <input id="usuario-nome" required>
+                                </label>
+                                <label>
+                                    E-mail
+                                    <input id="usuario-email" type="email" required>
+                                </label>
+                                <label>
+                                    Papel
+                                    <select id="usuario-papel">
+                                        <option value="admin_cliente">Admin-Cliente</option>
+                                        <option value="inspetor">Inspetor</option>
+                                        <option value="revisor">Mesa Avaliadora</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Telefone
+                                    <input id="usuario-telefone">
+                                </label>
+                                <label>
+                                    CREA
+                                    <input id="usuario-crea">
+                                </label>
+                                <button class="btn primary" type="submit">Criar usuario</button>
+                            </form>
+                        </article>
+                    </div>
+
+                    <article class="box">
+                        <div class="toolbar">
+                            <div class="toolbar-copy">
+                                <h3>Equipe da empresa</h3>
+                                <p class="box-subtitle">Filtre a equipe, ajuste cadastro e controle bloqueio ou senha temporaria.</p>
+                            </div>
+
+                            <div class="toolbar-actions">
+                                <input id="usuarios-busca" type="search" placeholder="Buscar por nome, e-mail ou telefone">
+                                <select id="usuarios-filtro-papel">
+                                    <option value="todos">Todos os papeis</option>
+                                    <option value="admin_cliente">Admin-Cliente</option>
+                                    <option value="inspetor">Inspetor</option>
+                                    <option value="revisor">Mesa Avaliadora</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="usuarios-resumo" class="toolbar-meta"></div>
+
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Cadastro</th>
+                                        <th>Operacao</th>
+                                        <th>Acoes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-usuarios"></tbody>
+                            </table>
+                        </div>
+
+                        <div id="usuarios-vazio" class="empty-state" hidden>
+                            <strong>Nenhum usuario encontrado</strong>
+                            <p>Altere a busca ou o filtro para revisar a equipe certa.</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section id="panel-chat" class="panel">
+                <div class="section-intro">
+                    <div>
+                        <h2>Chat operacional</h2>
+                        <p>Crie novos laudos, continue conversas da empresa e envie laudos para a Mesa Avaliadora sem trocar de portal.</p>
+                    </div>
+                </div>
+
+                <div id="chat-resumo-geral" class="summary-grid"></div>
+
+                <div class="chat-grid">
+                    <div class="stack">
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3>Novo laudo</h3>
+                                    <p class="box-subtitle">Abra uma nova inspecao diretamente a partir do portal do cliente.</p>
+                                </div>
+                            </div>
+
+                            <form id="form-chat-laudo" class="stack">
+                                <label>
+                                    Tipo de inspecao
+                                    <select id="chat-tipo-template"></select>
+                                </label>
+                                <button class="btn primary" type="submit">Criar laudo</button>
+                            </form>
+                        </article>
+
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3>Laudos do chat</h3>
+                                    <p class="box-subtitle">Filtre rapidamente os laudos da empresa e entre no contexto certo.</p>
+                                </div>
+                                <div class="toolbar-actions">
+                                    <input id="chat-busca-laudos" type="search" placeholder="Buscar laudos, status ou preview">
+                                </div>
+                            </div>
+
+                            <div id="chat-lista-resumo" class="toolbar-meta"></div>
+                            <div id="lista-chat-laudos" class="list"></div>
+                        </article>
+                    </div>
+
+                    <div class="stack">
+                        <div id="chat-contexto"></div>
+
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3 id="chat-titulo">Selecione um laudo</h3>
+                                    <p class="box-subtitle">Finalize, reabra e mantenha o historico sob controle com contexto visivel.</p>
+                                </div>
+                                <div class="hero-actions">
+                                    <button id="btn-chat-finalizar" class="btn" type="button">Finalizar</button>
+                                    <button id="btn-chat-reabrir" class="btn" type="button">Reabrir</button>
+                                </div>
+                            </div>
+
+                            <div id="chat-mensagens" class="msgs"></div>
+
+                            <form id="form-chat-msg" class="stack" style="margin-top: 16px;">
+                                <label>
+                                    Mensagem
+                                    <textarea id="chat-mensagem" placeholder="Escreva a proxima orientacao, contexto ou pergunta da empresa."></textarea>
+                                </label>
+                                <button class="btn primary" type="submit">Enviar no chat</button>
+                            </form>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section id="panel-mesa" class="panel">
+                <div class="section-intro">
+                    <div>
+                        <h2>Mesa Avaliadora</h2>
+                        <p>Acompanhe fila, whispers, pendencias e aprovacoes da empresa em um unico fluxo operacional.</p>
+                    </div>
+                </div>
+
+                <div id="mesa-resumo-geral" class="summary-grid"></div>
+
+                <div class="mesa-grid">
+                    <article class="box">
+                        <div class="toolbar">
+                            <div class="toolbar-copy">
+                                <h3>Fila da mesa</h3>
+                                <p class="box-subtitle">Entre pelo laudo certo e priorize o que tem whisper ou pendencia aberta.</p>
+                            </div>
+                            <div class="toolbar-actions">
+                                <input id="mesa-busca-laudos" type="search" placeholder="Buscar laudos, status ou preview">
+                            </div>
+                        </div>
+
+                        <div id="mesa-lista-resumo" class="toolbar-meta"></div>
+                        <div id="lista-mesa-laudos" class="list"></div>
+                    </article>
+
+                    <div class="stack">
+                        <div id="mesa-contexto"></div>
+                        <div id="mesa-resumo" class="summary-grid"></div>
+
+                        <article class="box">
+                            <div class="toolbar">
+                                <div class="toolbar-copy">
+                                    <h3 id="mesa-titulo">Selecione um laudo</h3>
+                                    <p class="box-subtitle">Responda, aprove, devolva para ajustes e gerencie pendencias com clareza.</p>
+                                </div>
+                                <div class="hero-actions">
+                                    <button id="btn-mesa-aprovar" class="btn" type="button">Aprovar</button>
+                                    <button id="btn-mesa-rejeitar" class="btn" type="button">Rejeitar</button>
+                                </div>
+                            </div>
+
+                            <div id="mesa-mensagens" class="msgs"></div>
+
+                            <form id="form-mesa-msg" class="stack" style="margin-top: 16px;">
+                                <label>
+                                    Resposta da mesa
+                                    <textarea id="mesa-resposta" placeholder="Descreva o retorno tecnico da mesa ou a pendencia aberta para o time."></textarea>
+                                </label>
+                                <label>
+                                    Anexo opcional
+                                    <input id="mesa-arquivo" type="file" accept=".pdf,.docx,.png,.jpg,.jpeg,.webp">
+                                </label>
+                                <label>
+                                    Motivo de rejeicao
+                                    <textarea id="mesa-motivo" placeholder="Use este campo quando o laudo precisar voltar para ajustes."></textarea>
+                                </label>
+                                <button class="btn primary" type="submit">Responder na mesa</button>
+                            </form>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="feedback" class="feedback" data-visible="false" role="status" aria-live="polite"></div>
+
+    <script src="/static/js/cliente/portal.js?v={{ v_app }}" defer></script>
+</body>
+</html>
