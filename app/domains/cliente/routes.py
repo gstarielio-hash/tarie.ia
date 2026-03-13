@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 import logging
 import secrets
 from typing import Annotated, Any, Literal, Optional
@@ -31,6 +32,7 @@ from app.domains.chat.laudo import (
     api_status_relatorio,
 )
 from app.domains.chat.laudo_state_helpers import serializar_card_laudo
+from app.domains.chat.limits_helpers import contar_laudos_mes
 from app.domains.chat.normalization import TIPOS_TEMPLATE_VALIDOS
 from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
 from app.domains.chat.schemas import DadosChat
@@ -61,10 +63,13 @@ from app.domains.revisor.routes import (
 )
 from app.shared.database import (
     Empresa,
+    LIMITES_PADRAO,
     Laudo,
+    LimitePlano,
     MensagemLaudo,
     NivelAcesso,
     PlanoEmpresa,
+    RegistroAuditoriaEmpresa,
     TipoMensagem,
     Usuario,
     obter_banco,
@@ -147,10 +152,22 @@ _ROLE_LABELS = {
     int(NivelAcesso.ADMIN_CLIENTE): "Admin-Cliente",
     int(NivelAcesso.DIRETORIA): "Admin WF",
 }
+_PLANOS_ASCENDENTES = [
+    PlanoEmpresa.INICIAL.value,
+    PlanoEmpresa.INTERMEDIARIO.value,
+    PlanoEmpresa.ILIMITADO.value,
+]
 
 
 class DadosPlanoCliente(BaseModel):
     plano: Literal["Inicial", "Intermediario", "Ilimitado"]
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
+class DadosInteressePlanoCliente(BaseModel):
+    plano: Literal["Inicial", "Intermediario", "Ilimitado"]
+    origem: Literal["admin", "chat", "mesa"] = "admin"
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -183,6 +200,580 @@ class DadosMesaAvaliacaoCliente(BaseModel):
 
 def _usuario_nome(usuario: Usuario) -> str:
     return getattr(usuario, "nome", None) or getattr(usuario, "nome_completo", None) or f"Cliente #{usuario.id}"
+
+
+def _capacidade_percentual(utilizado: int, limite: int | None) -> int | None:
+    if not isinstance(limite, int) or limite <= 0:
+        return None
+    percentual = int(round((max(utilizado, 0) / limite) * 100))
+    return max(0, min(percentual, 100))
+
+
+def _agora_utc_cliente() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _inicio_mes_utc(valor: datetime) -> datetime:
+    return valor.astimezone(timezone.utc).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _deslocar_mes_utc(valor: datetime, quantidade: int) -> datetime:
+    base = _inicio_mes_utc(valor)
+    total = base.year * 12 + (base.month - 1) + int(quantidade)
+    ano = total // 12
+    mes = total % 12 + 1
+    return base.replace(year=ano, month=mes)
+
+
+def _capacidade_restante(utilizado: int, limite: int | None) -> int | None:
+    if not isinstance(limite, int) or limite < 0:
+        return None
+    return max(limite - max(utilizado, 0), 0)
+
+
+def _capacidade_excedente(utilizado: int, limite: int | None) -> int:
+    if not isinstance(limite, int) or limite < 0:
+        return 0
+    return max(max(utilizado, 0) - limite, 0)
+
+
+def _proximo_plano_cliente(plano_atual: str) -> str | None:
+    plano = PlanoEmpresa.normalizar(plano_atual)
+    try:
+        indice = _PLANOS_ASCENDENTES.index(plano)
+    except ValueError:
+        return None
+    proximo_indice = indice + 1
+    if proximo_indice >= len(_PLANOS_ASCENDENTES):
+        return None
+    return _PLANOS_ASCENDENTES[proximo_indice]
+
+
+def _limites_por_plano_cliente(banco: Session, plano: str) -> dict[str, Any]:
+    plano_normalizado = PlanoEmpresa.normalizar(plano)
+    limite = banco.get(LimitePlano, plano_normalizado)
+    if limite:
+        return {
+            "plano": plano_normalizado,
+            "laudos_mes": limite.laudos_mes,
+            "usuarios_max": limite.usuarios_max,
+            "upload_doc": bool(limite.upload_doc),
+            "deep_research": bool(limite.deep_research),
+            "integracoes_max": limite.integracoes_max,
+            "retencao_dias": limite.retencao_dias,
+        }
+
+    padrao = LIMITES_PADRAO.get(plano_normalizado, LIMITES_PADRAO[PlanoEmpresa.INICIAL.value])
+    return {
+        "plano": plano_normalizado,
+        "laudos_mes": padrao["laudos_mes"],
+        "usuarios_max": padrao["usuarios_max"],
+        "upload_doc": bool(padrao["upload_doc"]),
+        "deep_research": bool(padrao["deep_research"]),
+        "integracoes_max": padrao["integracoes_max"],
+        "retencao_dias": padrao["retencao_dias"],
+    }
+
+
+def _descricao_delta_limite(rotulo: str, anterior: int | None, atual: int | None) -> str:
+    if anterior is None and atual is None:
+        return f"{rotulo} sem teto"
+    if anterior is None and isinstance(atual, int):
+        return f"{rotulo} agora limitados em {atual}"
+    if isinstance(anterior, int) and atual is None:
+        return f"{rotulo} agora sem teto"
+    if not isinstance(anterior, int) or not isinstance(atual, int):
+        return ""
+    delta = atual - anterior
+    if delta > 0:
+        return f"+{delta} {rotulo}"
+    if delta < 0:
+        return f"{delta} {rotulo}"
+    return f"{rotulo} mantidos"
+
+
+def _comparativo_plano_cliente(banco: Session, *, plano_atual: str, plano_destino: str) -> dict[str, Any]:
+    atual = _limites_por_plano_cliente(banco, plano_atual)
+    destino = _limites_por_plano_cliente(banco, plano_destino)
+    delta_usuarios = (
+        None
+        if atual["usuarios_max"] is None or destino["usuarios_max"] is None
+        else int(destino["usuarios_max"]) - int(atual["usuarios_max"])
+    )
+    delta_laudos = (
+        None
+        if atual["laudos_mes"] is None or destino["laudos_mes"] is None
+        else int(destino["laudos_mes"]) - int(atual["laudos_mes"])
+    )
+    impacto_itens = [
+        _descricao_delta_limite("vagas", atual["usuarios_max"], destino["usuarios_max"]),
+        _descricao_delta_limite("laudos/mes", atual["laudos_mes"], destino["laudos_mes"]),
+    ]
+    if bool(destino["upload_doc"]) != bool(atual["upload_doc"]):
+        impacto_itens.append("upload documental liberado" if destino["upload_doc"] else "upload documental desativado")
+    if bool(destino["deep_research"]) != bool(atual["deep_research"]):
+        impacto_itens.append("deep research liberado" if destino["deep_research"] else "deep research desativado")
+
+    prioridade_atual = _PLANOS_ASCENDENTES.index(atual["plano"])
+    prioridade_destino = _PLANOS_ASCENDENTES.index(destino["plano"])
+    movimento = "upgrade" if prioridade_destino > prioridade_atual else "downgrade" if prioridade_destino < prioridade_atual else "manter"
+    resumo = ", ".join([item for item in impacto_itens if item]) or "sem mudança material"
+
+    return {
+        "plano": destino["plano"],
+        "atual": movimento == "manter",
+        "movimento": movimento,
+        "usuarios_max": destino["usuarios_max"],
+        "laudos_mes": destino["laudos_mes"],
+        "upload_doc": bool(destino["upload_doc"]),
+        "deep_research": bool(destino["deep_research"]),
+        "delta_usuarios": delta_usuarios,
+        "delta_laudos": delta_laudos,
+        "resumo_impacto": resumo,
+    }
+
+
+def _catalogo_planos_cliente(banco: Session, plano_atual: str) -> list[dict[str, Any]]:
+    proximo_plano = _proximo_plano_cliente(plano_atual)
+    return [
+        {
+            **_comparativo_plano_cliente(banco, plano_atual=plano_atual, plano_destino=plano),
+            "sugerido": bool(proximo_plano and plano == proximo_plano),
+        }
+        for plano in _PLANOS_ASCENDENTES
+    ]
+
+
+def _avisos_operacionais_empresa(
+    *,
+    empresa: Empresa,
+    usuarios_restantes: int | None,
+    usuarios_excedente: int,
+    usuarios_max: int | None,
+    laudos_restantes: int | None,
+    laudos_excedente: int,
+    laudos_mes_limite: int | None,
+    laudos_mes_atual: int,
+    plano_sugerido: str | None,
+) -> list[dict[str, Any]]:
+    avisos: list[dict[str, Any]] = []
+
+    if isinstance(usuarios_max, int):
+        if usuarios_excedente > 0 or (usuarios_restantes is not None and usuarios_restantes <= 0):
+            avisos.append(
+                {
+                    "canal": "admin",
+                    "tone": "ajustes",
+                    "badge": "Novos acessos bloqueados",
+                    "titulo": "A equipe ja estourou o teto do plano",
+                    "detalhe": (
+                        f"A empresa usa mais acessos do que o plano suporta. "
+                        f"{usuarios_excedente} acima do contratado pedem ajuste imediato."
+                        if usuarios_excedente > 0
+                        else "Nao sera possivel criar novos usuarios ate ampliar o plano ou reduzir a equipe ativa."
+                    ),
+                    "acao": (
+                        f"Migre para {plano_sugerido} antes de continuar expandindo a equipe."
+                        if plano_sugerido
+                        else "Revise o contrato antes de liberar novos acessos."
+                    ),
+                }
+            )
+        elif usuarios_restantes is not None and usuarios_restantes <= 1:
+            avisos.append(
+                {
+                    "canal": "admin",
+                    "tone": "aguardando",
+                    "badge": "Ultima vaga livre",
+                    "titulo": "A expansao da equipe esta no limite",
+                    "detalhe": "Resta apenas uma vaga antes de travar novos cadastros da empresa.",
+                    "acao": (
+                        f"Se ainda houver onboarding pela frente, deixe {plano_sugerido} pronto como proximo passo."
+                        if plano_sugerido
+                        else "Monitore a equipe antes de novos cadastros."
+                    ),
+                }
+            )
+
+    if isinstance(laudos_mes_limite, int):
+        if laudos_excedente > 0 or (laudos_restantes is not None and laudos_restantes <= 0):
+            avisos.extend(
+                [
+                    {
+                        "canal": "chat",
+                        "tone": "ajustes",
+                        "badge": "Chat no teto do plano",
+                        "titulo": "Novos laudos ficaram bloqueados",
+                        "detalhe": (
+                            f"O contrato mensal de laudos ja foi estourado em {laudos_excedente}."
+                            if laudos_excedente > 0
+                            else "A criacao de novos laudos sera bloqueada ate trocar o plano ou virar a janela mensal."
+                        ),
+                        "acao": (
+                            f"Amplie para {plano_sugerido} para liberar novas aberturas imediatamente."
+                            if plano_sugerido
+                            else "Aguarde a proxima janela ou revise o contrato."
+                        ),
+                    },
+                    {
+                        "canal": "mesa",
+                        "tone": "ajustes",
+                        "badge": "Fila nova comprometida",
+                        "titulo": "A Mesa pode perder fluxo novo",
+                        "detalhe": "Sem novos laudos saindo do chat, a entrada fresca da mesa diminui e o ritmo operacional cai.",
+                        "acao": (
+                            f"Expanda o plano para {plano_sugerido} e mantenha a fila da mesa respirando."
+                            if plano_sugerido
+                            else "Reveja o contrato para manter a entrada de laudos."
+                        ),
+                    },
+                ]
+            )
+        elif laudos_restantes is not None and laudos_restantes <= 5:
+            avisos.extend(
+                [
+                    {
+                        "canal": "chat",
+                        "tone": "aguardando",
+                        "badge": "Poucos laudos restantes",
+                        "titulo": "O chat esta perto do teto mensal",
+                        "detalhe": (
+                            f"Restam {laudos_restantes} laudos antes do bloqueio de novas aberturas. "
+                            f"A empresa ja usou {laudos_mes_atual} de {laudos_mes_limite}."
+                        ),
+                        "acao": (
+                            f"Planeje a subida para {plano_sugerido} antes do proximo pico."
+                            if plano_sugerido
+                            else "Monitore a fila antes do proximo pico."
+                        ),
+                    },
+                    {
+                        "canal": "mesa",
+                        "tone": "aguardando",
+                        "badge": "Entrada da mesa sob pressao",
+                        "titulo": "A janela de novos laudos esta curta",
+                        "detalhe": "Se o chat bater o limite, a mesa deixa de receber novos laudos com a mesma cadencia.",
+                        "acao": (
+                            f"Antecipe o upgrade para {plano_sugerido} e evite secar a fila."
+                            if plano_sugerido
+                            else "Acompanhe a velocidade da fila nesta semana."
+                        ),
+                    },
+                ]
+            )
+
+    if not avisos and bool(empresa.status_bloqueio):
+        avisos.append(
+            {
+                "canal": "admin",
+                "tone": "ajustes",
+                "badge": "Empresa bloqueada",
+                "titulo": "A operacao central foi bloqueada",
+                "detalhe": "Enquanto a empresa permanecer bloqueada, o chat e a mesa ficam sujeitos a restricoes de acesso.",
+                "acao": "Revise o bloqueio antes de retomar a operacao normal.",
+            }
+        )
+
+    return avisos
+
+
+def _serie_laudos_mensal_empresa(banco: Session, *, empresa_id: int, meses: int = 6) -> list[dict[str, Any]]:
+    agora = _agora_utc_cliente()
+    inicio_janela = _deslocar_mes_utc(agora, -(max(meses, 1) - 1))
+    registros = list(
+        banco.scalars(
+            select(Laudo.criado_em)
+            .where(
+                Laudo.empresa_id == int(empresa_id),
+                Laudo.criado_em >= inicio_janela,
+            )
+            .order_by(Laudo.criado_em.asc())
+        ).all()
+    )
+    contagem: dict[str, int] = {}
+    for criado_em in registros:
+        if not criado_em:
+            continue
+        chave = criado_em.astimezone(timezone.utc).strftime("%Y-%m")
+        contagem[chave] = contagem.get(chave, 0) + 1
+
+    serie: list[dict[str, Any]] = []
+    for deslocamento in range(max(meses, 1)):
+        referencia = _deslocar_mes_utc(inicio_janela, deslocamento)
+        chave = referencia.strftime("%Y-%m")
+        serie.append(
+            {
+                "chave": chave,
+                "label": referencia.strftime("%m/%Y"),
+                "total": int(contagem.get(chave, 0)),
+                "atual": chave == _inicio_mes_utc(agora).strftime("%Y-%m"),
+            }
+        )
+    return serie
+
+
+def _serie_laudos_diaria_empresa(banco: Session, *, empresa_id: int, dias: int = 14) -> list[dict[str, Any]]:
+    janela = max(dias, 1)
+    agora = _agora_utc_cliente()
+    inicio = agora.astimezone(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=janela - 1)
+    registros = list(
+        banco.scalars(
+            select(Laudo.criado_em)
+            .where(
+                Laudo.empresa_id == int(empresa_id),
+                Laudo.criado_em >= inicio,
+            )
+            .order_by(Laudo.criado_em.asc())
+        ).all()
+    )
+    contagem: dict[str, int] = {}
+    for criado_em in registros:
+        if not criado_em:
+            continue
+        chave = criado_em.astimezone(timezone.utc).strftime("%Y-%m-%d")
+        contagem[chave] = contagem.get(chave, 0) + 1
+
+    serie: list[dict[str, Any]] = []
+    for offset in range(janela):
+        dia = inicio + timedelta(days=offset)
+        chave = dia.strftime("%Y-%m-%d")
+        serie.append(
+            {
+                "chave": chave,
+                "label": dia.strftime("%d/%m"),
+                "total": int(contagem.get(chave, 0)),
+            }
+        )
+    return serie
+
+
+def _resumo_saude_empresa_cliente(
+    banco: Session,
+    *,
+    empresa: Empresa,
+    usuarios_total: int,
+    admins_cliente: int,
+    inspetores: int,
+    revisores: int,
+    capacidade_status: str,
+    capacidade_tone: str,
+    laudos_mes_atual: int,
+) -> dict[str, Any]:
+    serie_mensal = _serie_laudos_mensal_empresa(banco, empresa_id=int(empresa.id), meses=6)
+    serie_diaria = _serie_laudos_diaria_empresa(banco, empresa_id=int(empresa.id), dias=14)
+
+    atual = serie_mensal[-1]["total"] if serie_mensal else 0
+    anterior = serie_mensal[-2]["total"] if len(serie_mensal) > 1 else 0
+    if anterior > 0:
+        variacao_pct = int(round(((atual - anterior) / anterior) * 100))
+    elif atual > 0:
+        variacao_pct = 100
+    else:
+        variacao_pct = 0
+
+    if atual > anterior:
+        tendencia = "subindo"
+        tendencia_rotulo = "Operacao aquecendo"
+        tendencia_tone = "aprovado" if capacidade_status in {"estavel", "monitorar"} else capacidade_tone
+    elif atual < anterior:
+        tendencia = "caindo"
+        tendencia_rotulo = "Operacao desacelerando"
+        tendencia_tone = "aguardando"
+    else:
+        tendencia = "estavel"
+        tendencia_rotulo = "Ritmo estavel"
+        tendencia_tone = capacidade_tone if capacidade_status != "estavel" else "aberto"
+
+    janela_login = _agora_utc_cliente() - timedelta(days=14)
+    usuarios_ativos = banco.scalar(
+        select(func.count(Usuario.id)).where(
+            Usuario.empresa_id == int(empresa.id),
+            Usuario.ativo.is_(True),
+        )
+    ) or 0
+    usuarios_login_recente = banco.scalar(
+        select(func.count(Usuario.id)).where(
+            Usuario.empresa_id == int(empresa.id),
+            Usuario.ativo.is_(True),
+            Usuario.ultimo_login.is_not(None),
+            Usuario.ultimo_login >= janela_login,
+        )
+    ) or 0
+    primeiros_acessos = banco.scalar(
+        select(func.count(Usuario.id)).where(
+            Usuario.empresa_id == int(empresa.id),
+            Usuario.senha_temporaria_ativa.is_(True),
+        )
+    ) or 0
+    eventos_comerciais = banco.scalar(
+        select(func.count(RegistroAuditoriaEmpresa.id)).where(
+            RegistroAuditoriaEmpresa.empresa_id == int(empresa.id),
+            RegistroAuditoriaEmpresa.portal == PORTAL_CLIENTE,
+            RegistroAuditoriaEmpresa.criado_em >= (_agora_utc_cliente() - timedelta(days=60)),
+            RegistroAuditoriaEmpresa.acao.in_(["plano_alterado", "plano_interesse_registrado"]),
+        )
+    ) or 0
+
+    if bool(empresa.status_bloqueio):
+        saude_rotulo = "Operacao bloqueada"
+        saude_tone = "ajustes"
+        saude_texto = "A empresa segue bloqueada e precisa de acao administrativa antes de recuperar o ritmo normal."
+    elif capacidade_status == "critico":
+        saude_rotulo = "Capacidade critica"
+        saude_tone = "ajustes"
+        saude_texto = "O crescimento do uso ja encostou no plano. A saude do contrato depende de ajuste rapido."
+    elif usuarios_ativos and usuarios_login_recente / max(usuarios_ativos, 1) < 0.45:
+        saude_rotulo = "Equipe esfriando"
+        saude_tone = "aguardando"
+        saude_texto = "Pouca gente da equipe acessou recentemente. Vale revisar onboarding, bloqueios e retomada operacional."
+    else:
+        saude_rotulo = tendencia_rotulo
+        saude_tone = tendencia_tone
+        saude_texto = "A empresa tem atividade consistente e sinais claros para planejar o proximo passo." if atual or usuarios_login_recente else "Ainda ha pouca movimentacao recente; acompanhe os primeiros usos e a ativacao do time."
+
+    return {
+        "status": saude_rotulo,
+        "tone": saude_tone,
+        "texto": saude_texto,
+        "tendencia": tendencia,
+        "tendencia_rotulo": tendencia_rotulo,
+        "tendencia_tone": tendencia_tone,
+        "variacao_mensal_percentual": int(variacao_pct),
+        "laudos_mes_atual": int(laudos_mes_atual),
+        "laudos_mes_anterior": int(anterior),
+        "historico_mensal": serie_mensal,
+        "historico_diario": serie_diaria,
+        "usuarios_ativos_total": int(usuarios_ativos),
+        "usuarios_login_recente": int(usuarios_login_recente),
+        "usuarios_sem_login_recente": int(max(int(usuarios_ativos) - int(usuarios_login_recente), 0)),
+        "primeiros_acessos_pendentes": int(primeiros_acessos),
+        "eventos_comerciais_60d": int(eventos_comerciais),
+        "mix_equipe": {
+            "admins_cliente": int(admins_cliente),
+            "inspetores": int(inspetores),
+            "revisores": int(revisores),
+            "usuarios_total": int(usuarios_total),
+        },
+    }
+
+
+def _avaliar_capacidade_empresa(
+    *,
+    plano_atual: str,
+    total_usuarios: int,
+    usuarios_limite: int | None,
+    laudos_mes_atual: int,
+    laudos_limite: int | None,
+) -> dict[str, Any]:
+    usuarios_pct = _capacidade_percentual(total_usuarios, usuarios_limite)
+    laudos_pct = _capacidade_percentual(laudos_mes_atual, laudos_limite)
+    usuarios_restantes = _capacidade_restante(total_usuarios, usuarios_limite)
+    laudos_restantes = _capacidade_restante(laudos_mes_atual, laudos_limite)
+    usuarios_excedente = _capacidade_excedente(total_usuarios, usuarios_limite)
+    laudos_excedente = _capacidade_excedente(laudos_mes_atual, laudos_limite)
+
+    metricas: list[dict[str, Any]] = []
+    if usuarios_pct is not None:
+        metricas.append(
+            {
+                "chave": "usuarios",
+                "label": "usuarios",
+                "percentual": usuarios_pct,
+                "restantes": usuarios_restantes,
+                "excedente": usuarios_excedente,
+                "limite": usuarios_limite,
+            }
+        )
+    if laudos_pct is not None:
+        metricas.append(
+            {
+                "chave": "laudos",
+                "label": "laudos do mes",
+                "percentual": laudos_pct,
+                "restantes": laudos_restantes,
+                "excedente": laudos_excedente,
+                "limite": laudos_limite,
+            }
+        )
+
+    principal = max(metricas, key=lambda item: (int(item["percentual"]), int(item["excedente"])), default=None)
+    proximo_plano = _proximo_plano_cliente(plano_atual)
+    gargalo = principal["chave"] if principal else "operacao"
+
+    if principal is None:
+        return {
+            "usuarios_percentual": usuarios_pct,
+            "usuarios_restantes": usuarios_restantes,
+            "usuarios_excedente": usuarios_excedente,
+            "laudos_percentual": laudos_pct,
+            "laudos_restantes": laudos_restantes,
+            "laudos_excedente": laudos_excedente,
+            "capacidade_percentual": None,
+            "capacidade_status": "ilimitado",
+            "capacidade_tone": "aprovado",
+            "capacidade_badge": "Plano sem teto",
+            "capacidade_acao": "A empresa nao esta operando com limite rigido de usuarios ou laudos neste plano.",
+            "capacidade_gargalo": "sem teto",
+            "plano_sugerido": None,
+            "plano_sugerido_motivo": "",
+        }
+
+    percentual = int(principal["percentual"])
+    if int(principal["excedente"]) > 0 or int(principal["restantes"] or 0) <= 0:
+        status_capacidade = "critico"
+        tone = "ajustes"
+        badge = "Expandir plano agora"
+        acao = (
+            f"O limite de {principal['label']} ja foi atingido. "
+            f"{principal['excedente']} acima do contratado exigem ajuste imediato do plano."
+            if int(principal["excedente"]) > 0
+            else f"O limite de {principal['label']} chegou no teto. Ajuste o plano antes de travar a operacao."
+        )
+    elif percentual >= 85:
+        status_capacidade = "atencao"
+        tone = "aguardando"
+        badge = "Planejar upgrade"
+        acao = (
+            f"A empresa consumiu {percentual}% da capacidade de {principal['label']}. "
+            "Vale ajustar o plano antes do proximo pico operacional."
+        )
+    elif percentual >= 70:
+        status_capacidade = "monitorar"
+        tone = "aberto"
+        badge = "Monitorar capacidade"
+        acao = (
+            f"A capacidade de {principal['label']} entrou na faixa de atencao. "
+            "Monitore a evolucao da equipe e da fila para nao ser pego de surpresa."
+        )
+    else:
+        status_capacidade = "estavel"
+        tone = "aprovado"
+        badge = "Capacidade estavel"
+        acao = "A empresa ainda tem folga operacional para crescer dentro do plano atual."
+
+    motivo_upgrade = ""
+    if proximo_plano and status_capacidade in {"critico", "atencao", "monitorar"}:
+        motivo_upgrade = (
+            f"O plano {proximo_plano} abre mais folga para {principal['label']} "
+            "sem interromper a operacao da empresa."
+        )
+
+    return {
+        "usuarios_percentual": usuarios_pct,
+        "usuarios_restantes": usuarios_restantes,
+        "usuarios_excedente": usuarios_excedente,
+        "laudos_percentual": laudos_pct,
+        "laudos_restantes": laudos_restantes,
+        "laudos_excedente": laudos_excedente,
+        "capacidade_percentual": percentual,
+        "capacidade_status": status_capacidade,
+        "capacidade_tone": tone,
+        "capacidade_badge": badge,
+        "capacidade_acao": acao,
+        "capacidade_gargalo": gargalo,
+        "plano_sugerido": proximo_plano,
+        "plano_sugerido_motivo": motivo_upgrade,
+    }
 
 
 def _aplicar_headers_no_cache(response: HTMLResponse | RedirectResponse) -> None:
@@ -433,8 +1024,10 @@ def _rebase_urls_anexos_cliente(payload: Any, *, laudo_id: int) -> Any:
 def _resumo_empresa_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
     empresa = _empresa_usuario(banco, usuario)
     limites = empresa.obter_limites(banco)
+    plano_atual = str(empresa.plano_ativo or "")
     total_usuarios = banco.scalar(select(func.count(Usuario.id)).where(Usuario.empresa_id == empresa.id)) or 0
     total_laudos = banco.scalar(select(func.count(Laudo.id)).where(Laudo.empresa_id == empresa.id)) or 0
+    laudos_mes_atual = contar_laudos_mes(banco, int(empresa.id))
     admins_cliente = banco.scalar(
         select(func.count(Usuario.id)).where(
             Usuario.empresa_id == empresa.id,
@@ -453,17 +1046,44 @@ def _resumo_empresa_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
             Usuario.nivel_acesso == int(NivelAcesso.REVISOR),
         )
     ) or 0
-
-    uso_pct: int | None = None
-    if isinstance(limites.laudos_mes, int) and limites.laudos_mes > 0:
-        uso_pct = min(100, int(((empresa.mensagens_processadas or 0) / limites.laudos_mes) * 100))
+    capacidade = _avaliar_capacidade_empresa(
+        plano_atual=plano_atual,
+        total_usuarios=int(total_usuarios),
+        usuarios_limite=limites.usuarios_max,
+        laudos_mes_atual=int(laudos_mes_atual),
+        laudos_limite=limites.laudos_mes,
+    )
+    planos_catalogo = _catalogo_planos_cliente(banco, plano_atual)
+    avisos_operacionais = _avisos_operacionais_empresa(
+        empresa=empresa,
+        usuarios_restantes=capacidade["usuarios_restantes"],
+        usuarios_excedente=int(capacidade["usuarios_excedente"]),
+        usuarios_max=limites.usuarios_max,
+        laudos_restantes=capacidade["laudos_restantes"],
+        laudos_excedente=int(capacidade["laudos_excedente"]),
+        laudos_mes_limite=limites.laudos_mes,
+        laudos_mes_atual=int(laudos_mes_atual),
+        plano_sugerido=capacidade["plano_sugerido"],
+    )
+    saude_operacional = _resumo_saude_empresa_cliente(
+        banco,
+        empresa=empresa,
+        usuarios_total=int(total_usuarios),
+        admins_cliente=int(admins_cliente),
+        inspetores=int(inspetores),
+        revisores=int(revisores),
+        capacidade_status=str(capacidade["capacidade_status"]),
+        capacidade_tone=str(capacidade["capacidade_tone"]),
+        laudos_mes_atual=int(laudos_mes_atual),
+    )
 
     return {
         "id": int(empresa.id),
         "nome_fantasia": str(empresa.nome_fantasia or ""),
         "cnpj": str(empresa.cnpj or ""),
-        "plano_ativo": str(empresa.plano_ativo or ""),
+        "plano_ativo": plano_atual,
         "planos_disponiveis": [item.value for item in PlanoEmpresa],
+        "planos_catalogo": planos_catalogo,
         "segmento": str(empresa.segmento or ""),
         "cidade_estado": str(empresa.cidade_estado or ""),
         "nome_responsavel": str(empresa.nome_responsavel or ""),
@@ -474,7 +1094,24 @@ def _resumo_empresa_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
         "upload_doc": bool(limites.upload_doc),
         "deep_research": bool(limites.deep_research),
         "mensagens_processadas": int(empresa.mensagens_processadas or 0),
-        "uso_percentual": uso_pct,
+        "laudos_mes_atual": int(laudos_mes_atual),
+        "laudos_restantes": capacidade["laudos_restantes"],
+        "laudos_excedente": int(capacidade["laudos_excedente"]),
+        "laudos_percentual": capacidade["laudos_percentual"],
+        "usuarios_em_uso": int(total_usuarios),
+        "usuarios_restantes": capacidade["usuarios_restantes"],
+        "usuarios_excedente": int(capacidade["usuarios_excedente"]),
+        "usuarios_percentual": capacidade["usuarios_percentual"],
+        "uso_percentual": capacidade["capacidade_percentual"],
+        "capacidade_status": capacidade["capacidade_status"],
+        "capacidade_tone": capacidade["capacidade_tone"],
+        "capacidade_badge": capacidade["capacidade_badge"],
+        "capacidade_acao": capacidade["capacidade_acao"],
+        "capacidade_gargalo": capacidade["capacidade_gargalo"],
+        "plano_sugerido": capacidade["plano_sugerido"],
+        "plano_sugerido_motivo": capacidade["plano_sugerido_motivo"],
+        "avisos_operacionais": avisos_operacionais,
+        "saude_operacional": saude_operacional,
         "total_usuarios": int(total_usuarios),
         "total_laudos": int(total_laudos),
         "admins_cliente": int(admins_cliente),
@@ -818,6 +1455,10 @@ async def api_alterar_plano_cliente(
     if not validar_csrf_cliente(request):
         raise HTTPException(status_code=403, detail="CSRF inválido.")
 
+    empresa_atual = _empresa_usuario(banco, usuario)
+    plano_anterior = PlanoEmpresa.normalizar(empresa_atual.plano_ativo)
+    comparativo = _comparativo_plano_cliente(banco, plano_atual=plano_anterior, plano_destino=dados.plano)
+
     try:
         alterar_plano(banco, int(usuario.empresa_id), dados.plano)
     except ValueError as exc:
@@ -833,11 +1474,61 @@ async def api_alterar_plano_cliente(
         empresa_id=int(usuario.empresa_id),
         ator_usuario_id=int(usuario.id),
         acao="plano_alterado",
-        resumo=f"Plano alterado para {dados.plano}.",
-        detalhe="Alteração imediata feita pelo portal admin-cliente.",
-        payload={"plano": dados.plano},
+        resumo=f"Plano alterado de {plano_anterior} para {comparativo['plano']}.",
+        detalhe=f"Impacto esperado: {comparativo['resumo_impacto']}. Alteração imediata feita pelo portal admin-cliente.",
+        payload={
+            "plano_anterior": plano_anterior,
+            "plano_novo": comparativo["plano"],
+            "movimento": comparativo["movimento"],
+            "impacto_resumido": comparativo["resumo_impacto"],
+            "delta_usuarios": comparativo["delta_usuarios"],
+            "delta_laudos": comparativo["delta_laudos"],
+            "upload_doc": comparativo["upload_doc"],
+            "deep_research": comparativo["deep_research"],
+        },
     )
     return JSONResponse({"success": True, "empresa": _resumo_empresa_cliente(banco, usuario)})
+
+
+@roteador_cliente.post("/api/empresa/plano/interesse", responses=RESPOSTAS_PLANO_CLIENTE)
+async def api_registrar_interesse_plano_cliente(
+    dados: DadosInteressePlanoCliente,
+    request: Request,
+    usuario: Usuario = Depends(exigir_admin_cliente),
+    banco: Session = Depends(obter_banco),
+):
+    if not validar_csrf_cliente(request):
+        raise HTTPException(status_code=403, detail="CSRF inválido.")
+
+    empresa = _empresa_usuario(banco, usuario)
+    plano_atual = PlanoEmpresa.normalizar(empresa.plano_ativo)
+    comparativo = _comparativo_plano_cliente(banco, plano_atual=plano_atual, plano_destino=dados.plano)
+    origem = str(dados.origem or "admin").strip().lower()
+
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="plano_interesse_registrado",
+        resumo=f"Interesse registrado em migrar para {comparativo['plano']}.",
+        detalhe=f"Origem {origem}. Impacto esperado: {comparativo['resumo_impacto']}.",
+        payload={
+            "plano_anterior": plano_atual,
+            "plano_sugerido": comparativo["plano"],
+            "origem": origem,
+            "movimento": comparativo["movimento"],
+            "impacto_resumido": comparativo["resumo_impacto"],
+            "delta_usuarios": comparativo["delta_usuarios"],
+            "delta_laudos": comparativo["delta_laudos"],
+        },
+    )
+    return JSONResponse(
+        {
+            "success": True,
+            "plano": comparativo,
+            "empresa": _resumo_empresa_cliente(banco, usuario),
+        }
+    )
 
 
 @roteador_cliente.get("/api/usuarios")

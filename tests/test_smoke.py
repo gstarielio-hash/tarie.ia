@@ -308,6 +308,7 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     raiz = Path(__file__).resolve().parents[1]
     login_cliente = (raiz / "templates" / "login_cliente.html").read_text(encoding="utf-8")
     portal_cliente = (raiz / "templates" / "cliente_portal.html").read_text(encoding="utf-8")
+    portal_js = (raiz / "static" / "js" / "cliente" / "portal.js").read_text(encoding="utf-8")
 
     assert 'action="/cliente/login"' in login_cliente
     assert "Portal Admin-Cliente" in login_cliente
@@ -319,20 +320,40 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'id="tab-mesa"' in portal_cliente
     assert 'id="admin-resumo-geral"' in portal_cliente
     assert 'id="admin-auditoria-lista"' in portal_cliente
+    assert 'id="admin-saude-resumo"' in portal_cliente
+    assert 'id="admin-saude-historico"' in portal_cliente
+    assert 'id="empresa-alerta-capacidade"' in portal_cliente
+    assert 'id="plano-impacto-preview"' in portal_cliente
+    assert 'id="admin-planos-historico"' in portal_cliente
     assert 'id="form-plano"' in portal_cliente
+    assert 'id="btn-plano-salvar"' in portal_cliente
     assert 'id="form-usuario"' in portal_cliente
+    assert 'id="usuario-capacidade-nota"' in portal_cliente
+    assert 'id="btn-usuario-criar"' in portal_cliente
     assert 'id="form-chat-laudo"' in portal_cliente
+    assert 'id="chat-capacidade-nota"' in portal_cliente
+    assert 'id="btn-chat-laudo-criar"' in portal_cliente
     assert 'id="form-chat-msg"' in portal_cliente
     assert 'id="form-mesa-msg"' in portal_cliente
     assert 'id="usuarios-busca"' in portal_cliente
     assert 'id="chat-busca-laudos"' in portal_cliente
     assert 'id="mesa-busca-laudos"' in portal_cliente
     assert 'id="chat-resumo-geral"' in portal_cliente
+    assert 'id="chat-alertas-operacionais"' in portal_cliente
     assert 'id="mesa-resumo-geral"' in portal_cliente
+    assert 'id="mesa-alertas-operacionais"' in portal_cliente
     assert 'id="chat-contexto"' in portal_cliente
     assert 'id="mesa-contexto"' in portal_cliente
     assert '/static/css/cliente/portal.css?v={{ v_app }}' in portal_cliente
     assert '/static/js/cliente/portal.js?v={{ v_app }}' in portal_cliente
+    assert "plano_sugerido" in portal_js
+    assert "usuario-capacidade-nota" in portal_js
+    assert "admin-planos-historico" in portal_js
+    assert "chat-alertas-operacionais" in portal_js
+    assert "admin-saude-resumo" in portal_js
+    assert "saude_operacional" in portal_js
+    assert "/cliente/api/empresa/plano/interesse" in portal_js
+    assert "preparar-upgrade" in portal_js
 
 
 def test_tela_templates_laudo_separa_biblioteca_e_editor_word() -> None:

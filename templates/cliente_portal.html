@@ -98,6 +98,17 @@
 
                 <div id="admin-resumo-geral" class="summary-grid"></div>
                 <div id="empresa-cards" class="cards-grid"></div>
+                <article class="box" style="margin-top: 18px;">
+                    <div class="toolbar">
+                        <div class="toolbar-copy">
+                            <h3>Saude da operacao</h3>
+                            <p class="box-subtitle">Veja tendencia de uso, aderencia da equipe e historico recente da empresa.</p>
+                        </div>
+                    </div>
+
+                    <div id="admin-saude-resumo" class="summary-grid"></div>
+                    <div id="admin-saude-historico" class="health-grid"></div>
+                </article>
 
                 <div class="admin-grid" style="margin-top: 18px;">
                     <div class="stack">
@@ -110,14 +121,18 @@
                             </div>
 
                             <div id="empresa-resumo-detalhado"></div>
+                            <div id="empresa-alerta-capacidade"></div>
+                            <div id="plano-impacto-preview"></div>
 
                             <form id="form-plano" class="stack" style="margin-top: 16px;">
                                 <label>
                                     Plano contratado
                                     <select id="empresa-plano"></select>
                                 </label>
-                                <button class="btn primary" type="submit">Salvar plano</button>
+                                <button id="btn-plano-salvar" class="btn primary" type="submit">Salvar plano</button>
                             </form>
+
+                            <div id="admin-planos-historico" class="activity-list" style="margin-top: 16px;"></div>
                         </article>
 
                         <article class="box">
@@ -153,7 +168,8 @@
                                     CREA
                                     <input id="usuario-crea">
                                 </label>
-                                <button class="btn primary" type="submit">Criar usuario</button>
+                                <div id="usuario-capacidade-nota"></div>
+                                <button id="btn-usuario-criar" class="btn primary" type="submit">Criar usuario</button>
                             </form>
                         </article>
 
@@ -219,6 +235,7 @@
                 </div>
 
                 <div id="chat-resumo-geral" class="summary-grid"></div>
+                <div id="chat-alertas-operacionais" class="stack"></div>
 
                 <div class="chat-grid">
                     <div class="stack">
@@ -235,7 +252,8 @@
                                     Tipo de inspecao
                                     <select id="chat-tipo-template"></select>
                                 </label>
-                                <button class="btn primary" type="submit">Criar laudo</button>
+                                <div id="chat-capacidade-nota"></div>
+                                <button id="btn-chat-laudo-criar" class="btn primary" type="submit">Criar laudo</button>
                             </form>
                         </article>
 
@@ -293,6 +311,7 @@
                 </div>
 
                 <div id="mesa-resumo-geral" class="summary-grid"></div>
+                <div id="mesa-alertas-operacionais" class="stack"></div>
 
                 <div class="mesa-grid">
                     <article class="box">

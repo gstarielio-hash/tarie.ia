@@ -65,6 +65,70 @@
         return Number.isFinite(numero) ? `${numero}%` : "Ilimitado";
     }
 
+    function formatarCapacidadeRestante(restante, excedente, singular, plural) {
+        const sufixo = Number(restante) === 1 ? singular : plural;
+        if (restante == null) return `Sem teto de ${plural}`;
+        if (Number(excedente || 0) > 0) {
+            const excesso = Number(excedente || 0);
+            const sufixoExcesso = excesso === 1 ? singular : plural;
+            return `${formatarInteiro(excesso)} ${sufixoExcesso} acima do plano`;
+        }
+        if (Number(restante) <= 0) return `No limite de ${plural}`;
+        return `${formatarInteiro(restante)} ${sufixo} restantes`;
+    }
+
+    function tomCapacidadeEmpresa(empresa) {
+        const tone = texto(empresa?.capacidade_tone).trim().toLowerCase();
+        if (tone === "aberto" || tone === "aguardando" || tone === "ajustes" || tone === "aprovado") {
+            return tone;
+        }
+        return "aprovado";
+    }
+
+    function obterPlanoCatalogo(plano) {
+        return (state.bootstrap?.empresa?.planos_catalogo || []).find((item) => texto(item?.plano) === texto(plano)) || null;
+    }
+
+    function formatarLimitePlano(valor, singular, plural) {
+        if (valor == null || valor === "") return `Sem teto de ${plural}`;
+        const numero = Number(valor);
+        if (!Number.isFinite(numero)) return `Sem teto de ${plural}`;
+        return `${formatarInteiro(numero)} ${numero === 1 ? singular : plural}`;
+    }
+
+    function formatarVariacao(valor) {
+        const numero = Number(valor || 0);
+        if (!Number.isFinite(numero)) return "0%";
+        if (numero > 0) return `+${numero}%`;
+        return `${numero}%`;
+    }
+
+    function resumoCanalOperacional(canal) {
+        if (canal === "chat") return "Chat";
+        if (canal === "mesa") return "Mesa Avaliadora";
+        return "Admin";
+    }
+
+    function htmlBarrasHistorico(serie, tone) {
+        const lista = Array.isArray(serie) ? serie : [];
+        const maior = Math.max(...lista.map((item) => Number(item?.total || 0)), 1);
+        return `
+            <div class="health-bars" data-tone="${escapeAttr(tone || "aberto")}">
+                ${lista.map((item) => {
+                    const total = Number(item?.total || 0);
+                    const altura = Math.max(10, Math.round((total / maior) * 100));
+                    return `
+                        <div class="health-bar" title="${escapeAttr(`${item.label}: ${total}`)}">
+                            <div class="health-bar-fill${item.atual ? " is-current" : ""}" style="height:${altura}%"></div>
+                            <span class="health-bar-value">${escapeHtml(formatarInteiro(total))}</span>
+                            <span class="health-bar-label">${escapeHtml(item.label || "")}</span>
+                        </div>
+                    `;
+                }).join("")}
+            </div>
+        `;
+    }
+
     function formatarBytes(valor) {
         const numero = Number(valor || 0);
         if (!Number.isFinite(numero) || numero <= 0) return "0 B";
@@ -226,6 +290,9 @@
         const usuariosLista = Array.isArray(usuarios) ? usuarios : [];
         const bloqueados = usuariosLista.filter((item) => !item?.ativo).length;
         const temporarios = usuariosLista.filter((item) => item?.senha_temporaria_ativa).length;
+        const capacidadeTone = tomCapacidadeEmpresa(empresa);
+        const capacidadeStatus = texto(empresa?.capacidade_status).trim().toLowerCase();
+        const sugestaoPlano = texto(empresa?.plano_sugerido).trim();
 
         if (empresa?.status_bloqueio) {
             return {
@@ -234,11 +301,11 @@
                 acao: "Libere a empresa e revise imediatamente o que esta travando a operacao.",
             };
         }
-        if (uso >= 90) {
+        if (capacidadeStatus === "critico") {
             return {
-                tone: "ajustes",
-                badge: "Revisar plano agora",
-                acao: "O consumo esta muito alto. Ajuste o plano antes de estrangular o uso da empresa.",
+                tone: capacidadeTone,
+                badge: texto(empresa?.capacidade_badge || "Expandir plano agora"),
+                acao: `${texto(empresa?.capacidade_acao || "A empresa chegou no limite contratado.")}${sugestaoPlano ? ` Proximo passo comercial: migrar para ${sugestaoPlano}.` : ""}`,
             };
         }
         if (bloqueados > 0) {
@@ -246,6 +313,13 @@
                 tone: "aguardando",
                 badge: "Revisar acessos bloqueados",
                 acao: "Ha usuarios travados. Confira se isso foi intencional ou se alguem precisa voltar a operar.",
+            };
+        }
+        if (capacidadeStatus === "atencao" || capacidadeStatus === "monitorar") {
+            return {
+                tone: capacidadeTone,
+                badge: texto(empresa?.capacidade_badge || "Planejar upgrade"),
+                acao: `${texto(empresa?.capacidade_acao || "O plano entrou na faixa de atencao.")}${sugestaoPlano ? ` Melhor encaixe agora: ${sugestaoPlano}.` : ""}`,
             };
         }
         if (temporarios > 0 || uso >= 75) {
@@ -599,32 +673,43 @@
         const empresa = state.bootstrap?.empresa;
         if (!empresa) return;
         const prioridade = prioridadeEmpresa(empresa, state.bootstrap?.usuarios || []);
+        const capacidadeTone = tomCapacidadeEmpresa(empresa);
+        const usoValor = empresa.uso_percentual == null
+            ? "Sem teto comercial neste contrato"
+            : `${formatarInteiro(empresa.laudos_mes_atual || 0)} laudos no mes`;
+        const resumoUsuarios = formatarCapacidadeRestante(empresa.usuarios_restantes, empresa.usuarios_excedente, "vaga", "vagas");
+        const resumoLaudos = formatarCapacidadeRestante(empresa.laudos_restantes, empresa.laudos_excedente, "laudo", "laudos");
+        const progresso = empresa.uso_percentual == null ? 18 : Math.max(6, Math.min(100, Number(empresa.uso_percentual || 0)));
+        const riscoLabel = texto(empresa.capacidade_badge || "Capacidade estavel");
+        const riscoMensagem = texto(empresa.capacidade_acao || "A empresa ainda tem folga operacional dentro do plano.");
+        const planoSugerido = texto(empresa.plano_sugerido).trim();
+        const alertaCapacidade = $("empresa-alerta-capacidade");
+        const notaCapacidadeUsuario = $("usuario-capacidade-nota");
+        const botaoCriarUsuario = $("btn-usuario-criar");
 
-        const usoValor = empresa.uso_percentual == null ? "Sem teto" : `${formatarInteiro(empresa.mensagens_processadas)} processados`;
         $("empresa-cards").innerHTML = `
             <article class="metric-card" data-accent="${empresa.status_bloqueio ? "attention" : "done"}">
                 <small>Plano em operacao</small>
                 <strong>${escapeHtml(empresa.plano_ativo)}</strong>
                 <span class="metric-meta">${empresa.status_bloqueio ? "Empresa bloqueada" : "Empresa liberada para operar"}</span>
             </article>
-            <article class="metric-card" data-accent="live">
-                <small>Usuarios da empresa</small>
-                <strong>${formatarInteiro(empresa.total_usuarios)}</strong>
-                <span class="metric-meta">${formatarInteiro(empresa.admins_cliente)} admins, ${formatarInteiro(empresa.inspetores)} inspetores, ${formatarInteiro(empresa.revisores)} mesa</span>
+            <article class="metric-card" data-accent="${empresa.usuarios_restantes === 0 && empresa.usuarios_max != null ? "attention" : "live"}">
+                <small>Equipe em uso</small>
+                <strong>${formatarInteiro(empresa.usuarios_em_uso || empresa.total_usuarios)}</strong>
+                <span class="metric-meta">${resumoUsuarios}. ${formatarInteiro(empresa.admins_cliente)} admins, ${formatarInteiro(empresa.inspetores)} inspetores, ${formatarInteiro(empresa.revisores)} mesa.</span>
             </article>
-            <article class="metric-card" data-accent="aberto">
-                <small>Laudos rastreados</small>
-                <strong>${formatarInteiro(empresa.total_laudos)}</strong>
-                <span class="metric-meta">${empresa.segmento ? escapeHtml(empresa.segmento) : "Sem segmento informado"}</span>
+            <article class="metric-card" data-accent="${empresa.laudos_restantes === 0 && empresa.laudos_mes_limite != null ? "attention" : "aberto"}">
+                <small>Laudos deste mes</small>
+                <strong>${formatarInteiro(empresa.laudos_mes_atual || 0)}</strong>
+                <span class="metric-meta">${resumoLaudos}. ${empresa.laudos_mes_limite == null ? "Contrato sem limite mensal fixo." : `Limite de ${formatarInteiro(empresa.laudos_mes_limite)} laudos.`}</span>
             </article>
-            <article class="metric-card" data-accent="${prioridade.tone}">
-                <small>Consumo do plano</small>
+            <article class="metric-card" data-accent="${capacidadeTone}">
+                <small>Folga comercial</small>
                 <strong>${formatarPercentual(empresa.uso_percentual)}</strong>
-                <span class="metric-meta">${usoValor}</span>
+                <span class="metric-meta">${usoValor}. ${escapeHtml(riscoLabel)}</span>
             </article>
         `;
 
-        const progresso = empresa.uso_percentual == null ? 22 : Math.max(6, Math.min(100, Number(empresa.uso_percentual || 0)));
         $("empresa-resumo-detalhado").innerHTML = `
             <div class="stack">
                 <div class="status-strip">
@@ -635,14 +720,34 @@
                     <div class="context-head">
                         <div>
                             <small>Consumo mensal monitorado</small>
-                            <strong>${formatarInteiro(empresa.mensagens_processadas)} laudos processados</strong>
+                            <strong>${formatarInteiro(empresa.laudos_mes_atual || 0)} laudos criados neste mes</strong>
                         </div>
-                        <span class="pill" data-kind="laudo" data-status="${Number(empresa.uso_percentual || 0) >= 90 ? "ajustes" : Number(empresa.uso_percentual || 0) >= 75 ? "aguardando" : "aprovado"}">${formatarPercentual(empresa.uso_percentual)}</span>
+                        <span class="pill" data-kind="laudo" data-status="${capacidadeTone}">${formatarPercentual(empresa.uso_percentual)}</span>
                     </div>
                     <div class="progress-track"><div class="progress-bar" style="width:${progresso}%"></div></div>
                     <div class="toolbar-meta">
-                        <span class="hero-chip">Limite mensal: ${empresa.laudos_mes_limite == null ? "sob consulta" : formatarInteiro(empresa.laudos_mes_limite)}</span>
-                        <span class="hero-chip">Limite de usuarios: ${empresa.usuarios_max == null ? "sob consulta" : formatarInteiro(empresa.usuarios_max)}</span>
+                        <span class="hero-chip">Limite mensal: ${empresa.laudos_mes_limite == null ? "sem teto" : formatarInteiro(empresa.laudos_mes_limite)}</span>
+                        <span class="hero-chip">Laudos restantes: ${empresa.laudos_restantes == null ? "sem teto" : formatarInteiro(empresa.laudos_restantes)}</span>
+                        <span class="hero-chip">Limite de usuarios: ${empresa.usuarios_max == null ? "sem teto" : formatarInteiro(empresa.usuarios_max)}</span>
+                        <span class="hero-chip">Vagas restantes: ${empresa.usuarios_restantes == null ? "sem teto" : formatarInteiro(empresa.usuarios_restantes)}</span>
+                    </div>
+                </div>
+                <div class="context-grid">
+                    <div class="context-block">
+                        <small>Equipe ocupando o plano</small>
+                        <strong>${formatarInteiro(empresa.usuarios_em_uso || empresa.total_usuarios)}</strong>
+                    </div>
+                    <div class="context-block">
+                        <small>Margem de usuarios</small>
+                        <strong>${escapeHtml(resumoUsuarios)}</strong>
+                    </div>
+                    <div class="context-block">
+                        <small>Laudos na janela atual</small>
+                        <strong>${formatarInteiro(empresa.laudos_mes_atual || 0)}</strong>
+                    </div>
+                    <div class="context-block">
+                        <small>Margem do mes</small>
+                        <strong>${escapeHtml(resumoLaudos)}</strong>
                     </div>
                 </div>
                 <div class="chip-list">
@@ -650,6 +755,7 @@
                     <span class="feature-chip" data-enabled="${empresa.deep_research ? "true" : "false"}">Deep research ${empresa.deep_research ? "ativo" : "indisponivel"}</span>
                     <span class="feature-chip" data-enabled="true">Responsavel ${escapeHtml(empresa.nome_responsavel || "nao informado")}</span>
                     <span class="feature-chip" data-enabled="true">Base ${escapeHtml(empresa.cidade_estado || "nao informada")}</span>
+                    <span class="feature-chip" data-enabled="true">Processamento acumulado ${formatarInteiro(empresa.mensagens_processadas || 0)}</span>
                 </div>
                 <div class="context-guidance" data-tone="${prioridade.tone}">
                     <div class="context-guidance-copy">
@@ -666,6 +772,41 @@
         plano.innerHTML = (empresa.planos_disponiveis || [])
             .map((item) => `<option value="${escapeAttr(item)}" ${item === empresa.plano_ativo ? "selected" : ""}>${escapeHtml(item)}</option>`)
             .join("");
+
+        if (alertaCapacidade) {
+            const recomendacaoUpgrade = planoSugerido
+                ? `Migrar para ${planoSugerido} tende a aliviar primeiro ${empresa.capacidade_gargalo === "usuarios" ? "a equipe" : "a fila mensal de laudos"}.`
+                : "O plano atual ja e o topo da escada comercial configurada.";
+            alertaCapacidade.innerHTML = `
+                <div class="context-guidance capacity-alert" data-tone="${capacidadeTone}">
+                    <div class="context-guidance-copy">
+                        <small>Capacidade e proximo passo comercial</small>
+                        <strong>${escapeHtml(riscoLabel)}</strong>
+                        <p>${escapeHtml(riscoMensagem)}</p>
+                        <p>${escapeHtml(planoSugerido ? `${empresa.plano_sugerido_motivo || recomendacaoUpgrade}` : recomendacaoUpgrade)}</p>
+                    </div>
+                    <div class="capacity-alert-side">
+                        <span class="pill" data-kind="priority" data-status="${capacidadeTone}">${escapeHtml(riscoLabel)}</span>
+                        <span class="hero-chip">${planoSugerido ? `Plano sugerido: ${escapeHtml(planoSugerido)}` : "Sem upgrade imediato"}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (notaCapacidadeUsuario) {
+            const limiteUsuariosAtingido = empresa.usuarios_max != null && Number(empresa.usuarios_restantes || 0) <= 0;
+            notaCapacidadeUsuario.innerHTML = `
+                <div class="form-hint" data-tone="${limiteUsuariosAtingido ? "ajustes" : capacidadeTone}">
+                    <strong>${limiteUsuariosAtingido ? "Equipe no teto do plano" : "Capacidade para novos usuarios"}</strong>
+                    <span>${escapeHtml(limiteUsuariosAtingido
+                        ? `${resumoUsuarios}. ${planoSugerido ? `Troque para ${planoSugerido} antes de criar outro acesso.` : "Revise o plano antes de ampliar a equipe."}`
+                        : `${resumoUsuarios}. ${planoSugerido && (empresa.capacidade_status === "atencao" || empresa.capacidade_status === "monitorar") ? `Se a fila crescer, o melhor encaixe passa a ser ${planoSugerido}.` : "Ainda existe folga para ampliar a equipe com seguranca."}`)}</span>
+                </div>
+            `;
+            if (botaoCriarUsuario) {
+                botaoCriarUsuario.disabled = limiteUsuariosAtingido;
+            }
+        }
     }
 
     function renderAdminResumo() {
@@ -678,6 +819,10 @@
         const temporarios = usuarios.filter((item) => item.senha_temporaria_ativa).length;
         const semLogin = usuarios.filter((item) => !parseDataIso(item.ultimo_login)).length;
         const prioridade = prioridadeEmpresa(empresa, usuarios);
+        const capacidadeTone = tomCapacidadeEmpresa(empresa);
+        const resumoUsuarios = formatarCapacidadeRestante(empresa.usuarios_restantes, empresa.usuarios_excedente, "vaga", "vagas");
+        const resumoLaudos = formatarCapacidadeRestante(empresa.laudos_restantes, empresa.laudos_excedente, "laudo", "laudos");
+        const planoSugerido = texto(empresa.plano_sugerido).trim();
 
         container.innerHTML = `
             <article class="metric-card" data-accent="attention">
@@ -690,15 +835,76 @@
                 <strong>${formatarInteiro(temporarios)}</strong>
                 <span class="metric-meta">${formatarInteiro(semLogin)} contas ainda nao registraram login no portal.</span>
             </article>
-            <article class="metric-card" data-accent="${Number(empresa.uso_percentual || 0) >= 75 ? "waiting" : "live"}">
-                <small>Capacidade contratada</small>
-                <strong>${formatarPercentual(empresa.uso_percentual)}</strong>
-                <span class="metric-meta">Plano ${escapeHtml(empresa.plano_ativo)} com ${empresa.usuarios_max == null ? "usuarios sob consulta" : `${formatarInteiro(empresa.usuarios_max)} usuarios maximos`}.</span>
+            <article class="metric-card" data-accent="${empresa.usuarios_restantes === 0 && empresa.usuarios_max != null ? "attention" : "live"}">
+                <small>Margem de equipe</small>
+                <strong>${empresa.usuarios_restantes == null ? "Livre" : formatarInteiro(empresa.usuarios_restantes)}</strong>
+                <span class="metric-meta">${escapeHtml(resumoUsuarios)} dentro do plano ${escapeHtml(empresa.plano_ativo)}.</span>
+            </article>
+            <article class="metric-card" data-accent="${capacidadeTone}">
+                <small>Janela de laudos</small>
+                <strong>${empresa.laudos_restantes == null ? "Livre" : formatarInteiro(empresa.laudos_restantes)}</strong>
+                <span class="metric-meta">${escapeHtml(resumoLaudos)}. ${formatarInteiro(empresa.laudos_mes_atual || 0)} ja passaram nesta janela mensal.</span>
             </article>
             <article class="metric-card" data-accent="${prioridade.tone}">
                 <small>Foco da administracao</small>
                 <strong>${escapeHtml(prioridade.badge)}</strong>
-                <span class="metric-meta">${escapeHtml(prioridade.acao)}</span>
+                <span class="metric-meta">${escapeHtml(prioridade.acao)}${planoSugerido ? ` Proximo plano sugerido: ${escapeHtml(planoSugerido)}.` : ""}</span>
+            </article>
+        `;
+    }
+
+    function renderSaudeEmpresa() {
+        const empresa = state.bootstrap?.empresa;
+        const resumo = $("admin-saude-resumo");
+        const historico = $("admin-saude-historico");
+        const saude = empresa?.saude_operacional;
+        if (!empresa || !resumo || !historico || !saude) return;
+
+        resumo.innerHTML = `
+            <article class="metric-card" data-accent="${escapeAttr(saude.tone || "aprovado")}">
+                <small>Status da operacao</small>
+                <strong>${escapeHtml(saude.status || "Sem leitura")}</strong>
+                <span class="metric-meta">${escapeHtml(saude.texto || "Sem observacoes adicionais.")}</span>
+            </article>
+            <article class="metric-card" data-accent="${escapeAttr(saude.tendencia_tone || "aberto")}">
+                <small>Tendencia mensal</small>
+                <strong>${escapeHtml(saude.tendencia_rotulo || "Estavel")}</strong>
+                <span class="metric-meta">${escapeHtml(formatarVariacao(saude.variacao_mensal_percentual || 0))} em relacao ao mes anterior.</span>
+            </article>
+            <article class="metric-card" data-accent="live">
+                <small>Equipe ativa em 14 dias</small>
+                <strong>${escapeHtml(formatarInteiro(saude.usuarios_login_recente || 0))}</strong>
+                <span class="metric-meta">${escapeHtml(formatarInteiro(saude.usuarios_sem_login_recente || 0))} ainda nao apareceram na janela recente.</span>
+            </article>
+            <article class="metric-card" data-accent="waiting">
+                <small>Movimentos comerciais</small>
+                <strong>${escapeHtml(formatarInteiro(saude.eventos_comerciais_60d || 0))}</strong>
+                <span class="metric-meta">${escapeHtml(formatarInteiro(saude.primeiros_acessos_pendentes || 0))} primeiros acessos ainda pedem conclusao.</span>
+            </article>
+        `;
+
+        historico.innerHTML = `
+            <article class="health-card">
+                <div class="context-guidance" data-tone="${escapeAttr(saude.tendencia_tone || "aberto")}">
+                    <div class="context-guidance-copy">
+                        <small>Ultimos 6 meses</small>
+                        <strong>${escapeHtml(saude.tendencia_rotulo || "Ritmo estavel")}</strong>
+                        <p>Mes atual: ${escapeHtml(formatarInteiro(saude.laudos_mes_atual || 0))} laudos. Mes anterior: ${escapeHtml(formatarInteiro(saude.laudos_mes_anterior || 0))}.</p>
+                    </div>
+                    <span class="pill" data-kind="priority" data-status="${escapeAttr(saude.tendencia_tone || "aberto")}">${escapeHtml(formatarVariacao(saude.variacao_mensal_percentual || 0))}</span>
+                </div>
+                ${htmlBarrasHistorico(saude.historico_mensal || [], saude.tendencia_tone || "aberto")}
+            </article>
+            <article class="health-card">
+                <div class="context-guidance" data-tone="${escapeAttr(saude.tone || "aprovado")}">
+                    <div class="context-guidance-copy">
+                        <small>Pulso dos ultimos 14 dias</small>
+                        <strong>${escapeHtml(saude.status || "Sem leitura")}</strong>
+                        <p>${escapeHtml(formatarInteiro(saude.usuarios_login_recente || 0))} pessoas usaram o portal recentemente, com ${escapeHtml(formatarInteiro(saude.mix_equipe?.inspetores || 0))} inspetores e ${escapeHtml(formatarInteiro(saude.mix_equipe?.revisores || 0))} usuarios de mesa no mix.</p>
+                    </div>
+                    <span class="pill" data-kind="priority" data-status="${escapeAttr(saude.tone || "aprovado")}">${escapeHtml(formatarInteiro(saude.eventos_comerciais_60d || 0))} eventos</span>
+                </div>
+                ${htmlBarrasHistorico(saude.historico_diario || [], saude.tone || "aprovado")}
             </article>
         `;
     }
@@ -730,6 +936,159 @@
                 ${item.detalhe ? `<p class="activity-detail">${escapeHtml(item.detalhe)}</p>` : ""}
             </article>
         `).join("");
+    }
+
+    function renderHistoricoPlanos() {
+        const container = $("admin-planos-historico");
+        if (!container) return;
+
+        const itens = (state.bootstrap?.auditoria?.itens || []).filter((item) => texto(item?.acao) === "plano_alterado");
+        if (!itens.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>Nenhuma troca de plano registrada ainda</strong>
+                    <p>Quando a empresa mudar de plano, o impacto esperado fica registrado aqui para consulta rapida.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = itens.map((item) => {
+            const payload = item.payload || {};
+            const antes = texto(payload.plano_anterior || "").trim();
+            const depois = texto(payload.plano_novo || "").trim();
+            const impacto = texto(payload.impacto_resumido || item.detalhe || "").trim();
+            return `
+                <article class="activity-item">
+                    <div class="activity-head">
+                        <div class="activity-copy">
+                            <strong>${escapeHtml(item.resumo || "Mudanca de plano")}</strong>
+                            <span class="activity-meta">Por ${escapeHtml(item.ator_nome || "Sistema")} • ${escapeHtml(item.criado_em_label || "Agora")}</span>
+                        </div>
+                        <span class="pill" data-kind="priority" data-status="aberto">${escapeHtml(texto(payload.movimento || "plano"))}</span>
+                    </div>
+                    <p class="activity-detail">${escapeHtml(impacto || "Impacto nao informado.")}</p>
+                    <div class="toolbar-meta">
+                        <span class="hero-chip">${antes ? `Antes: ${escapeHtml(antes)}` : "Antes nao informado"}</span>
+                        <span class="hero-chip">${depois ? `Depois: ${escapeHtml(depois)}` : "Depois nao informado"}</span>
+                    </div>
+                </article>
+            `;
+        }).join("");
+    }
+
+    function renderPreviewPlano() {
+        const container = $("plano-impacto-preview");
+        const empresa = state.bootstrap?.empresa;
+        const seletor = $("empresa-plano");
+        const botao = $("btn-plano-salvar");
+        if (!container || !empresa || !seletor) return;
+
+        const planoSelecionado = obterPlanoCatalogo(seletor.value) || obterPlanoCatalogo(empresa.plano_ativo);
+        if (!planoSelecionado) {
+            container.innerHTML = "";
+            if (botao) botao.disabled = false;
+            return;
+        }
+
+        const ehAtual = texto(planoSelecionado.plano) === texto(empresa.plano_ativo);
+        const movimento = texto(planoSelecionado.movimento || (ehAtual ? "manter" : "upgrade"));
+        const tone = ehAtual ? "aprovado" : movimento === "downgrade" ? "aguardando" : "aberto";
+        const chips = [];
+        chips.push(`<span class="hero-chip">Usuarios: ${escapeHtml(formatarLimitePlano(planoSelecionado.usuarios_max, "vaga", "vagas"))}</span>`);
+        chips.push(`<span class="hero-chip">Laudos/mes: ${escapeHtml(formatarLimitePlano(planoSelecionado.laudos_mes, "laudo", "laudos"))}</span>`);
+        chips.push(`<span class="hero-chip">${planoSelecionado.upload_doc ? "Upload documental liberado" : "Upload documental indisponivel"}</span>`);
+        chips.push(`<span class="hero-chip">${planoSelecionado.deep_research ? "Deep research liberado" : "Deep research indisponivel"}</span>`);
+        const acoes = ehAtual
+            ? ""
+            : `
+                <div class="toolbar-meta" style="margin-top: 10px;">
+                    <button class="btn" type="button" data-act="registrar-interesse-plano" data-origem="admin" data-plano="${escapeAttr(planoSelecionado.plano)}">Registrar interesse</button>
+                </div>
+            `;
+
+        container.innerHTML = `
+            <div class="context-guidance" data-tone="${tone}">
+                <div class="context-guidance-copy">
+                    <small>${ehAtual ? "Plano atual em vigor" : "Impacto esperado da troca"}</small>
+                    <strong>${escapeHtml(planoSelecionado.plano)}</strong>
+                    <p>${escapeHtml(ehAtual
+                        ? `Este plano sustenta hoje ${empresa.capacidade_badge ? empresa.capacidade_badge.toLowerCase() : "a operacao atual"}.`
+                        : planoSelecionado.resumo_impacto || "Sem alteracao material detectada.")}</p>
+                </div>
+                <span class="pill" data-kind="priority" data-status="${tone}">${escapeHtml(ehAtual ? "Plano atual" : movimento)}</span>
+            </div>
+            <div class="toolbar-meta" style="margin-top: 10px;">
+                ${chips.join("")}
+            </div>
+            ${acoes}
+        `;
+
+        if (botao) {
+            botao.disabled = ehAtual;
+        }
+    }
+
+    function renderAvisosOperacionais(canal, targetId) {
+        const container = $(targetId);
+        if (!container) return;
+
+        const avisos = (state.bootstrap?.empresa?.avisos_operacionais || []).filter((item) => texto(item?.canal) === canal);
+        if (!avisos.length) {
+            container.innerHTML = "";
+            return;
+        }
+
+        container.innerHTML = avisos.map((item) => `
+            <div class="context-guidance operational-warning" data-tone="${escapeAttr(item.tone || "aberto")}">
+                <div class="context-guidance-copy">
+                    <small>${escapeHtml(resumoCanalOperacional(canal))}</small>
+                    <strong>${escapeHtml(item.titulo || item.badge || "Aviso operacional")}</strong>
+                    <p>${escapeHtml(item.detalhe || "")}</p>
+                    ${item.acao ? `<p>${escapeHtml(item.acao)}</p>` : ""}
+                    ${state.bootstrap?.empresa?.plano_sugerido
+                        ? `<div class="toolbar-meta"><button class="btn" type="button" data-act="preparar-upgrade" data-origem="${escapeAttr(canal)}">Preparar ${escapeHtml(state.bootstrap.empresa.plano_sugerido)}</button></div>`
+                        : ""}
+                </div>
+                <span class="pill" data-kind="priority" data-status="${escapeAttr(item.tone || "aberto")}">${escapeHtml(item.badge || "Acompanhar")}</span>
+            </div>
+        `).join("");
+    }
+
+    function renderChatCapacidade() {
+        const empresa = state.bootstrap?.empresa;
+        const nota = $("chat-capacidade-nota");
+        const botao = $("btn-chat-laudo-criar");
+        const seletor = $("chat-tipo-template");
+        if (!empresa || !nota) return;
+
+        const atingiuTeto = empresa.laudos_mes_limite != null && Number(empresa.laudos_restantes || 0) <= 0;
+        const emAtencao = empresa.laudos_mes_limite != null && Number(empresa.laudos_restantes || 0) > 0 && Number(empresa.laudos_restantes || 0) <= 5;
+        const planoSugerido = texto(empresa.plano_sugerido).trim();
+        const tone = atingiuTeto ? "ajustes" : emAtencao ? "aguardando" : tomCapacidadeEmpresa(empresa);
+
+        nota.innerHTML = `
+            <div class="form-hint" data-tone="${tone}">
+                <strong>${atingiuTeto ? "Novos laudos bloqueados pelo plano" : emAtencao ? "Janela mensal quase no limite" : "Abertura de laudo dentro da capacidade"}</strong>
+                <span>${escapeHtml(
+                    atingiuTeto
+                        ? `${formatarCapacidadeRestante(empresa.laudos_restantes, empresa.laudos_excedente, "laudo", "laudos")}. ${planoSugerido ? `Prepare ${planoSugerido} para liberar novas aberturas.` : "Revise o contrato antes de abrir novos laudos."}`
+                        : emAtencao
+                            ? `${formatarCapacidadeRestante(empresa.laudos_restantes, empresa.laudos_excedente, "laudo", "laudos")}. ${planoSugerido ? `Vale deixar ${planoSugerido} pronto antes do proximo pico.` : "Monitore a fila antes do proximo pico."}`
+                            : "O plano atual ainda sustenta novas aberturas de laudo com folga operacional."
+                )}</span>
+                ${planoSugerido && (atingiuTeto || emAtencao)
+                    ? `<div class="toolbar-meta"><button class="btn" type="button" data-act="preparar-upgrade" data-origem="chat">Preparar ${escapeHtml(planoSugerido)}</button></div>`
+                    : ""}
+            </div>
+        `;
+
+        if (botao) {
+            botao.disabled = atingiuTeto;
+        }
+        if (seletor) {
+            seletor.disabled = atingiuTeto;
+        }
     }
 
     function renderUsuarios() {
@@ -825,6 +1184,9 @@
     function renderAdmin() {
         renderAdminResumo();
         renderEmpresaCards();
+        renderSaudeEmpresa();
+        renderPreviewPlano();
+        renderHistoricoPlanos();
         renderAdminAuditoria();
         renderUsuarios();
     }
@@ -1227,14 +1589,56 @@
         atualizarBadgesTabs();
         renderAdmin();
         renderChatResumo();
+        renderChatCapacidade();
+        renderAvisosOperacionais("chat", "chat-alertas-operacionais");
         renderChatList();
         renderChatContext();
         renderChatMensagens();
         renderMesaResumoGeral();
+        renderAvisosOperacionais("mesa", "mesa-alertas-operacionais");
         renderMesaList();
         renderMesaContext();
         renderMesaResumo();
         renderMesaMensagens();
+    }
+
+    async function registrarInteressePlano(plano, origem) {
+        const nomePlano = texto(plano).trim();
+        if (!nomePlano) return;
+
+        const resposta = await api("/cliente/api/empresa/plano/interesse", {
+            method: "POST",
+            body: {
+                plano: nomePlano,
+                origem: texto(origem).trim().toLowerCase() || "admin",
+            },
+        });
+        return resposta;
+    }
+
+    async function prepararUpgradeGuiado({ origem = "admin", button = null } = {}) {
+        const empresa = state.bootstrap?.empresa;
+        const planoSugerido = texto(empresa?.plano_sugerido).trim();
+        if (!planoSugerido) {
+            feedback("Nao ha plano sugerido para preparar agora.", true);
+            return;
+        }
+
+        await withBusy(button, "Preparando...", async () => {
+            definirTab("admin");
+            const seletor = $("empresa-plano");
+            if (seletor) {
+                seletor.value = planoSugerido;
+            }
+            renderPreviewPlano();
+            await registrarInteressePlano(planoSugerido, origem);
+            await bootstrapPortal();
+            if (seletor) {
+                seletor.value = planoSugerido;
+            }
+            renderPreviewPlano();
+            feedback(`Plano ${planoSugerido} preparado para revisao e registrado no historico.`, false, "Upgrade encaminhado");
+        }).catch((erro) => feedback(erro.message || "Falha ao preparar upgrade.", true));
     }
 
     async function bootstrapPortal({ carregarDetalhes = false } = {}) {
@@ -1334,16 +1738,25 @@
     }
 
     function bindAdminActions() {
+        $("empresa-plano")?.addEventListener("change", () => {
+            renderPreviewPlano();
+        });
+
         $("form-plano")?.addEventListener("submit", async (event) => {
             event.preventDefault();
             const button = event.submitter || event.target.querySelector('button[type="submit"]');
+            const planoSelecionado = $("empresa-plano")?.value || "";
             await withBusy(button, "Salvando...", async () => {
                 await api("/cliente/api/empresa/plano", {
                     method: "PATCH",
-                    body: { plano: $("empresa-plano").value },
+                    body: { plano: planoSelecionado },
                 });
                 await bootstrapPortal();
-                feedback("Plano da empresa atualizado.");
+                feedback(
+                    `Plano atualizado para ${planoSelecionado}.`,
+                    false,
+                    "Contrato ajustado"
+                );
             }).catch((erro) => feedback(erro.message || "Falha ao atualizar plano.", true));
         });
 
@@ -1409,9 +1822,44 @@
         });
     }
 
+    function bindCommercialActions() {
+        document.addEventListener("click", async (event) => {
+            const button = event.target.closest("button[data-act]");
+            if (!button) return;
+
+            if (button.dataset.act === "preparar-upgrade") {
+                await prepararUpgradeGuiado({
+                    origem: button.dataset.origem || "admin",
+                    button,
+                });
+                return;
+            }
+
+            if (button.dataset.act === "registrar-interesse-plano") {
+                const plano = button.dataset.plano || "";
+                const origem = button.dataset.origem || "admin";
+                await withBusy(button, "Registrando...", async () => {
+                    await registrarInteressePlano(plano, origem);
+                    await bootstrapPortal();
+                    const seletor = $("empresa-plano");
+                    if (seletor && plano) {
+                        seletor.value = plano;
+                    }
+                    renderPreviewPlano();
+                    feedback(`Interesse em ${plano} registrado no historico do portal.`, false, "Interesse salvo");
+                }).catch((erro) => feedback(erro.message || "Falha ao registrar interesse no plano.", true));
+            }
+        });
+    }
+
     function bindChatActions() {
         $("form-chat-laudo")?.addEventListener("submit", async (event) => {
             event.preventDefault();
+            const empresa = state.bootstrap?.empresa;
+            if (empresa?.laudos_mes_limite != null && Number(empresa.laudos_restantes || 0) <= 0) {
+                feedback("O plano atual bloqueou novas aberturas de laudo. Prepare o upgrade antes de continuar.", true);
+                return;
+            }
             const button = event.submitter || event.target.querySelector('button[type="submit"]');
 
             await withBusy(button, "Criando...", async () => {
@@ -1608,6 +2056,7 @@
         bindTabs();
         bindFiltros();
         bindAdminActions();
+        bindCommercialActions();
         bindChatActions();
         bindMesaActions();
 

@@ -688,6 +688,11 @@ def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) 
         for item in itens
         if item["acao"] == "usuario_criado"
     )
+    registro_plano = next(item for item in itens if item["acao"] == "plano_alterado")
+    assert registro_plano["payload"]["plano_anterior"] == "Ilimitado"
+    assert registro_plano["payload"]["plano_novo"] == "Intermediario"
+    assert registro_plano["payload"]["movimento"] == "downgrade"
+    assert "Impacto esperado" in registro_plano["detalhe"]
 
     resposta_bootstrap = client.get("/cliente/api/bootstrap")
     assert resposta_bootstrap.status_code == 200
@@ -706,6 +711,92 @@ def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) 
         assert registros
         assert all(int(item.empresa_id) == ids["empresa_a"] for item in registros)
         assert {item.acao for item in registros} >= {"plano_alterado", "usuario_criado"}
+
+
+def test_admin_cliente_registra_interesse_em_upgrade_no_historico(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta_plano = client.patch(
+        "/cliente/api/empresa/plano",
+        headers={"X-CSRF-Token": csrf},
+        json={"plano": "Inicial"},
+    )
+    assert resposta_plano.status_code == 200
+
+    resposta_interesse = client.post(
+        "/cliente/api/empresa/plano/interesse",
+        headers={"X-CSRF-Token": csrf},
+        json={"plano": "Intermediario", "origem": "chat"},
+    )
+    assert resposta_interesse.status_code == 200
+    corpo = resposta_interesse.json()
+    assert corpo["success"] is True
+    assert corpo["plano"]["plano"] == "Intermediario"
+    assert corpo["plano"]["movimento"] == "upgrade"
+
+    resposta_auditoria = client.get("/cliente/api/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens = resposta_auditoria.json()["itens"]
+    registro = next(item for item in itens if item["acao"] == "plano_interesse_registrado")
+    assert registro["payload"]["origem"] == "chat"
+    assert registro["payload"]["plano_sugerido"] == "Intermediario"
+    assert "Impacto esperado" in registro["detalhe"]
+
+
+def test_admin_cliente_resumo_empresa_explica_capacidade_e_upgrade_sugerido(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    with SessionLocal() as banco:
+        _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta_plano = client.patch(
+        "/cliente/api/empresa/plano",
+        headers={"X-CSRF-Token": csrf},
+        json={"plano": "Inicial"},
+    )
+    assert resposta_plano.status_code == 200
+
+    resposta = client.get("/cliente/api/empresa/resumo")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["plano_ativo"] == "Inicial"
+    assert corpo["usuarios_em_uso"] == 4
+    assert corpo["usuarios_max"] == 1
+    assert corpo["usuarios_restantes"] == 0
+    assert corpo["usuarios_excedente"] == 3
+    assert corpo["laudos_mes_atual"] == 2
+    assert corpo["laudos_mes_limite"] == 50
+    assert corpo["laudos_restantes"] == 48
+    assert corpo["capacidade_status"] == "critico"
+    assert corpo["capacidade_tone"] == "ajustes"
+    assert corpo["capacidade_gargalo"] == "usuarios"
+    assert corpo["plano_sugerido"] == "Intermediario"
+    assert "usuarios" in corpo["plano_sugerido_motivo"].lower()
+    assert any(item["plano"] == "Intermediario" and item["sugerido"] is True for item in corpo["planos_catalogo"])
+    assert any(item["canal"] == "admin" and "acessos" in item["badge"].lower() for item in corpo["avisos_operacionais"])
+    saude = corpo["saude_operacional"]
+    assert saude["historico_mensal"]
+    assert saude["historico_diario"]
+    assert saude["mix_equipe"]["inspetores"] >= 1
+    assert saude["usuarios_ativos_total"] >= 1
+    assert saude["status"]
+    assert saude["tendencia_rotulo"]
 
 
 def test_404_em_rotas_api_app_retorna_json_sem_redirect(ambiente_critico) -> None:

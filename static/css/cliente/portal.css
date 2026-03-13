@@ -320,7 +320,8 @@ textarea:focus-visible,
 .admin-grid,
 .chat-grid,
 .mesa-grid,
-.stack {
+.stack,
+.health-grid {
     display: grid;
     gap: 16px;
 }
@@ -337,6 +338,11 @@ textarea:focus-visible,
 .chat-grid,
 .mesa-grid {
     grid-template-columns: minmax(310px, 0.92fr) minmax(0, 1.4fr);
+}
+
+.health-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-top: 16px;
 }
 
 .stack {
@@ -451,6 +457,70 @@ textarea:focus-visible,
 
 .feature-chip[data-enabled="false"] {
     color: var(--cliente-text-dim);
+}
+
+#empresa-alerta-capacidade {
+    margin-top: 16px;
+}
+
+#plano-impacto-preview,
+#chat-alertas-operacionais,
+#mesa-alertas-operacionais {
+    margin-top: 16px;
+}
+
+.capacity-alert {
+    margin-top: 0;
+}
+
+.operational-warning + .operational-warning {
+    margin-top: 12px;
+}
+
+.capacity-alert-side {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+    min-width: 180px;
+}
+
+.form-hint {
+    display: grid;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.form-hint strong {
+    font-size: 13px;
+}
+
+.form-hint span {
+    color: var(--cliente-text-soft);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.form-hint[data-tone="aberto"] {
+    border-color: rgba(244, 123, 32, 0.16);
+    background: rgba(244, 123, 32, 0.08);
+}
+
+.form-hint[data-tone="aguardando"] {
+    border-color: rgba(255, 213, 139, 0.16);
+    background: rgba(255, 213, 139, 0.08);
+}
+
+.form-hint[data-tone="ajustes"] {
+    border-color: rgba(255, 185, 185, 0.16);
+    background: rgba(255, 185, 185, 0.08);
+}
+
+.form-hint[data-tone="aprovado"] {
+    border-color: rgba(132, 216, 155, 0.18);
+    background: rgba(132, 216, 155, 0.08);
 }
 
 .toolbar {
@@ -906,6 +976,66 @@ td {
     font-size: 15px;
 }
 
+.health-card {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+        rgba(9, 14, 20, 0.5);
+}
+
+.health-bars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+    gap: 10px;
+    align-items: end;
+    min-height: 170px;
+}
+
+.health-bar {
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    align-items: end;
+}
+
+.health-bar-fill {
+    width: 100%;
+    min-height: 10px;
+    border-radius: 999px 999px 6px 6px;
+    background: linear-gradient(180deg, rgba(244, 123, 32, 0.88), rgba(202, 96, 18, 0.88));
+}
+
+.health-bars[data-tone="aguardando"] .health-bar-fill {
+    background: linear-gradient(180deg, rgba(255, 213, 139, 0.9), rgba(214, 154, 68, 0.9));
+}
+
+.health-bars[data-tone="ajustes"] .health-bar-fill {
+    background: linear-gradient(180deg, rgba(255, 185, 185, 0.92), rgba(209, 103, 103, 0.92));
+}
+
+.health-bars[data-tone="aprovado"] .health-bar-fill {
+    background: linear-gradient(180deg, rgba(132, 216, 155, 0.92), rgba(79, 171, 112, 0.92));
+}
+
+.health-bar-fill.is-current {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.health-bar-value {
+    color: var(--cliente-text);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.health-bar-label {
+    color: var(--cliente-text-dim);
+    font-size: 11px;
+}
+
 .msgs {
     display: grid;
     gap: 12px;
@@ -1143,12 +1273,18 @@ td {
     .activity-head,
     .context-head,
     .context-guidance,
+    .capacity-alert,
     .context-actions,
     .item-head,
     .item-footer,
     .msg-head {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .capacity-alert-side {
+        justify-items: stretch;
+        min-width: 0;
     }
 
     .hero-actions .btn,
