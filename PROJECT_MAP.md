@@ -15,7 +15,7 @@ Mapa curto para navegar no Tariel Control sem gastar contexto a toa.
 - `app/domains/chat`: portal do inspetor, laudo, chat IA, mesa e pendencias.
 - `app/domains/revisor`: painel da engenharia, whispers, avaliacao e operacao da mesa.
 - `app/domains/mesa`: contratos e servicos do pacote da mesa avaliadora.
-- `app/domains/admin`: painel administrativo e gestao SaaS.
+- `app/domains/admin`: portal do admin-ceo, empresas, assinaturas e gestao SaaS.
 - `app/domains/cliente`: portal do admin-cliente, empresa, usuarios, chat e mesa company-scoped.
 - `app/shared`: models SQLAlchemy, seguranca, sessao e utilitarios globais.
 
@@ -52,6 +52,14 @@ Mapa curto para navegar no Tariel Control sem gastar contexto a toa.
 - `templates/cliente_portal.html`
 - `app/domains/cliente/routes.py`
 - `app/domains/cliente/common.py`
+
+### Admin-CEO
+
+- `templates/login.html`
+- `templates/dashboard.html`
+- `templates/clientes.html`
+- `templates/novo_cliente.html`
+- `app/domains/admin/routes.py`
 
 ### CSS ativo
 

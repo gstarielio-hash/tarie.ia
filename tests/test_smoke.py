@@ -309,17 +309,21 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     login_cliente = (raiz / "templates" / "login_cliente.html").read_text(encoding="utf-8")
     portal_cliente = (raiz / "templates" / "cliente_portal.html").read_text(encoding="utf-8")
     portal_js = (raiz / "static" / "js" / "cliente" / "portal.js").read_text(encoding="utf-8")
+    portal_css = (raiz / "static" / "css" / "cliente" / "portal.css").read_text(encoding="utf-8")
 
     assert 'action="/cliente/login"' in login_cliente
     assert "Portal Admin-Cliente" in login_cliente
     assert '/static/css/shared/auth_shell.css?v={{ v_app }}' in login_cliente
     assert "/revisao/login" in login_cliente
 
+    assert 'id="hero-prioridades"' in portal_cliente
     assert 'id="tab-admin"' in portal_cliente
     assert 'id="tab-chat"' in portal_cliente
     assert 'id="tab-mesa"' in portal_cliente
     assert 'id="admin-resumo-geral"' in portal_cliente
     assert 'id="admin-auditoria-lista"' in portal_cliente
+    assert 'id="admin-onboarding-resumo"' in portal_cliente
+    assert 'id="admin-onboarding-lista"' in portal_cliente
     assert 'id="admin-saude-resumo"' in portal_cliente
     assert 'id="admin-saude-historico"' in portal_cliente
     assert 'id="empresa-alerta-capacidade"' in portal_cliente
@@ -339,8 +343,12 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'id="chat-busca-laudos"' in portal_cliente
     assert 'id="mesa-busca-laudos"' in portal_cliente
     assert 'id="chat-resumo-geral"' in portal_cliente
+    assert 'id="chat-triagem"' in portal_cliente
+    assert 'id="chat-movimentos"' in portal_cliente
     assert 'id="chat-alertas-operacionais"' in portal_cliente
     assert 'id="mesa-resumo-geral"' in portal_cliente
+    assert 'id="mesa-triagem"' in portal_cliente
+    assert 'id="mesa-movimentos"' in portal_cliente
     assert 'id="mesa-alertas-operacionais"' in portal_cliente
     assert 'id="chat-contexto"' in portal_cliente
     assert 'id="mesa-contexto"' in portal_cliente
@@ -354,6 +362,58 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert "saude_operacional" in portal_js
     assert "/cliente/api/empresa/plano/interesse" in portal_js
     assert "preparar-upgrade" in portal_js
+    assert "renderCentralPrioridades" in portal_js
+    assert "abrir-prioridade" in portal_js
+    assert "renderOnboardingEquipe" in portal_js
+    assert "renderChatTriagem" in portal_js
+    assert "renderChatMovimentos" in portal_js
+    assert "renderMesaTriagem" in portal_js
+    assert "renderMesaMovimentos" in portal_js
+    assert "filtrar-usuarios-status" in portal_js
+    assert "filtrar-chat-status" in portal_js
+    assert "filtrar-mesa-status" in portal_js
+    assert "laudoChatParado" in portal_js
+    assert "laudoMesaParado" in portal_js
+    assert "Ver parados" in portal_js
+    assert "Parado ha" in portal_js
+    assert "usuariosSituacao" in portal_js
+    assert "chatSituacao" in portal_js
+    assert "mesaSituacao" in portal_js
+    assert "aplicarFiltrosUsuarios" in portal_js
+    assert "focarUsuarioNaTabela" in portal_js
+    assert 'data-act="reset-user"' in portal_js
+    assert 'data-act="toggle-user"' in portal_js
+    assert 'data-user="${item.userId' in portal_js
+    assert "user-row-highlight" in portal_css
+
+
+def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None:
+    raiz = Path(__file__).resolve().parents[1]
+    login_admin = (raiz / "templates" / "login.html").read_text(encoding="utf-8")
+    login_cliente = (raiz / "templates" / "login_cliente.html").read_text(encoding="utf-8")
+    login_app = (raiz / "templates" / "login_app.html").read_text(encoding="utf-8")
+    dashboard_admin = (raiz / "templates" / "dashboard.html").read_text(encoding="utf-8")
+    clientes_admin = (raiz / "templates" / "clientes.html").read_text(encoding="utf-8")
+    detalhe_cliente = (raiz / "templates" / "cliente_detalhe.html").read_text(encoding="utf-8")
+    novo_cliente = (raiz / "templates" / "novo_cliente.html").read_text(encoding="utf-8")
+    routes_cliente = (raiz / "app" / "domains" / "cliente" / "routes.py").read_text(encoding="utf-8")
+    routes_admin = (raiz / "app" / "domains" / "admin" / "routes.py").read_text(encoding="utf-8")
+    security = (raiz / "app" / "shared" / "security.py").read_text(encoding="utf-8")
+
+    assert "Portal Admin-CEO" in login_admin
+    assert "Admin-CEO da Tariel Control" in login_admin
+    assert "Portal Admin-Cliente" in login_cliente
+    assert "Admin-CEO" in login_cliente
+    assert "Portal do Inspetor" in login_app
+    assert "Painel Admin-CEO" in dashboard_admin
+    assert "Empresas assinantes" in clientes_admin
+    assert "Admins-Cliente (" in detalhe_cliente
+    assert "inspetores_e_revisores" in detalhe_cliente
+    assert "Provisionar empresa assinante" in novo_cliente
+    assert '"Admin-CEO"' in routes_cliente
+    assert "Área restrita ao Admin-CEO" in routes_admin
+    assert "Acesso restrito ao portal admin-cliente." in security
+    assert "Acesso restrito ao portal Admin-CEO." in security
 
 
 def test_tela_templates_laudo_separa_biblioteca_e_editor_word() -> None:

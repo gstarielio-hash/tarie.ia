@@ -38,6 +38,12 @@ Guia local para agentes e automacoes trabalharem nesta base com o minimo de expl
 - Servicos administrativos reutilizados: `app/domains/admin/services.py`
 - Seguranca/sessao: `app/shared/security.py`, `app/shared/database.py`
 
+### Portal do admin-ceo
+
+- Backend: `app/domains/admin/routes.py`, `app/domains/admin/services.py`
+- Templates: `templates/login.html`, `templates/dashboard.html`, `templates/clientes.html`, `templates/novo_cliente.html`
+- Seguranca/sessao: `app/shared/security.py`, `app/shared/database.py`
+
 ### Gate de qualidade e bloqueio de encerramento
 
 - `app/domains/chat/gate_helpers.py`

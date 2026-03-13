@@ -1,5 +1,5 @@
 // ==========================================
-// PAINEL.JS — Dashboard Admin WF
+// PAINEL.JS — Dashboard Admin-CEO
 // Depende de: Chart.js (carregado antes no dashboard.html)
 // Escopo: IIFE — não polui window
 // ==========================================

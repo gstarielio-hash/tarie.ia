@@ -1080,12 +1080,13 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
             nova_senha=nova_senha_cliente,
         )
 
+        expect(page_cliente.locator("#hero-prioridades")).to_be_visible()
         expect(page_cliente.locator("#tab-admin")).to_be_visible()
         expect(page_cliente.locator("#tab-chat")).to_be_visible()
         expect(page_cliente.locator("#tab-mesa")).to_be_visible()
         expect(page_cliente.locator("#usuarios-busca")).to_be_visible()
         expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_cliente)
-        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("cliente@wf.com.br")
+        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("admin-cliente@wf.com.br")
         expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("inspetor@wf.com.br")
         expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("revisor@wf.com.br")
 
@@ -1118,7 +1119,24 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         assert resposta_inspetor["status"] == 201
         assert resposta_inspetor["body"]["senha_temporaria"]
         page_cliente.reload(wait_until="domcontentloaded")
+        expect(page_cliente.locator("#admin-onboarding-resumo")).to_be_visible()
         expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_inspetor, timeout=10000)
+        page_cliente.get_by_role("button", name="Ver primeiros acessos").click()
+        expect(page_cliente.locator("#usuarios-resumo")).to_contain_text("Filtro rapido: Primeiros acessos", timeout=10000)
+        expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_inspetor, timeout=10000)
+        page_cliente.locator("#admin-onboarding-lista").get_by_role("button", name="Gerar nova senha").first.click()
+        expect(page_cliente.locator("#feedback")).to_contain_text("Senha temporaria:", timeout=10000)
+        prioridade_primeiro_acesso = page_cliente.locator("#hero-prioridades .priority-item").filter(
+            has_text="Primeiro acesso pendente"
+        )
+        expect(prioridade_primeiro_acesso).to_be_visible(timeout=10000)
+        prioridade_primeiro_acesso.get_by_role("button", name="Revisar equipe").click()
+        expect(page_cliente.locator("#tab-admin")).to_have_attribute("aria-selected", "true")
+        expect(page_cliente.locator("#usuarios-busca")).to_have_value(email_inspetor)
+        expect(page_cliente.locator(f'#lista-usuarios [data-user-row="{resposta_inspetor["body"]["usuario"]["id"]}"]')).to_have_class(
+            re.compile(r"user-row-highlight"),
+            timeout=10000,
+        )
         auditoria_usuario = _api_fetch(page_cliente, path="/cliente/api/auditoria")
         assert auditoria_usuario["status"] == 200
         assert any(item["acao"] == "usuario_criado" for item in auditoria_usuario["body"]["itens"])
@@ -1169,11 +1187,20 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         page_cliente.locator("#tab-chat").click()
         expect(page_cliente.locator("#chat-busca-laudos")).to_be_visible()
         expect(page_cliente.locator("#chat-contexto")).to_be_visible()
+        expect(page_cliente.locator("#chat-triagem")).to_be_visible()
+        expect(page_cliente.locator("#chat-movimentos")).to_be_visible()
+        page_cliente.get_by_role("button", name="Ver abertos").click()
+        expect(page_cliente.locator("#chat-lista-resumo")).to_contain_text("Filtro rapido: Em operação", timeout=10000)
         expect(page_cliente.locator("#lista-chat-laudos")).to_contain_text("Aberto", timeout=10000)
 
         page_cliente.locator("#tab-mesa").click()
         expect(page_cliente.locator("#mesa-busca-laudos")).to_be_visible()
         expect(page_cliente.locator("#mesa-contexto")).to_be_visible()
+        expect(page_cliente.locator("#mesa-triagem")).to_be_visible()
+        expect(page_cliente.locator("#mesa-movimentos")).to_be_visible()
+        page_cliente.locator("#mesa-triagem").get_by_role("button", name="Ver respostas novas").click()
+        expect(page_cliente.locator("#mesa-lista-resumo")).to_contain_text("Filtro rapido: Respostas novas", timeout=10000)
+        page_cliente.locator("#mesa-triagem").get_by_role("button", name="Limpar filtro rapido").click()
         page_cliente.wait_for_function(
             "() => !!document.querySelector('#lista-mesa-laudos [data-mesa]')",
             timeout=10000,

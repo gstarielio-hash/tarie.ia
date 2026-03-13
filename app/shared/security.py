@@ -968,7 +968,7 @@ def exigir_admin_cliente(usuario: Usuario = Depends(obter_usuario_api)) -> Usuar
     return _exigir_niveis_permitidos(
         usuario,
         _NIVEIS_PERMITIDOS_CLIENTE,
-        "Acesso restrito ao portal do cliente.",
+        "Acesso restrito ao portal admin-cliente.",
         contexto_log="portal_cliente",
     )
 
@@ -981,7 +981,7 @@ def exigir_diretoria(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     return _exigir_niveis_permitidos(
         usuario,
         _NIVEIS_PERMITIDOS_ADMIN,
-        "Acesso restrito à Diretoria.",
+        "Acesso restrito ao portal Admin-CEO.",
         contexto_log="portal_admin",
     )
 

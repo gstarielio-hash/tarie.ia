@@ -1250,7 +1250,7 @@ def _seed_dev() -> None:
     from app.shared.security import criar_hash_senha
 
     senha_admin = env_str("SEED_ADMIN_SENHA", "Admin@123")
-    senha_cliente = env_str("SEED_CLIENTE_SENHA", "Dev@123456")
+    senha_admin_cliente = env_str("SEED_CLIENTE_SENHA", "Dev@123456")
     senha_inspetor = env_str("SEED_INSPETOR_SENHA", "Dev@123456")
     senha_revisor = env_str("SEED_REVISOR_SENHA", "Dev@123456")
 
@@ -1276,10 +1276,10 @@ def _seed_dev() -> None:
                 senha_admin,
             ),
             (
-                "cliente@wf.com.br",
-                "Admin Cliente Dev",
+                "admin-cliente@wf.com.br",
+                "Admin-Cliente Dev",
                 int(NivelAcesso.ADMIN_CLIENTE),
-                senha_cliente,
+                senha_admin_cliente,
             ),
             (
                 "inspetor@wf.com.br",

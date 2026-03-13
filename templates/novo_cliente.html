@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Novo Cliente • Tariel Control</title>
+    <title>Nova Empresa Assinante • Tariel Control</title>
     <link rel="icon" href="/static/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,8 +22,8 @@
 </head>
 <body>
     <main>
-        <h1>Provisionar empresa cliente</h1>
-        <p>O admin geral da WF cria a empresa e provisiona o primeiro <strong>admin-cliente</strong>. A senha inicial é temporária e deverá ser trocada no primeiro acesso.</p>
+        <h1>Provisionar empresa assinante</h1>
+        <p>O <strong>admin-ceo</strong> cria a empresa e provisiona o primeiro <strong>admin-cliente</strong>. A senha inicial é temporária e deverá ser trocada no primeiro acesso.</p>
 
         <form method="post" action="/admin/novo-cliente" class="box">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -38,8 +38,8 @@
                 <label style="grid-column:1/-1;">Observações<textarea name="observacoes"></textarea></label>
             </div>
             <div class="actions">
-                <button class="btn primary" type="submit">Criar empresa e admin-cliente</button>
-                <a class="btn" href="/admin/clientes">Voltar para clientes</a>
+                <button class="btn primary" type="submit">Criar empresa e primeiro admin-cliente</button>
+                <a class="btn" href="/admin/clientes">Voltar para empresas</a>
             </div>
         </form>
     </main>

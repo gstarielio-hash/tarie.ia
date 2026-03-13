@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import json
 import logging
 import secrets
 from typing import Annotated, Any, Literal, Optional
@@ -150,7 +151,7 @@ _ROLE_LABELS = {
     int(NivelAcesso.INSPETOR): "Inspetor",
     int(NivelAcesso.REVISOR): "Mesa Avaliadora",
     int(NivelAcesso.ADMIN_CLIENTE): "Admin-Cliente",
-    int(NivelAcesso.DIRETORIA): "Admin WF",
+    int(NivelAcesso.DIRETORIA): "Admin-CEO",
 }
 _PLANOS_ASCENDENTES = [
     PlanoEmpresa.INICIAL.value,
@@ -882,7 +883,7 @@ def _render_troca_senha(request: Request, *, erro: str = "", status_code: int = 
         {
             "erro": erro,
             "titulo_pagina": "Troca Obrigatória de Senha",
-            "subtitulo_pagina": "Defina sua nova senha para liberar o acesso ao portal do cliente.",
+            "subtitulo_pagina": "Defina sua nova senha para liberar o acesso ao portal admin-cliente.",
             "acao_form": "/cliente/trocar-senha",
             "rota_login": URL_LOGIN,
         },
@@ -1215,6 +1216,32 @@ def _registrar_auditoria_cliente_segura(
         alvo_usuario_id=alvo_usuario_id,
         payload=payload,
     )
+
+
+def _payload_json_resposta(resposta: Any) -> dict[str, Any]:
+    if not isinstance(resposta, JSONResponse):
+        return {}
+    try:
+        bruto = resposta.body.decode("utf-8")
+        payload = json.loads(bruto or "{}")
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _resumir_texto_auditoria(texto: str, *, limite: int = 160) -> str:
+    valor = " ".join(str(texto or "").split())
+    if len(valor) <= limite:
+        return valor
+    return f"{valor[: limite - 3].rstrip()}..."
+
+
+def _titulo_laudo_cliente(banco: Session, *, empresa_id: int, laudo_id: int) -> str:
+    laudo = banco.get(Laudo, int(laudo_id))
+    if laudo is None or int(getattr(laudo, "empresa_id", 0) or 0) != int(empresa_id):
+        return f"Laudo #{laudo_id}"
+    payload = serializar_card_laudo(banco, laudo)
+    return str(payload.get("titulo") or f"Laudo #{laudo_id}")
 
 
 @roteador_cliente.get("/", include_in_schema=False)
@@ -1733,13 +1760,26 @@ async def api_chat_criar_laudo_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await api_iniciar_relatorio(
+    resposta = await api_iniciar_relatorio(
         request=request,
         tipo_template=tipo_template,
         tipotemplate=None,
         usuario=usuario,
         banco=banco,
     )
+    payload = _payload_json_resposta(resposta)
+    laudo_id = int(payload.get("laudo_id") or 0)
+    if laudo_id > 0:
+        _registrar_auditoria_cliente_segura(
+            banco,
+            empresa_id=int(usuario.empresa_id),
+            ator_usuario_id=int(usuario.id),
+            acao="chat_laudo_criado",
+            resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} criado no chat.",
+            detalhe=f"Template {str(tipo_template or 'padrao').strip() or 'padrao'} iniciado pelo admin-cliente.",
+            payload={"laudo_id": laudo_id, "tipo_template": str(tipo_template or 'padrao').strip() or 'padrao'},
+        )
+    return resposta
 
 
 @roteador_cliente.get("/api/chat/laudos/{laudo_id}/mensagens", responses=RESPOSTAS_CHAT_CLIENTE)
@@ -1771,12 +1811,29 @@ async def api_chat_enviar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await rota_chat(
+    resposta = await rota_chat(
         dados=dados,
         request=request,
         usuario=usuario,
         banco=banco,
     )
+    laudo_id = int(dados.laudo_id or 0)
+    if laudo_id > 0:
+        _registrar_auditoria_cliente_segura(
+            banco,
+            empresa_id=int(usuario.empresa_id),
+            ator_usuario_id=int(usuario.id),
+            acao="chat_mensagem_enviada",
+            resumo=f"Mensagem enviada no chat de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)}.",
+            detalhe=_resumir_texto_auditoria(dados.mensagem or "Mensagem operacional enviada pelo admin-cliente."),
+            payload={
+                "laudo_id": laudo_id,
+                "setor": dados.setor,
+                "modo": dados.modo,
+                "referencia_mensagem_id": dados.referencia_mensagem_id,
+            },
+        )
+    return resposta
 
 
 @roteador_cliente.get("/api/chat/laudos/{laudo_id}/gate", responses=RESPOSTAS_GATE_CLIENTE)
@@ -1810,12 +1867,22 @@ async def api_chat_finalizar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await api_finalizar_relatorio(
+    resposta = await api_finalizar_relatorio(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
         banco=banco,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="chat_laudo_finalizado",
+        resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} finalizado no chat.",
+        detalhe="O laudo foi encaminhado pelo portal admin-cliente.",
+        payload={"laudo_id": int(laudo_id)},
+    )
+    return resposta
 
 
 @roteador_cliente.post(
@@ -1829,12 +1896,22 @@ async def api_chat_reabrir_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await api_reabrir_laudo(
+    resposta = await api_reabrir_laudo(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
         banco=banco,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="chat_laudo_reaberto",
+        resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} reaberto no chat.",
+        detalhe="O admin-cliente voltou o laudo para continuidade operacional.",
+        payload={"laudo_id": int(laudo_id)},
+    )
+    return resposta
 
 
 @roteador_cliente.get("/api/mesa/laudos")
@@ -1915,13 +1992,23 @@ async def api_mesa_responder_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await responder_chat_campo(
+    resposta = await responder_chat_campo(
         laudo_id=laudo_id,
         dados=dados,
         request=request,
         usuario=usuario,
         banco=banco,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="mesa_resposta_enviada",
+        resumo=f"Resposta enviada na mesa de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)}.",
+        detalhe=_resumir_texto_auditoria(dados.texto),
+        payload={"laudo_id": int(laudo_id), "referencia_mensagem_id": dados.referencia_mensagem_id},
+    )
+    return resposta
 
 
 @roteador_cliente.post(
@@ -1938,7 +2025,7 @@ async def api_mesa_responder_anexo_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await responder_chat_campo_com_anexo(
+    resposta = await responder_chat_campo_com_anexo(
         laudo_id=laudo_id,
         request=request,
         arquivo=arquivo,
@@ -1947,6 +2034,20 @@ async def api_mesa_responder_anexo_cliente(
         usuario=usuario,
         banco=banco,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="mesa_resposta_com_anexo",
+        resumo=f"Anexo enviado na mesa de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)}.",
+        detalhe=_resumir_texto_auditoria(texto or f"Arquivo {getattr(arquivo, 'filename', 'anexo')} enviado pelo admin-cliente."),
+        payload={
+            "laudo_id": int(laudo_id),
+            "arquivo": str(getattr(arquivo, "filename", "") or ""),
+            "referencia_mensagem_id": referencia_mensagem_id,
+        },
+    )
+    return resposta
 
 
 @roteador_cliente.patch(
@@ -1962,7 +2063,7 @@ async def api_mesa_pendencia_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await atualizar_pendencia_mesa_revisor(
+    resposta = await atualizar_pendencia_mesa_revisor(
         laudo_id=laudo_id,
         mensagem_id=mensagem_id,
         dados=dados,
@@ -1970,6 +2071,16 @@ async def api_mesa_pendencia_cliente(
         usuario=usuario,
         banco=banco,
     )
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="mesa_pendencia_atualizada",
+        resumo=f"Pendência de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} {'resolvida' if dados.lida else 'reaberta'}.",
+        detalhe="A pendência foi atualizada pelo admin-cliente.",
+        payload={"laudo_id": int(laudo_id), "mensagem_id": int(mensagem_id), "lida": bool(dados.lida)},
+    )
+    return resposta
 
 
 @roteador_cliente.post(
@@ -1987,7 +2098,7 @@ async def api_mesa_avaliar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await avaliar_laudo(
+    resposta = await avaliar_laudo(
         laudo_id=laudo_id,
         request=request,
         acao=dados.acao,
@@ -1996,6 +2107,18 @@ async def api_mesa_avaliar_cliente(
         usuario=usuario,
         banco=banco,
     )
+    payload = _payload_json_resposta(resposta)
+    acao_normalizada = str(payload.get("acao") or dados.acao or "").strip().lower()
+    _registrar_auditoria_cliente_segura(
+        banco,
+        empresa_id=int(usuario.empresa_id),
+        ator_usuario_id=int(usuario.id),
+        acao="mesa_laudo_avaliado",
+        resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} {'aprovado' if acao_normalizada == 'aprovar' else 'devolvido'} pela mesa.",
+        detalhe=_resumir_texto_auditoria(str(payload.get('motivo') or dados.motivo or "Avaliação registrada pelo admin-cliente.")),
+        payload={"laudo_id": int(laudo_id), "acao": acao_normalizada or str(dados.acao or ""), "motivo": str(payload.get("motivo") or dados.motivo or "")},
+    )
+    return resposta
 
 
 @roteador_cliente.post("/api/mesa/laudos/{laudo_id}/marcar-whispers-lidos", responses=RESPOSTAS_MESA_CLIENTE)

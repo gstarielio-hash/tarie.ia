@@ -1,12 +1,12 @@
 """
 rotas_admin.py — Tariel Control Tower
-WF Engenharia · Rotas do painel administrativo (Diretoria)
+Rotas do portal Admin-CEO
 
 Responsabilidades:
-- autenticação do painel admin
-- dashboard da diretoria
-- gestão SaaS de clientes
-- cadastro de empresa/cliente
+- autenticação do painel admin central
+- dashboard do admin-ceo
+ - gestão SaaS de empresas assinantes
+ - cadastro da empresa e do primeiro admin-cliente
 - troca de plano, bloqueio e gestão de inspetores
 """
 
@@ -575,7 +575,7 @@ async def processar_login(
     if not _verificar_acesso_admin(usuario):
         return _render_login(
             request,
-            erro=("Área restrita à administração central. Para clientes, use /cliente/login."),
+            erro=("Área restrita ao Admin-CEO. Para admins-cliente, use /cliente/login."),
             status_code=403,
         )
 

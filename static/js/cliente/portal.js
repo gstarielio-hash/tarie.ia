@@ -15,8 +15,12 @@
             feedbackTimer: null,
             usuariosBusca: "",
             usuariosPapel: "todos",
+            usuariosSituacao: "",
             chatBusca: "",
+            chatSituacao: "",
             mesaBusca: "",
+            mesaSituacao: "",
+            usuarioEmDestaque: null,
         },
         chat: {
             laudoId: null,
@@ -109,6 +113,16 @@
         return "Admin";
     }
 
+    function scrollToPortalSection(id) {
+        const alvo = id ? $(id) : null;
+        if (!alvo) return;
+        try {
+            alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (_) {
+            alvo.scrollIntoView();
+        }
+    }
+
     function htmlBarrasHistorico(serie, tone) {
         const lista = Array.isArray(serie) ? serie : [];
         const maior = Math.max(...lista.map((item) => Number(item?.total || 0)), 1);
@@ -127,6 +141,145 @@
                 }).join("")}
             </div>
         `;
+    }
+
+    function construirPrioridadesPortal() {
+        const empresa = state.bootstrap?.empresa;
+        const usuarios = state.bootstrap?.usuarios || [];
+        const laudosChat = state.bootstrap?.chat?.laudos || [];
+        const laudosMesa = state.bootstrap?.mesa?.laudos || [];
+        const prioridades = [];
+
+        if (!empresa) return prioridades;
+
+        if (empresa.status_bloqueio) {
+            prioridades.push({
+                score: 1000,
+                tone: "ajustes",
+                canal: "admin",
+                titulo: "Empresa bloqueada",
+                detalhe: "A operacao central esta bloqueada e isso merece revisao imediata.",
+                acaoLabel: "Abrir Admin",
+                kind: "admin-section",
+                targetId: "empresa-resumo-detalhado",
+            });
+        }
+
+        if (empresa.capacidade_status === "critico" && texto(empresa.plano_sugerido).trim()) {
+            prioridades.push({
+                score: 960,
+                tone: "ajustes",
+                canal: "admin",
+                titulo: "Upgrade precisa sair agora",
+                detalhe: empresa.capacidade_acao || "A empresa ja encostou no teto do contrato.",
+                acaoLabel: `Preparar ${empresa.plano_sugerido}`,
+                kind: "upgrade",
+                origem: empresa.capacidade_gargalo === "laudos" ? "chat" : "admin",
+            });
+        }
+
+        const primeiroTemporario = ordenarPorPrioridade(
+            usuarios.filter((item) => item?.senha_temporaria_ativa),
+            prioridadeUsuario
+        )[0];
+        if (primeiroTemporario) {
+            prioridades.push({
+                score: 760,
+                tone: "aguardando",
+                canal: "admin",
+                titulo: "Primeiro acesso pendente",
+                detalhe: `${primeiroTemporario.nome || "Usuario"} ainda precisa concluir a troca de senha para operar.`,
+                acaoLabel: "Revisar equipe",
+                kind: "admin-user",
+                targetId: "lista-usuarios",
+                userId: Number(primeiroTemporario.id),
+                busca: primeiroTemporario.email || primeiroTemporario.nome || "",
+                papel: slugPapel(primeiroTemporario),
+            });
+        }
+
+        const primeiroBloqueado = ordenarPorPrioridade(
+            usuarios.filter((item) => !item?.ativo),
+            prioridadeUsuario
+        )[0];
+        if (primeiroBloqueado) {
+            prioridades.push({
+                score: 720,
+                tone: "ajustes",
+                canal: "admin",
+                titulo: "Acesso bloqueado pede revisao",
+                detalhe: `${primeiroBloqueado.nome || "Usuario"} esta bloqueado e pode estar travando a rotina da empresa.`,
+                acaoLabel: "Abrir equipe",
+                kind: "admin-user",
+                targetId: "lista-usuarios",
+                userId: Number(primeiroBloqueado.id),
+                busca: primeiroBloqueado.email || primeiroBloqueado.nome || "",
+                papel: slugPapel(primeiroBloqueado),
+            });
+        }
+
+        const chatUrgente = ordenarPorPrioridade(
+            laudosChat.filter((item) => {
+                const status = variantStatusLaudo(item?.status_card);
+                return status === "ajustes" || status === "aberto" || status === "aguardando";
+            }),
+            prioridadeChat
+        )[0];
+        if (chatUrgente && prioridadeChat(chatUrgente).tone !== "aprovado") {
+            const prioridade = prioridadeChat(chatUrgente);
+            prioridades.push({
+                score: 680,
+                tone: prioridade.tone,
+                canal: "chat",
+                titulo: chatUrgente.titulo || "Laudo no chat",
+                detalhe: prioridade.acao,
+                acaoLabel: "Abrir laudo",
+                kind: "chat-laudo",
+                laudoId: Number(chatUrgente.id),
+                targetId: "chat-contexto",
+            });
+        }
+
+        const mesaUrgente = ordenarPorPrioridade(
+            laudosMesa.filter((item) => {
+                const prioridade = prioridadeMesa(item);
+                return prioridade.tone !== "aprovado";
+            }),
+            prioridadeMesa
+        )[0];
+        if (mesaUrgente && prioridadeMesa(mesaUrgente).tone !== "aprovado") {
+            const prioridade = prioridadeMesa(mesaUrgente);
+            prioridades.push({
+                score: 660,
+                tone: prioridade.tone,
+                canal: "mesa",
+                titulo: mesaUrgente.titulo || "Laudo na mesa",
+                detalhe: prioridade.acao,
+                acaoLabel: "Abrir mesa",
+                kind: "mesa-laudo",
+                laudoId: Number(mesaUrgente.id),
+                targetId: "mesa-contexto",
+            });
+        }
+
+        const resultado = prioridades
+            .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
+            .slice(0, 4);
+
+        if (resultado.length) return resultado;
+
+        return [
+            {
+                score: 100,
+                tone: "aprovado",
+                canal: "admin",
+                titulo: "Operacao sob controle",
+                detalhe: "Nenhum gargalo critico apareceu agora entre equipe, chat e mesa.",
+                acaoLabel: "Abrir Admin",
+                kind: "admin-section",
+                targetId: "panel-admin",
+            },
+        ];
     }
 
     function formatarBytes(valor) {
@@ -156,6 +309,31 @@
         return "Inspetor";
     }
 
+    function rotuloSituacaoUsuarios(situacao) {
+        if (situacao === "temporarios") return "Primeiros acessos";
+        if (situacao === "sem_login") return "Sem login";
+        if (situacao === "bloqueados") return "Bloqueados";
+        return "";
+    }
+
+    function rotuloSituacaoChat(situacao) {
+        if (situacao === "ajustes") return "Ação agora";
+        if (situacao === "abertos") return "Em operação";
+        if (situacao === "aguardando") return "Aguardando mesa";
+        if (situacao === "parados") return "Parados";
+        if (situacao === "concluidos") return "Concluídos";
+        return "";
+    }
+
+    function rotuloSituacaoMesa(situacao) {
+        if (situacao === "responder") return "Respostas novas";
+        if (situacao === "pendencias") return "Pendências abertas";
+        if (situacao === "aguardando") return "Pronto para revisar";
+        if (situacao === "parados") return "Parados";
+        if (situacao === "aprovados") return "Concluídos";
+        return "";
+    }
+
     function variantStatusLaudo(status) {
         const valor = texto(status).trim().toLowerCase();
         if (valor === "aguardando" || valor === "ajustes" || valor === "aprovado") {
@@ -167,6 +345,36 @@
     function parseDataIso(valor) {
         const timestamp = Date.parse(texto(valor));
         return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    function horasDesdeAtualizacao(valor) {
+        const timestamp = parseDataIso(valor);
+        if (!timestamp) return null;
+        const diff = Date.now() - timestamp;
+        if (!Number.isFinite(diff) || diff < 0) return 0;
+        return Math.floor(diff / (1000 * 60 * 60));
+    }
+
+    function resumoEsperaHoras(horas) {
+        const numero = Number(horas);
+        if (!Number.isFinite(numero) || numero <= 0) return "Atualizado agora";
+        if (numero < 24) return `Parado ha ${numero}h`;
+        const dias = Math.floor(numero / 24);
+        return `Parado ha ${dias}d`;
+    }
+
+    function laudoChatParado(laudo) {
+        const horas = horasDesdeAtualizacao(laudo?.atualizado_em);
+        const status = variantStatusLaudo(laudo?.status_card);
+        if (horas == null || status === "aprovado") return false;
+        return horas >= 48;
+    }
+
+    function laudoMesaParado(laudo) {
+        const horas = horasDesdeAtualizacao(laudo?.atualizado_em);
+        const prioridade = prioridadeMesa(laudo);
+        if (horas == null || prioridade.tone === "aprovado") return false;
+        return horas >= 24;
     }
 
     function ordenarPorPrioridade(lista, resolverPrioridade) {
@@ -550,10 +758,14 @@
         const usuarios = state.bootstrap?.usuarios || [];
         const busca = state.ui.usuariosBusca.trim().toLowerCase();
         const papel = state.ui.usuariosPapel;
+        const situacao = state.ui.usuariosSituacao;
 
         return usuarios.filter((usuario) => {
             const combinaPapel = papel === "todos" ? true : slugPapel(usuario) === papel;
             if (!combinaPapel) return false;
+            if (situacao === "temporarios" && !usuario.senha_temporaria_ativa) return false;
+            if (situacao === "sem_login" && parseDataIso(usuario.ultimo_login)) return false;
+            if (situacao === "bloqueados" && usuario.ativo) return false;
             if (!busca) return true;
 
             const alvo = [
@@ -572,9 +784,17 @@
     function filtrarLaudosChat() {
         const laudos = state.bootstrap?.chat?.laudos || [];
         const busca = state.ui.chatBusca.trim().toLowerCase();
-        if (!busca) return laudos;
+        const situacao = state.ui.chatSituacao;
 
         return laudos.filter((laudo) => {
+            const status = variantStatusLaudo(laudo.status_card);
+            if (situacao === "ajustes" && status !== "ajustes") return false;
+            if (situacao === "abertos" && status !== "aberto") return false;
+            if (situacao === "aguardando" && status !== "aguardando") return false;
+            if (situacao === "parados" && !laudoChatParado(laudo)) return false;
+            if (situacao === "concluidos" && status !== "aprovado") return false;
+            if (!busca) return true;
+
             const alvo = [
                 laudo.titulo,
                 laudo.preview,
@@ -590,9 +810,18 @@
     function filtrarLaudosMesa() {
         const laudos = state.bootstrap?.mesa?.laudos || [];
         const busca = state.ui.mesaBusca.trim().toLowerCase();
-        if (!busca) return laudos;
+        const situacao = state.ui.mesaSituacao;
 
         return laudos.filter((laudo) => {
+            const prioridade = prioridadeMesa(laudo);
+            const status = variantStatusLaudo(laudo.status_card);
+            if (situacao === "responder" && Number(laudo?.whispers_nao_lidos || 0) <= 0) return false;
+            if (situacao === "pendencias" && Number(laudo?.pendencias_abertas || 0) <= 0) return false;
+            if (situacao === "aguardando" && !(status === "aguardando" && Number(laudo?.whispers_nao_lidos || 0) <= 0 && Number(laudo?.pendencias_abertas || 0) <= 0)) return false;
+            if (situacao === "parados" && !laudoMesaParado(laudo)) return false;
+            if (situacao === "aprovados" && prioridade.tone !== "aprovado") return false;
+            if (!busca) return true;
+
             const alvo = [
                 laudo.titulo,
                 laudo.preview,
@@ -909,6 +1138,119 @@
         `;
     }
 
+    function renderOnboardingEquipe() {
+        const resumo = $("admin-onboarding-resumo");
+        const lista = $("admin-onboarding-lista");
+        const usuarios = state.bootstrap?.usuarios || [];
+        if (!resumo || !lista) return;
+
+        const temporarios = ordenarPorPrioridade(
+            usuarios.filter((item) => item?.senha_temporaria_ativa),
+            prioridadeUsuario
+        );
+        const semLogin = ordenarPorPrioridade(
+            usuarios.filter((item) => !parseDataIso(item?.ultimo_login)),
+            prioridadeUsuario
+        );
+        const bloqueados = ordenarPorPrioridade(
+            usuarios.filter((item) => !item?.ativo),
+            prioridadeUsuario
+        );
+        const revisoresSemLogin = semLogin.filter((item) => slugPapel(item) === "revisor");
+
+        resumo.innerHTML = `
+            <article class="metric-card" data-accent="waiting">
+                <small>Primeiros acessos</small>
+                <strong>${formatarInteiro(temporarios.length)}</strong>
+                <span class="metric-meta">Usuarios com senha temporaria ainda pendente de conclusao.</span>
+            </article>
+            <article class="metric-card" data-accent="aberto">
+                <small>Sem login</small>
+                <strong>${formatarInteiro(semLogin.length)}</strong>
+                <span class="metric-meta">Cadastros criados que ainda nao entraram nenhuma vez.</span>
+            </article>
+            <article class="metric-card" data-accent="attention">
+                <small>Bloqueados</small>
+                <strong>${formatarInteiro(bloqueados.length)}</strong>
+                <span class="metric-meta">Acessos travados que podem segurar a operacao da empresa.</span>
+            </article>
+            <article class="metric-card" data-accent="live">
+                <small>Mesa sem login</small>
+                <strong>${formatarInteiro(revisoresSemLogin.length)}</strong>
+                <span class="metric-meta">Usuarios da Mesa Avaliadora que ainda nao ativaram o acesso.</span>
+            </article>
+        `;
+
+        const pendenciasMap = new Map();
+        [...temporarios, ...bloqueados, ...semLogin].forEach((item) => {
+            if (item?.id != null) pendenciasMap.set(Number(item.id), item);
+        });
+        const pendencias = ordenarPorPrioridade([...pendenciasMap.values()], prioridadeUsuario).slice(0, 4);
+
+        const quickActions = `
+            <div class="toolbar-meta">
+                <button class="btn" type="button" data-act="filtrar-usuarios-status" data-situacao="temporarios">Ver primeiros acessos</button>
+                <button class="btn" type="button" data-act="filtrar-usuarios-status" data-situacao="sem_login">Ver sem login</button>
+                <button class="btn" type="button" data-act="filtrar-usuarios-status" data-situacao="bloqueados">Ver bloqueados</button>
+                <button class="btn ghost" type="button" data-act="limpar-filtro-usuarios">Limpar filtro rapido</button>
+            </div>
+        `;
+
+        if (!pendencias.length) {
+            lista.innerHTML = `
+                <div class="empty-state">
+                    <strong>Equipe principal ativada</strong>
+                    <p>Nao ha onboarding pendente agora. Novos primeiros acessos e bloqueios vao aparecer aqui.</p>
+                </div>
+                ${quickActions}
+            `;
+            return;
+        }
+
+        lista.innerHTML = `
+            ${quickActions}
+            ${pendencias.map((usuario) => {
+                const prioridade = prioridadeUsuario(usuario);
+                const papel = slugPapel(usuario);
+                const detalhe =
+                    !usuario.ativo
+                        ? `${usuario.nome || "Usuario"} esta bloqueado e pode estar segurando a rotina da empresa.`
+                        : usuario.senha_temporaria_ativa
+                            ? `${usuario.nome || "Usuario"} ainda precisa concluir o primeiro acesso.`
+                            : `${usuario.nome || "Usuario"} foi criado, mas ainda nao entrou nenhuma vez.`;
+
+                return `
+                    <article class="activity-item">
+                        <div class="activity-head">
+                            <div class="activity-copy">
+                                <strong>${escapeHtml(usuario.nome || "Usuario")}</strong>
+                                <span class="activity-meta">${escapeHtml(usuario.email || "Sem e-mail")} • ${escapeHtml(obterNomePapel(papel))}</span>
+                            </div>
+                            <span class="pill" data-kind="priority" data-status="${escapeAttr(prioridade.tone)}">${escapeHtml(prioridade.badge)}</span>
+                        </div>
+                        <p class="activity-detail">${escapeHtml(detalhe)}</p>
+                        <div class="toolbar-meta">
+                            ${!usuario.ativo
+                                ? `<button class="btn" type="button" data-act="toggle-user" data-user="${escapeAttr(String(usuario.id || ""))}">Desbloquear agora</button>`
+                                : `<button class="btn" type="button" data-act="reset-user" data-user="${escapeAttr(String(usuario.id || ""))}">Gerar nova senha</button>`}
+                            <button
+                                class="btn"
+                                type="button"
+                                data-act="abrir-prioridade"
+                                data-kind="admin-user"
+                                data-canal="admin"
+                                data-target="lista-usuarios"
+                                data-user="${escapeAttr(String(usuario.id || ""))}"
+                                data-busca="${escapeAttr(usuario.email || usuario.nome || "")}"
+                                data-papel="${escapeAttr(papel)}"
+                            >Abrir cadastro</button>
+                        </div>
+                    </article>
+                `;
+            }).join("")}
+        `;
+    }
+
     function renderAdminAuditoria() {
         const container = $("admin-auditoria-lista");
         if (!container) return;
@@ -1091,6 +1433,43 @@
         }
     }
 
+    function aplicarFiltrosUsuarios({ busca = "", papel = "todos", userId = null } = {}) {
+        state.ui.usuariosBusca = texto(busca).trim();
+        state.ui.usuariosPapel = texto(papel).trim() || "todos";
+        state.ui.usuariosSituacao = "";
+        state.ui.usuarioEmDestaque = userId ? Number(userId) : null;
+
+        if ($("usuarios-busca")) {
+            $("usuarios-busca").value = state.ui.usuariosBusca;
+        }
+        if ($("usuarios-filtro-papel")) {
+            $("usuarios-filtro-papel").value = state.ui.usuariosPapel;
+        }
+
+        renderUsuarios();
+    }
+
+    function focarUsuarioNaTabela(userId, { expandir = true } = {}) {
+        const id = Number(userId || 0);
+        if (!Number.isFinite(id) || id <= 0) return;
+
+        window.setTimeout(() => {
+            const linha = document.querySelector(`[data-user-row="${id}"]`);
+            if (!linha) return;
+            if (expandir) {
+                const details = linha.querySelector(".user-editor");
+                if (details && !details.open) {
+                    details.open = true;
+                }
+            }
+            try {
+                linha.scrollIntoView({ behavior: "smooth", block: "center" });
+            } catch (_) {
+                linha.scrollIntoView();
+            }
+        }, 40);
+    }
+
     function renderUsuarios() {
         const usuarios = ordenarPorPrioridade(filtrarUsuarios(), prioridadeUsuario);
         const tbody = $("lista-usuarios");
@@ -1100,12 +1479,14 @@
         const totalTemporarios = (state.bootstrap?.usuarios || []).filter((item) => item.senha_temporaria_ativa).length;
         const totalBloqueados = (state.bootstrap?.usuarios || []).filter((item) => !item.ativo).length;
         const totalSemLogin = (state.bootstrap?.usuarios || []).filter((item) => !parseDataIso(item.ultimo_login)).length;
+        const rotuloFiltroRapido = rotuloSituacaoUsuarios(state.ui.usuariosSituacao);
         resumo.innerHTML = `
             <span class="hero-chip">${formatarInteiro(usuarios.length)} visiveis agora</span>
             <span class="hero-chip">${formatarInteiro(totalTemporarios)} com senha temporaria</span>
             <span class="hero-chip">${formatarInteiro(totalBloqueados)} bloqueados</span>
             <span class="hero-chip">${formatarInteiro(totalSemLogin)} sem login</span>
             <span class="hero-chip">${formatarInteiro((state.bootstrap?.usuarios || []).filter((item) => item.ativo).length)} ativos</span>
+            ${rotuloFiltroRapido ? `<span class="hero-chip">Filtro rapido: ${escapeHtml(rotuloFiltroRapido)}</span>` : ""}
         `;
 
         if (!usuarios.length) {
@@ -1119,9 +1500,10 @@
             const papel = obterNomePapel(slugPapel(usuario));
             const ultimoLogin = escapeHtml(usuario.ultimo_login_label || "Nunca");
             const prioridade = prioridadeUsuario(usuario);
+            const emDestaque = Number(state.ui.usuarioEmDestaque || 0) === Number(usuario.id);
 
             return `
-                <tr>
+                <tr data-user-row="${usuario.id}"${emDestaque ? ' class="user-row-highlight"' : ""}>
                     <td>
                         <div class="user-main">
                             <div class="user-primary">
@@ -1187,8 +1569,41 @@
         renderSaudeEmpresa();
         renderPreviewPlano();
         renderHistoricoPlanos();
+        renderOnboardingEquipe();
         renderAdminAuditoria();
         renderUsuarios();
+    }
+
+    function renderCentralPrioridades() {
+        const container = $("hero-prioridades");
+        if (!container) return;
+
+        const prioridades = construirPrioridadesPortal();
+        container.innerHTML = prioridades.map((item, indice) => `
+            <article class="priority-item" data-tone="${escapeAttr(item.tone || "aberto")}">
+                <div class="priority-head">
+                    <span class="pill" data-kind="priority" data-status="${escapeAttr(item.tone || "aberto")}">P${indice + 1}</span>
+                    <span class="hero-chip">${escapeHtml(resumoCanalOperacional(item.canal))}</span>
+                </div>
+                <div class="priority-copy">
+                    <strong>${escapeHtml(item.titulo || "Prioridade")}</strong>
+                    <p>${escapeHtml(item.detalhe || "")}</p>
+                </div>
+                <button
+                    class="btn"
+                    type="button"
+                    data-act="abrir-prioridade"
+                    data-kind="${escapeAttr(item.kind || "admin-section")}"
+                    data-canal="${escapeAttr(item.canal || "admin")}"
+                    data-laudo="${item.laudoId ? escapeAttr(String(item.laudoId)) : ""}"
+                    data-target="${escapeAttr(item.targetId || "")}"
+                    data-origem="${escapeAttr(item.origem || item.canal || "admin")}"
+                    data-user="${item.userId ? escapeAttr(String(item.userId)) : ""}"
+                    data-busca="${escapeAttr(item.busca || "")}"
+                    data-papel="${escapeAttr(item.papel || "todos")}"
+                >${escapeHtml(item.acaoLabel || "Abrir")}</button>
+            </article>
+        `).join("");
     }
 
     function renderChatResumo() {
@@ -1226,15 +1641,109 @@
         `;
     }
 
+    function renderChatTriagem() {
+        const container = $("chat-triagem");
+        const laudos = state.bootstrap?.chat?.laudos || [];
+        if (!container) return;
+
+        const ajustes = ordenarPorPrioridade(laudos.filter((item) => variantStatusLaudo(item.status_card) === "ajustes"), prioridadeChat);
+        const abertos = ordenarPorPrioridade(laudos.filter((item) => variantStatusLaudo(item.status_card) === "aberto"), prioridadeChat);
+        const aguardando = ordenarPorPrioridade(laudos.filter((item) => variantStatusLaudo(item.status_card) === "aguardando"), prioridadeChat);
+        const parados = ordenarPorPrioridade(laudos.filter((item) => laudoChatParado(item)), prioridadeChat);
+        const filtroAtivo = rotuloSituacaoChat(state.ui.chatSituacao);
+        const destaque = ajustes[0] || parados[0] || aguardando[0] || abertos[0] || null;
+
+        container.innerHTML = `
+            <div class="toolbar-meta">
+                <button class="btn" type="button" data-act="filtrar-chat-status" data-situacao="ajustes">Ver ajustes</button>
+                <button class="btn" type="button" data-act="filtrar-chat-status" data-situacao="abertos">Ver abertos</button>
+                <button class="btn" type="button" data-act="filtrar-chat-status" data-situacao="aguardando">Ver aguardando mesa</button>
+                <button class="btn" type="button" data-act="filtrar-chat-status" data-situacao="parados">Ver parados</button>
+                <button class="btn ghost" type="button" data-act="limpar-chat-filtro">Limpar filtro rapido</button>
+                ${filtroAtivo ? `<span class="hero-chip">Filtro rapido: ${escapeHtml(filtroAtivo)}</span>` : ""}
+            </div>
+            ${destaque ? `
+                <article class="activity-item">
+                    <div class="activity-head">
+                        <div class="activity-copy">
+                            <strong>${escapeHtml(destaque.titulo || "Laudo do chat")}</strong>
+                            <span class="activity-meta">${escapeHtml(destaque.tipo_template_label || "Inspeção")} • ${escapeHtml(destaque.data_br || "Sem data")}</span>
+                        </div>
+                        <span class="pill" data-kind="priority" data-status="${escapeAttr(prioridadeChat(destaque).tone)}">${escapeHtml(prioridadeChat(destaque).badge)}</span>
+                    </div>
+                    <p class="activity-detail">${escapeHtml(prioridadeChat(destaque).acao)}${laudoChatParado(destaque) ? ` ${resumoEsperaHoras(horasDesdeAtualizacao(destaque.atualizado_em))}.` : ""}</p>
+                    <div class="toolbar-meta">
+                        <button class="btn" type="button" data-act="abrir-prioridade" data-kind="chat-laudo" data-canal="chat" data-laudo="${escapeAttr(String(destaque.id || ""))}" data-target="chat-contexto">Abrir laudo prioritario</button>
+                    </div>
+                </article>
+            ` : `
+                <div class="empty-state">
+                    <strong>Fila do chat controlada</strong>
+                    <p>Nenhum laudo pede atenção imediata agora. Use os filtros rápidos se quiser revisar a fila por status.</p>
+                </div>
+            `}
+        `;
+    }
+
+    function renderChatMovimentos() {
+        const container = $("chat-movimentos");
+        const laudos = ordenarPorPrioridade(state.bootstrap?.chat?.laudos || [], (item) => ({
+            score: parseDataIso(item?.atualizado_em),
+        })).slice(0, 3);
+        if (!container) return;
+
+        if (!laudos.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>Sem movimentos recentes no chat</strong>
+                    <p>Os laudos mais novos da empresa vao aparecer aqui assim que o chat começar a rodar.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <article class="activity-item">
+                <div class="activity-head">
+                    <div class="activity-copy">
+                        <strong>Movimentos recentes do chat</strong>
+                        <span class="activity-meta">Os ultimos laudos tocados pela empresa no canal operacional.</span>
+                    </div>
+                    <span class="hero-chip">${formatarInteiro(laudos.length)} recentes</span>
+                </div>
+                <div class="activity-list">
+                    ${laudos.map((laudo) => `
+                        <article class="activity-item">
+                            <div class="activity-head">
+                                <div class="activity-copy">
+                                    <strong>${escapeHtml(laudo.titulo || "Laudo do chat")}</strong>
+                                    <span class="activity-meta">${escapeHtml(laudo.data_br || "Sem data")} • ${escapeHtml(laudo.tipo_template_label || "Inspecao")}</span>
+                                </div>
+                                <span class="pill" data-kind="priority" data-status="${escapeAttr(prioridadeChat(laudo).tone)}">${escapeHtml(prioridadeChat(laudo).badge)}</span>
+                            </div>
+                            <p class="activity-detail">${escapeHtml(laudo.preview || "Sem resumo recente no chat.")}</p>
+                            <div class="toolbar-meta">
+                                ${laudoChatParado(laudo) ? `<span class="hero-chip">${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(laudo.atualizado_em)))}</span>` : ""}
+                                <button class="btn" type="button" data-act="abrir-prioridade" data-kind="chat-laudo" data-canal="chat" data-laudo="${escapeAttr(String(laudo.id || ""))}" data-target="chat-contexto">Abrir laudo</button>
+                            </div>
+                        </article>
+                    `).join("")}
+                </div>
+            </article>
+        `;
+    }
+
     function renderChatList() {
         const laudos = ordenarPorPrioridade(filtrarLaudosChat(), prioridadeChat);
         const lista = $("lista-chat-laudos");
         const resumo = $("chat-lista-resumo");
+        const filtroAtivo = rotuloSituacaoChat(state.ui.chatSituacao);
 
         resumo.innerHTML = `
             <span class="hero-chip">${formatarInteiro(laudos.length)} laudos visiveis</span>
             <span class="hero-chip">${formatarInteiro((state.bootstrap?.chat?.laudos || []).filter((item) => variantStatusLaudo(item.status_card) === "aberto").length)} abertos</span>
             <span class="hero-chip">${formatarInteiro((state.bootstrap?.chat?.laudos || []).filter((item) => variantStatusLaudo(item.status_card) === "ajustes").length)} em ajuste</span>
+            ${filtroAtivo ? `<span class="hero-chip">Filtro rapido: ${escapeHtml(filtroAtivo)}</span>` : ""}
         `;
 
         if (!laudos.length) {
@@ -1257,6 +1766,7 @@
                 <div class="item-footer">
                     <span class="pill" data-kind="priority" data-status="${prioridadeChat(laudo).tone}">${escapeHtml(prioridadeChat(laudo).badge)}</span>
                     <span class="hero-chip">${escapeHtml(laudo.tipo_template_label || "Inspecao")}</span>
+                    ${laudoChatParado(laudo) ? `<span class="hero-chip">${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(laudo.atualizado_em)))}</span>` : ""}
                     <small>${escapeHtml(laudo.data_br || "Sem data")}</small>
                 </div>
             </article>
@@ -1321,6 +1831,16 @@
                     </div>
                     <span class="pill" data-kind="priority" data-status="${prioridade.tone}">${escapeHtml(prioridade.badge)}</span>
                 </div>
+                ${laudoChatParado(alvo) ? `
+                    <div class="context-guidance" data-tone="aguardando">
+                        <div class="context-guidance-copy">
+                            <small>Item parado</small>
+                            <strong>${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(alvo.atualizado_em)))}</strong>
+                            <p>Vale retomar este laudo para nao perder ritmo operacional no chat.</p>
+                        </div>
+                        <span class="pill" data-kind="priority" data-status="aguardando">Retomar</span>
+                    </div>
+                ` : ""}
             </div>
         `;
     }
@@ -1363,12 +1883,14 @@
         const laudos = ordenarPorPrioridade(filtrarLaudosMesa(), prioridadeMesa);
         const lista = $("lista-mesa-laudos");
         const resumo = $("mesa-lista-resumo");
+        const filtroAtivo = rotuloSituacaoMesa(state.ui.mesaSituacao);
 
         const totalPendencias = (state.bootstrap?.mesa?.laudos || []).reduce((acc, item) => acc + Number(item.pendencias_abertas || 0), 0);
         const totalWhispers = (state.bootstrap?.mesa?.laudos || []).reduce((acc, item) => acc + Number(item.whispers_nao_lidos || 0), 0);
         resumo.innerHTML = `
             <span class="hero-chip">${formatarInteiro(totalPendencias)} pendencias abertas</span>
             <span class="hero-chip">${formatarInteiro(totalWhispers)} whispers pendentes</span>
+            ${filtroAtivo ? `<span class="hero-chip">Filtro rapido: ${escapeHtml(filtroAtivo)}</span>` : ""}
         `;
 
         if (!laudos.length) {
@@ -1392,9 +1914,107 @@
                     <span class="pill" data-kind="priority" data-status="${prioridadeMesa(laudo).tone}">${escapeHtml(prioridadeMesa(laudo).badge)}</span>
                     <span class="hero-chip">${formatarInteiro(laudo.pendencias_abertas || 0)} pendencias</span>
                     <span class="hero-chip">${formatarInteiro(laudo.whispers_nao_lidos || 0)} whispers</span>
+                    ${laudoMesaParado(laudo) ? `<span class="hero-chip">${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(laudo.atualizado_em)))}</span>` : ""}
                 </div>
             </article>
         `).join("");
+    }
+
+    function renderMesaTriagem() {
+        const container = $("mesa-triagem");
+        const laudos = state.bootstrap?.mesa?.laudos || [];
+        if (!container) return;
+
+        const responder = ordenarPorPrioridade(laudos.filter((item) => Number(item?.whispers_nao_lidos || 0) > 0), prioridadeMesa);
+        const pendencias = ordenarPorPrioridade(laudos.filter((item) => Number(item?.pendencias_abertas || 0) > 0), prioridadeMesa);
+        const aguardando = ordenarPorPrioridade(
+            laudos.filter((item) => variantStatusLaudo(item.status_card) === "aguardando" && Number(item?.whispers_nao_lidos || 0) <= 0 && Number(item?.pendencias_abertas || 0) <= 0),
+            prioridadeMesa
+        );
+        const parados = ordenarPorPrioridade(laudos.filter((item) => laudoMesaParado(item)), prioridadeMesa);
+        const filtroAtivo = rotuloSituacaoMesa(state.ui.mesaSituacao);
+        const destaque = responder[0] || pendencias[0] || parados[0] || aguardando[0] || null;
+
+        container.innerHTML = `
+            <div class="toolbar-meta">
+                <button class="btn" type="button" data-act="filtrar-mesa-status" data-situacao="responder">Ver respostas novas</button>
+                <button class="btn" type="button" data-act="filtrar-mesa-status" data-situacao="pendencias">Ver pendencias</button>
+                <button class="btn" type="button" data-act="filtrar-mesa-status" data-situacao="aguardando">Ver prontos para revisar</button>
+                <button class="btn" type="button" data-act="filtrar-mesa-status" data-situacao="parados">Ver parados</button>
+                <button class="btn ghost" type="button" data-act="limpar-mesa-filtro">Limpar filtro rapido</button>
+                ${filtroAtivo ? `<span class="hero-chip">Filtro rapido: ${escapeHtml(filtroAtivo)}</span>` : ""}
+            </div>
+            ${destaque ? `
+                <article class="activity-item">
+                    <div class="activity-head">
+                        <div class="activity-copy">
+                            <strong>${escapeHtml(destaque.titulo || "Laudo da mesa")}</strong>
+                            <span class="activity-meta">${escapeHtml(destaque.status_revisao || destaque.status_card_label || "Em revisão")} • ${escapeHtml(destaque.data_br || "Sem data")}</span>
+                        </div>
+                        <span class="pill" data-kind="priority" data-status="${escapeAttr(prioridadeMesa(destaque).tone)}">${escapeHtml(prioridadeMesa(destaque).badge)}</span>
+                    </div>
+                    <p class="activity-detail">${escapeHtml(prioridadeMesa(destaque).acao)}${laudoMesaParado(destaque) ? ` ${resumoEsperaHoras(horasDesdeAtualizacao(destaque.atualizado_em))}.` : ""}</p>
+                    <div class="toolbar-meta">
+                        <button class="btn" type="button" data-act="abrir-prioridade" data-kind="mesa-laudo" data-canal="mesa" data-laudo="${escapeAttr(String(destaque.id || ""))}" data-target="mesa-contexto">Abrir laudo prioritario</button>
+                    </div>
+                </article>
+            ` : `
+                <div class="empty-state">
+                    <strong>Mesa em dia</strong>
+                    <p>Nenhum whisper ou pendência urgente apareceu agora. Use os filtros rápidos para revisar a fila por estado.</p>
+                </div>
+            `}
+        `;
+    }
+
+    function renderMesaMovimentos() {
+        const container = $("mesa-movimentos");
+        const laudos = ordenarPorPrioridade(state.bootstrap?.mesa?.laudos || [], (item) => ({
+            score: parseDataIso(item?.atualizado_em),
+        })).slice(0, 3);
+        if (!container) return;
+
+        if (!laudos.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <strong>Sem movimentos recentes na mesa</strong>
+                    <p>Assim que a empresa receber whispers, pendencias ou aprovacoes, o resumo aparece aqui.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <article class="activity-item">
+                <div class="activity-head">
+                    <div class="activity-copy">
+                        <strong>Movimentos recentes da mesa</strong>
+                        <span class="activity-meta">Os laudos mais novos tocados na fila da Mesa Avaliadora.</span>
+                    </div>
+                    <span class="hero-chip">${formatarInteiro(laudos.length)} recentes</span>
+                </div>
+                <div class="activity-list">
+                    ${laudos.map((laudo) => `
+                        <article class="activity-item">
+                            <div class="activity-head">
+                                <div class="activity-copy">
+                                    <strong>${escapeHtml(laudo.titulo || "Laudo da mesa")}</strong>
+                                    <span class="activity-meta">${escapeHtml(laudo.data_br || "Sem data")} • ${escapeHtml(laudo.status_revisao || laudo.status_card_label || "Em revisao")}</span>
+                                </div>
+                                <span class="pill" data-kind="priority" data-status="${escapeAttr(prioridadeMesa(laudo).tone)}">${escapeHtml(prioridadeMesa(laudo).badge)}</span>
+                            </div>
+                            <p class="activity-detail">${escapeHtml(laudo.preview || "Sem resumo recente na mesa.")}</p>
+                            <div class="toolbar-meta">
+                                <span class="hero-chip">${formatarInteiro(laudo.pendencias_abertas || 0)} pendencias</span>
+                                <span class="hero-chip">${formatarInteiro(laudo.whispers_nao_lidos || 0)} whispers</span>
+                                ${laudoMesaParado(laudo) ? `<span class="hero-chip">${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(laudo.atualizado_em)))}</span>` : ""}
+                                <button class="btn" type="button" data-act="abrir-prioridade" data-kind="mesa-laudo" data-canal="mesa" data-laudo="${escapeAttr(String(laudo.id || ""))}" data-target="mesa-contexto">Abrir laudo</button>
+                            </div>
+                        </article>
+                    `).join("")}
+                </div>
+            </article>
+        `;
     }
 
     function renderMesaContext() {
@@ -1454,6 +2074,16 @@
                     </div>
                     <span class="pill" data-kind="priority" data-status="${prioridade.tone}">${escapeHtml(prioridade.badge)}</span>
                 </div>
+                ${laudoMesaParado(alvo) ? `
+                    <div class="context-guidance" data-tone="aguardando">
+                        <div class="context-guidance-copy">
+                            <small>Fila parada</small>
+                            <strong>${escapeHtml(resumoEsperaHoras(horasDesdeAtualizacao(alvo.atualizado_em)))}</strong>
+                            <p>Vale revisar este laudo para nao deixar a mesa esfriar com pendencias ou resposta em aberto.</p>
+                        </div>
+                        <span class="pill" data-kind="priority" data-status="aguardando">Retomar</span>
+                    </div>
+                ` : ""}
             </div>
         `;
     }
@@ -1587,14 +2217,19 @@
     function renderEverything() {
         if (!state.bootstrap) return;
         atualizarBadgesTabs();
+        renderCentralPrioridades();
         renderAdmin();
         renderChatResumo();
+        renderChatTriagem();
+        renderChatMovimentos();
         renderChatCapacidade();
         renderAvisosOperacionais("chat", "chat-alertas-operacionais");
         renderChatList();
         renderChatContext();
         renderChatMensagens();
         renderMesaResumoGeral();
+        renderMesaTriagem();
+        renderMesaMovimentos();
         renderAvisosOperacionais("mesa", "mesa-alertas-operacionais");
         renderMesaList();
         renderMesaContext();
@@ -1721,18 +2356,26 @@
     function bindFiltros() {
         $("usuarios-busca")?.addEventListener("input", (event) => {
             state.ui.usuariosBusca = event.target.value || "";
+            state.ui.usuariosSituacao = "";
+            state.ui.usuarioEmDestaque = null;
             renderUsuarios();
         });
         $("usuarios-filtro-papel")?.addEventListener("change", (event) => {
             state.ui.usuariosPapel = event.target.value || "todos";
+            state.ui.usuariosSituacao = "";
+            state.ui.usuarioEmDestaque = null;
             renderUsuarios();
         });
         $("chat-busca-laudos")?.addEventListener("input", (event) => {
             state.ui.chatBusca = event.target.value || "";
+            state.ui.chatSituacao = "";
+            renderChatTriagem();
             renderChatList();
         });
         $("mesa-busca-laudos")?.addEventListener("input", (event) => {
             state.ui.mesaBusca = event.target.value || "";
+            state.ui.mesaSituacao = "";
+            renderMesaTriagem();
             renderMesaList();
         });
     }
@@ -1780,8 +2423,8 @@
             }).catch((erro) => feedback(erro.message || "Falha ao criar usuario.", true));
         });
 
-        $("lista-usuarios")?.addEventListener("click", async (event) => {
-            const button = event.target.closest("button[data-act]");
+        const tratarAcaoUsuario = async (event) => {
+            const button = event.target.closest("button[data-act][data-user]");
             if (!button) return;
 
             const userId = Number(button.dataset.user || 0);
@@ -1791,6 +2434,7 @@
                 if (button.dataset.act === "reset-user") {
                     await withBusy(button, "Gerando...", async () => {
                         const resposta = await api(`/cliente/api/usuarios/${userId}/resetar-senha`, { method: "POST" });
+                        await bootstrapPortal();
                         feedback(`Senha temporaria: ${resposta.senha_temporaria}`);
                     });
                     return;
@@ -1819,13 +2463,133 @@
             } catch (erro) {
                 feedback(erro.message || "Falha ao atualizar usuario.", true);
             }
-        });
+        };
+
+        $("lista-usuarios")?.addEventListener("click", tratarAcaoUsuario);
+        $("admin-onboarding-lista")?.addEventListener("click", tratarAcaoUsuario);
     }
 
     function bindCommercialActions() {
         document.addEventListener("click", async (event) => {
             const button = event.target.closest("button[data-act]");
             if (!button) return;
+
+            if (button.dataset.act === "abrir-prioridade") {
+                const kind = button.dataset.kind || "admin-section";
+                if (kind === "upgrade") {
+                    await prepararUpgradeGuiado({
+                        origem: button.dataset.origem || "admin",
+                        button,
+                    });
+                    return;
+                }
+
+                if (kind === "chat-laudo") {
+                    definirTab("chat");
+                    await loadChat(button.dataset.laudo, { silencioso: true }).catch((erro) => feedback(erro.message || "Falha ao abrir prioridade do chat.", true));
+                    scrollToPortalSection(button.dataset.target || "chat-contexto");
+                    return;
+                }
+
+                if (kind === "mesa-laudo") {
+                    definirTab("mesa");
+                    await loadMesa(button.dataset.laudo, { silencioso: true }).catch((erro) => feedback(erro.message || "Falha ao abrir prioridade da mesa.", true));
+                    scrollToPortalSection(button.dataset.target || "mesa-contexto");
+                    return;
+                }
+
+                definirTab("admin");
+                if (kind === "admin-user") {
+                    aplicarFiltrosUsuarios({
+                        busca: button.dataset.busca || "",
+                        papel: button.dataset.papel || "todos",
+                        userId: button.dataset.user || null,
+                    });
+                    scrollToPortalSection(button.dataset.target || "lista-usuarios");
+                    focarUsuarioNaTabela(button.dataset.user, { expandir: true });
+                    return;
+                }
+
+                scrollToPortalSection(button.dataset.target || "panel-admin");
+                return;
+            }
+
+            if (button.dataset.act === "filtrar-usuarios-status") {
+                const situacao = texto(button.dataset.situacao).trim();
+                definirTab("admin");
+                state.ui.usuariosBusca = "";
+                state.ui.usuariosPapel = "todos";
+                state.ui.usuariosSituacao = situacao;
+                state.ui.usuarioEmDestaque = null;
+                if ($("usuarios-busca")) $("usuarios-busca").value = "";
+                if ($("usuarios-filtro-papel")) $("usuarios-filtro-papel").value = "todos";
+                renderUsuarios();
+                scrollToPortalSection("lista-usuarios");
+                feedback(`Equipe filtrada por ${rotuloSituacaoUsuarios(situacao).toLowerCase() || "situacao"}.`);
+                return;
+            }
+
+            if (button.dataset.act === "limpar-filtro-usuarios") {
+                definirTab("admin");
+                state.ui.usuariosBusca = "";
+                state.ui.usuariosPapel = "todos";
+                state.ui.usuariosSituacao = "";
+                state.ui.usuarioEmDestaque = null;
+                if ($("usuarios-busca")) $("usuarios-busca").value = "";
+                if ($("usuarios-filtro-papel")) $("usuarios-filtro-papel").value = "todos";
+                renderUsuarios();
+                scrollToPortalSection("lista-usuarios");
+                feedback("Filtro rapido da equipe limpo.");
+                return;
+            }
+
+            if (button.dataset.act === "filtrar-chat-status") {
+                definirTab("chat");
+                state.ui.chatBusca = "";
+                state.ui.chatSituacao = texto(button.dataset.situacao).trim();
+                if ($("chat-busca-laudos")) $("chat-busca-laudos").value = "";
+                renderChatTriagem();
+                renderChatList();
+                scrollToPortalSection("lista-chat-laudos");
+                feedback(`Chat filtrado por ${rotuloSituacaoChat(state.ui.chatSituacao).toLowerCase() || "status"}.`);
+                return;
+            }
+
+            if (button.dataset.act === "limpar-chat-filtro") {
+                definirTab("chat");
+                state.ui.chatBusca = "";
+                state.ui.chatSituacao = "";
+                if ($("chat-busca-laudos")) $("chat-busca-laudos").value = "";
+                renderChatTriagem();
+                renderChatList();
+                scrollToPortalSection("lista-chat-laudos");
+                feedback("Filtro rapido do chat limpo.");
+                return;
+            }
+
+            if (button.dataset.act === "filtrar-mesa-status") {
+                definirTab("mesa");
+                state.ui.mesaBusca = "";
+                state.ui.mesaSituacao = texto(button.dataset.situacao).trim();
+                if ($("mesa-busca-laudos")) $("mesa-busca-laudos").value = "";
+                renderMesaTriagem();
+                renderMesaList();
+                scrollToPortalSection("lista-mesa-laudos");
+                feedback(`Mesa filtrada por ${rotuloSituacaoMesa(state.ui.mesaSituacao).toLowerCase() || "status"}.`);
+                return;
+            }
+
+            if (button.dataset.act === "limpar-mesa-filtro") {
+                definirTab("mesa");
+                state.ui.mesaBusca = "";
+                state.ui.mesaSituacao = "";
+                if ($("mesa-busca-laudos")) $("mesa-busca-laudos").value = "";
+                renderMesaTriagem();
+                renderMesaList();
+                scrollToPortalSection("lista-mesa-laudos");
+                feedback("Filtro rapido da mesa limpo.");
+                return;
+            }
 
             if (button.dataset.act === "preparar-upgrade") {
                 await prepararUpgradeGuiado({
@@ -2064,7 +2828,7 @@
             await bootstrapPortal({ carregarDetalhes: true });
             definirTab(state.ui.tab, false);
         } catch (erro) {
-            feedback(erro.message || "Falha ao carregar o portal do cliente.", true);
+            feedback(erro.message || "Falha ao carregar o portal admin-cliente.", true);
         }
     }
 

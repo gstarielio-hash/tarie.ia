@@ -744,6 +744,88 @@ def test_admin_cliente_registra_interesse_em_upgrade_no_historico(ambiente_criti
     assert "Impacto esperado" in registro["detalhe"]
 
 
+def test_admin_cliente_registra_auditoria_operacional_de_chat_e_mesa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta_criar = client.post(
+        "/cliente/api/chat/laudos",
+        headers={"X-CSRF-Token": csrf},
+        data={"tipo_template": "padrao"},
+    )
+    assert resposta_criar.status_code == 200
+    laudo_chat_id = int(resposta_criar.json()["laudo_id"])
+
+    resposta_chat = client.post(
+        "/cliente/api/chat/mensagem",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "laudo_id": laudo_chat_id,
+            "mensagem": "Fluxo auditado do admin-cliente no chat.",
+            "historico": [],
+            "setor": "geral",
+            "modo": "detalhado",
+        },
+    )
+    assert resposta_chat.status_code == 200
+
+    with SessionLocal() as banco:
+        laudo_reaberto_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.REJEITADO.value,
+        )
+        laudo_mesa_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.AGUARDANDO.value,
+        )
+
+    resposta_reabrir = client.post(
+        f"/cliente/api/chat/laudos/{laudo_reaberto_id}/reabrir",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_reabrir.status_code == 200
+
+    resposta_mesa = client.post(
+        f"/cliente/api/mesa/laudos/{laudo_mesa_id}/responder",
+        headers={"X-CSRF-Token": csrf},
+        json={"texto": "Mesa respondeu pelo portal do admin-cliente."},
+    )
+    assert resposta_mesa.status_code == 200
+
+    resposta_avaliar = client.post(
+        f"/cliente/api/mesa/laudos/{laudo_mesa_id}/avaliar",
+        headers={"X-CSRF-Token": csrf},
+        json={"acao": "aprovar", "motivo": ""},
+    )
+    assert resposta_avaliar.status_code == 200
+
+    resposta_auditoria = client.get("/cliente/api/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens = resposta_auditoria.json()["itens"]
+    acoes = {item["acao"] for item in itens}
+    assert {
+        "chat_laudo_criado",
+        "chat_mensagem_enviada",
+        "chat_laudo_reaberto",
+        "mesa_resposta_enviada",
+        "mesa_laudo_avaliado",
+    }.issubset(acoes)
+
+    registro_chat = next(item for item in itens if item["acao"] == "chat_mensagem_enviada")
+    assert int(registro_chat["payload"]["laudo_id"]) == laudo_chat_id
+    assert registro_chat["payload"]["modo"] == "detalhado"
+
+    registro_mesa = next(item for item in itens if item["acao"] == "mesa_laudo_avaliado")
+    assert int(registro_mesa["payload"]["laudo_id"]) == laudo_mesa_id
+    assert registro_mesa["payload"]["acao"] == "aprovar"
+
+
 def test_admin_cliente_resumo_empresa_explica_capacidade_e_upgrade_sugerido(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
@@ -4395,6 +4477,20 @@ def test_admin_atualizar_crea_rejeita_inspetor(ambiente_critico) -> None:
         inspetor = banco.get(Usuario, ids["inspetor_a"])
         assert inspetor is not None
         assert inspetor.crea in (None, "")
+
+
+def test_admin_detalhe_empresa_exibe_admins_cliente_e_revisores(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    ids = ambiente_critico["ids"]
+
+    _login_admin(client, "admin@empresa-a.test")
+
+    resposta = client.get(f"/admin/clientes/{ids['empresa_a']}")
+
+    assert resposta.status_code == 200
+    assert "Admins-Cliente" in resposta.text
+    assert "cliente@empresa-a.test" in resposta.text
+    assert "Revisor A" in resposta.text
 
 
 def test_admin_cadastrar_empresa_exibe_senha_temporaria_em_flash(ambiente_critico, monkeypatch: pytest.MonkeyPatch) -> None:

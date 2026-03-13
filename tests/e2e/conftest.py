@@ -129,8 +129,8 @@ def credenciais_seed() -> dict[str, dict[str, str]]:
             "email": "revisor@wf.com.br",
             "senha": "Dev@123456",
         },
-        "cliente": {
-            "email": "cliente@wf.com.br",
+        "admin_cliente": {
+            "email": "admin-cliente@wf.com.br",
             "senha": "Dev@123456",
         },
         "admin": {

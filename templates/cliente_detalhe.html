@@ -523,7 +523,7 @@
 
                 <a href="/admin/clientes" class="item-menu ativo" aria-current="page">
                     <span class="material-symbols-rounded" aria-hidden="true">corporate_fare</span>
-                    Clientes SaaS
+                    Empresas
                 </a>
 
                 <a href="/admin/auditoria" class="item-menu">
@@ -549,7 +549,7 @@
         <main class="conteudo-principal">
             <a href="/admin/clientes" class="voltar">
                 <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
-                Clientes SaaS
+                Empresas assinantes
             </a>
 
             <header class="topbar topbar-detalhe"
@@ -560,6 +560,8 @@
                         CNPJ: {{ empresa.cnpj | e }}
                         &nbsp;•&nbsp;
                         Cadastro: {{ empresa.data_cadastro.strftime('%d/%m/%Y') if empresa.data_cadastro else '—' }}
+                        &nbsp;•&nbsp;
+                        Admins-Cliente: {{ admins_cliente | length }}
                     </p>
                 </div>
 
@@ -583,6 +585,18 @@
                 <div class="info-card">
                     <div class="label">Plano ativo</div>
                     <div class="valor">{{ _plano | e }}</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="label">Admins-Cliente</div>
+                    <div class="valor">{{ admins_cliente | length }}</div>
+                    <div class="valor-auxiliar">
+                        {% if admins_cliente %}
+                        {{ admins_cliente[0].email | e }}
+                        {% else %}
+                        Primeiro acesso ainda nao provisionado
+                        {% endif %}
+                    </div>
                 </div>
 
                 <div class="info-card">
@@ -639,11 +653,64 @@
 
             <section class="secao">
                 <h3>
-                    <span class="material-symbols-rounded" aria-hidden="true">badge</span>
-                    Usuários Operacionais ({{ inspetores | length }})
+                    <span class="material-symbols-rounded" aria-hidden="true">manage_accounts</span>
+                    Admins-Cliente ({{ admins_cliente | length }})
                 </h3>
 
-                <table class="tabela-admin" aria-label="Lista de usuários operacionais">
+                <table class="tabela-admin" aria-label="Lista de admins-cliente da empresa">
+                    <thead>
+                        <tr>
+                            <th scope="col">Nome</th>
+                            <th scope="col">E-mail</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"><span class="sr-only">Ações</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in admins_cliente %}
+                        <tr>
+                            <td><strong>{{ u.nome_completo | e }}</strong></td>
+                            <td class="texto-suave">{{ u.email | e }}</td>
+                            <td>
+                                {% if u.status_bloqueio %}
+                                <span class="badge critico">Bloqueado</span>
+                                {% elif u.senha_temporaria_ativa %}
+                                <span class="badge atencao">Senha temporaria</span>
+                                {% else %}
+                                <span class="badge conforme">Ativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST"
+                                    action="/admin/clientes/{{ empresa.id | int }}/resetar-senha/{{ u.id | int }}"
+                                    style="margin:0;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <button type="submit" class="btn-reset"
+                                        data-confirmar="Resetar a senha de {{ u.nome_completo | e }}? Uma nova senha temporária será enviada por e-mail."
+                                        aria-label="Resetar senha de {{ u.nome_completo | e }}">
+                                        🔑 Resetar senha
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="estado-vazio-tabela">
+                                Nenhum admin-cliente provisionado para esta empresa.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="secao">
+                <h3>
+                    <span class="material-symbols-rounded" aria-hidden="true">badge</span>
+                    Equipe operacional ({{ inspetores_e_revisores | length }})
+                </h3>
+
+                <table class="tabela-admin" aria-label="Lista da equipe operacional da empresa">
                     <thead>
                         <tr>
                             <th scope="col">Nome</th>
@@ -655,7 +722,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for u in inspetores %}
+                        {% for u in inspetores_e_revisores %}
                         <tr>
                             <td><strong>{{ u.nome_completo | e }}</strong></td>
                             <td>
@@ -699,7 +766,7 @@
                         {% else %}
                         <tr>
                             <td colspan="6" class="estado-vazio-tabela">
-                                Nenhum usuário operacional cadastrado.
+                                Nenhum usuario operacional cadastrado.
                             </td>
                         </tr>
                         {% endfor %}
@@ -708,7 +775,7 @@
 
                 <form class="form-inline" method="POST"
                     action="/admin/clientes/{{ empresa.id | int }}/adicionar-inspetor"
-                    aria-label="Adicionar novo inspetor">
+                    aria-label="Adicionar novo inspetor da empresa">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                     <div class="campo-form">
