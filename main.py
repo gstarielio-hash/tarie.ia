@@ -139,7 +139,10 @@ LOG_LEVEL_DEV_TARIEL: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_TARIEL", 
 APP_HOST_PUBLICO: Final[str] = _normalizar_host(
     _obter_str_env(
         "APP_HOST_PUBLICO",
-        "tariel.ia" if EM_PRODUCAO else "127.0.0.1:8000",
+        _obter_str_env(
+            "RENDER_EXTERNAL_HOSTNAME",
+            "tariel.ia" if EM_PRODUCAO else "127.0.0.1:8000",
+        ),
     )
 )
 

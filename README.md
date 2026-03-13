@@ -232,3 +232,29 @@ Para encerrar tudo:
 .\scripts\stop_online_preview.ps1
 ```
 `run_schemathesis.ps1` carrega automaticamente [schemathesis_hooks.py](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/schemathesis_hooks.py) para desserializar respostas binárias (`PDF`, imagens e `octet-stream`) e evitar warnings desnecessários no contrato.
+
+## Deploy inicial no Render
+
+O repositório já possui um Blueprint em `render.yaml` para um primeiro deploy com:
+
+- `Web Service` Python `starter`
+- `Render Postgres` `basic-1gb`
+- `Persistent Disk` de `10 GB` montado em `static/uploads`
+
+Passo a passo resumido:
+
+1. No Render, escolha `New +` -> `Blueprint`.
+2. Conecte o repositório GitHub.
+3. Confirme a leitura do `render.yaml`.
+4. Preencha os segredos pendentes:
+   - `CHAVE_SECRETA_APP`
+   - `CHAVE_API_GEMINI` (se usar IA)
+   - `GOOGLE_APPLICATION_CREDENTIALS` (se usar OCR)
+   - `APP_HOST_PUBLICO` / `ALLOWED_HOSTS` se quiser fixar domínio próprio desde o início
+5. Aguarde a criação do Postgres e do Web Service.
+6. Teste a aplicação na URL `onrender.com`.
+
+Observações:
+
+- O app agora aceita `PASTA_UPLOADS_PERFIS` e `PASTA_ANEXOS_MESA`, o que permite persistir uploads no disco do Render.
+- O app também aceita `RENDER_EXTERNAL_HOSTNAME` como fallback para `APP_HOST_PUBLICO`, facilitando o primeiro deploy sem domínio customizado.

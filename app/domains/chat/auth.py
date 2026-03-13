@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.settings import env_str
 from app.domains.chat.auth_helpers import (
     CHAVE_TROCA_SENHA_LEMBRAR,
     NIVEIS_PERMITIDOS_APP,
@@ -65,7 +66,7 @@ from app.shared.security import (
 
 roteador_auth = APIRouter()
 
-PASTA_FOTOS_PERFIL = Path("static/uploads/perfis")
+PASTA_FOTOS_PERFIL = Path(env_str("PASTA_UPLOADS_PERFIS", "static/uploads/perfis")).expanduser()
 MIME_FOTO_PERMITIDOS = {
     "image/jpeg",
     "image/jpg",

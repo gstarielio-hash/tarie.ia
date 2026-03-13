@@ -9,6 +9,7 @@ from typing import Any, Iterable
 
 from fastapi import HTTPException
 
+from app.core.settings import env_str
 from app.domains.chat.media_helpers import nome_documento_seguro
 from app.shared.database import AnexoMesa
 from nucleo.inspetor.referencias_mensagem import extrair_referencia_do_texto
@@ -23,7 +24,12 @@ MIME_ANEXOS_MESA_PERMITIDOS = {
     "application/pdf": ("documento", ".pdf"),
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ("documento", ".docx"),
 }
-PASTA_ANEXOS_MESA = Path(tempfile.gettempdir()) / "tariel_control" / "mesa_anexos"
+PASTA_ANEXOS_MESA = Path(
+    env_str(
+        "PASTA_ANEXOS_MESA",
+        str(Path(tempfile.gettempdir()) / "tariel_control" / "mesa_anexos"),
+    )
+).expanduser()
 
 
 def categoria_mime_anexo_mesa(mime_type: str) -> tuple[str, str]:
