@@ -14,7 +14,7 @@
     - Enviar X-Content-Type-Options: nosniff por header HTTP.
     #}
 
-    <title>Clientes SaaS • Tariel Control</title>
+    <title>Empresas Assinantes • Tariel Control</title>
 
     <link rel="icon" href="/static/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -413,7 +413,7 @@
 
                 <a href="/admin/clientes" class="item-menu ativo" aria-current="page">
                     <span class="material-symbols-rounded" aria-hidden="true">corporate_fare</span>
-                    Clientes SaaS
+                    Empresas
                 </a>
 
                 <a href="/admin/auditoria" class="item-menu">
@@ -439,13 +439,13 @@
         <main class="conteudo-principal">
             <header class="topbar">
                 <div class="titulo-pagina">
-                    <h1>Clientes SaaS</h1>
-                    <p>Gestão de empresas e controle de acesso.</p>
+                    <h1>Empresas assinantes</h1>
+                    <p>O Admin-CEO provisiona empresas, controla assinaturas e libera o primeiro Admin-Cliente.</p>
                 </div>
 
-                <a href="/admin/novo-cliente" class="btn-novo-cliente" aria-label="Cadastrar novo cliente">
+                <a href="/admin/novo-cliente" class="btn-novo-cliente" aria-label="Provisionar nova empresa assinante">
                     <span class="material-symbols-rounded" aria-hidden="true">add</span>
-                    Novo Cliente
+                    Nova empresa
                 </a>
             </header>
 
@@ -458,16 +458,16 @@
             </div>
             {% endfor %}
 
-            <section class="stats-row" aria-label="Resumo de clientes">
+            <section class="stats-row" aria-label="Resumo de empresas assinantes">
                 <div class="stat-mini">
                     <div class="icone icone--clientes" aria-hidden="true">
                         <span class="material-symbols-rounded">domain</span>
                     </div>
                     <div>
-                        <div class="num" aria-label="{{ _clientes_total }} clientes no total">
+                        <div class="num" aria-label="{{ _clientes_total }} empresas assinantes no total">
                             {{ _clientes_total }}
                         </div>
-                        <div class="label">Total de clientes</div>
+                        <div class="label">Empresas assinantes</div>
                     </div>
                 </div>
 
@@ -476,7 +476,7 @@
                         <span class="material-symbols-rounded">check_circle</span>
                     </div>
                     <div>
-                        <div class="num" aria-label="{{ total_ativos | int }} clientes ativos">
+                        <div class="num" aria-label="{{ total_ativos | int }} empresas ativas">
                             {{ total_ativos | int }}
                         </div>
                         <div class="label">Ativos</div>
@@ -488,7 +488,7 @@
                         <span class="material-symbols-rounded">block</span>
                     </div>
                     <div>
-                        <div class="num" aria-label="{{ total_bloqueios | int }} clientes bloqueados">
+                        <div class="num" aria-label="{{ total_bloqueios | int }} empresas bloqueadas">
                             {{ total_bloqueios | int }}
                         </div>
                         <div class="label">Bloqueados</div>
@@ -496,7 +496,7 @@
                 </div>
             </section>
 
-            <form class="filtros" method="GET" action="/admin/clientes" aria-label="Filtros de busca de clientes">
+            <form class="filtros" method="GET" action="/admin/clientes" aria-label="Filtros de busca de empresas assinantes">
                 <input type="text" name="nome" value="{{ filtro_nome | e }}" maxlength="120"
                     placeholder="Buscar por nome da empresa" aria-label="Buscar por nome da empresa">
 
@@ -518,7 +518,7 @@
             </form>
 
             <div class="box-tabela">
-                <table class="tabela-admin" aria-label="Lista de clientes SaaS">
+                <table class="tabela-admin" aria-label="Lista de empresas assinantes">
                     <thead>
                         <tr>
                             <th scope="col">Empresa</th>
@@ -539,7 +539,7 @@
                             <td><strong>{{ c.nome_fantasia | e }}</strong></td>
 
                             <td>
-                                <span class="cnpj-mascarado" title="CNPJ completo disponível na ficha do cliente">
+                                <span class="cnpj-mascarado" title="CNPJ completo disponível na ficha da empresa">
                                     {{ c.cnpj_mascarado | default('**.***.***/****-**') | e }}
                                 </span>
                             </td>
@@ -588,7 +588,7 @@
                         {% else %}
                         <tr>
                             <td colspan="8" class="estado-vazio-tabela" aria-live="polite">
-                                Nenhum cliente encontrado.
+                                Nenhuma empresa assinante encontrada.
                             </td>
                         </tr>
                         {% endfor %}

@@ -32,9 +32,9 @@
     --bg-panel-elevado: var(--cor-primaria-2);
     --bg-input: #2B3038;
     --bg-hover: #343A44;
-    --bg-hover-soft: rgba(213, 219, 229, 0.05);
-    --bg-card: rgba(47, 53, 61, 0.46);
-    --bg-card-strong: rgba(47, 53, 61, 0.72);
+    --bg-hover-soft: rgba(213, 219, 229, 0.08);
+    --bg-card: rgba(47, 53, 61, 0.62);
+    --bg-card-strong: rgba(47, 53, 61, 0.86);
     --bg-overlay: rgba(10, 11, 14, 0.72);
     --bg-overlay-strong: rgba(10, 11, 14, 0.88);
     --bg-soft-light: rgba(255, 255, 255, 0.03);
@@ -42,9 +42,9 @@
 
     /* ── Texto ──────────────────────────────── */
     --text-primary: #ECEFF4;
-    --text-secondary: #C0C7D2;
-    --text-tertiary: #919AA9;
-    --text-muted: rgba(191, 198, 209, 0.42);
+    --text-secondary: #CAD2DD;
+    --text-tertiary: #A1AABC;
+    --text-muted: rgba(191, 198, 209, 0.52);
     --text-on-accent: #FFFFFF;
 
     /* ── Acento ─────────────────────────────── */
@@ -61,12 +61,16 @@
     --user-accent-border: rgba(184, 190, 200, 0.34);
 
     /* ── Bordas ─────────────────────────────── */
-    --border-color: #3A404B;
-    --border-color-strong: #4A5160;
+    --border-color: #404855;
+    --border-color-strong: #556071;
     --border-muted: rgba(191, 198, 209, 0.12);
-    --border-soft: rgba(191, 198, 209, 0.18);
+    --border-soft: rgba(191, 198, 209, 0.24);
     --border-subtle: 1px solid var(--border-color);
     --border-strong: 1px solid var(--border-color-strong);
+    --surface-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --surface-shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.26);
+    --surface-shadow: 0 22px 52px rgba(0, 0, 0, 0.34);
+    --surface-shadow-hover: 0 24px 56px rgba(0, 0, 0, 0.38);
 
     /* ── Sombras ────────────────────────────── */
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.16);
@@ -74,7 +78,7 @@
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.50);
     --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.38);
-    --shadow-smooth: 0 8px 24px rgba(0, 0, 0, 0.34);
+    --shadow-smooth: 0 10px 30px rgba(0, 0, 0, 0.36);
     --shadow-glow: 0 0 20px rgba(244, 123, 32, 0.18);
 
     /* ── Raios ──────────────────────────────── */
@@ -128,15 +132,15 @@
     --badge-info: #B9C1CE;
 
     /* ── Tipografia ─────────────────────────── */
-    --font-base: 'Inter', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    --font-base: 'IBM Plex Sans', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
     --font-size-xs: 12px;
-    --font-size-sm: 13px;
-    --font-size-md: 14px;
-    --font-size-lg: 15px;
-    --font-size-xl: 16px;
-    --line-height-tight: 1.32;
-    --line-height-normal: 1.56;
+    --font-size-sm: 14px;
+    --font-size-md: 15px;
+    --font-size-lg: 16px;
+    --font-size-xl: 18px;
+    --line-height-tight: 1.38;
+    --line-height-normal: 1.62;
 
     /* ── Mesa Avaliadora (Widget) ─────────── */
     --mesa-fg-primary: #ECEEF2;
@@ -193,15 +197,19 @@ body {
     line-height: var(--line-height-normal);
     color: var(--text-primary);
     font-family: var(--font-base);
+    font-size: var(--font-size-md);
+    font-weight: 400;
+    letter-spacing: 0.003em;
     background:
-        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 34%),
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.11), transparent 31%),
+        radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.04), transparent 28%),
+        radial-gradient(circle at 82% 100%, rgba(79, 92, 112, 0.12), transparent 34%),
         linear-gradient(180deg, rgba(22, 24, 29, 0.98), rgba(17, 19, 24, 1));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
 }
 
-body,
 button,
 input,
 textarea,

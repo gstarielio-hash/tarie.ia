@@ -71,6 +71,145 @@ REGRAS_GATE_QUALIDADE_TEMPLATE: dict[str, dict[str, Any]] = {
     },
 }
 
+ROTEIRO_COLETA_TEMPLATE: dict[str, dict[str, Any]] = {
+    "padrao": {
+        "descricao": "Feche a coleta com contexto inicial claro, evidências mínimas e um parecer preliminar antes do envio.",
+        "itens_especificos": [
+            {
+                "id": "padrao_ativo_risco",
+                "categoria": "coleta",
+                "titulo": "Delimitar ativo, área e risco principal",
+                "descricao": "Registre no chat qual equipamento, setor ou processo está sendo inspecionado e qual risco motivou a coleta.",
+            },
+            {
+                "id": "padrao_achado_principal",
+                "categoria": "coleta",
+                "titulo": "Consolidar o achado principal da inspeção",
+                "descricao": "Antes de enviar para a mesa, deixe explícito o principal achado técnico ou a ausência de não conformidade relevante.",
+            },
+        ],
+    },
+    "avcb": {
+        "descricao": "Priorize evidências de abandono seguro, sinalização e meios de combate a incêndio compatíveis com a planta.",
+        "itens_especificos": [
+            {
+                "id": "avcb_rotas_sinalizacao",
+                "categoria": "norma",
+                "titulo": "Cobrir rotas de fuga e sinalização",
+                "descricao": "Inclua registros de circulação, saídas, sinalização e condições gerais para abandono da edificação.",
+            },
+            {
+                "id": "avcb_combate_incendio",
+                "categoria": "norma",
+                "titulo": "Registrar meios de combate e proteção",
+                "descricao": "Priorize extintores, hidrantes, alarme, iluminação ou outros sistemas de combate existentes.",
+            },
+        ],
+    },
+    "spda": {
+        "descricao": "A coleta deve deixar claro o estado do sistema de captação, descidas e aterramento do SPDA.",
+        "itens_especificos": [
+            {
+                "id": "spda_captacao_descidas",
+                "categoria": "norma",
+                "titulo": "Cobrir captação e descidas",
+                "descricao": "Registre pontos visíveis de captação, descidas, conexões e eventuais descontinuidades relevantes.",
+            },
+            {
+                "id": "spda_aterramento_equipotencializacao",
+                "categoria": "norma",
+                "titulo": "Cobrir aterramento e equipotencialização",
+                "descricao": "Deixe evidências das condições de aterramento, barramentos e integrações do sistema.",
+            },
+        ],
+    },
+    "pie": {
+        "descricao": "Feche o PIE com rastros claros de documentação, quadros, proteção e condições de segurança elétrica.",
+        "itens_especificos": [
+            {
+                "id": "pie_quadros_protecao",
+                "categoria": "norma",
+                "titulo": "Cobrir quadros e proteção elétrica",
+                "descricao": "Inclua evidências de quadros, proteção, identificação e condições visuais das instalações críticas.",
+            },
+            {
+                "id": "pie_documentacao_base",
+                "categoria": "norma",
+                "titulo": "Relacionar base documental e riscos",
+                "descricao": "Amarre a inspeção aos documentos disponíveis e aos principais riscos ou lacunas observadas.",
+            },
+        ],
+    },
+    "rti": {
+        "descricao": "A RTI deve chegar à mesa com foco em quadros, circuitos críticos, proteção e estado geral da instalação.",
+        "itens_especificos": [
+            {
+                "id": "rti_quadros_circuitos",
+                "categoria": "norma",
+                "titulo": "Cobrir quadros e circuitos críticos",
+                "descricao": "Registre os pontos elétricos mais relevantes, sua identificação e o estado geral de conservação.",
+            },
+            {
+                "id": "rti_nao_conformidades",
+                "categoria": "norma",
+                "titulo": "Consolidar não conformidades elétricas",
+                "descricao": "Se houver desvios, deixe o risco elétrico claramente descrito com foto e observação objetiva.",
+            },
+        ],
+    },
+    "nr12maquinas": {
+        "descricao": "A mesa precisa receber uma coleta fechada sobre proteções, intertravamentos e zonas de risco da máquina.",
+        "itens_especificos": [
+            {
+                "id": "nr12_protecoes_emergencia",
+                "categoria": "norma",
+                "titulo": "Cobrir proteções e parada de emergência",
+                "descricao": "Registre dispositivos de proteção, parada de emergência, enclausuramento e acessos perigosos.",
+            },
+            {
+                "id": "nr12_intertravamentos_operacao",
+                "categoria": "norma",
+                "titulo": "Cobrir intertravamentos e condição operacional",
+                "descricao": "Documente pontos de bloqueio, intertravamentos e condição operacional observada na máquina.",
+            },
+        ],
+    },
+    "nr13": {
+        "descricao": "A coleta deve deixar rastreável a condição do equipamento e a base documental exigida para NR-13.",
+        "itens_especificos": [
+            {
+                "id": "nr13_identificacao_segurança",
+                "categoria": "norma",
+                "titulo": "Cobrir identificação e dispositivos de segurança",
+                "descricao": "Inclua dados de identificação visível, válvulas, instrumentos e dispositivos de segurança relevantes.",
+            },
+            {
+                "id": "nr13_documentacao_prontuario",
+                "categoria": "norma",
+                "titulo": "Relacionar prontuário e histórico disponível",
+                "descricao": "Deixe claro o que foi conferido de prontuário, inspeções anteriores ou pendências documentais.",
+            },
+        ],
+    },
+    "cbmgo": {
+        "descricao": "Além das evidências mínimas, este template exige estruturação do formulário antes do envio para a mesa.",
+        "itens_especificos": [
+            {
+                "id": "cbmgo_estrutura_rotas",
+                "categoria": "norma",
+                "titulo": "Cobrir estrutura, circulação e abandono",
+                "descricao": "Registre condições estruturais, circulação, rotas de saída e pontos críticos ligados à segurança contra incêndio.",
+            },
+            {
+                "id": "cbmgo_formulario_estruturado",
+                "categoria": "formulario",
+                "titulo": "Gerar formulário estruturado obrigatório",
+                "descricao": "Finalize a coleta apenas quando o formulário estruturado do template estiver gerado e consistente.",
+            },
+        ],
+    },
+}
+
 
 def _mensagem_eh_comando_sistema(conteudo: str) -> bool:
     texto = (conteudo or "").strip()
@@ -150,6 +289,93 @@ def _item_gate_qualidade(
     }
 
 
+def _item_roteiro_template(
+    *,
+    item_id: str,
+    categoria: str,
+    titulo: str,
+    descricao: str,
+) -> dict[str, Any]:
+    return {
+        "id": item_id,
+        "categoria": categoria,
+        "titulo": titulo,
+        "descricao": descricao,
+        "obrigatorio": True,
+    }
+
+
+def _montar_roteiro_template_qualidade(tipo_template: str, regra: dict[str, Any]) -> dict[str, Any]:
+    configuracao = ROTEIRO_COLETA_TEMPLATE.get(
+        tipo_template,
+        ROTEIRO_COLETA_TEMPLATE["padrao"],
+    )
+    min_textos = int(regra.get("min_textos", 0) or 0)
+    min_evidencias = int(regra.get("min_evidencias", 0) or 0)
+    min_fotos = int(regra.get("min_fotos", 0) or 0)
+    min_mensagens_ia = int(regra.get("min_mensagens_ia", 0) or 0)
+    requer_dados_formulario = bool(regra.get("requer_dados_formulario", False))
+
+    itens = [
+        _item_roteiro_template(
+            item_id="roteiro_escopo_inicial",
+            categoria="campo_critico",
+            titulo="Registrar escopo inicial qualificado",
+            descricao="Abra a inspeção com contexto técnico útil, identificando ativo, área ou processo e o motivo da coleta.",
+        ),
+        _item_roteiro_template(
+            item_id="roteiro_textos_campo",
+            categoria="evidencia",
+            titulo="Consolidar registros textuais de campo",
+            descricao=f"Registre pelo menos {min_textos} observação(ões) textual(is) úteis com achados, medições ou contexto operacional.",
+        ),
+        _item_roteiro_template(
+            item_id="roteiro_evidencias_minimas",
+            categoria="evidencia",
+            titulo="Fechar evidências mínimas da coleta",
+            descricao=f"Combine texto, foto e/ou documento até atingir ao menos {min_evidencias} evidência(s) válida(s) para sustentar o laudo.",
+        ),
+        _item_roteiro_template(
+            item_id="roteiro_fotos_essenciais",
+            categoria="foto",
+            titulo="Registrar fotos essenciais",
+            descricao=f"Garanta ao menos {min_fotos} foto(s) dos pontos críticos antes do envio para a mesa.",
+        ),
+        _item_roteiro_template(
+            item_id="roteiro_parecer_ia",
+            categoria="ia",
+            titulo="Obter parecer preliminar da IA",
+            descricao=f"Feche a coleta com pelo menos {min_mensagens_ia} resposta(s) técnica(s) da IA consolidando o contexto observado.",
+        ),
+    ]
+
+    if requer_dados_formulario:
+        itens.append(
+            _item_roteiro_template(
+                item_id="roteiro_formulario_estruturado",
+                categoria="formulario",
+                titulo="Gerar formulário estruturado do template",
+                descricao="Este template exige estruturação obrigatória antes da finalização e envio para a mesa.",
+            )
+        )
+
+    for item in configuracao.get("itens_especificos", []):
+        itens.append(
+            _item_roteiro_template(
+                item_id=str(item.get("id") or "roteiro_template_item"),
+                categoria=str(item.get("categoria") or "coleta"),
+                titulo=str(item.get("titulo") or "Ponto crítico do template"),
+                descricao=str(item.get("descricao") or "").strip(),
+            )
+        )
+
+    return {
+        "titulo": "Roteiro obrigatório do template",
+        "descricao": str(configuracao.get("descricao") or "").strip(),
+        "itens": itens,
+    }
+
+
 def avaliar_gate_qualidade_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]:
     tipo_template = normalizar_tipo_template(getattr(laudo, "tipo_template", "padrao"))
     regra = REGRAS_GATE_QUALIDADE_TEMPLATE.get(
@@ -202,6 +428,7 @@ def avaliar_gate_qualidade_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]
     evidencias_ok = qtd_evidencias >= min_evidencias
     fotos_ok = qtd_fotos >= min_fotos
     dados_formulario_ok = (not requer_dados_formulario) or bool(laudo.dados_formulario)
+    roteiro_template = _montar_roteiro_template_qualidade(tipo_template, regra)
 
     itens = [
         _item_gate_qualidade(
@@ -293,6 +520,7 @@ def avaliar_gate_qualidade_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]
         "resumo": resumo,
         "itens": itens,
         "faltantes": faltantes,
+        "roteiro_template": roteiro_template,
     }
 
 

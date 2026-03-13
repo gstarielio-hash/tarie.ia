@@ -54,6 +54,14 @@ _PRIORIDADE_PLANO = {
     PlanoEmpresa.INICIAL.value: 3,
 }
 
+_NIVEIS_GERENCIAVEIS_CLIENTE = frozenset(
+    {
+        int(NivelAcesso.ADMIN_CLIENTE),
+        int(NivelAcesso.INSPETOR),
+        int(NivelAcesso.REVISOR),
+    }
+)
+
 
 # =========================================================
 # HELPERS
@@ -107,6 +115,32 @@ def _normalizar_crea(valor: str) -> str | None:
         raise ValueError("CREA inválido. Use apenas letras, números, ponto, barra e hífen.")
 
     return texto
+
+
+def _normalizar_nivel_cliente(valor: str | int | NivelAcesso) -> int:
+    nivel = NivelAcesso.normalizar(valor)
+    if nivel not in _NIVEIS_GERENCIAVEIS_CLIENTE:
+        raise ValueError("Perfil inválido para gestão do cliente.")
+    return int(nivel)
+
+
+def _buscar_empresa(db: Session, empresa_id: int) -> Empresa:
+    empresa = db.scalar(select(Empresa).where(Empresa.id == empresa_id))
+    if not empresa:
+        raise ValueError("Empresa não encontrada.")
+    return empresa
+
+
+def _buscar_usuario_empresa(db: Session, empresa_id: int, usuario_id: int) -> Usuario:
+    usuario = db.scalar(
+        select(Usuario).where(
+            Usuario.id == usuario_id,
+            Usuario.empresa_id == empresa_id,
+        )
+    )
+    if not usuario:
+        raise ValueError("Usuário não encontrado para esta empresa.")
+    return usuario
 
 
 def _normalizar_plano(plano: str) -> str:
@@ -218,7 +252,7 @@ def registrar_novo_cliente(
         nome_completo=f"Administrador {nome_norm}",
         email=email_norm,
         senha_hash=criar_hash_senha(senha_plana),
-        nivel_acesso=int(NivelAcesso.DIRETORIA),
+        nivel_acesso=int(NivelAcesso.ADMIN_CLIENTE),
         ativo=True,
         senha_temporaria_ativa=True,
     )
@@ -324,7 +358,10 @@ def buscar_detalhe_cliente(db: Session, empresa_id: int) -> dict[str, Any] | Non
         db.scalars(select(Usuario).where(Usuario.empresa_id == empresa_id).order_by(Usuario.nivel_acesso.desc(), Usuario.nome_completo.asc())).all()
     )
 
-    usuarios_operacionais = [usuario for usuario in usuarios_empresa if int(usuario.nivel_acesso) < int(NivelAcesso.DIRETORIA)]
+    admins_cliente = [usuario for usuario in usuarios_empresa if int(usuario.nivel_acesso) == int(NivelAcesso.ADMIN_CLIENTE)]
+    inspetores = [usuario for usuario in usuarios_empresa if int(usuario.nivel_acesso) == int(NivelAcesso.INSPETOR)]
+    revisores = [usuario for usuario in usuarios_empresa if int(usuario.nivel_acesso) == int(NivelAcesso.REVISOR)]
+    usuarios_operacionais = [usuario for usuario in usuarios_empresa if int(usuario.nivel_acesso) in {int(NivelAcesso.INSPETOR), int(NivelAcesso.REVISOR)}]
 
     laudos_recentes = list(db.scalars(select(Laudo).where(Laudo.empresa_id == empresa_id).order_by(Laudo.criado_em.desc()).limit(10)).all())
 
@@ -343,7 +380,10 @@ def buscar_detalhe_cliente(db: Session, empresa_id: int) -> dict[str, Any] | Non
 
     return {
         "empresa": empresa,
-        "inspetores": usuarios_operacionais,
+        "admins_cliente": admins_cliente,
+        "inspetores": inspetores,
+        "revisores": revisores,
+        "inspetores_e_revisores": usuarios_operacionais,
         "usuarios": usuarios_empresa,
         "laudos_recentes": laudos_recentes,
         "limite_plano": limite_laudos if limite_laudos is not None else "Ilimitado",
@@ -370,9 +410,7 @@ def alternar_bloqueio(db: Session, empresa_id: int) -> bool:
 def alterar_plano(db: Session, empresa_id: int, novo_plano: str) -> None:
     plano_norm = _normalizar_plano(novo_plano)
 
-    empresa = db.scalar(select(Empresa).where(Empresa.id == empresa_id))
-    if not empresa:
-        raise ValueError("Empresa não encontrada.")
+    empresa = _buscar_empresa(db, empresa_id)
 
     empresa.plano_ativo = plano_norm
     _commit_ou_rollback(db, "Não foi possível alterar o plano da empresa.")
@@ -401,17 +439,15 @@ def resetar_senha_inspetor(db: Session, usuario_id: int) -> str:
     return nova_senha
 
 
-def atualizar_crea_revisor(db: Session, empresa_id: int, usuario_id: int, crea: str) -> Usuario:
-    usuario = db.scalar(
-        select(Usuario).where(
-            Usuario.id == usuario_id,
-            Usuario.empresa_id == empresa_id,
-        )
-    )
-    if not usuario:
-        raise ValueError("Usuário não encontrado para esta empresa.")
+def resetar_senha_usuario_empresa(db: Session, empresa_id: int, usuario_id: int) -> str:
+    usuario = _buscar_usuario_empresa(db, empresa_id, usuario_id)
+    return resetar_senha_inspetor(db, usuario.id)
 
-    if int(usuario.nivel_acesso) < int(NivelAcesso.REVISOR):
+
+def atualizar_crea_revisor(db: Session, empresa_id: int, usuario_id: int, crea: str) -> Usuario:
+    usuario = _buscar_usuario_empresa(db, empresa_id, usuario_id)
+
+    if int(usuario.nivel_acesso) != int(NivelAcesso.REVISOR):
         raise ValueError("Somente usuários revisores aceitam cadastro de CREA.")
 
     usuario.crea = _normalizar_crea(crea)
@@ -420,14 +456,31 @@ def atualizar_crea_revisor(db: Session, empresa_id: int, usuario_id: int, crea: 
 
 
 def adicionar_inspetor(db: Session, empresa_id: int, nome: str, email: str) -> str:
-    empresa = db.scalar(select(Empresa).where(Empresa.id == empresa_id))
-    if not empresa:
-        raise ValueError("Empresa não encontrada.")
+    return criar_usuario_empresa(
+        db,
+        empresa_id=empresa_id,
+        nome=nome,
+        email=email,
+        nivel_acesso=NivelAcesso.INSPETOR,
+    )[1]
 
+
+def criar_usuario_empresa(
+    db: Session,
+    *,
+    empresa_id: int,
+    nome: str,
+    email: str,
+    nivel_acesso: str | int | NivelAcesso,
+    telefone: str = "",
+    crea: str = "",
+) -> tuple[Usuario, str]:
+    empresa = _buscar_empresa(db, empresa_id)
     _validar_capacidade_novo_usuario(db, empresa)
 
     email_norm = _normalizar_email(email)
     nome_norm = _normalizar_texto_curto(nome, campo="Nome do usuário", max_len=150)
+    nivel_norm = _normalizar_nivel_cliente(nivel_acesso)
 
     if db.scalar(select(Usuario).where(Usuario.email == email_norm)):
         raise ValueError("E-mail já cadastrado.")
@@ -438,15 +491,74 @@ def adicionar_inspetor(db: Session, empresa_id: int, nome: str, email: str) -> s
         empresa_id=empresa_id,
         nome_completo=nome_norm,
         email=email_norm,
+        telefone=_normalizar_texto_opcional(telefone, 30),
+        crea=_normalizar_crea(crea) if nivel_norm == int(NivelAcesso.REVISOR) else None,
         senha_hash=criar_hash_senha(senha),
-        nivel_acesso=int(NivelAcesso.INSPETOR),
+        nivel_acesso=nivel_norm,
         ativo=True,
         senha_temporaria_ativa=True,
     )
     db.add(novo)
 
-    _commit_ou_rollback(db, "Não foi possível adicionar o inspetor.")
-    return senha
+    _commit_ou_rollback(db, "Não foi possível adicionar o usuário da empresa.")
+    logger.info(
+        "Usuário da empresa criado | empresa_id=%s | usuario_id=%s | nivel=%s",
+        empresa_id,
+        novo.id,
+        nivel_norm,
+    )
+    return novo, senha
+
+
+def alternar_bloqueio_usuario_empresa(db: Session, empresa_id: int, usuario_id: int) -> Usuario:
+    usuario = _buscar_usuario_empresa(db, empresa_id, usuario_id)
+    usuario.ativo = not bool(usuario.ativo)
+
+    if usuario.ativo:
+        usuario.status_bloqueio = False
+        usuario.bloqueado_ate = None
+        usuario.tentativas_login = 0
+    else:
+        usuario.status_bloqueio = True
+        usuario.bloqueado_ate = None
+
+    _commit_ou_rollback(db, "Não foi possível alterar o bloqueio do usuário.")
+    encerrar_todas_sessoes_usuario(int(usuario.id))
+    return usuario
+
+
+def atualizar_usuario_empresa(
+    db: Session,
+    *,
+    empresa_id: int,
+    usuario_id: int,
+    nome: str | None = None,
+    email: str | None = None,
+    telefone: str | None = None,
+    crea: str | None = None,
+) -> Usuario:
+    usuario = _buscar_usuario_empresa(db, empresa_id, usuario_id)
+
+    if nome is not None:
+        usuario.nome_completo = _normalizar_texto_curto(nome, campo="Nome do usuário", max_len=150)
+
+    if email is not None:
+        email_norm = _normalizar_email(email)
+        existente = db.scalar(select(Usuario).where(Usuario.email == email_norm, Usuario.id != usuario.id))
+        if existente:
+            raise ValueError("E-mail já cadastrado.")
+        usuario.email = email_norm
+
+    if telefone is not None:
+        usuario.telefone = _normalizar_texto_opcional(telefone, 30)
+
+    if crea is not None:
+        if int(usuario.nivel_acesso) != int(NivelAcesso.REVISOR):
+            raise ValueError("Somente revisores aceitam cadastro de CREA.")
+        usuario.crea = _normalizar_crea(crea)
+
+    _commit_ou_rollback(db, "Não foi possível atualizar o usuário da empresa.")
+    return usuario
 
 
 # =========================================================

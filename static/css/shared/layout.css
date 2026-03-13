@@ -90,15 +90,16 @@ textarea:focus-visible,
 .box-login h2 {
     margin: 0 0 6px;
     color: var(--text-primary);
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
 .box-login p {
     margin: 0 0 28px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.62;
 }
 
 .form-login {
@@ -136,7 +137,8 @@ textarea:focus-visible,
     display: none;
     padding: 8px 12px;
     color: var(--cor-alerta);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
     text-align: left;
     background: rgba(198, 40, 40, 0.08);
     border: 1px solid rgba(198, 40, 40, 0.25);
@@ -162,11 +164,15 @@ textarea:focus-visible,
     min-height: var(--header-h);
     height: var(--header-h);
     padding: 0 22px;
-    background: linear-gradient(180deg, rgba(43, 47, 55, 0.92), rgba(35, 39, 47, 0.94));
-    border-bottom: 1px solid rgba(191, 198, 209, 0.10);
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.10), transparent 42%),
+        radial-gradient(circle at 86% -10%, rgba(255, 255, 255, 0.04), transparent 30%),
+        linear-gradient(180deg, rgba(48, 53, 61, 0.94), rgba(31, 35, 42, 0.98));
+    border-bottom: 1px solid rgba(191, 198, 209, 0.16);
     box-shadow:
-        inset 0 -1px 0 rgba(191, 198, 209, 0.08),
-        0 10px 30px rgba(0, 0, 0, 0.18);
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(191, 198, 209, 0.1),
+        0 18px 42px rgba(0, 0, 0, 0.24);
     backdrop-filter: blur(14px);
     will-change: transform;
     transition:
@@ -202,9 +208,9 @@ body.modo-foco .cabecalho-wf {
     width: 40px;
     height: 40px;
     color: #fff;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     background: linear-gradient(135deg, rgba(244, 123, 32, 0.95), rgba(255, 153, 69, 0.92));
     border: 1px solid rgba(255, 195, 145, 0.28);
     border-radius: 14px;
@@ -236,10 +242,10 @@ body.modo-foco .cabecalho-wf {
     overflow: hidden;
     color: var(--text-primary);
     font-family: var(--font-base);
-    font-size: 16.5px;
-    font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: 0.015em;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
@@ -250,11 +256,11 @@ body.modo-foco .cabecalho-wf {
     gap: 8px;
     flex-wrap: wrap;
     margin-top: 2px;
-    color: rgba(191, 198, 209, 0.72);
-    font-size: 11.5px;
-    line-height: 1.35;
+    color: rgba(202, 210, 221, 0.82);
+    font-size: 12px;
+    line-height: 1.45;
     white-space: nowrap;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.012em;
 }
 
 .indicador-online {
@@ -290,7 +296,7 @@ body.modo-foco .cabecalho-wf {
 
 .icone-cadeado {
     color: var(--badge-conforme);
-    font-size: 12px !important;
+    font-size: 13px !important;
 }
 
 .controles-cabecalho {
@@ -342,9 +348,9 @@ body.modo-foco .cabecalho-wf {
     background: transparent;
     color: var(--text-primary);
     font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: normal;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
@@ -376,7 +382,7 @@ body.modo-foco .cabecalho-wf {
     cursor: pointer;
     font: inherit;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     transition:
         background-color var(--t-base) var(--ease),
         transform var(--t-fast) var(--ease),
@@ -419,9 +425,9 @@ body.modo-foco .cabecalho-wf {
     width: auto;
     padding: 8px 14px;
     border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.008em;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.10),
         0 10px 22px rgba(244, 123, 32, 0.20);
@@ -434,25 +440,35 @@ body.modo-foco .cabecalho-wf {
     min-height: 36px;
     padding: 7px 13px;
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(191, 198, 209, 0.16);
+    background:
+        radial-gradient(circle at top center, rgba(255, 255, 255, 0.045), transparent 48%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(191, 198, 209, 0.2);
     border-radius: 12px;
     cursor: pointer;
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
+    box-shadow:
+        var(--surface-highlight),
+        0 6px 16px rgba(0, 0, 0, 0.12);
     transition:
         color var(--t-base) var(--ease),
         background-color var(--t-base) var(--ease),
         border-color var(--t-base) var(--ease),
-        transform var(--t-fast) var(--ease);
+        transform var(--t-fast) var(--ease),
+        box-shadow var(--t-fast) var(--ease);
 }
 
 .btn-secundario:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(191, 198, 209, 0.30);
+    background:
+        radial-gradient(circle at top center, rgba(255, 255, 255, 0.055), transparent 48%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.036));
+    border-color: rgba(191, 198, 209, 0.34);
+    transform: translateY(-1px);
+    box-shadow: var(--surface-shadow-soft);
 }
 
 .btn-secundario:focus-visible {
@@ -575,11 +591,14 @@ body.modo-foco .container-app {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
     overflow: hidden;
-    background: linear-gradient(180deg, rgba(35, 39, 47, 0.97), rgba(25, 28, 34, 0.98));
-    border-right: 1px solid rgba(191, 198, 209, 0.10);
+    background:
+        radial-gradient(circle at 100% 0, rgba(244, 123, 32, 0.10), transparent 30%),
+        radial-gradient(circle at 0 100%, rgba(255, 255, 255, 0.03), transparent 34%),
+        linear-gradient(180deg, rgba(40, 44, 52, 0.98), rgba(22, 25, 31, 0.995));
+    border-right: 1px solid rgba(191, 198, 209, 0.16);
     box-shadow:
-        inset -1px 0 0 rgba(255, 255, 255, 0.02),
-        10px 0 30px rgba(0, 0, 0, 0.14);
+        inset -1px 0 0 rgba(255, 255, 255, 0.04),
+        16px 0 40px rgba(0, 0, 0, 0.22);
     will-change: transform;
     transition:
         transform .3s cubic-bezier(.4, 0, .2, 1),
@@ -635,11 +654,11 @@ body.sidebar-colapsada .container-app {
     flex-shrink: 0;
     margin-bottom: 8px;
     padding: 0 16px 10px;
-    color: rgba(191, 198, 209, 0.34);
-    font-size: 11px;
+    color: rgba(191, 198, 209, 0.5);
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.10em;
+    letter-spacing: 0.08em;
 }
 
 .busca-historico {
@@ -648,10 +667,14 @@ body.sidebar-colapsada .container-app {
     gap: 8px;
     margin: 0 14px 12px;
     padding: 10px 12px;
-    background: rgba(47, 53, 61, 0.88);
-    border: 1px solid rgba(191, 198, 209, 0.12);
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.05), transparent 48%),
+        linear-gradient(180deg, rgba(58, 64, 74, 0.92), rgba(42, 47, 56, 0.95));
+    border: 1px solid rgba(191, 198, 209, 0.16);
     border-radius: 14px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    box-shadow:
+        var(--surface-highlight),
+        0 8px 20px rgba(0, 0, 0, 0.16);
     transition:
         border-color var(--t-base) var(--ease),
         box-shadow var(--t-base) var(--ease),
@@ -659,8 +682,10 @@ body.sidebar-colapsada .container-app {
 }
 
 .busca-historico:hover {
-    border-color: rgba(191, 198, 209, 0.22);
-    background: rgba(56, 62, 72, 0.94);
+    border-color: rgba(191, 198, 209, 0.28);
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.07), transparent 48%),
+        linear-gradient(180deg, rgba(63, 70, 81, 0.96), rgba(45, 50, 59, 0.98));
 }
 
 .busca-historico:focus-within {
@@ -683,7 +708,7 @@ body.sidebar-colapsada .container-app {
     border: none;
     outline: none;
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .busca-historico input::placeholder {
@@ -693,9 +718,12 @@ body.sidebar-colapsada .container-app {
 .sem-resultados-busca {
     display: none;
     margin: 0 14px 8px;
-    padding: 0 2px;
-    color: var(--text-tertiary);
-    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    border: 1px dashed rgba(191, 198, 209, 0.24);
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014));
 }
 
 .sem-resultados-busca.visivel {
@@ -738,10 +766,10 @@ body.sidebar-colapsada .container-app {
 .grupo-data-header {
     padding: 10px 16px 4px;
     color: rgba(191, 198, 209, 0.26);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
 }
 
 /* ==========================================
@@ -754,8 +782,8 @@ body.sidebar-colapsada .container-app {
     gap: 8px;
     margin: 0 14px 12px;
     padding: 9px 10px;
-    font-size: 11px;
-    line-height: 1.4;
+    font-size: 12px;
+    line-height: 1.5;
     border-radius: 10px;
 }
 
@@ -800,7 +828,7 @@ body.sidebar-colapsada .container-app {
     width: fit-content;
     margin-top: 4px;
     padding: 2px 7px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-decoration: none;
     color: var(--accent-wf);
@@ -823,21 +851,28 @@ body.sidebar-colapsada .container-app {
     gap: 8px;
     margin: 0 14px 12px;
     padding: 10px 12px;
-    font-size: 12px;
-    background: rgba(244, 123, 32, 0.08);
+    font-size: 13px;
+    background:
+        linear-gradient(180deg, rgba(244, 123, 32, 0.12), rgba(244, 123, 32, 0.06)),
+        rgba(38, 42, 49, 0.88);
     border: 1px solid rgba(244, 123, 32, 0.22);
     border-radius: 10px;
     cursor: pointer;
+    box-shadow: var(--surface-highlight);
     transition:
         border-color var(--t-fast, .12s) var(--ease, ease),
         background-color var(--t-fast, .12s) var(--ease, ease),
-        transform var(--t-fast, .12s) var(--ease, ease);
+        transform var(--t-fast, .12s) var(--ease, ease),
+        box-shadow var(--t-fast, .12s) var(--ease, ease);
 }
 
 .banner-relatorio-ativo:hover {
     border-color: rgba(244, 123, 32, 0.45);
-    background: rgba(244, 123, 32, 0.13);
+    background:
+        linear-gradient(180deg, rgba(244, 123, 32, 0.16), rgba(244, 123, 32, 0.08)),
+        rgba(42, 46, 54, 0.92);
     transform: translateY(-1px);
+    box-shadow: var(--surface-shadow-soft);
 }
 
 .banner-relatorio-ativo:focus-visible {
@@ -855,12 +890,13 @@ body.sidebar-colapsada .container-app {
 
 .banner-relatorio-texto strong {
     color: var(--accent-wf);
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .banner-relatorio-texto span {
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .dot-piscando {
@@ -895,14 +931,16 @@ body.sidebar-colapsada .container-app {
     width: calc(100% - 16px);
     margin: 0 8px;
     padding: 12px 38px 12px 12px;
-    color: rgba(224, 235, 245, 0.92);
-    background: transparent;
-    border: 1px solid transparent;
+    color: rgba(232, 238, 245, 0.94);
+    background:
+        radial-gradient(circle at top right, rgba(244, 123, 32, 0.03), transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.012));
+    border: 1px solid rgba(191, 198, 209, 0.08);
     border-radius: 14px;
     cursor: pointer;
     text-align: left;
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     outline: none;
     transition:
         background-color .18s ease,
@@ -914,8 +952,13 @@ body.sidebar-colapsada .container-app {
 
 .item-historico:hover {
     color: #ffffff;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.025));
-    border-color: rgba(191, 198, 209, 0.08);
+    background:
+        radial-gradient(circle at top right, rgba(244, 123, 32, 0.07), transparent 44%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.03));
+    border-color: rgba(191, 198, 209, 0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 12px 26px rgba(0, 0, 0, 0.18);
     transform: translateY(-1px);
 }
 
@@ -925,11 +968,13 @@ body.sidebar-colapsada .container-app {
 
 .item-historico.ativo {
     color: #ffffff;
-    border-color: rgba(244, 123, 32, 0.18);
-    background: linear-gradient(180deg, rgba(244, 123, 32, 0.12), rgba(244, 123, 32, 0.05));
+    border-color: rgba(244, 123, 32, 0.32);
+    background:
+        radial-gradient(circle at top right, rgba(244, 123, 32, 0.14), transparent 38%),
+        linear-gradient(180deg, rgba(244, 123, 32, 0.16), rgba(244, 123, 32, 0.06));
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.03),
-        0 8px 20px rgba(0, 0, 0, 0.14);
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 14px 30px rgba(0, 0, 0, 0.2);
 }
 
 .item-historico.ativo::before {
@@ -973,8 +1018,8 @@ body.sidebar-colapsada .container-app {
 .texto-laudo-historico span:first-child {
     overflow: hidden;
     font-size: 14px;
-    font-weight: 700;
-    line-height: 1.25;
+    font-weight: 600;
+    line-height: 1.3;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
@@ -982,9 +1027,9 @@ body.sidebar-colapsada .container-app {
 .texto-laudo-historico .preview-mensagem,
 .texto-laudo-historico small {
     overflow: hidden;
-    color: rgba(191, 198, 209, 0.54);
-    font-size: 12px;
-    line-height: 1.35;
+    color: rgba(202, 210, 221, 0.66);
+    font-size: 13px;
+    line-height: 1.4;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
@@ -1010,13 +1055,15 @@ body.sidebar-colapsada .container-app {
     min-height: 24px;
     margin-left: auto;
     padding: 4px 10px;
-    border: 1px solid rgba(191, 198, 209, 0.16);
+    border: 1px solid rgba(191, 198, 209, 0.2);
     border-radius: 999px;
-    background: rgba(191, 198, 209, 0.08);
-    color: rgba(214, 221, 231, 0.86);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    background:
+        radial-gradient(circle at top center, rgba(255, 255, 255, 0.045), transparent 54%),
+        rgba(191, 198, 209, 0.09);
+    color: rgba(224, 230, 238, 0.9);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
     line-height: 1;
     white-space: nowrap;
     transition:
@@ -1032,26 +1079,34 @@ body.sidebar-colapsada .container-app {
 }
 
 .pill-status-aberto {
-    border-color: rgba(244, 123, 32, 0.28);
-    background: rgba(244, 123, 32, 0.14);
+    border-color: rgba(244, 123, 32, 0.32);
+    background:
+        radial-gradient(circle at top center, rgba(255, 219, 191, 0.08), transparent 54%),
+        rgba(244, 123, 32, 0.15);
     color: rgba(255, 215, 182, 0.95);
 }
 
 .pill-status-aguardando {
-    border-color: rgba(207, 159, 82, 0.32);
-    background: rgba(207, 159, 82, 0.14);
+    border-color: rgba(207, 159, 82, 0.36);
+    background:
+        radial-gradient(circle at top center, rgba(255, 233, 186, 0.07), transparent 54%),
+        rgba(207, 159, 82, 0.15);
     color: rgba(244, 222, 171, 0.95);
 }
 
 .pill-status-ajustes {
-    border-color: rgba(227, 153, 88, 0.34);
-    background: rgba(227, 153, 88, 0.14);
+    border-color: rgba(227, 153, 88, 0.38);
+    background:
+        radial-gradient(circle at top center, rgba(255, 224, 200, 0.08), transparent 54%),
+        rgba(227, 153, 88, 0.15);
     color: rgba(255, 217, 191, 0.96);
 }
 
 .pill-status-aprovado {
-    border-color: rgba(83, 181, 122, 0.32);
-    background: rgba(83, 181, 122, 0.14);
+    border-color: rgba(83, 181, 122, 0.36);
+    background:
+        radial-gradient(circle at top center, rgba(211, 255, 225, 0.08), transparent 54%),
+        rgba(83, 181, 122, 0.15);
     color: rgba(190, 243, 211, 0.96);
 }
 
@@ -1105,17 +1160,25 @@ body.sidebar-colapsada .container-app {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 40px 16px;
-    color: var(--text-tertiary);
-    font-size: 13px;
+    gap: 10px;
+    margin: 8px 12px 0;
+    padding: 28px 18px;
+    color: var(--text-secondary);
+    font-size: 14px;
     line-height: 1.5;
     text-align: center;
+    border: 1px dashed rgba(191, 198, 209, 0.2);
+    border-radius: 16px;
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.09), transparent 44%),
+        radial-gradient(circle at bottom center, rgba(255, 255, 255, 0.03), transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
 }
 
 .estado-vazio-historico .material-symbols-rounded {
-    opacity: 0.35;
-    font-size: 36px;
+    opacity: 0.42;
+    font-size: 38px;
+    color: rgba(244, 123, 32, 0.72);
 }
 
 /* ==========================================
@@ -1137,10 +1200,10 @@ body.sidebar-colapsada .container-app {
     gap: 5px;
     padding: 6px 4px 8px;
     color: var(--accent-wf);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
 }
 
 .barra-historico .secao-pinados-titulo .material-symbols-rounded {
@@ -1246,8 +1309,11 @@ body.sidebar-colapsada .container-app {
     flex-direction: column;
     gap: 8px;
     padding: 12px 12px 10px;
-    border-top: 1px solid rgba(191, 198, 209, 0.08);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0.025));
+    border-top: 1px solid rgba(191, 198, 209, 0.12);
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.05), transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.038)),
+        rgba(24, 27, 33, 0.82);
     backdrop-filter: blur(10px);
     flex-shrink: 0;
 }
@@ -1269,21 +1335,27 @@ body.sidebar-colapsada .container-app {
     gap: 8px;
     padding: 10px 12px;
     text-align: left;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-family: inherit;
     color: var(--accent-wf);
-    background: rgba(244, 123, 32, 0.10);
-    border: 1px solid rgba(244, 123, 32, 0.30);
+    background:
+        radial-gradient(circle at top right, rgba(255, 212, 180, 0.08), transparent 44%),
+        linear-gradient(180deg, rgba(244, 123, 32, 0.22), rgba(244, 123, 32, 0.10));
+    border: 1px solid rgba(244, 123, 32, 0.36);
     border-radius: 10px;
     cursor: pointer;
-    transition: background .2s, border-color .2s, transform .2s;
+    box-shadow: var(--surface-highlight);
+    transition: background .2s, border-color .2s, transform .2s, box-shadow .2s;
 }
 
 .btn-sidebar-engenheiro:hover {
-    background: rgba(244, 123, 32, 0.16);
+    background:
+        radial-gradient(circle at top right, rgba(255, 212, 180, 0.1), transparent 44%),
+        linear-gradient(180deg, rgba(244, 123, 32, 0.26), rgba(244, 123, 32, 0.12));
     border-color: rgba(244, 123, 32, 0.56);
     transform: translateY(-1px);
+    box-shadow: var(--surface-shadow-soft);
 }
 
 .btn-sidebar-engenheiro:focus-visible {
@@ -1298,20 +1370,26 @@ body.sidebar-colapsada .container-app {
     gap: 8px;
     padding: 10px 12px;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 14px;
     font-family: inherit;
     color: var(--text-secondary);
-    background: transparent;
-    border: 1px solid rgba(191, 198, 209, 0.16);
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.014));
+    border: 1px solid rgba(191, 198, 209, 0.2);
     border-radius: 10px;
     cursor: pointer;
-    transition: color .2s, border-color .2s, background .2s;
+    box-shadow: var(--surface-highlight);
+    transition: color .2s, border-color .2s, background .2s, box-shadow .2s;
 }
 
 .btn-sidebar-suporte:hover {
     color: var(--text-primary);
-    border-color: rgba(191, 198, 209, 0.30);
-    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(191, 198, 209, 0.34);
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 46%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.024));
+    box-shadow: var(--surface-shadow-soft);
 }
 
 /* ==========================================
@@ -1324,8 +1402,11 @@ body.sidebar-colapsada .container-app {
     gap: 10px;
     flex-shrink: 0;
     padding: 12px;
-    border-top: 1px solid rgba(191, 198, 209, 0.08);
-    background: rgba(255, 255, 255, 0.015);
+    border-top: 1px solid rgba(191, 198, 209, 0.12);
+    background:
+        radial-gradient(circle at top right, rgba(184, 190, 200, 0.08), transparent 40%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.014)),
+        rgba(24, 27, 33, 0.76);
 }
 
 .btn-abrir-perfil-chat {
@@ -1334,12 +1415,29 @@ body.sidebar-colapsada .container-app {
     gap: 10px;
     flex: 1;
     min-width: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
+    padding: 10px 11px;
+    border: 1px solid rgba(191, 198, 209, 0.16);
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.04), transparent 44%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.014));
     text-align: left;
     color: inherit;
     cursor: pointer;
+    transition:
+        border-color var(--t-fast) var(--ease),
+        background-color var(--t-fast) var(--ease),
+        transform var(--t-fast) var(--ease),
+        box-shadow var(--t-fast) var(--ease);
+}
+
+.btn-abrir-perfil-chat:hover {
+    border-color: rgba(191, 198, 209, 0.24);
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 44%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+    transform: translateY(-1px);
+    box-shadow: var(--surface-shadow-soft);
 }
 
 .btn-abrir-perfil-chat:hover .info-usuario-container strong {
@@ -1349,7 +1447,7 @@ body.sidebar-colapsada .container-app {
 .btn-abrir-perfil-chat:focus-visible {
     outline: none;
     box-shadow: var(--focus-ring, 0 0 0 3px rgba(244, 123, 32, 0.22));
-    border-radius: 10px;
+    border-radius: 14px;
 }
 
 .avatar-usuario-sidebar {
@@ -1357,16 +1455,21 @@ body.sidebar-colapsada .container-app {
     height: 40px;
     border-radius: 999px;
     border: 1px solid rgba(191, 198, 209, 0.26);
-    background: rgba(191, 198, 209, 0.15);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.08), transparent 34%),
+        rgba(191, 198, 209, 0.15);
     color: #f7f8fa;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 8px 18px rgba(0, 0, 0, 0.16);
 }
 
 .avatar-usuario-sidebar img {
@@ -1392,55 +1495,20 @@ body.sidebar-colapsada .container-app {
 .info-usuario-container strong {
     color: var(--text-primary);
     font-family: var(--font-base);
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .info-usuario {
-    color: rgba(191, 198, 209, 0.50);
-    font-size: 11px;
-    line-height: 1.3;
+    color: rgba(202, 210, 221, 0.62);
+    font-size: 12px;
+    line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-/* ==========================================
-   PAINEL ESTRUTURAL DO CHAT
-   ========================================== */
-
-.painel-chat {
-    position: relative;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    background: linear-gradient(180deg, rgba(22, 24, 30, 0.34), rgba(22, 24, 30, 0.12));
-    transition:
-        max-width .3s cubic-bezier(.4, 0, .2, 1),
-        margin .3s cubic-bezier(.4, 0, .2, 1);
-}
-
-body.modo-foco .painel-chat {
-    flex: 1;
-    max-width: 100%;
-    margin: 0;
-    background: transparent;
-}
-
-/* ==========================================
-   CHIPS NO HEADER
-   ========================================== */
-
-.cabecalho-wf .grupo-chip-modo {
-    display: flex;
-    align-items: center;
-    gap: 6px;
 }
 
 /* ==========================================
@@ -1489,12 +1557,16 @@ body.modo-foco .painel-chat {
     .cabecalho-wf {
         min-height: var(--header-h-mobile);
         height: var(--header-h-mobile);
-        padding: 0 14px;
+        padding: 0 12px;
         gap: 8px;
     }
 
     .logo-titulo {
-        gap: 12px;
+        gap: 10px;
+    }
+
+    .logo-info {
+        gap: 2px;
     }
 
     .logo-linha h1 {
@@ -1502,30 +1574,43 @@ body.modo-foco .painel-chat {
     }
 
     .avatar-ia {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         border-radius: 12px;
+        font-size: 12px;
     }
 
     .status-conexao {
         display: none;
     }
 
+    .controles-cabecalho {
+        gap: 8px;
+    }
+
     .seletor-setor {
-        padding: 6px 9px;
+        min-height: 36px;
+        padding: 6px 8px;
     }
 
     .seletor-setor > .material-symbols-rounded {
         display: none;
     }
 
+    .seletor-setor select {
+        font-size: 12px;
+    }
+
     .texto-btn {
         display: none;
     }
 
+    #btn-abrir-modal-novo,
     #btn-nova-inspecao {
-        padding: 7px 11px;
-        border-radius: 11px;
+        min-width: 38px;
+        min-height: 38px;
+        padding: 7px 10px;
+        border-radius: 10px;
     }
 
     .container-app {
@@ -1591,10 +1676,6 @@ body.modo-foco .painel-chat {
         overflow: hidden;
     }
 
-    .cabecalho-wf .grupo-chip-modo {
-        display: none;
-    }
-
     .busca-historico,
     .sem-resultados-busca,
     .banner-relatorio-ativo,
@@ -1606,6 +1687,67 @@ body.modo-foco .painel-chat {
     .item-historico {
         width: calc(100% - 12px);
         margin: 0 6px;
+        padding: 11px 34px 11px 10px;
+        border-radius: 12px;
+    }
+
+    .item-historico > .material-symbols-rounded {
+        font-size: 17px !important;
+    }
+
+    .texto-laudo-historico span:first-child {
+        font-size: 14px;
+    }
+
+    .texto-laudo-historico .preview-mensagem,
+    .texto-laudo-historico small {
+        font-size: 12px;
+    }
+
+    .barra-historico .btn-pin-item,
+    .barra-historico .btn-acao-laudo,
+    .barra-historico .btn-pin-laudo,
+    .barra-historico .btn-deletar-laudo {
+        width: 20px;
+        height: 20px;
+        opacity: 1;
+    }
+
+    .barra-historico .btn-pin-item .material-symbols-rounded,
+    .barra-historico .btn-acao-laudo .material-symbols-rounded,
+    .barra-historico .btn-pin-laudo .material-symbols-rounded,
+    .barra-historico .btn-deletar-laudo .material-symbols-rounded {
+        font-size: 13px !important;
+    }
+
+    .sidebar-acoes-rodape,
+    .acoes-sidebar {
+        gap: 8px;
+        padding: 12px 10px 10px;
+    }
+
+    .btn-sidebar-engenheiro,
+    .btn-sidebar-suporte {
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .usuario-logado {
+        gap: 10px;
+        padding: 12px 10px;
+    }
+
+    .usuario-logado > .material-symbols-rounded {
+        font-size: 28px;
+    }
+
+    .info-usuario-container strong {
+        font-size: 14px;
+    }
+
+    .info-usuario {
+        font-size: 12px;
     }
 }
 
@@ -1616,6 +1758,25 @@ body.modo-foco .painel-chat {
 
     .icone-login {
         font-size: 42px;
+    }
+
+    .cabecalho-wf {
+        padding: 0 10px;
+    }
+
+    .logo-linha h1 {
+        font-size: 14px;
+    }
+
+    .avatar-ia {
+        width: 32px;
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .barra-historico {
+        width: min(300px, 90vw);
+        min-width: min(300px, 90vw);
     }
 }
 
@@ -1633,7 +1794,6 @@ body.modo-foco .painel-chat {
     .overlay-sidebar,
     .overlay-sidebar.ativo,
     .container-app,
-    .painel-chat,
     .tela-login,
     .btn-acao,
     #btn-entrar,

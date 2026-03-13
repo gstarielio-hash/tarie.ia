@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.domains.mesa.contracts import (
     EventoMesa,
@@ -17,6 +17,7 @@ from app.domains.mesa.contracts import (
     ResumoPendenciasMesa,
     RevisaoPacoteMesa,
 )
+from app.domains.mesa.attachments import serializar_anexos_mesa, texto_mensagem_mesa_visivel
 from app.shared.database import Laudo, LaudoRevisao, MensagemLaudo, TipoMensagem
 from nucleo.inspetor.referencias_mensagem import extrair_referencia_do_texto
 
@@ -60,18 +61,36 @@ def _texto_representa_documento(conteudo: str) -> bool:
     return bool(REGEX_ARQUIVO_DOCUMENTO.search(texto))
 
 
+def _nome_resolvedor_pacote(msg: MensagemLaudo) -> str:
+    if not getattr(msg, "resolvida_por_id", None):
+        return ""
+
+    resolvedor = getattr(msg, "resolvida_por", None)
+    if resolvedor is not None:
+        return (
+            getattr(resolvedor, "nome", None)
+            or getattr(resolvedor, "nome_completo", None)
+            or f"Usuario #{msg.resolvida_por_id}"
+        )
+
+    return f"Usuario #{msg.resolvida_por_id}"
+
+
 def _serializar_mensagem_pacote(msg: MensagemLaudo) -> MensagemPacoteMesa:
     referencia_mensagem_id, texto_limpo = extrair_referencia_do_texto(msg.conteudo)
+    anexos_payload = serializar_anexos_mesa(getattr(msg, "anexos_mesa", None))
     return MensagemPacoteMesa(
         id=int(msg.id),
         tipo=str(msg.tipo or ""),
-        texto=texto_limpo,
+        texto=texto_mensagem_mesa_visivel(texto_limpo, anexos=getattr(msg, "anexos_mesa", None)),
         criado_em=_normalizar_data_utc(msg.criado_em) or agora_utc(),
         remetente_id=int(msg.remetente_id) if msg.remetente_id else None,
         lida=bool(msg.lida),
         referencia_mensagem_id=referencia_mensagem_id,
         resolvida_em=_normalizar_data_utc(msg.resolvida_em),
         resolvida_por_id=int(msg.resolvida_por_id) if msg.resolvida_por_id else None,
+        resolvida_por_nome=_nome_resolvedor_pacote(msg) or None,
+        anexos=anexos_payload,
     )
 
 
@@ -114,6 +133,7 @@ def montar_pacote_mesa_laudo(
 
     mensagens = (
         banco.query(MensagemLaudo)
+        .options(selectinload(MensagemLaudo.anexos_mesa))
         .filter(MensagemLaudo.laudo_id == laudo.id)
         .order_by(MensagemLaudo.id.asc())
         .all()

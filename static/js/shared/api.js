@@ -1369,9 +1369,51 @@
         }
     });
 
+    let ultimoCliqueSeletorAnexoTs = 0;
+    let timeoutResetSeletorAnexo = 0;
+
+    function resetarBloqueioSeletorAnexo() {
+        ultimoCliqueSeletorAnexoTs = 0;
+
+        if (timeoutResetSeletorAnexo) {
+            window.clearTimeout(timeoutResetSeletorAnexo);
+            timeoutResetSeletorAnexo = 0;
+        }
+    }
+
+    function programarResetSeletorAnexo() {
+        if (timeoutResetSeletorAnexo) {
+            window.clearTimeout(timeoutResetSeletorAnexo);
+        }
+
+        timeoutResetSeletorAnexo = window.setTimeout(() => {
+            resetarBloqueioSeletorAnexo();
+        }, 1200);
+    }
+
+    window.addEventListener("focus", () => {
+        resetarBloqueioSeletorAnexo();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            resetarBloqueioSeletorAnexo();
+        }
+    });
+
     if (btnAnexo && !btnAnexo.dataset.anexoBindSource) {
         btnAnexo.dataset.anexoBindSource = "api";
-        btnAnexo.addEventListener("click", () => {
+        btnAnexo.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const agora = Date.now();
+            if ((agora - ultimoCliqueSeletorAnexoTs) < 700) {
+                return;
+            }
+
+            ultimoCliqueSeletorAnexoTs = agora;
+            programarResetSeletorAnexo();
             inputAnexo?.click();
         });
     }
@@ -1379,6 +1421,7 @@
     if (inputAnexo && !inputAnexo.dataset.anexoBindSource) {
         inputAnexo.dataset.anexoBindSource = "api";
         inputAnexo.addEventListener("change", function () {
+            resetarBloqueioSeletorAnexo();
             if (this.files?.[0]) {
                 ChatNetwork.prepararArquivoParaEnvio(this.files[0]);
             }

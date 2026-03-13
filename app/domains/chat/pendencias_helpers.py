@@ -6,7 +6,8 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from app.domains.mesa.attachments import serializar_anexos_mesa, texto_mensagem_mesa_visivel
+from sqlalchemy.orm import Session, selectinload
 
 from app.shared.database import MensagemLaudo, NivelAcesso, StatusRevisao, TipoMensagem, Usuario
 
@@ -60,6 +61,7 @@ def listar_pendencias_mesa_laudo(
         MensagemLaudo.laudo_id == laudo_id,
         MensagemLaudo.tipo == TipoMensagem.HUMANO_ENG.value,
     )
+    consulta_base = consulta_base.options(selectinload(MensagemLaudo.anexos_mesa))
 
     total = consulta_base.count()
     abertas_total = consulta_base.filter(MensagemLaudo.lida.is_(False)).count()
@@ -100,7 +102,7 @@ def nome_resolvedor_pendencia(item: MensagemLaudo) -> str:
 def serializar_pendencia_mesa(item: MensagemLaudo) -> dict[str, object]:
     return {
         "id": item.id,
-        "texto": item.conteudo,
+        "texto": texto_mensagem_mesa_visivel(item.conteudo or "", anexos=getattr(item, "anexos_mesa", None)),
         "lida": bool(item.lida),
         "data": item.criado_em.isoformat() if item.criado_em else "",
         "data_label": (
@@ -116,6 +118,7 @@ def serializar_pendencia_mesa(item: MensagemLaudo) -> dict[str, object]:
             if item.resolvida_em
             else ""
         ),
+        "anexos": serializar_anexos_mesa(getattr(item, "anexos_mesa", None), portal="app"),
     }
 
 

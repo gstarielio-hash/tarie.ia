@@ -52,6 +52,15 @@ class ResumoPendenciasMesa(BaseModel):
     resolvidas: int = Field(default=0, ge=0)
 
 
+class AnexoPacoteMesa(BaseModel):
+    id: int = Field(..., ge=1)
+    nome: str = Field(..., min_length=1, max_length=160)
+    mime_type: str = Field(..., min_length=3, max_length=120)
+    categoria: str = Field(..., min_length=4, max_length=20)
+    tamanho_bytes: int = Field(default=0, ge=0)
+    eh_imagem: bool = False
+
+
 class MensagemPacoteMesa(BaseModel):
     id: int = Field(..., ge=1)
     tipo: str = Field(..., min_length=1, max_length=20)
@@ -62,6 +71,8 @@ class MensagemPacoteMesa(BaseModel):
     referencia_mensagem_id: int | None = Field(default=None, ge=1)
     resolvida_em: datetime | None = None
     resolvida_por_id: int | None = Field(default=None, ge=1)
+    resolvida_por_nome: str | None = Field(default=None, max_length=160)
+    anexos: list[AnexoPacoteMesa] = Field(default_factory=list)
 
 
 class RevisaoPacoteMesa(BaseModel):

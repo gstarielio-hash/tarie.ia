@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <title>Portal Admin-Cliente • Tariel Control</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/shared/auth_shell.css?v={{ v_app }}">
+</head>
+<body class="auth-shell">
+    <main class="auth-layout auth-layout--split">
+        <section class="auth-hero">
+            <span class="auth-eyebrow">Portal Admin-Cliente</span>
+            <h1 class="auth-title">Gerencie a sua empresa com o mesmo login do dia a dia.</h1>
+            <p class="auth-description">
+                Um ponto unico para administrar usuarios, acompanhar o chat operacional e atuar na Mesa Avaliadora da propria empresa.
+            </p>
+
+            <div class="auth-meta">
+                <span class="auth-chip">Admin da empresa</span>
+                <span class="auth-chip">Chat operacional</span>
+                <span class="auth-chip">Mesa Avaliadora</span>
+            </div>
+
+            <ul class="auth-list">
+                <li>Crie e bloqueie admins-cliente, inspetores e usuarios da mesa sem depender do Admin-CEO.</li>
+                <li>Altere o plano da empresa e acompanhe limites, uso e saude operacional no mesmo painel.</li>
+                <li>Entre no Chat e na Mesa sem trocar de portal nem misturar credenciais com outros perfis.</li>
+            </ul>
+        </section>
+
+        <section class="auth-card">
+            <div class="auth-card-header">
+                <span class="auth-eyebrow">Acesso seguro</span>
+                <h2 class="auth-card-title">Entrar no portal da empresa</h2>
+                <p class="auth-card-subtitle">Use a conta do admin-cliente provisionada para a sua empresa.</p>
+            </div>
+
+            {% if erro %}
+            <div class="auth-error" role="alert" aria-live="assertive">{{ erro }}</div>
+            {% endif %}
+
+            <form class="auth-form" method="post" action="/cliente/login">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <label>
+                    E-mail
+                    <input type="email" name="email" autocomplete="username" placeholder="voce@empresa.com.br" required>
+                </label>
+
+                <label>
+                    Senha
+                    <input type="password" name="senha" autocomplete="current-password" placeholder="Sua senha de acesso" required>
+                </label>
+
+                <label class="auth-checkbox">
+                    <input type="checkbox" name="lembrar" value="true">
+                    Manter conectado neste dispositivo
+                </label>
+
+                <div class="auth-actions">
+                    <button class="auth-button" type="submit">Entrar no Portal Admin-Cliente</button>
+                </div>
+            </form>
+
+            <div class="auth-links">
+                <a href="/admin/login">Admin-CEO</a>
+                <a href="/app/login">Portal do inspetor</a>
+                <a href="/revisao/login">Mesa avaliadora</a>
+            </div>
+
+            <small class="auth-note">Primeiro acesso com senha temporaria leva direto para a troca obrigatoria de senha.</small>
+        </section>
+    </main>
+</body>
+</html>

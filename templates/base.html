@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
         rel="stylesheet"
     >
 
@@ -54,13 +54,13 @@
        6. css específico da página do chat
        7. shell global reaproveitável
        --------------------------------------------------------- #}
-    <link rel="stylesheet" href="/static/css/shared/global.css">
-    <link rel="stylesheet" href="/static/css/shared/layout.css">
-    <link rel="stylesheet" href="/static/css/shared/material-symbols.css">
-    <link rel="stylesheet" href="/static/css/chat/chat_base.css">
-    <link rel="stylesheet" href="/static/css/chat/chat_mobile.css">
-    <link rel="stylesheet" href="/static/css/chat/chat_index.css">
-    <link rel="stylesheet" href="/static/css/shared/app_shell.css">
+    <link rel="stylesheet" href="/static/css/shared/global.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/shared/layout.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/shared/material-symbols.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/chat/chat_base.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/chat/chat_mobile.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/chat/chat_index.css?v={{ v_app }}">
+    <link rel="stylesheet" href="/static/css/shared/app_shell.css?v={{ v_app }}">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -163,16 +163,46 @@
        BOTÃO GLOBAL DE MODO FOCO
        Oculta/exibe elementos de UI para destacar a conversa.
        ========================================================= #}
-    <button
-        type="button"
-        id="btn-toggle-ui"
-        class="btn-toggle-ui"
-        data-tooltip="Ativar modo foco"
-        aria-label="Ativar modo foco"
-        aria-pressed="false"
+    <div
+        id="shell-quick-actions"
+        class="shell-quick-actions"
+        aria-label="Ações rápidas da interface"
     >
-        <span id="icone-toggle-ui" class="material-symbols-rounded" aria-hidden="true">left_panel_close</span>
-    </button>
+        <button
+            type="button"
+            id="btn-shell-home"
+            class="shell-action-btn shell-action-btn-secundario"
+            data-shell-aux="true"
+            data-tooltip="Home"
+            aria-label="Ir para a tela inicial"
+            hidden
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">home</span>
+        </button>
+
+        <button
+            type="button"
+            id="btn-shell-profile"
+            class="shell-action-btn shell-action-btn-secundario"
+            data-shell-aux="true"
+            data-tooltip="Perfil"
+            aria-label="Abrir perfil do usuário"
+            hidden
+        >
+            <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+        </button>
+
+        <button
+            type="button"
+            id="btn-toggle-ui"
+            class="shell-action-btn btn-toggle-ui"
+            data-tooltip="Ativar modo foco"
+            aria-label="Ativar modo foco"
+            aria-pressed="false"
+        >
+            <span id="icone-toggle-ui" class="material-symbols-rounded" aria-hidden="true">left_panel_close</span>
+        </button>
+    </div>
 
     {% block footer %}{% endblock %}
 

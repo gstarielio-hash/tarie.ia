@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
 from app.domains.chat.media_helpers import nome_documento_seguro
 from app.domains.chat.normalization import normalizar_setor
@@ -53,7 +53,7 @@ class DadosChat(BaseModel):
 
 
 class DadosMesaMensagem(BaseModel):
-    texto: str = Field(default="", max_length=LIMITE_MSG_CHARS)
+    texto: str = Field(..., min_length=1, max_length=LIMITE_MSG_CHARS)
     referencia_mensagem_id: int | None = Field(default=None, ge=1)
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
@@ -77,13 +77,13 @@ class DadosPDF(BaseModel):
 
 
 class DadosPin(BaseModel):
-    pinado: bool
+    pinado: StrictBool
 
     model_config = ConfigDict(extra="ignore")
 
 
 class DadosPendencia(BaseModel):
-    lida: bool = True
+    lida: StrictBool = True
 
     model_config = ConfigDict(extra="ignore")
 

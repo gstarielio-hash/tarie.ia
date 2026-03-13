@@ -142,6 +142,7 @@ SessaoLocal = sessionmaker(
 class NivelAcesso(enum.IntEnum):
     INSPETOR = 1
     REVISOR = 50
+    ADMIN_CLIENTE = 80
     DIRETORIA = 99
 
     @classmethod
@@ -161,6 +162,11 @@ class NivelAcesso(enum.IntEnum):
                 "inspector": cls.INSPETOR,
                 "revisor": cls.REVISOR,
                 "reviewer": cls.REVISOR,
+                "admin_cliente": cls.ADMIN_CLIENTE,
+                "admincliente": cls.ADMIN_CLIENTE,
+                "cliente_admin": cls.ADMIN_CLIENTE,
+                "clienteadmin": cls.ADMIN_CLIENTE,
+                "administrador_cliente": cls.ADMIN_CLIENTE,
                 "diretoria": cls.DIRETORIA,
                 "admin": cls.DIRETORIA,
                 "administrador": cls.DIRETORIA,
@@ -169,7 +175,12 @@ class NivelAcesso(enum.IntEnum):
                 raise ValueError(f"Nível de acesso inválido: {valor!r}")
             return int(mapa[chave])
 
-        validos = {int(cls.INSPETOR), int(cls.REVISOR), int(cls.DIRETORIA)}
+        validos = {
+            int(cls.INSPETOR),
+            int(cls.REVISOR),
+            int(cls.ADMIN_CLIENTE),
+            int(cls.DIRETORIA),
+        }
         if inteiro not in validos:
             raise ValueError(f"Nível de acesso inválido: {valor!r}")
         return inteiro
@@ -491,6 +502,11 @@ class Empresa(MixinAuditoria, Base):
         back_populates="empresa",
         passive_deletes=True,
     )
+    auditoria_registros = relationship(
+        "RegistroAuditoriaEmpresa",
+        back_populates="empresa",
+        passive_deletes=True,
+    )
 
     @validates("plano_ativo")
     def _validar_plano_ativo(self, _key: str, valor: Any) -> str:
@@ -541,7 +557,10 @@ class Usuario(MixinAuditoria, Base):
     __tablename__ = "usuarios"
     __table_args__ = (
         CheckConstraint(
-            f"nivel_acesso IN ({int(NivelAcesso.INSPETOR)}, {int(NivelAcesso.REVISOR)}, {int(NivelAcesso.DIRETORIA)})",
+            (
+                f"nivel_acesso IN ({int(NivelAcesso.INSPETOR)}, {int(NivelAcesso.REVISOR)}, "
+                f"{int(NivelAcesso.ADMIN_CLIENTE)}, {int(NivelAcesso.DIRETORIA)})"
+            ),
             name="ck_usuario_nivel_acesso_valido",
         ),
         CheckConstraint(
@@ -601,12 +620,23 @@ class Usuario(MixinAuditoria, Base):
         return int(self.nivel_acesso) == int(NivelAcesso.INSPETOR)
 
     @property
+    def eh_revisor(self) -> bool:
+        return int(self.nivel_acesso) == int(NivelAcesso.REVISOR)
+
+    @property
+    def eh_admin_cliente(self) -> bool:
+        return int(self.nivel_acesso) == int(NivelAcesso.ADMIN_CLIENTE)
+
+    @property
     def eh_revisor_ou_superior(self) -> bool:
-        return int(self.nivel_acesso) >= int(NivelAcesso.REVISOR)
+        return int(self.nivel_acesso) in {
+            int(NivelAcesso.REVISOR),
+            int(NivelAcesso.DIRETORIA),
+        }
 
     @property
     def eh_diretoria(self) -> bool:
-        return int(self.nivel_acesso) >= int(NivelAcesso.DIRETORIA)
+        return int(self.nivel_acesso) == int(NivelAcesso.DIRETORIA)
 
     def esta_bloqueado(self) -> bool:
         if self.bloqueado_ate is None:
@@ -627,6 +657,55 @@ class Usuario(MixinAuditoria, Base):
             self.status_bloqueio = True
             return True
         return False
+
+
+# =========================================================
+# MODELO: REGISTROAUDITORIAEMPRESA
+# =========================================================
+
+
+class RegistroAuditoriaEmpresa(MixinAuditoria, Base):
+    __tablename__ = "auditoria_empresas"
+    __table_args__ = (
+        Index("ix_auditoria_empresa_criada", "empresa_id", "criado_em"),
+        Index("ix_auditoria_empresa_portal", "empresa_id", "portal"),
+        Index("ix_auditoria_ator_criada", "ator_usuario_id", "criado_em"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(
+        Integer,
+        ForeignKey("empresas.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    ator_usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    alvo_usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    portal = Column(String(30), nullable=False, default="cliente")
+    acao = Column(String(80), nullable=False)
+    resumo = Column(String(220), nullable=False)
+    detalhe = Column(Text, nullable=True)
+    payload_json = Column(JSON, nullable=True)
+
+    empresa = relationship("Empresa", back_populates="auditoria_registros")
+    ator_usuario = relationship("Usuario", foreign_keys=[ator_usuario_id])
+    alvo_usuario = relationship("Usuario", foreign_keys=[alvo_usuario_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<RegistroAuditoriaEmpresa id={self.id} empresa_id={self.empresa_id} "
+            f"acao={self.acao!r} portal={self.portal!r}>"
+        )
 
 
 # =========================================================
@@ -766,6 +845,12 @@ class Laudo(MixinAuditoria, Base):
         back_populates="laudo",
         cascade="all, delete-orphan",
         order_by="MensagemLaudo.criado_em",
+    )
+    anexos_mesa = relationship(
+        "AnexoMesa",
+        back_populates="laudo",
+        cascade="all, delete-orphan",
+        order_by="AnexoMesa.criado_em",
     )
 
     @validates("status_conformidade")
@@ -990,6 +1075,12 @@ class MensagemLaudo(Base):
     laudo = relationship("Laudo", back_populates="mensagens")
     remetente = relationship("Usuario", foreign_keys=[remetente_id])
     resolvida_por = relationship("Usuario", foreign_keys=[resolvida_por_id])
+    anexos_mesa = relationship(
+        "AnexoMesa",
+        back_populates="mensagem",
+        cascade="all, delete-orphan",
+        order_by="AnexoMesa.criado_em",
+    )
 
     @validates("tipo")
     def _validar_tipo(self, _key: str, valor: Any) -> str:
@@ -1007,6 +1098,63 @@ class MensagemLaudo(Base):
 
     def marcar_como_lida(self) -> None:
         self.lida = True
+
+
+class AnexoMesa(Base):
+    __tablename__ = "anexos_mesa"
+    __table_args__ = (
+        CheckConstraint(
+            "categoria IN ('imagem', 'documento')",
+            name="ck_anexo_mesa_categoria_valida",
+        ),
+        CheckConstraint(
+            "tamanho_bytes >= 0",
+            name="ck_anexo_mesa_tamanho_nao_negativo",
+        ),
+        Index("ix_anexo_mesa_laudo_criado", "laudo_id", "criado_em"),
+        Index("ix_anexo_mesa_mensagem", "mensagem_id"),
+        Index("ix_anexo_mesa_enviado_por", "enviado_por_id"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    laudo_id = Column(
+        Integer,
+        ForeignKey("laudos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    mensagem_id = Column(
+        Integer,
+        ForeignKey("mensagens_laudo.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    enviado_por_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    nome_original = Column(String(160), nullable=False)
+    nome_arquivo = Column(String(220), nullable=False)
+    mime_type = Column(String(120), nullable=False)
+    categoria = Column(String(20), nullable=False)
+    tamanho_bytes = Column(Integer, nullable=False, default=0)
+    caminho_arquivo = Column(String(600), nullable=False)
+    criado_em = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=agora_utc,
+    )
+
+    laudo = relationship("Laudo", back_populates="anexos_mesa")
+    mensagem = relationship("MensagemLaudo", back_populates="anexos_mesa")
+    enviado_por = relationship("Usuario", foreign_keys=[enviado_por_id])
+
+    def __repr__(self) -> str:
+        return (
+            f"<AnexoMesa id={self.id} mensagem_id={self.mensagem_id} "
+            f"categoria={self.categoria!r}>"
+        )
 
 
 # =========================================================
@@ -1102,6 +1250,7 @@ def _seed_dev() -> None:
     from app.shared.security import criar_hash_senha
 
     senha_admin = env_str("SEED_ADMIN_SENHA", "Admin@123")
+    senha_admin_cliente = env_str("SEED_CLIENTE_SENHA", "Dev@123456")
     senha_inspetor = env_str("SEED_INSPETOR_SENHA", "Dev@123456")
     senha_revisor = env_str("SEED_REVISOR_SENHA", "Dev@123456")
 
@@ -1125,6 +1274,12 @@ def _seed_dev() -> None:
                 "Diretoria Dev",
                 int(NivelAcesso.DIRETORIA),
                 senha_admin,
+            ),
+            (
+                "admin-cliente@wf.com.br",
+                "Admin-Cliente Dev",
+                int(NivelAcesso.ADMIN_CLIENTE),
+                senha_admin_cliente,
             ),
             (
                 "inspetor@wf.com.br",

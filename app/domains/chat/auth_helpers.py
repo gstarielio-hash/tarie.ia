@@ -34,7 +34,10 @@ def redirecionar_por_nivel(usuario: Usuario) -> RedirectResponse:
     if nivel == NivelAcesso.REVISOR.value:
         return RedirectResponse(url="/revisao/painel", status_code=303)
 
-    if nivel >= NivelAcesso.DIRETORIA.value:
+    if nivel == NivelAcesso.ADMIN_CLIENTE.value:
+        return RedirectResponse(url="/cliente/painel", status_code=303)
+
+    if nivel == NivelAcesso.DIRETORIA.value:
         return RedirectResponse(url="/admin/painel", status_code=303)
 
     return RedirectResponse(url="/app/login", status_code=303)

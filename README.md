@@ -137,6 +137,48 @@ Com trace/vídeo/screenshot em falha:
 
 Por padrão os E2E ficam desativados (skip) quando `RUN_E2E` não é `1`.
 
+## Bancada avançada de testes
+
+Ferramentas adicionais instaladas na `.venv`:
+
+- `pytest-xdist`: execução paralela
+- `pytest-cov`: cobertura
+- `pytest-html` + `allure-pytest`: relatórios
+- `hypothesis` + `schemathesis`: propriedade e schema/API fuzzing
+- `locust`: carga
+- `pytest-timeout` + `pytest-randomly`: robustez da suíte
+- `Faker` + `factory-boy`: dados de teste
+
+Scripts prontos:
+
+```powershell
+# pytest em paralelo (mantém ordem estável por padrão)
+.\scripts\run_pytest_parallel.ps1 tests
+
+# cobertura HTML/XML
+.\scripts\run_pytest_coverage.ps1 tests
+
+# relatório HTML + JUnit + Allure results
+.\scripts\run_pytest_report.ps1 tests
+
+# schema/property-based contra FastAPI local temporário
+.\scripts\run_schemathesis.ps1 -Portal inspetor
+.\scripts\run_schemathesis.ps1 -Portal revisor
+.\scripts\run_schemathesis.ps1 -Portal admin
+
+# carga básica com login seed e relatório HTML/CSV
+.\scripts\run_locust.ps1 -Users 8 -SpawnRate 2 -RunTime 1m
+```
+
+Saídas geradas:
+
+- cobertura: `.test-artifacts/coverage`
+- relatórios pytest: `.test-artifacts/reports`
+- schemathesis: `.test-artifacts/schemathesis`
+- locust: `.test-artifacts/locust`
+
+Observação: `pytest-randomly` está instalado, mas os scripts de execução contínua desabilitam a randomização por padrão para evitar flake desnecessário no dia a dia. Se quiser forçar ordem aleatória, use `-RandomOrder` nos scripts de pytest.
+
 ## Migrações de banco (Alembic)
 
 Comandos principais:
@@ -188,3 +230,4 @@ Para encerrar tudo:
 ```powershell
 .\scripts\stop_online_preview.ps1
 ```
+`run_schemathesis.ps1` carrega automaticamente [schemathesis_hooks.py](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/schemathesis_hooks.py) para desserializar respostas binárias (`PDF`, imagens e `octet-stream`) e evitar warnings desnecessários no contrato.

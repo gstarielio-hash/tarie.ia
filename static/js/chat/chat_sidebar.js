@@ -54,6 +54,18 @@
         return document.getElementById("btn-menu");
     }
 
+    function getBannerRelatorio() {
+        return document.getElementById("banner-relatorio-sidebar");
+    }
+
+    function getBannerRelatorioTitulo() {
+        return document.getElementById("banner-relatorio-sidebar-titulo");
+    }
+
+    function getBannerRelatorioDescricao() {
+        return document.getElementById("banner-relatorio-sidebar-descricao");
+    }
+
     // =========================================================
     // UTILITÁRIOS
     // =========================================================
@@ -158,6 +170,60 @@
         return Number.isFinite(id) && id > 0 ? id : null;
     }
 
+    function obterEstadoRelatorioAtualSeguro() {
+        const viaApi =
+            window.TarielAPI?.obterEstadoRelatorioNormalizado?.() ||
+            window.TarielAPI?.obterEstadoRelatorio?.();
+        const viaBody = document.body?.dataset?.estadoRelatorio || "";
+        const viaSidebar = obterEstadoInicialDaSidebar();
+
+        return normalizarEstadoRelatorio(viaApi || viaBody || viaSidebar || "sem_relatorio");
+    }
+
+    function atualizarDatasetSidebar({ laudoId = null, estado = null } = {}) {
+        const sidebar = getSidebar();
+        if (!sidebar) return;
+
+        if (estado != null) {
+            sidebar.dataset.estadoRelatorio = normalizarEstadoRelatorio(estado);
+        }
+
+        if (laudoId === undefined) return;
+
+        const id = Number(laudoId);
+        sidebar.dataset.laudoAtivoId = Number.isFinite(id) && id > 0 ? String(id) : "";
+    }
+
+    function obterCopyBannerRelatorio(estado) {
+        switch (normalizarEstadoRelatorio(estado)) {
+            case "relatorio_ativo":
+                return {
+                    titulo: "Laudo em andamento",
+                    descricao: "Continue a inspeção aberta e mantenha a rastreabilidade do chat.",
+                };
+            case "aguardando":
+                return {
+                    titulo: "Laudo aguardando análise",
+                    descricao: "A mesa avaliadora está revisando este laudo no momento.",
+                };
+            case "ajustes":
+                return {
+                    titulo: "Ajustes solicitados",
+                    descricao: "Reabra a inspeção para complementar o laudo com o retorno da mesa.",
+                };
+            case "aprovado":
+                return {
+                    titulo: "Laudo aprovado",
+                    descricao: "Este laudo segue disponível para consulta no histórico.",
+                };
+            default:
+                return {
+                    titulo: "Laudo em andamento",
+                    descricao: "Abra o laudo ativo para continuar a operação.",
+                };
+        }
+    }
+
     // =========================================================
     // SIDEBAR MOBILE
     // =========================================================
@@ -213,20 +279,151 @@
         return true;
     }
 
-    function mostrarBannerRelatorio() {}
+    function mostrarBannerRelatorio({ laudoId = null, estado = null } = {}) {
+        const banner = getBannerRelatorio();
+        if (!banner) return false;
 
-    function ocultarBannerRelatorio() {}
+        const idFinal = Number(laudoId ?? obterLaudoAtualSeguro());
+        const estadoFinal = normalizarEstadoRelatorio(estado ?? obterEstadoRelatorioAtualSeguro());
 
-    function abrirRelatorioEmAndamento(evento = null) {
+        if (!Number.isFinite(idFinal) || idFinal <= 0 || estadoFinal === "sem_relatorio") {
+            ocultarBannerRelatorio();
+            return false;
+        }
+
+        const copy = obterCopyBannerRelatorio(estadoFinal);
+        const titulo = getBannerRelatorioTitulo();
+        const descricao = getBannerRelatorioDescricao();
+
+        banner.hidden = false;
+        banner.dataset.laudoId = String(idFinal);
+        banner.dataset.estadoRelatorio = estadoFinal;
+        banner.setAttribute("aria-label", copy.titulo);
+
+        if (titulo) titulo.textContent = copy.titulo;
+        if (descricao) descricao.textContent = copy.descricao;
+
+        atualizarDatasetSidebar({
+            laudoId: idFinal,
+            estado: estadoFinal,
+        });
+
+        return true;
+    }
+
+    function ocultarBannerRelatorio() {
+        const banner = getBannerRelatorio();
+        if (!banner) return false;
+
+        banner.hidden = true;
+        banner.dataset.laudoId = "";
+        banner.dataset.estadoRelatorio = "sem_relatorio";
+
+        atualizarDatasetSidebar({
+            laudoId: null,
+            estado: "sem_relatorio",
+        });
+
+        return true;
+    }
+
+    async function abrirRelatorioEmAndamento(evento = null) {
         if (evento) {
             evento.preventDefault();
             evento.stopPropagation();
         }
-        return false;
+
+        const banner = getBannerRelatorio();
+        const id = Number(banner?.dataset.laudoId || obterLaudoAtualSeguro() || 0);
+
+        if (!Number.isFinite(id) || id <= 0) {
+            mostrarToast("Nenhum laudo ativo disponível neste momento.", "aviso", 2600);
+            ocultarBannerRelatorio();
+            return false;
+        }
+
+        try {
+            if (typeof window.TarielAPI?.carregarLaudo === "function") {
+                await window.TarielAPI.carregarLaudo(id, {
+                    forcar: true,
+                    silencioso: true,
+                });
+            } else {
+                emitir("tariel:laudo-selecionado", {
+                    laudoId: id,
+                    origem: "sidebar_banner",
+                });
+            }
+
+            fecharSidebarNoMobile();
+            return true;
+        } catch (erro) {
+            log("warn", "Falha ao abrir laudo pelo banner da sidebar.", erro);
+            mostrarToast("Não foi possível abrir o laudo ativo agora.", "erro", 2800);
+            return false;
+        }
     }
 
     function sincronizarBannerInicial() {
-        return false;
+        return mostrarBannerRelatorio({
+            laudoId: obterLaudoAtualSeguro(),
+            estado: obterEstadoRelatorioAtualSeguro(),
+        });
+    }
+
+    function onBannerKeydown(event) {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        void abrirRelatorioEmAndamento(event);
+    }
+
+    function onBannerClick(event) {
+        void abrirRelatorioEmAndamento(event);
+    }
+
+    function onEstadoRelatorio(event) {
+        const detail = event?.detail || {};
+        const laudoId = detail.laudo_id ?? detail.laudoId ?? obterLaudoAtualSeguro();
+        const estadoRelatorio = detail.estado ?? detail.estado_normalizado ?? "sem_relatorio";
+
+        mostrarBannerRelatorio({
+            laudoId,
+            estado: estadoRelatorio,
+        });
+    }
+
+    function onLaudoSelecionado(event) {
+        const laudoId = Number(event?.detail?.laudoId || 0);
+        if (!Number.isFinite(laudoId) || laudoId <= 0) return;
+
+        const estadoAtual = obterEstadoRelatorioAtualSeguro();
+        if (estadoAtual === "sem_relatorio") {
+            atualizarDatasetSidebar({
+                laudoId,
+            });
+            return;
+        }
+
+        mostrarBannerRelatorio({
+            laudoId,
+            estado: estadoAtual,
+        });
+    }
+
+    function bindBannerRelatorio() {
+        const banner = getBannerRelatorio();
+        if (!banner || banner.dataset.sidebarBound === "true") return;
+
+        banner.dataset.sidebarBound = "true";
+        banner.addEventListener("click", onBannerClick);
+        banner.addEventListener("keydown", onBannerKeydown);
+    }
+
+    function bindEventosRelatorio() {
+        if (estado.eventosRelatorioBindados) return;
+        estado.eventosRelatorioBindados = true;
+
+        document.addEventListener("tariel:estado-relatorio", onEstadoRelatorio);
+        document.addEventListener("tariel:laudo-selecionado", onLaudoSelecionado);
     }
 
     // =========================================================
@@ -304,16 +501,25 @@
         estado.bootExecutado = true;
 
         bindBotaoEngenharia();
+        bindBannerRelatorio();
+        bindEventosRelatorio();
+        sincronizarBannerInicial();
 
         log("info", "Chat sidebar pronta.");
     }
 
     function destruir() {
         const btnEngenharia = getBtnEngenharia();
+        const banner = getBannerRelatorio();
 
         btnEngenharia?.removeEventListener("click", onClickFalarComEngenharia);
+        banner?.removeEventListener("click", onBannerClick);
+        banner?.removeEventListener("keydown", onBannerKeydown);
+        document.removeEventListener("tariel:estado-relatorio", onEstadoRelatorio);
+        document.removeEventListener("tariel:laudo-selecionado", onLaudoSelecionado);
 
         estado.bootExecutado = false;
+        estado.eventosRelatorioBindados = false;
     }
 
     const TP = obterTP();
@@ -332,6 +538,7 @@
         garantirPrefixoEngenharia,
         mostrarBannerRelatorio,
         ocultarBannerRelatorio,
+        abrirRelatorioEmAndamento,
         sincronizarBannerInicial,
         destruir,
     });

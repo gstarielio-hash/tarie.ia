@@ -28,3 +28,12 @@ nucleo/credenciais/visao_wf.json
 # Artefatos locais de preview de PDF (não versionar)
 _tmp_pdf_preview/
 .tmp_online/
+.test-artifacts/
+.coverage
+coverage.xml
+htmlcov/
+allure-results/
+allure-report/
+playwright-report/
+locust-report.html
+locust-report_*.html

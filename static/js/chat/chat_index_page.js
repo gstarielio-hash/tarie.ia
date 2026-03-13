@@ -56,6 +56,11 @@
             icone: "mark_chat_read",
             texto: "Mesa respondeu",
         },
+        pendencia_aberta: {
+            classe: "status-pendencia",
+            icone: "assignment_late",
+            texto: "Pendência aberta",
+        },
         offline: {
             classe: "status-offline",
             icone: "wifi_off",
@@ -70,8 +75,17 @@
     };
 
     const LIMITE_RECONEXAO_SSE_OFFLINE = 3;
+    const MAX_BYTES_ANEXO_MESA = 12 * 1024 * 1024;
     const MENSAGEM_MESA_EXIGE_INSPECAO =
         "A conversa com a mesa avaliadora só é permitida após iniciar uma nova inspeção.";
+    const MIME_ANEXOS_MESA_PERMITIDOS = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]);
 
     // =========================================================
     // ESTADO LOCAL DA PÁGINA
@@ -100,6 +114,7 @@
         mesaWidgetCursor: null,
         mesaWidgetTemMais: false,
         mesaWidgetReferenciaAtiva: null,
+        mesaWidgetAnexoPendente: null,
         mesaWidgetNaoLidas: 0,
         mesaWidgetConexao: "conectado",
         tentativasReconexaoSSE: 0,
@@ -132,6 +147,10 @@
         btnPreencherGateQualidade: document.getElementById("btn-gate-preencher-no-chat"),
         tituloTemplateGateQualidade: document.getElementById("titulo-gate-template"),
         textoGateQualidadeResumo: document.getElementById("texto-gate-qualidade-resumo"),
+        blocoGateRoteiroTemplate: document.getElementById("bloco-gate-roteiro-template"),
+        tituloGateRoteiroTemplate: document.getElementById("titulo-gate-roteiro-template"),
+        textoGateRoteiroTemplate: document.getElementById("texto-gate-roteiro-template"),
+        listaGateRoteiroTemplate: document.getElementById("lista-gate-roteiro-template"),
         listaGateFaltantes: document.getElementById("lista-gate-faltantes"),
         listaGateChecklist: document.getElementById("lista-gate-checklist"),
 
@@ -171,8 +190,17 @@
         btnFecharMesaWidget: document.getElementById("btn-fechar-mesa-widget"),
         statusConexaoMesaWidget: document.getElementById("status-conexao-mesa-widget"),
         textoConexaoMesaWidget: document.getElementById("texto-conexao-mesa-widget"),
+        mesaWidgetResumo: document.getElementById("mesa-widget-resumo"),
+        mesaWidgetResumoTitulo: document.getElementById("mesa-widget-resumo-titulo"),
+        mesaWidgetResumoTexto: document.getElementById("mesa-widget-resumo-texto"),
+        mesaWidgetChipStatus: document.getElementById("mesa-widget-chip-status"),
+        mesaWidgetChipPendencias: document.getElementById("mesa-widget-chip-pendencias"),
+        mesaWidgetChipNaoLidas: document.getElementById("mesa-widget-chip-nao-lidas"),
         mesaWidgetLista: document.getElementById("mesa-widget-lista"),
+        mesaWidgetPreviewAnexo: document.getElementById("mesa-widget-preview-anexo"),
         mesaWidgetInput: document.getElementById("mesa-widget-input"),
+        mesaWidgetBtnAnexo: document.getElementById("mesa-widget-btn-anexo"),
+        mesaWidgetInputAnexo: document.getElementById("mesa-widget-input-anexo"),
         mesaWidgetEnviar: document.getElementById("mesa-widget-enviar"),
         mesaWidgetCarregarMais: document.getElementById("mesa-widget-carregar-mais"),
         mesaWidgetRefAtiva: document.getElementById("mesa-widget-ref-ativa"),
@@ -251,6 +279,115 @@
             .replaceAll("'", "&#39;");
     }
 
+    function formatarTamanhoBytes(totalBytes) {
+        const valor = Number(totalBytes || 0);
+        if (!Number.isFinite(valor) || valor <= 0) return "0 KB";
+        if (valor >= 1024 * 1024) {
+            return `${(valor / (1024 * 1024)).toFixed(1)} MB`;
+        }
+        return `${Math.max(1, Math.round(valor / 1024))} KB`;
+    }
+
+    function normalizarAnexoMesa(payload = {}) {
+        const id = Number(payload?.id || 0) || null;
+        const nome = String(payload?.nome || "").trim();
+        const mimeType = String(payload?.mime_type || "").trim().toLowerCase();
+        const categoria = String(payload?.categoria || "").trim().toLowerCase();
+        const url = String(payload?.url || "").trim();
+        if (!id || !nome || !url) return null;
+        return {
+            id,
+            nome,
+            mime_type: mimeType,
+            categoria,
+            url,
+            tamanho_bytes: Number(payload?.tamanho_bytes || 0) || 0,
+            eh_imagem: !!payload?.eh_imagem,
+        };
+    }
+
+    function renderizarLinksAnexosMesa(anexos = []) {
+        const itens = Array.isArray(anexos) ? anexos.filter(Boolean) : [];
+        if (!itens.length) return "";
+
+        return `
+            <div class="mesa-widget-anexos">
+                ${itens.map((anexo) => `
+                    <a
+                        class="anexo-mesa-link ${anexo?.eh_imagem ? "imagem" : "documento"}"
+                        href="${escaparHtml(anexo?.url || "#")}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <span class="material-symbols-rounded" aria-hidden="true">${anexo?.eh_imagem ? "image" : "description"}</span>
+                        <span class="anexo-mesa-link-texto">
+                            <strong>${escaparHtml(anexo?.nome || "anexo")}</strong>
+                            <small>${escaparHtml(formatarTamanhoBytes(anexo?.tamanho_bytes || 0))}</small>
+                        </span>
+                    </a>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    function limparAnexoMesaWidget() {
+        estado.mesaWidgetAnexoPendente = null;
+        if (el.mesaWidgetInputAnexo) {
+            el.mesaWidgetInputAnexo.value = "";
+        }
+        if (el.mesaWidgetPreviewAnexo) {
+            el.mesaWidgetPreviewAnexo.hidden = true;
+            el.mesaWidgetPreviewAnexo.innerHTML = "";
+        }
+    }
+
+    function renderizarPreviewAnexoMesaWidget() {
+        if (!el.mesaWidgetPreviewAnexo) return;
+
+        const anexo = estado.mesaWidgetAnexoPendente;
+        if (!anexo?.arquivo) {
+            el.mesaWidgetPreviewAnexo.hidden = true;
+            el.mesaWidgetPreviewAnexo.innerHTML = "";
+            return;
+        }
+
+        el.mesaWidgetPreviewAnexo.hidden = false;
+        el.mesaWidgetPreviewAnexo.innerHTML = `
+            <div class="mesa-widget-preview-item">
+                <span class="material-symbols-rounded" aria-hidden="true">${anexo.ehImagem ? "image" : "description"}</span>
+                <div class="mesa-widget-preview-item-texto">
+                    <strong>${escaparHtml(anexo.nome)}</strong>
+                    <small>${escaparHtml(formatarTamanhoBytes(anexo.tamanho))}</small>
+                </div>
+                <button type="button" class="mesa-widget-preview-remover" aria-label="Remover anexo da mesa">×</button>
+            </div>
+        `;
+    }
+
+    function selecionarAnexoMesaWidget(arquivo) {
+        if (!arquivo) return;
+
+        const mime = String(arquivo.type || "").trim().toLowerCase();
+        if (!MIME_ANEXOS_MESA_PERMITIDOS.has(mime)) {
+            mostrarToast("Use PNG, JPG, WebP, PDF ou DOCX no chat da mesa.", "aviso", 2400);
+            return;
+        }
+
+        if (arquivo.size > MAX_BYTES_ANEXO_MESA) {
+            mostrarToast("O anexo da mesa deve ter no máximo 12MB.", "aviso", 2400);
+            return;
+        }
+
+        estado.mesaWidgetAnexoPendente = {
+            arquivo,
+            nome: String(arquivo.name || "anexo"),
+            tamanho: Number(arquivo.size || 0) || 0,
+            mime_type: mime,
+            ehImagem: mime.startsWith("image/"),
+        };
+        renderizarPreviewAnexoMesaWidget();
+    }
+
     function obterElementosFocaveis(container) {
         if (!container) return [];
 
@@ -315,6 +452,7 @@
 
         if (!status) return "pronta";
         if (status === "canal" || status === "ativo") return "canal_ativo";
+        if (status === "pendencia" || status === "pendencia_aberta") return "pendencia_aberta";
 
         return CONFIG_STATUS_MESA[status] ? status : "pronta";
     }
@@ -451,12 +589,164 @@
         return "conectado";
     }
 
+    function pluralizarMesa(total, singular, plural) {
+        return Number(total || 0) === 1 ? singular : (plural || `${singular}s`);
+    }
+
+    function obterUltimaMensagemMesaOperacional() {
+        const mensagens = Array.isArray(estado.mesaWidgetMensagens) ? estado.mesaWidgetMensagens : [];
+        return mensagens.length ? mensagens[mensagens.length - 1] : null;
+    }
+
+    function resumirMensagemOperacionalMesa(mensagem) {
+        if (!mensagem || typeof mensagem !== "object") return "";
+        const texto = String(
+            mensagem?.texto ||
+            mensagem?.anexos?.[0]?.nome ||
+            ""
+        ).trim();
+        return texto ? resumirTexto(texto, 92) : "";
+    }
+
+    function obterResumoOperacionalMesa() {
+        const conexao = normalizarConexaoMesaWidget(estado.mesaWidgetConexao);
+        const pendenciasAbertas = Number(estado.qtdPendenciasAbertas || 0) || 0;
+        const naoLidas = Number(estado.mesaWidgetNaoLidas || 0) || 0;
+        const widgetAberto = !!estado.mesaWidgetAberto;
+        const ultimaMensagem = obterUltimaMensagemMesaOperacional();
+        const ultimaMensagemEhMesa = ultimaMensagem?.tipo === "humano_eng";
+        const ultimaMensagemEhCampo = ultimaMensagem?.tipo === "humano_insp";
+        const ultimaMensagemResumo = resumirMensagemOperacionalMesa(ultimaMensagem);
+        const ultimaMensagemData = String(ultimaMensagem?.data || "").trim();
+        const sufixoData = ultimaMensagemData ? ` Última interação: ${ultimaMensagemData}.` : "";
+
+        if (conexao === "offline") {
+            return {
+                status: "offline",
+                titulo: "Mesa indisponível no momento",
+                descricao: "O canal da mesa perdeu conexão. Aguarde a reconexão para retomar o fluxo.",
+                chipStatus: "Offline",
+                chipPendencias: pendenciasAbertas > 0 ? `${pendenciasAbertas} ${pluralizarMesa(pendenciasAbertas, "pendência aberta")}` : "",
+                chipNaoLidas: naoLidas > 0 ? `${naoLidas} ${pluralizarMesa(naoLidas, "retorno novo", "retornos novos")}` : "",
+            };
+        }
+
+        if (pendenciasAbertas > 0) {
+            return {
+                status: "pendencia_aberta",
+                titulo: `${pendenciasAbertas} ${pluralizarMesa(pendenciasAbertas, "pendência aberta")} da mesa`,
+                descricao: ultimaMensagemResumo
+                    ? `Última solicitação: ${ultimaMensagemResumo}.${sufixoData}`
+                    : `Há item(ns) da mesa aguardando retorno do campo.${sufixoData}`,
+                chipStatus: "Pendência aberta",
+                chipPendencias: `${pendenciasAbertas} ${pluralizarMesa(pendenciasAbertas, "pendência aberta")}`,
+                chipNaoLidas: naoLidas > 0 ? `${naoLidas} ${pluralizarMesa(naoLidas, "retorno novo", "retornos novos")}` : "",
+            };
+        }
+
+        if (naoLidas > 0) {
+            return {
+                status: "respondeu",
+                titulo: `Mesa respondeu com ${naoLidas} ${pluralizarMesa(naoLidas, "retorno novo", "retornos novos")}`,
+                descricao: ultimaMensagemResumo
+                    ? `Novo retorno no canal: ${ultimaMensagemResumo}.${sufixoData}`
+                    : `Há retorno novo da mesa aguardando leitura.${sufixoData}`,
+                chipStatus: "Mesa respondeu",
+                chipPendencias: "",
+                chipNaoLidas: `${naoLidas} ${pluralizarMesa(naoLidas, "retorno novo", "retornos novos")}`,
+            };
+        }
+
+        if (ultimaMensagemEhMesa) {
+            return {
+                status: "respondeu",
+                titulo: "Último retorno veio da mesa",
+                descricao: ultimaMensagemResumo
+                    ? `Mensagem mais recente: ${ultimaMensagemResumo}.${sufixoData}`
+                    : `A mesa respondeu por último neste laudo.${sufixoData}`,
+                chipStatus: "Mesa respondeu",
+                chipPendencias: "",
+                chipNaoLidas: "",
+            };
+        }
+
+        if (ultimaMensagemEhCampo) {
+            return {
+                status: "aguardando",
+                titulo: "Aguardando resposta da mesa",
+                descricao: ultimaMensagemResumo
+                    ? `Último envio do campo: ${ultimaMensagemResumo}.${sufixoData}`
+                    : `O último movimento veio do campo; a mesa ainda não respondeu.${sufixoData}`,
+                chipStatus: "Aguardando mesa",
+                chipPendencias: "",
+                chipNaoLidas: "",
+            };
+        }
+
+        if (widgetAberto) {
+            return {
+                status: "canal_ativo",
+                titulo: "Canal da mesa aberto",
+                descricao: "Use este espaço para alinhar dúvidas, anexos e pendências com a engenharia.",
+                chipStatus: "Canal ativo",
+                chipPendencias: "",
+                chipNaoLidas: "",
+            };
+        }
+
+        const reconectando = conexao === "reconectando";
+        return {
+            status: "pronta",
+            titulo: reconectando ? "Mesa reconectando" : "Mesa pronta para alinhamento",
+            descricao: reconectando
+                ? "A conexão está sendo retomada. Você ainda pode acompanhar o último contexto do canal."
+                : "Abra o canal para alinhar dúvidas, pendências e evidências com a engenharia.",
+            chipStatus: reconectando ? "Reconectando" : "Canal disponível",
+            chipPendencias: "",
+            chipNaoLidas: "",
+        };
+    }
+
+    function renderizarResumoOperacionalMesa() {
+        const resumo = obterResumoOperacionalMesa();
+
+        atualizarStatusMesa(resumo.status, resumo.descricao);
+
+        if (el.mesaWidgetResumo) {
+            el.mesaWidgetResumo.dataset.statusOperacional = resumo.status;
+        }
+        if (el.mesaWidgetResumoTitulo) {
+            el.mesaWidgetResumoTitulo.textContent = resumo.titulo;
+        }
+        if (el.mesaWidgetResumoTexto) {
+            el.mesaWidgetResumoTexto.textContent = resumo.descricao;
+        }
+        if (el.mesaWidgetChipStatus) {
+            el.mesaWidgetChipStatus.textContent = resumo.chipStatus;
+            el.mesaWidgetChipStatus.className = "mesa-widget-chip operacional";
+        }
+        if (el.mesaWidgetChipPendencias) {
+            const visivel = !!resumo.chipPendencias;
+            el.mesaWidgetChipPendencias.hidden = !visivel;
+            el.mesaWidgetChipPendencias.textContent = visivel ? resumo.chipPendencias : "";
+            el.mesaWidgetChipPendencias.className = "mesa-widget-chip pendencias";
+        }
+        if (el.mesaWidgetChipNaoLidas) {
+            const visivel = !!resumo.chipNaoLidas;
+            el.mesaWidgetChipNaoLidas.hidden = !visivel;
+            el.mesaWidgetChipNaoLidas.textContent = visivel ? resumo.chipNaoLidas : "";
+            el.mesaWidgetChipNaoLidas.className = "mesa-widget-chip nao-lidas";
+        }
+    }
+
     function atualizarEstadoVisualBotaoMesaWidget() {
         if (!el.btnMesaWidgetToggle) return;
 
         const naoLidas = Number(estado.mesaWidgetNaoLidas || 0);
+        const pendenciasAbertas = Number(estado.qtdPendenciasAbertas || 0) || 0;
         const aberto = !!estado.mesaWidgetAberto;
         const conexao = normalizarConexaoMesaWidget(estado.mesaWidgetConexao);
+        const resumo = obterResumoOperacionalMesa();
         const alerta = naoLidas > 0 || aberto;
 
         el.btnMesaWidgetToggle.classList.toggle("is-open", aberto);
@@ -465,6 +755,12 @@
         el.btnMesaWidgetToggle.classList.toggle("is-offline", conexao === "offline");
 
         const partes = [aberto ? "Fechar chat da mesa avaliadora" : "Abrir chat da mesa avaliadora"];
+        if (resumo?.titulo) {
+            partes.push(resumo.titulo);
+        }
+        if (pendenciasAbertas > 0) {
+            partes.push(`${pendenciasAbertas} ${pluralizarMesa(pendenciasAbertas, "pendência aberta")}`);
+        }
         if (naoLidas > 0) {
             partes.push(`${Math.min(naoLidas, 99)} mensagem(ns) não lida(s)`);
         }
@@ -472,6 +768,10 @@
             partes.push(CONFIG_CONEXAO_MESA_WIDGET[conexao] || "Conexão indisponível");
         }
         el.btnMesaWidgetToggle.setAttribute("aria-label", partes.join(". "));
+    }
+
+    function sincronizarClasseBodyMesaWidget() {
+        document.body.classList.toggle("mesa-widget-aberto", !!estado.mesaWidgetAberto);
     }
 
     function atualizarConexaoMesaWidget(status = "conectado", detalhe = "") {
@@ -493,6 +793,7 @@
         }
 
         atualizarEstadoVisualBotaoMesaWidget();
+        renderizarResumoOperacionalMesa();
     }
 
     function atualizarBadgeMesaWidget() {
@@ -502,11 +803,13 @@
             el.badgeMesaWidget.hidden = true;
             el.badgeMesaWidget.textContent = "0";
             atualizarEstadoVisualBotaoMesaWidget();
+            renderizarResumoOperacionalMesa();
             return;
         }
         el.badgeMesaWidget.hidden = false;
         el.badgeMesaWidget.textContent = total > 99 ? "99+" : String(total);
         atualizarEstadoVisualBotaoMesaWidget();
+        renderizarResumoOperacionalMesa();
     }
 
     function limparReferenciaMesaWidget() {
@@ -545,6 +848,13 @@
         const tipo = String(payload?.tipo || "").toLowerCase();
         const id = Number(payload?.id || 0) || null;
         if (!id) return null;
+        const anexos = Array.isArray(payload?.anexos)
+            ? payload.anexos.map(normalizarAnexoMesa).filter(Boolean)
+            : [];
+        const resolvidaEm = String(payload?.resolvida_em || "").trim();
+        const resolvidaPorNome = String(payload?.resolvida_por_nome || "").trim();
+        const resolvidaEmLabel = String(payload?.resolvida_em_label || "").trim();
+        const lida = !!payload?.lida || !!resolvidaEm;
 
         return {
             id,
@@ -554,6 +864,11 @@
             data: String(payload?.data || "").trim(),
             remetente_id: Number(payload?.remetente_id || 0) || null,
             referencia_mensagem_id: Number(payload?.referencia_mensagem_id || 0) || null,
+            lida,
+            resolvida_em: resolvidaEm,
+            resolvida_em_label: resolvidaEmLabel,
+            resolvida_por_nome: resolvidaPorNome,
+            anexos,
         };
     }
 
@@ -609,6 +924,7 @@
 
         for (const item of mensagens) {
             const entradaMesa = item.tipo === "humano_eng";
+            const pendenciaResolvida = entradaMesa && !!item.lida;
             const card = document.createElement("article");
             card.className = `mesa-widget-item ${entradaMesa ? "entrada" : "saida"}`;
             card.dataset.mensagemId = String(item.id);
@@ -625,13 +941,38 @@
                 `
                 : "";
 
+            const textoMensagem = String(item.texto || "").trim();
+            const anexosHtml = renderizarLinksAnexosMesa(item.anexos || []);
+            const pillOperacao = entradaMesa
+                ? `
+                    <span class="mesa-widget-pill-operacao ${pendenciaResolvida ? "pendencia-resolvida" : "pendencia-aberta"}">
+                        ${pendenciaResolvida ? "Pendência resolvida" : "Pendência aberta"}
+                    </span>
+                `
+                : `
+                    <span class="mesa-widget-pill-operacao mensagem-enviada">
+                        ${item.anexos?.length ? "Enviado com anexo" : "Mensagem enviada"}
+                    </span>
+                `;
+            const resolucaoInfo = pendenciaResolvida
+                ? `
+                    <p class="mesa-widget-resolucao">
+                        Resolvida por ${escaparHtml(item.resolvida_por_nome || "mesa")} ${item.resolvida_em_label ? `em ${escaparHtml(item.resolvida_em_label)}` : ""}.
+                    </p>
+                `
+                : "";
             card.innerHTML = `
                 <div class="meta">
                     <span>${entradaMesa ? "Mesa" : "Você"}</span>
                     <span>${escaparHtml(item.data || "")}</span>
                 </div>
+                <div class="mesa-widget-pills">
+                    ${pillOperacao}
+                </div>
                 ${referenciaHtml}
-                <p class="texto">${escaparHtml(item.texto || "")}</p>
+                ${textoMensagem ? `<p class="texto">${escaparHtml(textoMensagem)}</p>` : ""}
+                ${resolucaoInfo}
+                ${anexosHtml}
                 <div class="acoes">
                     <button type="button" data-responder-mensagem-id="${item.id}">Responder</button>
                 </div>
@@ -694,6 +1035,7 @@
             }
 
             renderizarListaMesaWidget();
+            renderizarResumoOperacionalMesa();
         } catch (erro) {
             if (!silencioso) {
                 mostrarToast("Não foi possível carregar o chat da mesa.", "aviso", 2400);
@@ -709,14 +1051,15 @@
     async function enviarMensagemMesaWidget() {
         const laudoId = obterLaudoAtivo();
         const texto = String(el.mesaWidgetInput?.value || "").trim();
+        const anexoPendente = estado.mesaWidgetAnexoPendente?.arquivo || null;
 
         if (!laudoId) {
             avisarMesaExigeInspecao();
             return;
         }
 
-        if (!texto) {
-            mostrarToast("Digite uma mensagem para a mesa avaliadora.", "aviso", 2200);
+        if (!texto && !anexoPendente) {
+            mostrarToast("Digite uma mensagem ou selecione um anexo para a mesa avaliadora.", "aviso", 2200);
             return;
         }
 
@@ -728,20 +1071,43 @@
         }
 
         try {
-            const resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/mensagem`, {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-CSRF-Token": obterTokenCsrf(),
-                    "X-Requested-With": "XMLHttpRequest",
-                },
-                body: JSON.stringify({
-                    texto,
-                    referencia_mensagem_id: referenciaId || null,
-                }),
-            });
+            let resposta;
+            if (anexoPendente) {
+                const form = new FormData();
+                form.set("arquivo", anexoPendente);
+                if (texto) {
+                    form.set("texto", texto);
+                }
+                if (referenciaId) {
+                    form.set("referencia_mensagem_id", String(referenciaId));
+                }
+
+                resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/anexo`, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json",
+                        "X-CSRF-Token": obterTokenCsrf(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: form,
+                });
+            } else {
+                resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/mensagem`, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-CSRF-Token": obterTokenCsrf(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    body: JSON.stringify({
+                        texto,
+                        referencia_mensagem_id: referenciaId || null,
+                    }),
+                });
+            }
 
             if (!resposta.ok) {
                 const detalhe = await extrairMensagemErroHTTP(
@@ -758,9 +1124,9 @@
 
             el.mesaWidgetInput.value = "";
             limparReferenciaMesaWidget();
+            limparAnexoMesaWidget();
 
             await carregarMensagensMesaWidget({ silencioso: true });
-            atualizarStatusMesa("aguardando", texto.slice(0, 120));
         } catch (erro) {
             const detalhe = String(erro?.message || "").trim();
             mostrarToast(
@@ -787,7 +1153,9 @@
         limparTimerFecharMesaWidget();
         estado.mesaWidgetAberto = true;
         estado.mesaWidgetNaoLidas = 0;
+        sincronizarClasseBodyMesaWidget();
         atualizarBadgeMesaWidget();
+        renderizarResumoOperacionalMesa();
 
         if (el.painelMesaWidget) {
             el.painelMesaWidget.hidden = false;
@@ -807,7 +1175,9 @@
 
     function fecharMesaWidget() {
         estado.mesaWidgetAberto = false;
+        sincronizarClasseBodyMesaWidget();
         limparTimerFecharMesaWidget();
+        renderizarResumoOperacionalMesa();
         if (el.painelMesaWidget) {
             el.painelMesaWidget.classList.remove("aberto");
             el.painelMesaWidget.classList.add("fechando");
@@ -866,6 +1236,7 @@
             "status-canal",
             "status-aguardando",
             "status-respondeu",
+            "status-pendencia",
             "status-offline"
         );
         el.pillStatusMesa.classList.add(config.classe);
@@ -888,7 +1259,6 @@
         }
 
         if (estado.statusMesa === "canal_ativo") {
-            atualizarStatusMesa("pronta");
         }
     }
 
@@ -980,6 +1350,35 @@
         };
     }
 
+    function normalizarRoteiroTemplate(payload = {}) {
+        const detalhe = payload && typeof payload === "object" ? payload : {};
+        return {
+            titulo: textoItemGate(detalhe?.titulo, "Roteiro obrigatório do template"),
+            descricao: textoItemGate(detalhe?.descricao, ""),
+            itens: Array.isArray(detalhe?.itens) ? detalhe.itens : [],
+        };
+    }
+
+    function normalizarItemRoteiroTemplate(item = {}) {
+        return {
+            id: textoItemGate(item?.id, ""),
+            categoria: textoItemGate(item?.categoria, "coleta"),
+            titulo: textoItemGate(item?.titulo, "Ponto obrigatório"),
+            descricao: textoItemGate(item?.descricao, ""),
+        };
+    }
+
+    function rotuloCategoriaRoteiro(categoria = "") {
+        const valor = String(categoria || "").trim().toLowerCase();
+        if (valor === "campo_critico") return "Campo crítico";
+        if (valor === "evidencia") return "Evidência";
+        if (valor === "foto") return "Foto";
+        if (valor === "ia") return "IA";
+        if (valor === "formulario") return "Formulário";
+        if (valor === "norma") return "Norma";
+        return "Coleta";
+    }
+
     function montarMetaItemGate(item) {
         const atual = textoItemGate(item?.atual);
         const minimo = textoItemGate(item?.minimo);
@@ -1033,6 +1432,34 @@
             .join("");
     }
 
+    function renderizarListaRoteiroTemplate(container, itens = [], textoVazio = "Roteiro indisponível.") {
+        if (!container) return;
+
+        const listaNormalizada = Array.isArray(itens) ? itens.map(normalizarItemRoteiroTemplate) : [];
+        if (!listaNormalizada.length) {
+            container.innerHTML = `<li class="item-gate-qualidade item-gate-vazio">${escaparHtml(textoVazio)}</li>`;
+            return;
+        }
+
+        container.innerHTML = listaNormalizada
+            .map((item) => {
+                const descricao = String(item.descricao || "").trim();
+                const categoria = rotuloCategoriaRoteiro(item.categoria);
+
+                return `
+                    <li class="item-gate-qualidade item-gate-roteiro">
+                        <div class="item-gate-cabecalho">
+                            <span class="material-symbols-rounded" aria-hidden="true">task_alt</span>
+                            <strong>${escaparHtml(item.titulo)}</strong>
+                            <span class="pill-gate-status pill-gate-status-roteiro">${escaparHtml(categoria)}</span>
+                        </div>
+                        ${descricao ? `<p class="item-gate-obs">${escaparHtml(descricao)}</p>` : ""}
+                    </li>
+                `;
+            })
+            .join("");
+    }
+
     function abrirModalGateQualidade(payload = {}) {
         if (!el.modalGateQualidade) return;
 
@@ -1052,6 +1479,24 @@
 
         const faltantes = Array.isArray(payload?.faltantes) ? payload.faltantes : [];
         const checklist = Array.isArray(payload?.itens) ? payload.itens : [];
+        const roteiroTemplate = normalizarRoteiroTemplate(
+            payload?.roteiro_template || payload?.roteiroTemplate || {}
+        );
+
+        if (el.blocoGateRoteiroTemplate) {
+            el.blocoGateRoteiroTemplate.hidden = !roteiroTemplate.itens.length;
+        }
+        if (el.tituloGateRoteiroTemplate) {
+            el.tituloGateRoteiroTemplate.textContent = roteiroTemplate.titulo;
+        }
+        if (el.textoGateRoteiroTemplate) {
+            el.textoGateRoteiroTemplate.textContent = roteiroTemplate.descricao;
+        }
+        renderizarListaRoteiroTemplate(
+            el.listaGateRoteiroTemplate,
+            roteiroTemplate.itens,
+            "O roteiro obrigatório deste template não foi informado."
+        );
 
         renderizarListaGateQualidade(
             el.listaGateFaltantes,
@@ -1280,22 +1725,28 @@
         atualizarResumoPendencias(0, 0);
         atualizarControlesPaginacaoPendencias();
         atualizarBotoesFiltroPendencias();
+        renderizarResumoOperacionalMesa();
     }
 
     function atualizarBadgePendencias(abertas = 0) {
         const total = Number(abertas || 0);
         estado.qtdPendenciasAbertas = total > 0 ? total : 0;
 
-        if (!el.badgePendenciasMesa) return;
+        if (!el.badgePendenciasMesa) {
+            renderizarResumoOperacionalMesa();
+            return;
+        }
 
         if (estado.qtdPendenciasAbertas > 0) {
             el.badgePendenciasMesa.hidden = false;
             el.badgePendenciasMesa.textContent = String(estado.qtdPendenciasAbertas);
+            renderizarResumoOperacionalMesa();
             return;
         }
 
         el.badgePendenciasMesa.hidden = true;
         el.badgePendenciasMesa.textContent = "0";
+        renderizarResumoOperacionalMesa();
     }
 
     function renderizarListaPendencias(pendencias = [], append = false) {
@@ -1329,10 +1780,16 @@
                 : "";
             const proximaLida = aberta ? "true" : "false";
             const textoAcao = aberta ? "Resolver" : "Reabrir";
+            const anexosHtml = renderizarLinksAnexosMesa(
+                Array.isArray(item?.anexos)
+                    ? item.anexos.map(normalizarAnexoMesa).filter(Boolean)
+                    : []
+            );
 
             li.className = `pendencia-item ${aberta ? "aberta" : "lida"}`;
             li.innerHTML = `
-                <p class="pendencia-texto">${escaparHtml(item?.texto || "")}</p>
+                ${String(item?.texto || "").trim() ? `<p class="pendencia-texto">${escaparHtml(item?.texto || "")}</p>` : ""}
+                ${anexosHtml}
                 <div class="pendencia-meta">
                     <span>#${Number(item?.id || 0) || "-"}</span>
                     <span>${escaparHtml(dataLabel || "")}</span>
@@ -1434,9 +1891,7 @@
             atualizarResumoPendencias(estado.totalPendenciasExibidas, estado.totalPendenciasFiltradas);
             atualizarControlesPaginacaoPendencias();
 
-            if (estado.qtdPendenciasAbertas > 0) {
-                atualizarStatusMesa("aguardando");
-            }
+            renderizarResumoOperacionalMesa();
 
             return dados;
         } catch (erro) {
@@ -1480,7 +1935,6 @@
                 filtro: estado.filtroPendencias,
             });
             mostrarToast("Pendências marcadas como lidas.", "sucesso", 1800);
-            atualizarStatusMesa("pronta");
         } catch (_) {
             mostrarToast("Falha ao marcar pendências como lidas.", "erro", 2500);
         } finally {
@@ -1514,11 +1968,6 @@
             });
             mostrarToast(lida ? "Pendência marcada como resolvida." : "Pendência reaberta.", "sucesso", 1800);
 
-            if (estado.qtdPendenciasAbertas <= 0) {
-                atualizarStatusMesa("pronta");
-            } else if (lida) {
-                atualizarStatusMesa("aguardando");
-            }
         } catch (_) {
             mostrarToast("Falha ao atualizar pendência.", "erro", 2500);
         }
@@ -1961,15 +2410,13 @@
         atualizarNomeTemplateAtivo(tipo);
         el.telaBoasVindas?.setAttribute("hidden", "");
         el.barraStatusInspecao?.removeAttribute("hidden");
-        if (estado.statusMesa !== "offline") {
-            atualizarStatusMesa("pronta");
-        }
+        renderizarResumoOperacionalMesa();
     }
 
     function resetarInterfaceInspecao() {
         el.barraStatusInspecao?.setAttribute("hidden", "");
         el.telaBoasVindas?.removeAttribute("hidden");
-        atualizarStatusMesa("pronta");
+        renderizarResumoOperacionalMesa();
         limparPainelPendencias();
     }
 
@@ -2093,7 +2540,7 @@
         const textoLimpo = String(texto || "").trim() || "Nova mensagem recebida...";
         el.textoBannerEngenharia.textContent =
             textoLimpo.length > 60 ? `${textoLimpo.slice(0, 60)}…` : textoLimpo;
-        atualizarStatusMesa("respondeu", textoLimpo);
+        renderizarResumoOperacionalMesa();
 
         el.bannerEngenharia.hidden = false;
 
@@ -2134,6 +2581,16 @@
         );
     }
 
+    function eventoEhAtualizacaoPendenciaMesa(dados) {
+        return Boolean(
+            dados?.texto &&
+            (
+                dados.tipo === "pendencia_mesa" ||
+                dados.tipo === "pendencia_eng"
+            )
+        );
+    }
+
     function inicializarNotificacoesSSE() {
         if (!("EventSource" in window)) {
             atualizarConexaoMesaWidget("offline", "Navegador sem suporte a SSE");
@@ -2150,14 +2607,21 @@
         estado.fonteSSE.onopen = () => {
             estado.tentativasReconexaoSSE = 0;
             atualizarConexaoMesaWidget("conectado");
-            if (estado.statusMesa === "offline") {
-                atualizarStatusMesa("pronta");
-            }
         };
 
         estado.fonteSSE.onmessage = (event) => {
             try {
                 const dados = JSON.parse(event.data);
+
+                if (eventoEhAtualizacaoPendenciaMesa(dados)) {
+                    const laudoIdEvento = Number(dados?.laudo_id ?? dados?.laudoId ?? 0) || null;
+                    carregarPendenciasMesa({ laudoId: laudoIdEvento, silencioso: true }).catch(() => {});
+                    if (laudoIdEvento && estado.mesaWidgetAberto && laudoIdEvento === obterLaudoAtivoIdSeguro()) {
+                        carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+                    }
+                    mostrarToast(String(dados.texto || "").trim() || "Pendência da mesa atualizada.", "info", 2200);
+                    return;
+                }
 
                 if (eventoEhMensagemEngenharia(dados)) {
                     mostrarBannerEngenharia(dados.texto);
@@ -2174,9 +2638,6 @@
                 if (dados?.tipo === "conectado") {
                     estado.tentativasReconexaoSSE = 0;
                     atualizarConexaoMesaWidget("conectado");
-                    if (estado.statusMesa === "offline") {
-                        atualizarStatusMesa("pronta");
-                    }
                 }
             } catch (erro) {
                 console.error("[TARIEL][CHAT_INDEX_PAGE] Falha ao decodificar SSE:", erro);
@@ -2376,6 +2837,21 @@
         el.mesaWidgetCarregarMais?.addEventListener("click", async () => {
             await carregarMensagensMesaWidget({ append: true, silencioso: true });
         });
+        el.mesaWidgetBtnAnexo?.addEventListener("click", () => {
+            el.mesaWidgetInputAnexo?.click();
+        });
+        el.mesaWidgetInputAnexo?.addEventListener("change", (event) => {
+            const arquivo = event.target?.files?.[0];
+            if (arquivo) {
+                selecionarAnexoMesaWidget(arquivo);
+            }
+        });
+        el.mesaWidgetPreviewAnexo?.addEventListener("click", (event) => {
+            const btnRemover = event.target?.closest?.(".mesa-widget-preview-remover");
+            if (btnRemover) {
+                limparAnexoMesaWidget();
+            }
+        });
         el.mesaWidgetEnviar?.addEventListener("click", () => {
             enviarMensagemMesaWidget();
         });
@@ -2428,6 +2904,7 @@
             estado.mesaWidgetCursor = null;
             estado.mesaWidgetTemMais = false;
             estado.mesaWidgetNaoLidas = 0;
+            limparAnexoMesaWidget();
             atualizarBadgeMesaWidget();
             if (estado.mesaWidgetAberto) {
                 carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
@@ -2451,21 +2928,24 @@
             estado.mesaWidgetCursor = null;
             estado.mesaWidgetTemMais = false;
             estado.mesaWidgetNaoLidas = 0;
+            limparAnexoMesaWidget();
             atualizarBadgeMesaWidget();
             limparReferenciaMesaWidget();
             fecharMesaWidget();
         };
 
         const onMesaAtivada = () => {
-            if (estado.statusMesa !== "aguardando" && estado.statusMesa !== "respondeu") {
-                atualizarStatusMesa("canal_ativo");
-            }
+            renderizarResumoOperacionalMesa();
         };
 
         const onMesaStatus = (event) => {
             const status = normalizarStatusMesa(event?.detail?.status);
             const preview = String(event?.detail?.preview || "").trim();
-            atualizarStatusMesa(status, preview);
+            if (status === "respondeu" && preview) {
+                mostrarBannerEngenharia(preview);
+            } else {
+                renderizarResumoOperacionalMesa();
+            }
 
             if (status === "respondeu" || status === "aguardando") {
                 carregarPendenciasMesa({ silencioso: true }).catch(() => {});
@@ -2558,10 +3038,10 @@
         bindEventosPagina();
         bindEventosSistema();
 
-        atualizarStatusMesa("pronta");
         atualizarBotoesFiltroPendencias();
         atualizarBadgeMesaWidget();
         atualizarConexaoMesaWidget("conectado");
+        sincronizarClasseBodyMesaWidget();
         aplicarHighlightComposer(el.campoMensagem?.value || "");
         atualizarVisualComposer(el.campoMensagem?.value || "");
         sincronizarScrollBackdrop();

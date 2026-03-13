@@ -48,7 +48,18 @@
     const estado = {
         carregando: false,
         ultimoPerfil: null,
+        ultimoElementoFocado: null,
+        overflowAnteriorBody: "",
     };
+
+    const SELETOR_FOCAVEIS = [
+        "button:not([disabled])",
+        "[href]",
+        "input:not([disabled]):not([type='hidden'])",
+        "select:not([disabled])",
+        "textarea:not([disabled])",
+        "[tabindex]:not([tabindex='-1'])",
+    ].join(", ");
 
     function tokenCsrf() {
         return document.querySelector('meta[name="csrf-token"]')?.content || "";
@@ -133,20 +144,42 @@
 
     function abrirModalPerfil() {
         limparFeedback();
+        estado.ultimoElementoFocado = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        estado.overflowAnteriorBody = document.body.style.overflow || "";
         el.modal.hidden = false;
         el.modal.setAttribute("aria-hidden", "false");
         el.modal.classList.add("ativo");
-        setTimeout(() => {
+        document.body.style.overflow = "hidden";
+        window.requestAnimationFrame(() => {
             el.inputNome?.focus();
-        }, 10);
+        });
+    }
+
+    function restaurarFocoAnterior() {
+        try {
+            estado.ultimoElementoFocado?.focus?.();
+        } catch (_) {
+            // silêncio intencional
+        }
+    }
+
+    function obterFocaveisModal() {
+        if (!el.modal) return [];
+        return Array.from(el.modal.querySelectorAll(SELETOR_FOCAVEIS))
+            .filter((item) => item instanceof HTMLElement && !item.hidden && item.offsetParent !== null);
     }
 
     function fecharModalPerfil() {
         el.modal.classList.remove("ativo");
         el.modal.setAttribute("aria-hidden", "true");
         el.modal.hidden = true;
+        document.body.style.overflow = estado.overflowAnteriorBody || "";
+        estado.overflowAnteriorBody = "";
         limparFeedback();
         el.inputFoto && (el.inputFoto.value = "");
+        restaurarFocoAnterior();
     }
 
     function preencherCampos(perfil) {
@@ -381,6 +414,27 @@
             if (event.key === "Escape" && el.modal?.classList.contains("ativo")) {
                 event.preventDefault();
                 fecharModalPerfil();
+            }
+        });
+
+        el.modal?.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab" || !el.modal?.classList.contains("ativo")) return;
+
+            const focaveis = obterFocaveisModal();
+            if (!focaveis.length) return;
+
+            const primeiro = focaveis[0];
+            const ultimo = focaveis[focaveis.length - 1];
+
+            if (event.shiftKey && document.activeElement === primeiro) {
+                event.preventDefault();
+                ultimo.focus();
+                return;
+            }
+
+            if (!event.shiftKey && document.activeElement === ultimo) {
+                event.preventDefault();
+                primeiro.focus();
             }
         });
     }

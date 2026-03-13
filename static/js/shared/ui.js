@@ -15,6 +15,8 @@
     const KEY_MODO_RESPOSTA = "wf_modo_resposta";
     const TOGGLE_COLOR = "#F47B20";
     const _toastsAtivos = new Map();
+    let _dockRapidoSyncRaf = 0;
+    let _dockRapidoObserver = null;
 
     function log(nivel, ...args) {
         if (EM_PRODUCAO && nivel !== "error") return;
@@ -207,6 +209,118 @@
         }
 
         salvarModoFoco(!!ativo);
+    }
+
+    function encontrarAcaoHomeRapida() {
+        return (
+            document.querySelector(".btn-home-cabecalho") ||
+            document.querySelector(".thread-breadcrumb [data-bc='home']")
+        );
+    }
+
+    function sincronizarDockRapido() {
+        const btnHome = document.getElementById("btn-shell-home");
+        const btnPerfil = document.getElementById("btn-shell-profile");
+
+        if (btnHome) {
+            btnHome.hidden = !encontrarAcaoHomeRapida();
+        }
+
+        if (btnPerfil) {
+            btnPerfil.hidden = !document.getElementById("btn-abrir-perfil-chat");
+        }
+    }
+
+    function agendarSincronizacaoDockRapido() {
+        if (_dockRapidoSyncRaf) return;
+
+        _dockRapidoSyncRaf = window.requestAnimationFrame(() => {
+            _dockRapidoSyncRaf = 0;
+            sincronizarDockRapido();
+        });
+    }
+
+    function inicializarDockRapido() {
+        const btnHome = document.getElementById("btn-shell-home");
+        const btnPerfil = document.getElementById("btn-shell-profile");
+
+        sincronizarDockRapido();
+        agendarSincronizacaoDockRapido();
+
+        if (document.documentElement.dataset.uiDockRapidoWired !== "true") {
+            document.documentElement.dataset.uiDockRapidoWired = "true";
+            window.addEventListener("pageshow", sincronizarDockRapido);
+            window.addEventListener("resize", agendarSincronizacaoDockRapido);
+
+            [
+                "tariel:laudo-criado",
+                "tariel:relatorio-iniciado",
+                "tariel:relatorio-finalizado",
+                "tariel:cancelar-relatorio",
+                "tariel:estado-relatorio",
+            ].forEach((nomeEvento) => {
+                document.addEventListener(nomeEvento, agendarSincronizacaoDockRapido);
+            });
+        }
+
+        if (!_dockRapidoObserver && document.body && typeof MutationObserver === "function") {
+            _dockRapidoObserver = new MutationObserver((mutations) => {
+                const deveSincronizar = mutations.some((mutation) => {
+                    if (mutation.type === "attributes") {
+                        const alvo = mutation.target;
+                        return alvo instanceof Element && (
+                            alvo.id === "btn-abrir-perfil-chat" ||
+                            alvo.matches(".btn-home-cabecalho, .thread-breadcrumb, .thread-breadcrumb *")
+                        );
+                    }
+
+                    if (mutation.type !== "childList") return false;
+
+                    const candidatos = [...mutation.addedNodes, ...mutation.removedNodes];
+                    return candidatos.some((node) => (
+                        node instanceof Element && (
+                            node.id === "btn-abrir-perfil-chat" ||
+                            node.matches(".btn-home-cabecalho, .thread-breadcrumb, .thread-breadcrumb *") ||
+                            node.querySelector?.("#btn-abrir-perfil-chat, .btn-home-cabecalho, .thread-breadcrumb")
+                        )
+                    ));
+                });
+
+                if (deveSincronizar) {
+                    agendarSincronizacaoDockRapido();
+                }
+            });
+
+            _dockRapidoObserver.observe(document.body, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ["hidden", "class", "aria-hidden"],
+            });
+        }
+
+        if (btnHome && btnHome.dataset.uiWired !== "true") {
+            btnHome.dataset.uiWired = "true";
+            btnHome.addEventListener("click", () => {
+                const alvo = encontrarAcaoHomeRapida();
+                if (typeof alvo?.click === "function") {
+                    alvo.click();
+                    return;
+                }
+
+                window.location.assign("/app/");
+            });
+        }
+
+        if (btnPerfil && btnPerfil.dataset.uiWired !== "true") {
+            btnPerfil.dataset.uiWired = "true";
+            btnPerfil.addEventListener("click", () => {
+                const alvo = document.getElementById("btn-abrir-perfil-chat");
+                if (typeof alvo?.click === "function") {
+                    alvo.click();
+                }
+            });
+        }
     }
 
     function obterModo() {
@@ -625,6 +739,7 @@
 
         inicializarMenuLateral();
         inicializarModoFoco();
+        inicializarDockRapido();
         inicializarLoginForm();
         inicializarLogoutForm();
         inicializarPins();

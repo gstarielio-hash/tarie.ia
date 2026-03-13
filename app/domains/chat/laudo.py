@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 import uuid
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from fastapi import Depends, Form, HTTPException, Request
+from fastapi import Depends, Form, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
@@ -30,6 +31,7 @@ from app.domains.chat.normalization import (
     nome_template_humano,
     normalizar_tipo_template,
 )
+from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
 from app.domains.chat.revisao_helpers import (
     _gerar_diff_revisoes,
     _obter_revisao_por_versao,
@@ -55,6 +57,15 @@ from app.shared.database import (
     obter_banco,
 )
 from app.shared.security import exigir_inspetor
+
+PADRAO_TIPO_TEMPLATE_FORM = "^(?:" + "|".join(re.escape(item) for item in sorted(ALIASES_TEMPLATE)) + ")$"
+RESPOSTA_LAUDO_NAO_ENCONTRADO = {404: {"description": "Laudo não encontrado."}}
+RESPOSTA_GATE_QUALIDADE_REPROVADO = {
+    422: {
+        "description": "Gate de qualidade reprovado.",
+        "content": {"application/json": {"schema": {"type": "object"}}},
+    }
+}
 
 
 async def api_status_relatorio(
@@ -86,10 +97,30 @@ async def api_status_relatorio(
     )
 
 
+async def api_status_relatorio_delete_nao_suportado(
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    raise HTTPException(
+        status_code=405,
+        detail="Method Not Allowed",
+        headers={"Allow": "GET"},
+    )
+
+
+async def api_rota_laudo_post_nao_suportado(
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    raise HTTPException(
+        status_code=405,
+        detail="Method Not Allowed",
+        headers={"Allow": "POST"},
+    )
+
+
 async def api_iniciar_relatorio(
     request: Request,
-    tipo_template: str | None = Form(default=None),
-    tipotemplate: str | None = Form(default=None),
+    tipo_template: str | None = Form(default=None, pattern=PADRAO_TIPO_TEMPLATE_FORM),
+    tipotemplate: str | None = Form(default=None, pattern=PADRAO_TIPO_TEMPLATE_FORM),
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
@@ -112,7 +143,7 @@ async def api_iniciar_relatorio(
         ).strip().lower()
 
     if not tipo_template_bruto:
-        raise HTTPException(status_code=400, detail="Tipo de relatório não informado.")
+        tipo_template_bruto = "padrao"
 
     if tipo_template_bruto not in ALIASES_TEMPLATE:
         raise HTTPException(status_code=400, detail="Tipo de relatório inválido.")
@@ -369,8 +400,8 @@ async def listar_revisoes_laudo(
 
 async def obter_diff_revisoes_laudo(
     laudo_id: int,
-    base: Optional[int] = None,
-    comparar: Optional[int] = None,
+    base: Annotated[InteiroOpcionalNullish, Query()] = None,
+    comparar: Annotated[InteiroOpcionalNullish, Query()] = None,
     usuario: Usuario = Depends(exigir_inspetor),
     banco: Session = Depends(obter_banco),
 ):
@@ -481,54 +512,98 @@ roteador_laudo.add_api_route(
     methods=["GET"],
 )
 roteador_laudo.add_api_route(
+    "/api/laudo/status",
+    api_status_relatorio_delete_nao_suportado,
+    methods=["DELETE"],
+    include_in_schema=False,
+)
+roteador_laudo.add_api_route(
     "/api/laudo/iniciar",
     api_iniciar_relatorio,
     methods=["POST"],
+    responses={**RESPOSTA_LAUDO_NAO_ENCONTRADO, 400: {"description": "Requisição inválida."}},
+)
+roteador_laudo.add_api_route(
+    "/api/laudo/iniciar",
+    api_rota_laudo_post_nao_suportado,
+    methods=["DELETE"],
+    include_in_schema=False,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/finalizar",
     api_finalizar_relatorio,
     methods=["POST"],
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO,
+        400: {"description": "Laudo em estado inválido para finalização."},
+        **RESPOSTA_GATE_QUALIDADE_REPROVADO,
+    },
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/gate-qualidade",
     api_obter_gate_qualidade_laudo,
     methods=["GET"],
+    responses={**RESPOSTA_LAUDO_NAO_ENCONTRADO, **RESPOSTA_GATE_QUALIDADE_REPROVADO},
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/reabrir",
     api_reabrir_laudo,
     methods=["POST"],
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO,
+        400: {"description": "Laudo sem ajustes liberados para reabertura."},
+    },
 )
 roteador_laudo.add_api_route(
     "/api/laudo/cancelar",
     api_cancelar_relatorio,
     methods=["POST"],
+    responses={400: {"description": "Requisição inválida."}},
+)
+roteador_laudo.add_api_route(
+    "/api/laudo/cancelar",
+    api_rota_laudo_post_nao_suportado,
+    methods=["DELETE"],
+    include_in_schema=False,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/desativar",
     api_desativar_relatorio_ativo,
     methods=["POST"],
+    responses={400: {"description": "Requisição inválida."}},
+)
+roteador_laudo.add_api_route(
+    "/api/laudo/desativar",
+    api_rota_laudo_post_nao_suportado,
+    methods=["DELETE"],
+    include_in_schema=False,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/revisoes",
     listar_revisoes_laudo,
     methods=["GET"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/revisoes/diff",
     obter_diff_revisoes_laudo,
     methods=["GET"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}/pin",
     rota_pin_laudo,
     methods=["PATCH"],
+    responses=RESPOSTA_LAUDO_NAO_ENCONTRADO,
 )
 roteador_laudo.add_api_route(
     "/api/laudo/{laudo_id}",
     rota_deletar_laudo,
     methods=["DELETE"],
+    responses={
+        **RESPOSTA_LAUDO_NAO_ENCONTRADO,
+        400: {"description": "Laudo em estado inválido para exclusão."},
+    },
 )
 
 __all__ = [

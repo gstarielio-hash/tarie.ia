@@ -69,6 +69,7 @@ CHAVE_NOME = "nome"
 
 PORTAL_INSPETOR = "inspetor"
 PORTAL_REVISOR = "revisor"
+PORTAL_CLIENTE = "cliente"
 PORTAL_ADMIN = "admin"
 
 _CHAVES_SESSAO_POR_PORTAL: dict[str, dict[str, str]] = {
@@ -93,6 +94,25 @@ _CHAVES_SESSAO_POR_PORTAL: dict[str, dict[str, str]] = {
         "nivel_acesso": "nivel_acesso_admin",
         "nome": "nome_admin",
     },
+    PORTAL_CLIENTE: {
+        "token": "session_token_cliente",
+        "usuario_id": "usuario_id_cliente",
+        "empresa_id": "empresa_id_cliente",
+        "nivel_acesso": "nivel_acesso_cliente",
+        "nome": "nome_cliente",
+    },
+}
+
+_NIVEIS_PERMITIDOS_APP = frozenset({NivelAcesso.INSPETOR.value})
+_NIVEIS_PERMITIDOS_REVISAO = frozenset({NivelAcesso.REVISOR.value, NivelAcesso.DIRETORIA.value})
+_NIVEIS_PERMITIDOS_CLIENTE = frozenset({NivelAcesso.ADMIN_CLIENTE.value})
+_NIVEIS_PERMITIDOS_ADMIN = frozenset({NivelAcesso.DIRETORIA.value})
+
+_NIVEIS_PERMITIDOS_POR_PORTAL: dict[str, frozenset[int]] = {
+    PORTAL_INSPETOR: _NIVEIS_PERMITIDOS_APP,
+    PORTAL_REVISOR: _NIVEIS_PERMITIDOS_REVISAO,
+    PORTAL_CLIENTE: _NIVEIS_PERMITIDOS_CLIENTE,
+    PORTAL_ADMIN: _NIVEIS_PERMITIDOS_ADMIN,
 }
 
 
@@ -307,6 +327,8 @@ def portal_por_caminho(caminho: str | None) -> str | None:
         return PORTAL_INSPETOR
     if rota.startswith("/revisao"):
         return PORTAL_REVISOR
+    if rota.startswith("/cliente"):
+        return PORTAL_CLIENTE
     if rota.startswith("/admin"):
         return PORTAL_ADMIN
     return None
@@ -325,16 +347,28 @@ def _nivel_compativel_com_portal(portal: str | None, nivel_acesso: Any) -> bool:
     except (TypeError, ValueError):
         return False
 
-    if portal == PORTAL_INSPETOR:
-        return nivel_int == NivelAcesso.INSPETOR.value
-
-    if portal == PORTAL_REVISOR:
-        return nivel_int >= NivelAcesso.REVISOR.value
-
-    if portal == PORTAL_ADMIN:
-        return nivel_int >= NivelAcesso.DIRETORIA.value
+    permitidos = _NIVEIS_PERMITIDOS_POR_PORTAL.get(str(portal or "").strip().lower())
+    if permitidos is not None:
+        return nivel_int in permitidos
 
     return True
+
+
+def niveis_permitidos_portal(portal: str | None) -> frozenset[int]:
+    portal_normalizado = normalizar_portal_sessao(portal)
+    if not portal_normalizado:
+        return frozenset()
+    return _NIVEIS_PERMITIDOS_POR_PORTAL.get(portal_normalizado, frozenset())
+
+
+def usuario_tem_acesso_portal(usuario: Usuario | None, portal: str | None) -> bool:
+    if usuario is None:
+        return False
+    try:
+        nivel_int = int(usuario.nivel_acesso)
+    except (TypeError, ValueError):
+        return False
+    return nivel_int in niveis_permitidos_portal(portal)
 
 
 def obter_dados_sessao_portal(
@@ -431,11 +465,7 @@ def limpar_sessao_portal(sessao: Any, *, portal: str) -> None:
         except (TypeError, ValueError):
             nivel_global = None
 
-        if portal == PORTAL_INSPETOR and nivel_global == NivelAcesso.INSPETOR.value:
-            deve_limpar_global = True
-        elif portal == PORTAL_REVISOR and nivel_global is not None and nivel_global >= NivelAcesso.REVISOR.value:
-            deve_limpar_global = True
-        elif portal == PORTAL_ADMIN and nivel_global == NivelAcesso.DIRETORIA.value:
+        if nivel_global is not None and _nivel_compativel_com_portal(portal, nivel_global):
             deve_limpar_global = True
 
     if deve_limpar_global:
@@ -881,28 +911,20 @@ def obter_usuario_api(
 # =========================================================
 
 
-def _exigir_nivel_exato(usuario: Usuario, nivel: NivelAcesso, detalhe: str) -> Usuario:
-    if usuario.nivel_acesso != nivel.value:
+def _exigir_niveis_permitidos(
+    usuario: Usuario,
+    niveis_permitidos: set[int] | frozenset[int],
+    detalhe: str,
+    *,
+    contexto_log: str,
+) -> Usuario:
+    if int(usuario.nivel_acesso) not in {int(nivel) for nivel in niveis_permitidos}:
         logger.warning(
-            "Acesso negado [nivel_exato] | usuario_id=%s | nivel_atual=%s | nivel_esperado=%s",
+            "Acesso negado [%s] | usuario_id=%s | nivel_atual=%s | niveis_permitidos=%s",
+            contexto_log,
             usuario.id,
             usuario.nivel_acesso,
-            nivel.value,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=detalhe,
-        )
-    return usuario
-
-
-def _exigir_nivel_minimo(usuario: Usuario, nivel: NivelAcesso, detalhe: str) -> Usuario:
-    if usuario.nivel_acesso < nivel.value:
-        logger.warning(
-            "Acesso negado [nivel_minimo] | usuario_id=%s | nivel_atual=%s | nivel_minimo=%s",
-            usuario.id,
-            usuario.nivel_acesso,
-            nivel.value,
+            sorted(int(nivel) for nivel in niveis_permitidos),
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -917,10 +939,11 @@ def exigir_inspetor(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     somente INSPETOR.
     REVISOR e DIRETORIA devem usar seus próprios portais.
     """
-    return _exigir_nivel_exato(
+    return _exigir_niveis_permitidos(
         usuario,
-        NivelAcesso.INSPETOR,
+        _NIVEIS_PERMITIDOS_APP,
         "Acesso permitido apenas para Inspetores.",
+        contexto_log="portal_inspetor",
     )
 
 
@@ -929,10 +952,24 @@ def exigir_revisor(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     Mesa avaliadora:
     REVISOR e DIRETORIA.
     """
-    return _exigir_nivel_minimo(
+    return _exigir_niveis_permitidos(
         usuario,
-        NivelAcesso.REVISOR,
+        _NIVEIS_PERMITIDOS_REVISAO,
         "Acesso restrito à Engenharia/Revisão.",
+        contexto_log="portal_revisor",
+    )
+
+
+def exigir_admin_cliente(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
+    """
+    Portal /cliente:
+    somente ADMIN_CLIENTE.
+    """
+    return _exigir_niveis_permitidos(
+        usuario,
+        _NIVEIS_PERMITIDOS_CLIENTE,
+        "Acesso restrito ao portal admin-cliente.",
+        contexto_log="portal_cliente",
     )
 
 
@@ -941,17 +978,14 @@ def exigir_diretoria(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     Painel admin:
     somente DIRETORIA.
     """
-    return _exigir_nivel_minimo(
+    return _exigir_niveis_permitidos(
         usuario,
-        NivelAcesso.DIRETORIA,
-        "Acesso restrito à Diretoria.",
+        _NIVEIS_PERMITIDOS_ADMIN,
+        "Acesso restrito ao portal Admin-CEO.",
+        contexto_log="portal_admin",
     )
 
 
 # =========================================================
 # CONSTANTES EXPORTADAS
 # =========================================================
-
-_NIVEIS_PERMITIDOS_APP = frozenset({NivelAcesso.INSPETOR.value})
-_NIVEIS_PERMITIDOS_REVISAO = frozenset({NivelAcesso.REVISOR.value, NivelAcesso.DIRETORIA.value})
-_NIVEIS_PERMITIDOS_ADMIN = frozenset({NivelAcesso.DIRETORIA.value})

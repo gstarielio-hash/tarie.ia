@@ -160,6 +160,10 @@
                 resumo: detalhe.resumo && typeof detalhe.resumo === "object" ? detalhe.resumo : {},
                 itens: Array.isArray(detalhe.itens) ? detalhe.itens : [],
                 faltantes: Array.isArray(detalhe.faltantes) ? detalhe.faltantes : [],
+                roteiro_template:
+                    detalhe.roteiro_template && typeof detalhe.roteiro_template === "object"
+                        ? detalhe.roteiro_template
+                        : {},
                 ...extras,
             };
         }

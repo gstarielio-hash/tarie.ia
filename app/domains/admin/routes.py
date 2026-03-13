@@ -1,12 +1,12 @@
 """
 rotas_admin.py — Tariel Control Tower
-WF Engenharia · Rotas do painel administrativo (Diretoria)
+Rotas do portal Admin-CEO
 
 Responsabilidades:
-- autenticação do painel admin
-- dashboard da diretoria
-- gestão SaaS de clientes
-- cadastro de empresa/cliente
+- autenticação do painel admin central
+- dashboard do admin-ceo
+ - gestão SaaS de empresas assinantes
+ - cadastro da empresa e do primeiro admin-cliente
 - troca de plano, bloqueio e gestão de inspetores
 """
 
@@ -43,7 +43,7 @@ from app.domains.admin.services import (
     buscar_metricas_ia_painel,
     buscar_todos_clientes,
     registrar_novo_cliente,
-    resetar_senha_inspetor,
+    resetar_senha_usuario_empresa,
 )
 
 logger = logging.getLogger("tariel.admin")
@@ -575,7 +575,7 @@ async def processar_login(
     if not _verificar_acesso_admin(usuario):
         return _render_login(
             request,
-            erro=("Área restrita à administração. Acesse o portal do cliente em /app/login."),
+            erro=("Área restrita ao Admin-CEO. Para admins-cliente, use /cliente/login."),
             status_code=403,
         )
 
@@ -963,7 +963,7 @@ async def resetar_senha(
         return _redirect_err(f"{URL_CLIENTES}/{empresa_id}", "Requisição inválida.")
 
     try:
-        nova_senha = resetar_senha_inspetor(banco, usuario_id)
+        nova_senha = resetar_senha_usuario_empresa(banco, empresa_id, usuario_id)
 
         logger.info(
             "Senha redefinida | usuario_id=%s | empresa_id=%s | admin_id=%s",

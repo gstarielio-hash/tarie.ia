@@ -31,6 +31,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -52,6 +53,7 @@ from app.shared.database import (
 )
 from app.domains.router_registry import (
     roteador_admin,
+    roteador_cliente,
     roteador_inspetor,
     roteador_revisor,
 )
@@ -200,6 +202,260 @@ class CorrelationIdFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         record.correlation_id = correlation_id_ctx.get()
         return True
+
+
+def _sanitizar_para_json(valor):  # noqa: ANN001
+    if valor is None or isinstance(valor, (str, int, float, bool)):
+        return valor
+
+    if isinstance(valor, dict):
+        return {str(chave): _sanitizar_para_json(item) for chave, item in valor.items()}
+
+    if isinstance(valor, (list, tuple, set)):
+        return [_sanitizar_para_json(item) for item in valor]
+
+    if hasattr(valor, "filename") or hasattr(valor, "content_type"):
+        return {
+            "__type__": valor.__class__.__name__,
+            "filename": getattr(valor, "filename", None),
+            "content_type": getattr(valor, "content_type", None),
+        }
+
+    return str(valor)
+
+
+def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
+    components = schema.setdefault("components", {}).setdefault("schemas", {})
+    paths = schema.setdefault("paths", {})
+    hints_schemathesis = env_str("SCHEMATHESIS_TEST_HINTS", "0").strip() == "1"
+
+    ids_por_operacao = {
+        ("get", "/app/api/laudo/{laudo_id}/gate-qualidade"): {"laudo_id": [1]},
+        ("get", "/app/api/laudo/{laudo_id}/mensagens"): {"laudo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/mesa/anexos/{anexo_id}"): {"laudo_id": [2], "anexo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/mesa/mensagens"): {"laudo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/pendencias"): {"laudo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/pendencias/exportar-pdf"): {"laudo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/revisoes"): {"laudo_id": [2]},
+        ("get", "/app/api/laudo/{laudo_id}/revisoes/diff"): {"laudo_id": [2]},
+        ("patch", "/app/api/laudo/{laudo_id}/pendencias/{mensagem_id}"): {"laudo_id": [2], "mensagem_id": [2]},
+        ("patch", "/app/api/laudo/{laudo_id}/pin"): {"laudo_id": [2]},
+        ("post", "/app/api/laudo/{laudo_id}/finalizar"): {"laudo_id": [1]},
+        ("post", "/app/api/laudo/{laudo_id}/mesa/anexo"): {"laudo_id": [2]},
+        ("post", "/app/api/laudo/{laudo_id}/mesa/mensagem"): {"laudo_id": [2]},
+        ("post", "/app/api/laudo/{laudo_id}/pendencias/marcar-lidas"): {"laudo_id": [2]},
+        ("post", "/app/api/laudo/{laudo_id}/reabrir"): {"laudo_id": [3]},
+        ("delete", "/app/api/laudo/{laudo_id}"): {"laudo_id": [4]},
+        ("get", "/revisao/api/laudo/{laudo_id}/completo"): {"laudo_id": [1]},
+        ("get", "/revisao/api/laudo/{laudo_id}/mensagens"): {"laudo_id": [1]},
+        ("get", "/revisao/api/laudo/{laudo_id}/mesa/anexos/{anexo_id}"): {"laudo_id": [1], "anexo_id": [1]},
+        ("get", "/revisao/api/laudo/{laudo_id}/pacote"): {"laudo_id": [1]},
+        ("get", "/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf"): {"laudo_id": [1]},
+        ("patch", "/revisao/api/laudo/{laudo_id}/pendencias/{mensagem_id}"): {"laudo_id": [1], "mensagem_id": [1]},
+        ("post", "/revisao/api/laudo/{laudo_id}/avaliar"): {"laudo_id": [3]},
+        ("post", "/revisao/api/laudo/{laudo_id}/marcar-whispers-lidos"): {"laudo_id": [1]},
+        ("post", "/revisao/api/laudo/{laudo_id}/responder"): {"laudo_id": [2]},
+        ("post", "/revisao/api/laudo/{laudo_id}/responder-anexo"): {"laudo_id": [2]},
+        ("get", "/revisao/api/templates-laudo/{template_id}"): {"template_id": [1]},
+        ("delete", "/revisao/api/templates-laudo/{template_id}"): {"template_id": [3]},
+        ("get", "/revisao/api/templates-laudo/{template_id}/arquivo-base"): {"template_id": [1]},
+        ("post", "/revisao/api/templates-laudo/{template_id}/publicar"): {"template_id": [1]},
+        ("post", "/revisao/api/templates-laudo/{template_id}/preview"): {"template_id": [1]},
+        ("get", "/revisao/api/templates-laudo/editor/{template_id}"): {"template_id": [2]},
+        ("put", "/revisao/api/templates-laudo/editor/{template_id}"): {"template_id": [2]},
+        ("post", "/revisao/api/templates-laudo/editor/{template_id}/assets"): {"template_id": [2]},
+        ("get", "/revisao/api/templates-laudo/editor/{template_id}/assets/{asset_id}"): {
+            "template_id": [2],
+            "asset_id": ["seed-asset-logo"],
+        },
+        ("post", "/revisao/api/templates-laudo/editor/{template_id}/preview"): {"template_id": [2]},
+        ("post", "/revisao/api/templates-laudo/editor/{template_id}/publicar"): {"template_id": [2]},
+        ("get", "/cliente/api/chat/laudos/{laudo_id}/gate"): {"laudo_id": [1]},
+        ("get", "/cliente/api/chat/laudos/{laudo_id}/mensagens"): {"laudo_id": [2]},
+        ("post", "/cliente/api/chat/laudos/{laudo_id}/finalizar"): {"laudo_id": [1]},
+        ("post", "/cliente/api/chat/laudos/{laudo_id}/reabrir"): {"laudo_id": [3]},
+        ("patch", "/cliente/api/usuarios/{usuario_id}"): {"usuario_id": [4]},
+        ("patch", "/cliente/api/usuarios/{usuario_id}/bloqueio"): {"usuario_id": [3]},
+        ("post", "/cliente/api/usuarios/{usuario_id}/resetar-senha"): {"usuario_id": [3]},
+        ("get", "/cliente/api/mesa/laudos/{laudo_id}/mensagens"): {"laudo_id": [1]},
+        ("get", "/cliente/api/mesa/laudos/{laudo_id}/completo"): {"laudo_id": [1]},
+        ("get", "/cliente/api/mesa/laudos/{laudo_id}/pacote"): {"laudo_id": [1]},
+        ("get", "/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"): {"laudo_id": [1], "anexo_id": [1]},
+        ("post", "/cliente/api/mesa/laudos/{laudo_id}/responder"): {"laudo_id": [2]},
+        ("post", "/cliente/api/mesa/laudos/{laudo_id}/responder-anexo"): {"laudo_id": [2]},
+        ("patch", "/cliente/api/mesa/laudos/{laudo_id}/pendencias/{mensagem_id}"): {"laudo_id": [1], "mensagem_id": [1]},
+        ("post", "/cliente/api/mesa/laudos/{laudo_id}/avaliar"): {"laudo_id": [3]},
+        ("post", "/cliente/api/mesa/laudos/{laudo_id}/marcar-whispers-lidos"): {"laudo_id": [1]},
+    }
+
+    body_iniciar = components.get("Body_api_iniciar_relatorio_app_api_laudo_iniciar_post")
+    if isinstance(body_iniciar, dict):
+        for nome_campo in ("tipo_template", "tipotemplate"):
+            campo = body_iniciar.setdefault("properties", {}).get(nome_campo)
+            if not isinstance(campo, dict):
+                continue
+
+            variantes = campo.get("anyOf")
+            if not isinstance(variantes, list):
+                continue
+
+            aceita_vazio = any(
+                isinstance(item, dict) and item.get("maxLength") == 0
+                for item in variantes
+            )
+            if not aceita_vazio:
+                variantes.insert(0, {"type": "string", "maxLength": 0})
+
+    body_mesa_anexo = components.get(
+        "Body_enviar_mensagem_mesa_laudo_com_anexo_app_api_laudo__laudo_id__mesa_anexo_post"
+    )
+    if isinstance(body_mesa_anexo, dict):
+        props = body_mesa_anexo.setdefault("properties", {})
+        arquivo = props.get("arquivo")
+        if isinstance(arquivo, dict):
+            arquivo.pop("contentMediaType", None)
+            arquivo["format"] = "binary"
+            arquivo["minLength"] = 1
+
+    body_perfil_foto = components.get(
+        "Body_api_upload_foto_perfil_usuario_app_api_perfil_foto_post"
+    )
+    if isinstance(body_perfil_foto, dict):
+        props = body_perfil_foto.setdefault("properties", {})
+        foto = props.get("foto")
+        if isinstance(foto, dict):
+            foto.pop("contentMediaType", None)
+            foto["format"] = "binary"
+            foto["minLength"] = 1
+
+    body_upload_doc = components.get("Body_rota_upload_doc_app_api_upload_doc_post")
+    if isinstance(body_upload_doc, dict):
+        props = body_upload_doc.setdefault("properties", {})
+        arquivo = props.get("arquivo")
+        if isinstance(arquivo, dict):
+            arquivo.pop("contentMediaType", None)
+            arquivo["format"] = "binary"
+            arquivo["minLength"] = 1
+
+    dados_chat = components.get("DadosChat")
+    if isinstance(dados_chat, dict):
+        props = dados_chat.setdefault("properties", {})
+        for campo in ("mensagem", "dados_imagem", "texto_documento"):
+            if isinstance(props.get(campo), dict):
+                props[campo].setdefault("minLength", 0)
+        dados_chat["anyOf"] = [
+            {"properties": {"mensagem": {"minLength": 1}}},
+            {"properties": {"dados_imagem": {"minLength": 1}}},
+            {"properties": {"texto_documento": {"minLength": 1}}},
+        ]
+
+    if hints_schemathesis:
+        dados_whisper = components.get("DadosWhisper")
+        if isinstance(dados_whisper, dict):
+            props = dados_whisper.setdefault("properties", {})
+            for nome_campo, valores in {
+                "laudo_id": [1],
+                "destinatario_id": [2],
+                "referencia_mensagem_id": [1],
+            }.items():
+                campo = props.get(nome_campo)
+                if isinstance(campo, dict):
+                    campo["enum"] = valores
+
+    body_resposta_anexo_revisor = components.get(
+        "Body_responder_chat_campo_com_anexo_revisao_api_laudo__laudo_id__responder_anexo_post"
+    )
+    if isinstance(body_resposta_anexo_revisor, dict):
+        props = body_resposta_anexo_revisor.setdefault("properties", {})
+        arquivo = props.get("arquivo")
+        if isinstance(arquivo, dict):
+            arquivo.pop("contentMediaType", None)
+            arquivo["format"] = "binary"
+            arquivo["minLength"] = 1
+
+    for nome_schema, schema_body in components.items():
+        if not isinstance(schema_body, dict):
+            continue
+        if "cliente_api_mesa_laudos__laudo_id__responder_anexo_post" not in nome_schema:
+            continue
+        props = schema_body.setdefault("properties", {})
+        arquivo = props.get("arquivo")
+        if isinstance(arquivo, dict):
+            arquivo.pop("contentMediaType", None)
+            arquivo["format"] = "binary"
+            arquivo["minLength"] = 1
+
+    body_asset_template = components.get(
+        "Body_upload_asset_template_editor_laudo_revisao_api_templates_laudo_editor__template_id__assets_post"
+    )
+    if isinstance(body_asset_template, dict):
+        props = body_asset_template.setdefault("properties", {})
+        arquivo = props.get("arquivo")
+        if isinstance(arquivo, dict):
+            arquivo.pop("contentMediaType", None)
+            arquivo["format"] = "binary"
+            arquivo["minLength"] = 1
+
+    body_upload_template = components.get(
+        "Body_upload_template_laudo_revisao_api_templates_laudo_upload_post"
+    )
+    if isinstance(body_upload_template, dict):
+        props = body_upload_template.setdefault("properties", {})
+        for nome_campo, tamanho_minimo in {"nome": 1, "codigo_template": 1}.items():
+            campo = props.get(nome_campo)
+            if isinstance(campo, dict):
+                campo["minLength"] = tamanho_minimo
+
+        arquivo_base = props.get("arquivo_base")
+        if isinstance(arquivo_base, dict):
+            arquivo_base.pop("contentMediaType", None)
+            arquivo_base["format"] = "binary"
+            arquivo_base["minLength"] = 1
+
+    dados_preview_template = components.get("DadosPreviewTemplateLaudo")
+    if isinstance(dados_preview_template, dict):
+        props = dados_preview_template.setdefault("properties", {})
+        laudo_id = props.get("laudo_id")
+        if isinstance(laudo_id, dict) and hints_schemathesis:
+            laudo_id["enum"] = [1]
+        dados_formulario = props.get("dados_formulario")
+        if isinstance(dados_formulario, dict):
+            dados_formulario["minProperties"] = 1
+
+    for path, path_item in paths.items():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if not isinstance(operation, dict):
+                continue
+            for parametro in operation.get("parameters", []):
+                if not isinstance(parametro, dict):
+                    continue
+                if parametro.get("in") != "path":
+                    continue
+                if parametro.get("name") not in {"laudo_id", "mensagem_id", "anexo_id", "template_id", "asset_id", "usuario_id"}:
+                    continue
+                schema_param = parametro.setdefault("schema", {})
+                if isinstance(schema_param, dict):
+                    if parametro.get("name") != "asset_id":
+                        schema_param["minimum"] = 1
+                    if hints_schemathesis:
+                        ids_fixos = ids_por_operacao.get((str(method).lower(), path), {})
+                        valores = ids_fixos.get(parametro.get("name"))
+                        if valores:
+                            schema_param["enum"] = valores
+
+
+def _limpar_openapi_para_rotas_de_api(schema: dict) -> None:
+    paths = schema.setdefault("paths", {})
+    prefixes_api = ("/app/api/", "/revisao/api/", "/cliente/api/", "/admin/api/")
+    rotas_operacionais = {"/health", "/ready"}
+
+    schema["paths"] = {
+        caminho: definicao
+        for caminho, definicao in paths.items()
+        if caminho in rotas_operacionais or any(caminho.startswith(prefixo) for prefixo in prefixes_api)
+    }
 
 
 def _extrair_campos_extras(record: logging.LogRecord) -> dict:
@@ -411,18 +667,21 @@ def _redirecionar_por_nivel(usuario: Usuario) -> RedirectResponse:
     if nivel == NivelAcesso.REVISOR.value:
         return RedirectResponse(url="/revisao/painel", status_code=302)
 
-    if nivel >= NivelAcesso.DIRETORIA.value:
+    if nivel == NivelAcesso.ADMIN_CLIENTE.value:
+        return RedirectResponse(url="/cliente/painel", status_code=302)
+
+    if nivel == NivelAcesso.DIRETORIA.value:
         return RedirectResponse(url="/admin/painel", status_code=302)
 
     return RedirectResponse(url="/app/login", status_code=302)
 
 
 def _rota_api(path: str) -> bool:
-    return path.startswith(("/api/", "/app/api/", "/revisao/api/", "/admin/api/"))
+    return path.startswith(("/api/", "/app/api/", "/revisao/api/", "/cliente/api/", "/admin/api/"))
 
 
 def _rota_protegida_html(path: str) -> bool:
-    return path.startswith(("/admin", "/app", "/revisao"))
+    return path.startswith(("/admin", "/app", "/cliente", "/revisao"))
 
 
 def _deve_no_store(path: str) -> bool:
@@ -643,6 +902,23 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    def custom_openapi():
+        if app.openapi_schema:
+            return app.openapi_schema
+
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        _ajustar_openapi_contratos_inspetor(schema)
+        _limpar_openapi_para_rotas_de_api(schema)
+        app.openapi_schema = schema
+        return app.openapi_schema
+
+    app.openapi = custom_openapi
+
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
         request: Request,
@@ -651,7 +927,7 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=422,
             content={
-                "detail": exc.errors(),
+                "detail": _sanitizar_para_json(exc.errors()),
                 "correlation_id": getattr(request.state, "correlation_id", None),
             },
         )
@@ -767,6 +1043,7 @@ def create_app() -> FastAPI:
     # -------------------------------------------------------------------------
 
     app.include_router(roteador_admin, prefix="/admin", tags=["Administração"])
+    app.include_router(roteador_cliente, prefix="/cliente", tags=["Cliente"])
     app.include_router(roteador_inspetor, prefix="/app", tags=["Inspetor"])
     app.include_router(roteador_revisor, tags=["Revisão"])
 
