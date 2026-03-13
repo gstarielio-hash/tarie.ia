@@ -31,6 +31,16 @@ services:
         sync: false
       - key: GOOGLE_APPLICATION_CREDENTIALS
         sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: BOOTSTRAP_ADMIN_NOME
+        value: Administrador Tariel.ia
+      - key: BOOTSTRAP_EMPRESA_NOME
+        value: Tariel.ia
+      - key: BOOTSTRAP_EMPRESA_CNPJ
+        value: "11111111111111"
       - key: SESSION_COOKIE_NAME
         value: cracha_tariel_seguro
       - key: SEED_DEV_BOOTSTRAP

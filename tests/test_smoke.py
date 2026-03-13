@@ -402,6 +402,31 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert "user-row-highlight" in portal_css
 
 
+def test_logins_e_blueprint_nao_reintroduzem_autofill_dev() -> None:
+    raiz = Path(__file__).resolve().parents[1]
+    login_admin = (raiz / "templates" / "login.html").read_text(encoding="utf-8")
+    login_cliente = (raiz / "templates" / "login_cliente.html").read_text(encoding="utf-8")
+    login_app = (raiz / "templates" / "login_app.html").read_text(encoding="utf-8")
+    login_revisor = (raiz / "templates" / "login_revisor.html").read_text(encoding="utf-8")
+    env_exemplo = (raiz / ".env.example").read_text(encoding="utf-8")
+    render_yaml = (raiz / "render.yaml").read_text(encoding="utf-8")
+
+    assert "Modo Dev" not in login_admin
+    assert 'document.getElementById("email").value = "admin@tariel.ia";' not in login_admin
+    assert 'document.getElementById("senha").value = "Dev@123456";' not in login_admin
+    assert 'value="admin-cliente@tariel.ia"' not in login_cliente
+    assert 'value="inspetor@tariel.ia"' not in login_app
+    assert 'value="revisor@tariel.ia"' not in login_revisor
+    assert "Dev@123456" not in login_cliente
+    assert "Dev@123456" not in login_app
+    assert "Dev@123456" not in login_revisor
+
+    assert "BOOTSTRAP_ADMIN_EMAIL=" in env_exemplo
+    assert "BOOTSTRAP_ADMIN_PASSWORD=" in env_exemplo
+    assert "BOOTSTRAP_ADMIN_EMAIL" in render_yaml
+    assert "BOOTSTRAP_ADMIN_PASSWORD" in render_yaml
+
+
 def test_manifesto_aponta_para_icones_existentes_e_sem_marca_legada() -> None:
     raiz = Path(__file__).resolve().parents[1]
     manifesto_path = raiz / "static" / "manifesto.json"

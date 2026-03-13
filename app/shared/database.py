@@ -1244,6 +1244,7 @@ def inicializar_banco() -> None:
     try:
         _aplicar_migracoes_versionadas()
         seed_limites_plano()
+        _bootstrap_admin_inicial_producao()
 
         if not _EM_PRODUCAO and _SEED_DEV_BOOTSTRAP:
             _seed_dev()
@@ -1350,6 +1351,58 @@ def _seed_dev() -> None:
 
         banco.commit()
         logger.info("Seed DEV garantido com sucesso.")
+
+
+def _bootstrap_admin_inicial_producao() -> None:
+    if not _EM_PRODUCAO:
+        return
+
+    email_admin = env_str("BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
+    senha_admin = env_str("BOOTSTRAP_ADMIN_PASSWORD", "").strip()
+    nome_admin = env_str("BOOTSTRAP_ADMIN_NOME", "Administrador Tariel.ia").strip() or "Administrador Tariel.ia"
+    nome_empresa = env_str("BOOTSTRAP_EMPRESA_NOME", "Tariel.ia").strip() or "Tariel.ia"
+    cnpj_empresa = re.sub(r"\D+", "", env_str("BOOTSTRAP_EMPRESA_CNPJ", "11111111111111"))
+
+    if not email_admin or not senha_admin:
+        logger.info(
+            "Bootstrap inicial de produção ignorado: configure BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD para criar o primeiro acesso."
+        )
+        return
+
+    if len(cnpj_empresa) != 14:
+        logger.warning("BOOTSTRAP_EMPRESA_CNPJ inválido. Usando placeholder 11111111111111.")
+        cnpj_empresa = "11111111111111"
+
+    from sqlalchemy import func, select
+    from app.shared.security import criar_hash_senha
+
+    with SessaoLocal() as banco:
+        total_usuarios = int(banco.scalar(select(func.count()).select_from(Usuario)) or 0)
+        if total_usuarios > 0:
+            logger.info("Bootstrap inicial de produção ignorado: já existem usuários cadastrados.")
+            return
+
+        empresa = Empresa(
+            nome_fantasia=nome_empresa,
+            cnpj=cnpj_empresa,
+            plano_ativo=PlanoEmpresa.ILIMITADO.value,
+        )
+        banco.add(empresa)
+        banco.flush()
+
+        banco.add(
+            Usuario(
+                empresa_id=int(empresa.id),
+                nome_completo=nome_admin,
+                email=email_admin,
+                senha_hash=criar_hash_senha(senha_admin),
+                nivel_acesso=int(NivelAcesso.DIRETORIA),
+                ativo=True,
+                senha_temporaria_ativa=False,
+            )
+        )
+        banco.commit()
+        logger.info("Bootstrap inicial de produção concluído para %s.", email_admin)
 
 
 def seed_limites_plano() -> None:

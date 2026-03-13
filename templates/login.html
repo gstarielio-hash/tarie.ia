@@ -308,10 +308,6 @@
             <p>Portal Admin-CEO</p>
         </div>
 
-        <div class="badge-dev" id="badge-dev" aria-live="polite">
-            🛠️ Modo Dev — credenciais preenchidas automaticamente
-        </div>
-
         <div class="aviso-msg" id="aviso-rate" role="alert" aria-live="assertive"></div>
 
         {% if erro %}
@@ -361,13 +357,6 @@
     <script nonce="{{ csp_nonce }}">
         (function () {
             "use strict";
-
-            // ── Autofill APENAS em localhost (dev) ─────────────────────────────────────
-            if (["localhost", "127.0.0.1"].includes(location.hostname)) {
-                document.getElementById("email").value = "admin@tariel.ia";
-                document.getElementById("senha").value = "Dev@123456";
-                document.getElementById("badge-dev").style.display = "block";
-            }
 
             // ── Toggle mostrar / ocultar senha ─────────────────────────────────────────
             const senhaInput = document.getElementById("senha");
