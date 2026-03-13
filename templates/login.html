@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,359 +10,127 @@
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
-        rel="stylesheet">
-    <style nonce="{{ csp_nonce }}">
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-
-        body {
-            background:
-                radial-gradient(circle at top, rgba(244, 123, 32, 0.08), transparent 28%),
-                #171A20;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100dvh;
-            color: #fff;
-        }
-
-        .login-container {
-            background: linear-gradient(180deg, rgba(38, 43, 52, 0.98), rgba(28, 32, 39, 0.98));
-            padding: 40px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
-            margin: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(191, 198, 209, 0.14);
-            animation: fadeIn .35s ease;
-        }
-
-        .logo-area {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo-area img {
-            display: block;
-            width: min(220px, 100%);
-            height: auto;
-            margin: 0 auto 14px;
-        }
-
-        .logo-area h1 {
-            font-size: 22px;
-            font-weight: 600;
-        }
-
-        .logo-area p {
-            font-size: 14px;
-            color: #BDC5D0;
-            margin-top: 5px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 13px;
-            color: #D2D7DF;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px 15px;
-            border-radius: 6px;
-            border: 1px solid rgba(191, 198, 209, 0.24);
-            background: #2B3038;
-            color: #fff;
-            font-size: 16px;
-            transition: border-color .3s, background .3s;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: #F47B20;
-            background: #343A44;
-            box-shadow: 0 0 0 3px rgba(244, 123, 32, 0.25);
-        }
-
-        .input-group input:-webkit-autofill {
-            -webkit-box-shadow: 0 0 0 50px #23272F inset;
-            -webkit-text-fill-color: #fff;
-        }
-
-        .input-group input.invalido {
-            border-color: rgba(255, 77, 77, .6);
-        }
-
-        .input-group input.valido {
-            border-color: rgba(72, 199, 142, .6);
-        }
-
-        .msg-campo {
-            font-size: 11px;
-            margin-top: 5px;
-            padding-left: 2px;
-        }
-
-        .msg-campo.erro {
-            color: #ff8a8a;
-        }
-
-        .msg-campo.aviso {
-            color: #F47B20;
-        }
-
-        .senha-wrapper {
-            position: relative;
-        }
-
-        .senha-wrapper input {
-            padding-right: 44px;
-        }
-
-        .btn-toggle-senha {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #BDC5D0;
-            display: flex;
-            align-items: center;
-            padding: 4px;
-            border-radius: 4px;
-            transition: color .2s;
-        }
-
-        .btn-toggle-senha:hover {
-            color: #F47B20;
-        }
-
-        .btn-toggle-senha .material-symbols-rounded {
-            font-size: 20px;
-        }
-
-        .btn-login {
-            width: 100%;
-            padding: 14px;
-            background: #F47B20;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .3s, transform .2s;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-login:hover:not(:disabled) {
-            background: #d86815;
-            transform: translateY(-2px);
-        }
-
-        .btn-login:disabled {
-            opacity: .65;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .erro-msg {
-            background: rgba(255, 77, 77, .15);
-            border: 1px solid rgba(255, 77, 77, .4);
-            color: #ff8a8a;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            text-align: center;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-
-        .aviso-msg {
-            background: rgba(244, 123, 32, .12);
-            border: 1px solid rgba(244, 123, 32, .35);
-            color: #F47B20;
-            padding: 10px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            text-align: center;
-            margin-bottom: 16px;
-            display: none;
-        }
-
-        .badge-dev {
-            display: none;
-            background: rgba(244, 123, 32, 0.15);
-            border: 1px solid rgba(244, 123, 32, 0.3);
-            color: #F47B20;
-            font-size: 11px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            text-align: center;
-            margin-bottom: 16px;
-        }
-
-        .rodape-login {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 12px;
-            color: rgba(189, 197, 208, 0.52);
-        }
-
-        .rodape-login strong {
-            color: rgba(189, 197, 208, 0.78);
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ── CSS Modal de Login (mantido para compatibilidade futura com <dialog>) ── */
-        @keyframes fadeInD {
-            from {
-                opacity: 0;
-                transform: translateY(-8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        #dialog-login {
-            padding: 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            background: #23272F;
-            color: #fff;
-            width: min(420px, calc(100vw - 32px));
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65);
-            animation: fadeInD .3s ease;
-        }
-
-        #dialog-login::backdrop {
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(4px);
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                padding: 30px 24px;
-            }
-
-            .logo-area img {
-                width: min(196px, 100%);
-                margin-bottom: 12px;
-            }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/shared/auth_shell.css?v={{ v_app if v_app is defined else '' }}">
 </head>
-
-<body data-login-ok="{{ '1' if login_sucesso else '0' }}">
-    <div class="login-container" role="main" aria-label="Formulário de acesso">
-
-        <div class="logo-area">
-            <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
-            <h1>Portal Admin-CEO</h1>
-            <p>Portal Admin-CEO</p>
-        </div>
-
-        <div class="aviso-msg" id="aviso-rate" role="alert" aria-live="assertive"></div>
-
-        {% if erro %}
-        <div class="erro-msg" role="alert" aria-live="assertive">
-            <span class="material-symbols-rounded" aria-hidden="true" style="font-size:16px;">error</span>
-            {{ erro | e }}
-        </div>
-        {% endif %}
-
-        <form action="/admin/login" method="POST" id="form-login" novalidate autocomplete="off">
-
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-            <div class="input-group">
-                <label for="email">E-mail Corporativo</label>
-                <input type="email" id="email" name="email" required placeholder="ceo@tariel.ia"
-                    autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none"
-                    aria-describedby="msg-email" autocomplete="username">
-                <span class="msg-campo" id="msg-email" aria-live="polite"></span>
+<body class="auth-shell" data-login-ok="{{ '1' if login_sucesso else '0' }}">
+    <main class="auth-layout auth-layout--split">
+        <section class="auth-hero" aria-hidden="true">
+            <div class="auth-brand">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
             </div>
+            <span class="auth-eyebrow">Portal Admin-CEO</span>
+            <h1 class="auth-title">Controle empresas, assinaturas e acessos da plataforma inteira.</h1>
+            <p class="auth-description">
+                O Admin-CEO gerencia a estrutura global do ecossistema, acompanha clientes e provisiona o primeiro acesso de cada empresa.
+            </p>
 
-            <div class="input-group">
-                <label for="senha">Senha de Acesso</label>
-                <div class="senha-wrapper">
-                    <input type="password" id="senha" name="senha" required placeholder="••••••••"
-                        autocomplete="current-password" minlength="8" aria-describedby="msg-senha" autocomplete="current-password">
-                    <button type="button" class="btn-toggle-senha" id="btn-toggle-senha" aria-label="Mostrar senha"
-                        aria-pressed="false">
-                        <span class="material-symbols-rounded" id="icone-toggle">visibility</span>
-                    </button>
+            <div class="auth-illustration">
+                <span class="auth-illustration__leaf auth-illustration__leaf--left"></span>
+                <span class="auth-illustration__leaf auth-illustration__leaf--center"></span>
+                <span class="auth-illustration__leaf auth-illustration__leaf--right"></span>
+                <span class="auth-illustration__ground"></span>
+                <div class="auth-illustration__door"></div>
+                <div class="auth-illustration__person">
+                    <span class="auth-illustration__head"></span>
+                    <span class="auth-illustration__torso"></span>
+                    <span class="auth-illustration__arm auth-illustration__arm--left"></span>
+                    <span class="auth-illustration__arm auth-illustration__arm--right"></span>
+                    <span class="auth-illustration__leg auth-illustration__leg--left"></span>
+                    <span class="auth-illustration__leg auth-illustration__leg--right"></span>
+                    <span class="auth-illustration__shoe auth-illustration__shoe--left"></span>
+                    <span class="auth-illustration__shoe auth-illustration__shoe--right"></span>
+                    <span class="auth-illustration__dot"></span>
                 </div>
-                <span class="msg-campo" id="msg-senha" aria-live="polite"></span>
             </div>
 
-            <button type="submit" class="btn-login" id="btn-login">
-                <span class="material-symbols-rounded" aria-hidden="true">login</span>
-                Autenticar Sistema
-            </button>
-        </form>
+            <p class="auth-hero-caption">Ambiente reservado ao controle global da plataforma tariel.ia.</p>
+        </section>
 
-        <p class="rodape-login">
-            Acesso restrito a membros da<br>
-            <strong>Admin-CEO da Tariel.ia</strong>
-        </p>
-    </div>
+        <section class="auth-card">
+            <div class="auth-card-header">
+                <h1 class="auth-card-title">Login</h1>
+                <p class="auth-card-subtitle">Portal Admin-CEO</p>
+            </div>
+
+            <div class="auth-inline-banner" id="aviso-rate" role="alert" aria-live="assertive"></div>
+
+            {% if erro %}
+            <div class="auth-error" role="alert" aria-live="assertive">{{ erro | e }}</div>
+            {% endif %}
+
+            <form action="/admin/login" method="POST" id="form-login" class="auth-form" novalidate autocomplete="off" data-auth-form>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <label for="email">
+                    E-mail corporativo
+                    <div class="auth-field">
+                        <input type="email" id="email" name="email" required placeholder="ceo@tariel.ia"
+                            autocomplete="username" inputmode="email" spellcheck="false" autocapitalize="none"
+                            aria-describedby="msg-email">
+                    </div>
+                    <span class="auth-inline-message" id="msg-email" aria-live="polite"></span>
+                </label>
+
+                <label for="senha">
+                    Senha
+                    <div class="auth-field auth-field--password">
+                        <input type="password" id="senha" name="senha" required placeholder="••••••••"
+                            autocomplete="current-password" minlength="8" aria-describedby="msg-senha">
+                        <button type="button" class="auth-toggle" id="btn-toggle-senha" aria-label="Mostrar senha"
+                            aria-pressed="false">
+                            <span class="material-symbols-rounded" id="icone-toggle">visibility</span>
+                        </button>
+                    </div>
+                    <span class="auth-inline-message" id="msg-senha" aria-live="polite"></span>
+                </label>
+
+                <div class="auth-utility">
+                    <label class="auth-checkbox">
+                        <input type="checkbox" name="lembrar" value="true">
+                        Manter conectado neste dispositivo
+                    </label>
+                    <span>Acesso reservado ao nível máximo da plataforma.</span>
+                </div>
+
+                <button type="submit" class="auth-button" id="btn-login">Autenticar sistema</button>
+            </form>
+
+            <div class="auth-links">
+                <a href="/cliente/login">Admin-Cliente</a>
+                <a href="/app/login">Portal do Inspetor</a>
+                <a href="/revisao/login">Mesa Avaliadora</a>
+            </div>
+
+            <small class="auth-note">Acesso restrito ao gerenciamento global de empresas, planos e provisionamento do Admin-CEO da Tariel.ia.</small>
+        </section>
+    </main>
 
     <script nonce="{{ csp_nonce }}">
-        (function () {
+        (() => {
             "use strict";
 
-            // ── Toggle mostrar / ocultar senha ─────────────────────────────────────────
             const senhaInput = document.getElementById("senha");
             const btnToggle = document.getElementById("btn-toggle-senha");
             const iconeToggle = document.getElementById("icone-toggle");
+            const msgSenha = document.getElementById("msg-senha");
+            const emailInput = document.getElementById("email");
+            const msgEmail = document.getElementById("msg-email");
+            const avisoRate = document.getElementById("aviso-rate");
+            const btnLogin = document.getElementById("btn-login");
+            const form = document.getElementById("form-login");
 
-            btnToggle.addEventListener("click", () => {
+            function setMsg(el, text, tipo) {
+                el.textContent = text || "";
+                el.className = text ? `auth-inline-message ${tipo}` : "auth-inline-message";
+            }
+
+            function validarEmail(v) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+            }
+
+            btnToggle?.addEventListener("click", () => {
                 const visivel = senhaInput.type === "text";
                 senhaInput.type = visivel ? "password" : "text";
                 iconeToggle.textContent = visivel ? "visibility" : "visibility_off";
@@ -371,93 +138,51 @@
                 btnToggle.setAttribute("aria-pressed", String(!visivel));
             });
 
-            // ── Caps Lock detector ─────────────────────────────────────────────────────
-            const msgSenha = document.getElementById("msg-senha");
-            senhaInput.addEventListener("keyup", (e) => {
+            senhaInput?.addEventListener("keyup", (e) => {
                 if (e.getModifierState && e.getModifierState("CapsLock")) {
-                    msgSenha.textContent = "⚠ Caps Lock ativado";
-                    msgSenha.className = "msg-campo aviso";
-                } else {
-                    if (msgSenha.textContent.includes("Caps")) {
-                        msgSenha.textContent = "";
-                        msgSenha.className = "msg-campo";
-                    }
+                    setMsg(msgSenha, "Caps Lock ativado.", "aviso");
+                } else if (msgSenha.textContent.includes("Caps")) {
+                    setMsg(msgSenha, "", "");
                 }
             });
 
-            // ── Validação client-side ──────────────────────────────────────────────────
-            const emailInput = document.getElementById("email");
-            const msgEmail = document.getElementById("msg-email");
-
-            function validarEmail(v) {
-                return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
-            }
-
-            emailInput.addEventListener("blur", () => {
+            emailInput?.addEventListener("blur", () => {
                 if (!emailInput.value.trim()) {
-                    emailInput.className = "invalido";
-                    msgEmail.textContent = "Informe o e-mail corporativo.";
-                    msgEmail.className = "msg-campo erro";
+                    setMsg(msgEmail, "Informe o e-mail corporativo.", "erro");
                 } else if (!validarEmail(emailInput.value)) {
-                    emailInput.className = "invalido";
-                    msgEmail.textContent = "Formato de e-mail inválido.";
-                    msgEmail.className = "msg-campo erro";
+                    setMsg(msgEmail, "Formato de e-mail inválido.", "erro");
                 } else {
-                    emailInput.className = "valido";
-                    msgEmail.textContent = "";
-                    msgEmail.className = "msg-campo";
+                    setMsg(msgEmail, "", "");
                 }
             });
 
-            senhaInput.addEventListener("blur", () => {
+            senhaInput?.addEventListener("blur", () => {
                 if (senhaInput.value.length < 8) {
-                    senhaInput.className = "invalido";
-                    if (!msgSenha.textContent.includes("Caps")) {
-                        msgSenha.textContent = "A senha deve ter ao menos 8 caracteres.";
-                        msgSenha.className = "msg-campo erro";
-                    }
-                } else {
-                    senhaInput.className = "valido";
-                    if (!msgSenha.textContent.includes("Caps")) {
-                        msgSenha.textContent = "";
-                        msgSenha.className = "msg-campo";
-                    }
+                    setMsg(msgSenha, "A senha deve ter ao menos 8 caracteres.", "erro");
+                } else if (!msgSenha.textContent.includes("Caps")) {
+                    setMsg(msgSenha, "", "");
                 }
             });
 
-            // ── Rate limiting visual (3 tentativas → bloqueio 30s) ────────────────────
             const LIMITE_TENTATIVAS = 3;
             const BLOQUEIO_MS = 30_000;
             const CHAVE_LS = "tariel_login_tentativas";
 
             function carregarEstado() {
-                try { return JSON.parse(localStorage.getItem(CHAVE_LS)) || { count: 0, desde: 0 }; }
-                catch { return { count: 0, desde: 0 }; }
-            }
-            function salvarEstado(s) {
-                localStorage.setItem(CHAVE_LS, JSON.stringify(s));
+                try {
+                    return JSON.parse(localStorage.getItem(CHAVE_LS)) || { count: 0, desde: 0 };
+                } catch {
+                    return { count: 0, desde: 0 };
+                }
             }
 
-            const avisoRate = document.getElementById("aviso-rate");
-            const btnLogin = document.getElementById("btn-login");
+            function salvarEstado(estado) {
+                localStorage.setItem(CHAVE_LS, JSON.stringify(estado));
+            }
+
             let timerBloqueio = null;
 
-            function verificarBloqueio() {
-                const estado = carregarEstado();
-                const agora = Date.now();
-                if (estado.count >= LIMITE_TENTATIVAS) {
-                    const restante = BLOQUEIO_MS - (agora - estado.desde);
-                    if (restante > 0) {
-                        ativarBloqueio(restante, estado);
-                        return true;
-                    } else {
-                        salvarEstado({ count: 0, desde: 0 });
-                    }
-                }
-                return false;
-            }
-
-            function ativarBloqueio(ms, estado) {
+            function ativarBloqueio(estado) {
                 btnLogin.disabled = true;
                 clearInterval(timerBloqueio);
                 timerBloqueio = setInterval(() => {
@@ -465,62 +190,69 @@
                     if (restante <= 0) {
                         clearInterval(timerBloqueio);
                         btnLogin.disabled = false;
-                        avisoRate.style.display = "none";
+                        avisoRate.classList.remove("is-visible");
+                        avisoRate.textContent = "";
                         salvarEstado({ count: 0, desde: 0 });
-                        btnLogin.innerHTML =
-                            '<span class="material-symbols-rounded" aria-hidden="true">login</span> Autenticar Sistema';
+                        btnLogin.textContent = "Autenticar sistema";
                     } else {
                         const seg = Math.ceil(restante / 1000);
-                        avisoRate.style.display = "block";
-                        avisoRate.textContent = `⏳ Muitas tentativas. Aguarde ${seg}s para tentar novamente.`;
-                        btnLogin.innerHTML = `<span class="material-symbols-rounded" aria-hidden="true" style="animation:spin 1s linear infinite;">sync</span> Bloqueado (${seg}s)`;
+                        avisoRate.classList.add("is-visible");
+                        avisoRate.textContent = `Muitas tentativas. Aguarde ${seg}s para tentar novamente.`;
+                        btnLogin.textContent = `Bloqueado (${seg}s)`;
                     }
                 }, 500);
             }
 
+            function verificarBloqueio() {
+                const estado = carregarEstado();
+                if (estado.count >= LIMITE_TENTATIVAS) {
+                    const restante = BLOQUEIO_MS - (Date.now() - estado.desde);
+                    if (restante > 0) {
+                        ativarBloqueio(estado);
+                        return true;
+                    }
+                    salvarEstado({ count: 0, desde: 0 });
+                }
+                return false;
+            }
+
             verificarBloqueio();
 
-            // ── Submit com feedback + rate limit ──────────────────────────────────────
-            const form = document.getElementById("form-login");
-            form.addEventListener("submit", (e) => {
-                if (verificarBloqueio()) { e.preventDefault(); return; }
+            form?.addEventListener("submit", (e) => {
+                if (verificarBloqueio()) {
+                    e.preventDefault();
+                    return;
+                }
 
                 let ok = true;
                 if (!validarEmail(emailInput.value)) {
-                    emailInput.className = "invalido";
-                    msgEmail.textContent = "Informe um e-mail válido.";
-                    msgEmail.className = "msg-campo erro";
+                    setMsg(msgEmail, "Informe um e-mail válido.", "erro");
                     ok = false;
                 }
                 if (senhaInput.value.length < 8) {
-                    senhaInput.className = "invalido";
-                    if (!msgSenha.textContent.includes("Caps")) {
-                        msgSenha.textContent = "Senha inválida.";
-                        msgSenha.className = "msg-campo erro";
-                    }
+                    setMsg(msgSenha, "Senha inválida.", "erro");
                     ok = false;
                 }
-                if (!ok) { e.preventDefault(); return; }
+                if (!ok) {
+                    e.preventDefault();
+                    return;
+                }
 
                 const estado = carregarEstado();
                 estado.count += 1;
-                if (estado.count === 1) estado.desde = Date.now();
+                if (estado.count === 1) {
+                    estado.desde = Date.now();
+                }
                 salvarEstado(estado);
 
                 btnLogin.disabled = true;
-                btnLogin.innerHTML =
-                    '<span class="material-symbols-rounded" aria-hidden="true" ' +
-                    'style="animation:spin 1s linear infinite;">sync</span> Verificando...';
+                btnLogin.textContent = "Verificando...";
             });
 
-            // Limpa o rate limit se o login foi concluído com sucesso
             if (document.body.dataset.loginOk === "1") {
                 salvarEstado({ count: 0, desde: 0 });
             }
-
         })();
     </script>
 </body>
-
 </html>
-

@@ -10,75 +10,123 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/shared/auth_shell.css?v={{ v_app }}">
 </head>
 <body class="auth-shell">
     <main class="auth-layout auth-layout--split">
-        <section class="auth-hero">
-            <div class="auth-brand" aria-hidden="true">
+        <section class="auth-hero" aria-hidden="true">
+            <div class="auth-brand">
                 <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
             </div>
             <span class="auth-eyebrow">Portal Admin-Cliente</span>
-            <h1 class="auth-title">Gerencie a sua empresa com o mesmo login do dia a dia.</h1>
+            <h1 class="auth-title">Um acesso para gerenciar a empresa, o Chat e a Mesa.</h1>
             <p class="auth-description">
-                Um ponto unico para administrar usuarios, acompanhar o chat operacional e atuar na Mesa Avaliadora da propria empresa.
+                Entre com a conta liberada para sua empresa e assuma a operação completa do ambiente administrativo.
             </p>
 
-            <div class="auth-meta">
-                <span class="auth-chip">Admin da empresa</span>
-                <span class="auth-chip">Chat operacional</span>
-                <span class="auth-chip">Mesa Avaliadora</span>
+            <div class="auth-illustration">
+                <span class="auth-illustration__leaf auth-illustration__leaf--left"></span>
+                <span class="auth-illustration__leaf auth-illustration__leaf--center"></span>
+                <span class="auth-illustration__leaf auth-illustration__leaf--right"></span>
+                <span class="auth-illustration__ground"></span>
+                <div class="auth-illustration__door"></div>
+                <div class="auth-illustration__person">
+                    <span class="auth-illustration__head"></span>
+                    <span class="auth-illustration__torso"></span>
+                    <span class="auth-illustration__arm auth-illustration__arm--left"></span>
+                    <span class="auth-illustration__arm auth-illustration__arm--right"></span>
+                    <span class="auth-illustration__leg auth-illustration__leg--left"></span>
+                    <span class="auth-illustration__leg auth-illustration__leg--right"></span>
+                    <span class="auth-illustration__shoe auth-illustration__shoe--left"></span>
+                    <span class="auth-illustration__shoe auth-illustration__shoe--right"></span>
+                    <span class="auth-illustration__dot"></span>
+                </div>
             </div>
 
-            <ul class="auth-list">
-                <li>Crie e bloqueie admins-cliente, inspetores e usuarios da mesa sem depender do Admin-CEO.</li>
-                <li>Altere o plano da empresa e acompanhe limites, uso e saude operacional no mesmo painel.</li>
-                <li>Entre no Chat e na Mesa sem trocar de portal nem misturar credenciais com outros perfis.</li>
-            </ul>
+            <p class="auth-hero-caption">Acesse a operação da sua empresa sem trocar de portal e sem misturar perfis.</p>
         </section>
 
         <section class="auth-card">
             <div class="auth-card-header">
-                <span class="auth-eyebrow">Acesso seguro</span>
-                <h2 class="auth-card-title">Entrar no portal da empresa</h2>
-                <p class="auth-card-subtitle">Use a conta do admin-cliente provisionada para a sua empresa.</p>
+                <h1 class="auth-card-title">Login</h1>
+                <p class="auth-card-subtitle">Portal Admin-Cliente</p>
             </div>
 
             {% if erro %}
             <div class="auth-error" role="alert" aria-live="assertive">{{ erro }}</div>
             {% endif %}
 
-            <form class="auth-form" method="post" action="/cliente/login">
+            <form class="auth-form" method="post" action="/cliente/login" data-auth-form>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                <label>
+                <label for="email">
                     E-mail
-                    <input type="email" name="email" autocomplete="username" placeholder="voce@empresa.com.br" required>
+                    <div class="auth-field">
+                        <input id="email" type="email" name="email" autocomplete="username" placeholder="voce@empresa.com.br" required>
+                    </div>
                 </label>
 
-                <label>
+                <label for="senha">
                     Senha
-                    <input type="password" name="senha" autocomplete="current-password" placeholder="Sua senha de acesso" required>
+                    <div class="auth-field auth-field--password">
+                        <input id="senha" type="password" name="senha" autocomplete="current-password" placeholder="Sua senha de acesso" required>
+                        <button class="auth-toggle" type="button" data-password-toggle data-password-target="senha" aria-label="Mostrar senha" aria-pressed="false">
+                            <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
+                        </button>
+                    </div>
                 </label>
 
-                <label class="auth-checkbox">
-                    <input type="checkbox" name="lembrar" value="true">
-                    Manter conectado neste dispositivo
-                </label>
-
-                <div class="auth-actions">
-                    <button class="auth-button" type="submit">Entrar no Portal Admin-Cliente</button>
+                <div class="auth-utility">
+                    <label class="auth-checkbox">
+                        <input type="checkbox" name="lembrar" value="true">
+                        Manter conectado neste dispositivo
+                    </label>
+                    <span>Use a conta administrativa da empresa.</span>
                 </div>
+
+                <button class="auth-button" type="submit">Entrar no Portal Admin-Cliente</button>
             </form>
 
             <div class="auth-links">
                 <a href="/admin/login">Admin-CEO</a>
-                <a href="/app/login">Portal do inspetor</a>
-                <a href="/revisao/login">Mesa avaliadora</a>
+                <a href="/app/login">Portal do Inspetor</a>
+                <a href="/revisao/login">Mesa Avaliadora</a>
             </div>
 
-            <small class="auth-note">Primeiro acesso com senha temporaria leva direto para a troca obrigatoria de senha.</small>
+            <small class="auth-note">Primeiro acesso com senha temporária leva direto para a troca obrigatória de senha.</small>
         </section>
     </main>
+
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            "use strict";
+
+            document.querySelectorAll("[data-password-toggle]").forEach((botao) => {
+                const targetId = botao.getAttribute("data-password-target");
+                const input = targetId ? document.getElementById(targetId) : null;
+                if (!input) return;
+
+                botao.addEventListener("click", () => {
+                    const visivel = input.type === "text";
+                    input.type = visivel ? "password" : "text";
+                    botao.setAttribute("aria-pressed", String(!visivel));
+                    botao.setAttribute("aria-label", visivel ? "Mostrar senha" : "Ocultar senha");
+                    const icone = botao.querySelector(".material-symbols-rounded");
+                    if (icone) icone.textContent = visivel ? "visibility" : "visibility_off";
+                    input.focus();
+                });
+            });
+
+            document.querySelectorAll("[data-auth-form]").forEach((form) => {
+                form.addEventListener("submit", () => {
+                    const botao = form.querySelector(".auth-button");
+                    if (!botao) return;
+                    botao.disabled = true;
+                    botao.innerHTML = "<span>Entrando...</span>";
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
