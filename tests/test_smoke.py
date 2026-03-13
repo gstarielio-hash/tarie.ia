@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 from pathlib import Path
 
@@ -391,6 +393,20 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'data-act="toggle-user"' in portal_js
     assert 'data-user="${item.userId' in portal_js
     assert "user-row-highlight" in portal_css
+
+
+def test_manifesto_aponta_para_icones_existentes_e_sem_marca_legada() -> None:
+    raiz = Path(__file__).resolve().parents[1]
+    manifesto_path = raiz / "static" / "manifesto.json"
+    manifesto = json.loads(manifesto_path.read_text(encoding="utf-8"))
+
+    assert manifesto["name"] == "tariel.ia"
+    assert manifesto["short_name"] == "tariel.ia"
+
+    for icone in manifesto["icons"]:
+        caminho_relativo = str(icone["src"]).removeprefix("/static/")
+        caminho = raiz / "static" / caminho_relativo
+        assert caminho.exists(), f"Icone ausente no manifesto: {icone['src']}"
 
 
 def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None:

@@ -444,7 +444,46 @@ def test_admin_cliente_bootstrap_fica_restrito_a_propria_empresa(ambiente_critic
     emails = {item["email"] for item in corpo["usuarios"]}
     assert "cliente@empresa-a.test" in emails
     assert "inspetor@empresa-a.test" in emails
+    assert "admin@empresa-a.test" not in emails
     assert "inspetor@empresa-b.test" not in emails
+    assert corpo["empresa"]["total_usuarios"] == 3
+    assert corpo["empresa"]["usuarios_em_uso"] == 3
+
+
+def test_admin_cliente_nao_gerencia_admin_ceo_mesmo_na_mesma_empresa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta_lista = client.get("/cliente/api/usuarios", headers={"X-CSRF-Token": csrf})
+
+    assert resposta_lista.status_code == 200
+    emails = {item["email"] for item in resposta_lista.json()["itens"]}
+    assert "admin@empresa-a.test" not in emails
+
+    resposta_atualizar = client.patch(
+        f"/cliente/api/usuarios/{ids['admin_a']}",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "nome": "Admin CEO Alterado",
+            "email": "admin@empresa-a.test",
+            "telefone": "",
+            "crea": "",
+        },
+    )
+    assert resposta_atualizar.status_code == 404
+
+    resposta_bloqueio = client.patch(
+        f"/cliente/api/usuarios/{ids['admin_a']}/bloqueio",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_bloqueio.status_code == 404
+
+    resposta_reset = client.post(
+        f"/cliente/api/usuarios/{ids['admin_a']}/resetar-senha",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_reset.status_code == 404
 
 
 def test_admin_cliente_nao_acessa_revisao_geral(ambiente_critico) -> None:
@@ -910,10 +949,10 @@ def test_admin_cliente_resumo_empresa_explica_capacidade_e_upgrade_sugerido(ambi
     assert resposta.status_code == 200
     corpo = resposta.json()
     assert corpo["plano_ativo"] == "Inicial"
-    assert corpo["usuarios_em_uso"] == 4
+    assert corpo["usuarios_em_uso"] == 3
     assert corpo["usuarios_max"] == 1
     assert corpo["usuarios_restantes"] == 0
-    assert corpo["usuarios_excedente"] == 3
+    assert corpo["usuarios_excedente"] == 2
     assert corpo["laudos_mes_atual"] == 2
     assert corpo["laudos_mes_limite"] == 50
     assert corpo["laudos_restantes"] == 48

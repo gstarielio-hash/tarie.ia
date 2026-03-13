@@ -20,6 +20,7 @@ from app.domains.admin.services import (
     alterar_plano,
     atualizar_usuario_empresa,
     criar_usuario_empresa,
+    filtro_usuarios_gerenciaveis_cliente,
     resetar_senha_usuario_empresa,
 )
 from app.domains.chat.chat import obter_mensagens_laudo, rota_chat, rota_upload_doc
@@ -589,12 +590,14 @@ def _resumo_saude_empresa_cliente(
     usuarios_ativos = banco.scalar(
         select(func.count(Usuario.id)).where(
             Usuario.empresa_id == int(empresa.id),
+            filtro_usuarios_gerenciaveis_cliente(),
             Usuario.ativo.is_(True),
         )
     ) or 0
     usuarios_login_recente = banco.scalar(
         select(func.count(Usuario.id)).where(
             Usuario.empresa_id == int(empresa.id),
+            filtro_usuarios_gerenciaveis_cliente(),
             Usuario.ativo.is_(True),
             Usuario.ultimo_login.is_not(None),
             Usuario.ultimo_login >= janela_login,
@@ -603,6 +606,7 @@ def _resumo_saude_empresa_cliente(
     primeiros_acessos = banco.scalar(
         select(func.count(Usuario.id)).where(
             Usuario.empresa_id == int(empresa.id),
+            filtro_usuarios_gerenciaveis_cliente(),
             Usuario.senha_temporaria_ativa.is_(True),
         )
     ) or 0
@@ -1026,7 +1030,15 @@ def _resumo_empresa_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
     empresa = _empresa_usuario(banco, usuario)
     limites = empresa.obter_limites(banco)
     plano_atual = str(empresa.plano_ativo or "")
-    total_usuarios = banco.scalar(select(func.count(Usuario.id)).where(Usuario.empresa_id == empresa.id)) or 0
+    total_usuarios = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == empresa.id,
+                filtro_usuarios_gerenciaveis_cliente(),
+            )
+        )
+        or 0
+    )
     total_laudos = banco.scalar(select(func.count(Laudo.id)).where(Laudo.empresa_id == empresa.id)) or 0
     laudos_mes_atual = contar_laudos_mes(banco, int(empresa.id))
     admins_cliente = banco.scalar(
@@ -1172,7 +1184,10 @@ def _bootstrap_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
     usuarios = list(
         banco.scalars(
             select(Usuario)
-            .where(Usuario.empresa_id == usuario.empresa_id)
+            .where(
+                Usuario.empresa_id == usuario.empresa_id,
+                filtro_usuarios_gerenciaveis_cliente(),
+            )
             .order_by(Usuario.nivel_acesso.desc(), Usuario.nome_completo.asc())
         ).all()
     )
@@ -1566,7 +1581,10 @@ async def api_listar_usuarios_cliente(
     usuarios = list(
         banco.scalars(
             select(Usuario)
-            .where(Usuario.empresa_id == usuario.empresa_id)
+            .where(
+                Usuario.empresa_id == usuario.empresa_id,
+                filtro_usuarios_gerenciaveis_cliente(),
+            )
             .order_by(Usuario.nivel_acesso.desc(), Usuario.nome_completo.asc())
         ).all()
     )

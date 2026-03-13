@@ -1268,26 +1268,40 @@ def _seed_dev() -> None:
             banco.add(empresa)
             banco.flush()
 
+        empresa_admin = banco.scalar(select(Empresa).where(Empresa.cnpj == "99999999999999"))
+        if not empresa_admin:
+            empresa_admin = Empresa(
+                nome_fantasia="Tariel IA Interno (DEV)",
+                cnpj="99999999999999",
+                plano_ativo=PlanoEmpresa.ILIMITADO.value,
+            )
+            banco.add(empresa_admin)
+            banco.flush()
+
         usuarios_seed = [
             (
+                empresa_admin.id,
                 "admin@wf.com.br",
                 "Diretoria Dev",
                 int(NivelAcesso.DIRETORIA),
                 senha_admin,
             ),
             (
+                empresa.id,
                 "admin-cliente@wf.com.br",
                 "Admin-Cliente Dev",
                 int(NivelAcesso.ADMIN_CLIENTE),
                 senha_admin_cliente,
             ),
             (
+                empresa.id,
                 "inspetor@wf.com.br",
                 "Inspetor Dev",
                 int(NivelAcesso.INSPETOR),
                 senha_inspetor,
             ),
             (
+                empresa.id,
                 "revisor@wf.com.br",
                 "Engenheiro Revisor (Dev)",
                 int(NivelAcesso.REVISOR),
@@ -1295,14 +1309,17 @@ def _seed_dev() -> None:
             ),
         ]
 
-        for email, nome, nivel, senha in usuarios_seed:
+        for empresa_destino_id, email, nome, nivel, senha in usuarios_seed:
             usuario = banco.scalar(select(Usuario).where(Usuario.email == email))
             if usuario:
+                usuario.empresa_id = empresa_destino_id
+                usuario.nome_completo = nome
+                usuario.nivel_acesso = nivel
                 continue
 
             banco.add(
                 Usuario(
-                    empresa_id=empresa.id,
+                    empresa_id=empresa_destino_id,
                     nome_completo=nome,
                     email=email,
                     senha_hash=criar_hash_senha(senha),

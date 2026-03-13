@@ -1,6 +1,6 @@
 {
-  "name": "Portal WF - Inspeções",
-  "short_name": "Portal WF",
+  "name": "tariel.ia",
+  "short_name": "tariel.ia",
   "start_url": "/app/",
   "display": "standalone",
   "background_color": "#081624",
@@ -8,13 +8,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/static/img/icon-192.png",
+      "src": "/static/img/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/img/icon-512.png",
+      "src": "/static/img/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

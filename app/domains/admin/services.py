@@ -131,11 +131,16 @@ def _buscar_empresa(db: Session, empresa_id: int) -> Empresa:
     return empresa
 
 
+def filtro_usuarios_gerenciaveis_cliente():
+    return Usuario.nivel_acesso.in_(tuple(_NIVEIS_GERENCIAVEIS_CLIENTE))
+
+
 def _buscar_usuario_empresa(db: Session, empresa_id: int, usuario_id: int) -> Usuario:
     usuario = db.scalar(
         select(Usuario).where(
             Usuario.id == usuario_id,
             Usuario.empresa_id == empresa_id,
+            filtro_usuarios_gerenciaveis_cliente(),
         )
     )
     if not usuario:
@@ -182,7 +187,15 @@ def _obter_limite_laudos_empresa(db: Session, empresa: Empresa) -> int | None:
 
 
 def _contar_usuarios_empresa(db: Session, empresa_id: int) -> int:
-    return db.scalar(select(func.count(Usuario.id)).where(Usuario.empresa_id == empresa_id)) or 0
+    return (
+        db.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == empresa_id,
+                filtro_usuarios_gerenciaveis_cliente(),
+            )
+        )
+        or 0
+    )
 
 
 def _validar_capacidade_novo_usuario(db: Session, empresa: Empresa) -> None:
