@@ -638,6 +638,17 @@ textarea {
     line-height: 1.55;
 }
 
+.composer-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.composer-status[hidden] {
+    display: none;
+}
+
 input:hover,
 select:hover,
 textarea:hover {
@@ -1340,6 +1351,7 @@ tr.user-row-highlight .user-name {
     }
 
     .hero-actions,
+    .composer-toolbar,
     .toolbar,
     .activity-head,
     .context-head,
@@ -1359,6 +1371,7 @@ tr.user-row-highlight .user-name {
     }
 
     .hero-actions .btn,
+    .composer-toolbar .btn,
     .context-actions .btn,
     .toolbar-actions > *,
     .user-actions .btn {

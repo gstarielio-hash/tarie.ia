@@ -1189,6 +1189,7 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         expect(page_cliente.locator("#chat-contexto")).to_be_visible()
         expect(page_cliente.locator("#chat-triagem")).to_be_visible()
         expect(page_cliente.locator("#chat-movimentos")).to_be_visible()
+        expect(page_cliente.locator("#btn-chat-upload-doc")).to_be_visible()
         page_cliente.get_by_role("button", name="Ver abertos").click()
         expect(page_cliente.locator("#chat-lista-resumo")).to_contain_text("Filtro rapido: Em operação", timeout=10000)
         expect(page_cliente.locator("#lista-chat-laudos")).to_contain_text("Aberto", timeout=10000)

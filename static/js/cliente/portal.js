@@ -25,6 +25,10 @@
         chat: {
             laudoId: null,
             mensagens: [],
+            documentoTexto: "",
+            documentoNome: "",
+            documentoChars: 0,
+            documentoTruncado: false,
         },
         mesa: {
             laudoId: null,
@@ -865,6 +869,7 @@
 
         if (!state.chat.laudoId) {
             state.chat.mensagens = [];
+            limparDocumentoChatPendente();
         }
         if (!state.mesa.laudoId) {
             state.mesa.mensagens = [];
@@ -896,6 +901,96 @@
                 }).join("")}
             </div>
         `;
+    }
+
+    function documentoChatPendenteAtivo() {
+        return Boolean(texto(state.chat.documentoTexto).trim());
+    }
+
+    function limparDocumentoChatPendente() {
+        state.chat.documentoTexto = "";
+        state.chat.documentoNome = "";
+        state.chat.documentoChars = 0;
+        state.chat.documentoTruncado = false;
+        if ($("chat-upload-doc")) {
+            $("chat-upload-doc").value = "";
+        }
+        renderChatDocumentoPendente();
+    }
+
+    function renderChatDocumentoPendente() {
+        const container = $("chat-upload-status");
+        const botaoUpload = $("btn-chat-upload-doc");
+        if (botaoUpload) {
+            botaoUpload.disabled = !state.chat.laudoId;
+        }
+        if (!container) return;
+
+        if (!documentoChatPendenteAtivo()) {
+            container.hidden = true;
+            container.innerHTML = "";
+            return;
+        }
+
+        const nome = texto(state.chat.documentoNome || "documento");
+        const chars = Number(state.chat.documentoChars || texto(state.chat.documentoTexto).length || 0);
+        const truncado = Boolean(state.chat.documentoTruncado);
+
+        container.hidden = false;
+        container.innerHTML = `
+            <div class="attachment-list">
+                <div class="attachment-item">
+                    <div class="attachment-copy">
+                        <span class="attachment-name">${escapeHtml(nome)}</span>
+                        <span class="attachment-meta">
+                            Documento pronto para envio • ${escapeHtml(formatarInteiro(chars))} caracteres${truncado ? " • resumo truncado" : ""}
+                        </span>
+                    </div>
+                    <button id="btn-chat-upload-limpar" class="btn ghost" type="button">Remover</button>
+                </div>
+            </div>
+        `;
+
+        $("btn-chat-upload-limpar")?.addEventListener("click", () => {
+            limparDocumentoChatPendente();
+            feedback("Documento removido do rascunho do chat.");
+        });
+    }
+
+    async function importarDocumentoChat(arquivo) {
+        if (!arquivo) return;
+        if (!state.chat.laudoId) {
+            if ($("chat-upload-doc")) {
+                $("chat-upload-doc").value = "";
+            }
+            feedback("Selecione um laudo do chat antes de importar um documento.", true);
+            return;
+        }
+
+        const botao = $("btn-chat-upload-doc");
+        await withBusy(botao, "Lendo...", async () => {
+            const formData = new FormData();
+            formData.append("arquivo", arquivo);
+            const resposta = await api("/cliente/api/chat/upload_doc", {
+                method: "POST",
+                body: formData,
+            });
+
+            state.chat.documentoTexto = texto(resposta?.texto || "").trim();
+            state.chat.documentoNome = texto(resposta?.nome || arquivo.name || "documento");
+            state.chat.documentoChars = Number(resposta?.chars || state.chat.documentoTexto.length || 0);
+            state.chat.documentoTruncado = Boolean(resposta?.truncado);
+            renderChatDocumentoPendente();
+            $("chat-mensagem")?.focus();
+            feedback(
+                `${state.chat.documentoNome} pronto para envio no chat da empresa.`,
+                false,
+                "Documento carregado"
+            );
+        }).catch((erro) => {
+            limparDocumentoChatPendente();
+            feedback(erro.message || "Falha ao importar documento.", true);
+        });
     }
 
     function renderEmpresaCards() {
@@ -1789,6 +1884,7 @@
             finalizar.disabled = true;
             reabrir.disabled = true;
             $("chat-titulo").textContent = "Selecione um laudo";
+            renderChatDocumentoPendente();
             return;
         }
 
@@ -1843,6 +1939,7 @@
                 ` : ""}
             </div>
         `;
+        renderChatDocumentoPendente();
     }
 
     function renderChatMensagens() {
@@ -2292,8 +2389,12 @@
     async function loadChat(laudoId, { silencioso = false } = {}) {
         const id = Number(laudoId || 0);
         if (!Number.isFinite(id) || id <= 0) return;
+        const laudoAnterior = Number(state.chat.laudoId || 0) || null;
 
         state.chat.laudoId = id;
+        if (laudoAnterior && laudoAnterior !== id) {
+            limparDocumentoChatPendente();
+        }
         persistirSelecao(STORAGE_CHAT_KEY, id);
         renderChatResumo();
         renderChatList();
@@ -2650,6 +2751,16 @@
             });
         });
 
+        $("btn-chat-upload-doc")?.addEventListener("click", () => {
+            $("chat-upload-doc")?.click();
+        });
+
+        $("chat-upload-doc")?.addEventListener("change", async (event) => {
+            const arquivo = event.target?.files?.[0] || null;
+            if (!arquivo) return;
+            await importarDocumentoChat(arquivo);
+        });
+
         $("form-chat-msg")?.addEventListener("submit", async (event) => {
             event.preventDefault();
             if (!state.chat.laudoId) {
@@ -2658,8 +2769,8 @@
             }
 
             const mensagem = $("chat-mensagem").value.trim();
-            if (!mensagem) {
-                feedback("Escreva uma mensagem antes de enviar.", true);
+            if (!mensagem && !documentoChatPendenteAtivo()) {
+                feedback("Escreva uma mensagem ou importe um documento antes de enviar.", true);
                 return;
             }
 
@@ -2681,9 +2792,12 @@
                         historico,
                         setor: "geral",
                         modo: "detalhado",
+                        texto_documento: state.chat.documentoTexto || "",
+                        nome_documento: state.chat.documentoNome || "",
                     },
                 });
                 $("chat-mensagem").value = "";
+                limparDocumentoChatPendente();
                 await bootstrapPortal();
                 await loadChat(state.chat.laudoId, { silencioso: true });
                 feedback("Mensagem enviada no chat da empresa.");

@@ -12,6 +12,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from docx import Document
 from pypdf import PdfWriter
 from sqlalchemy import select
 from sqlalchemy import create_engine
@@ -71,6 +72,14 @@ def _pdf_base_bytes_teste() -> bytes:
     writer.add_blank_page(width=595, height=842)
     buffer = io.BytesIO()
     writer.write(buffer)
+    return buffer.getvalue()
+
+
+def _docx_bytes_teste(texto: str = "Checklist operacional do admin-cliente.") -> bytes:
+    documento = Document()
+    documento.add_paragraph(texto)
+    buffer = io.BytesIO()
+    documento.save(buffer)
     return buffer.getvalue()
 
 
@@ -640,12 +649,55 @@ def test_admin_cliente_mesa_reescreve_urls_de_anexo_para_o_proprio_portal(ambien
         assert anexo_payload["nome"] == "retorno-mesa.png"
         assert anexo_payload["url"] == f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"
 
+        resposta_completo = client.get(
+            f"/cliente/api/mesa/laudos/{laudo_id}/completo",
+            params={"incluir_historico": "true"},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert resposta_completo.status_code == 200
+        historico = resposta_completo.json()["historico"]
+        assert historico[-1]["anexos"][0]["url"] == f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"
+
+        resposta_pacote = client.get(
+            f"/cliente/api/mesa/laudos/{laudo_id}/pacote",
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert resposta_pacote.status_code == 200
+        pacote = resposta_pacote.json()
+        assert pacote["pendencias_abertas"][0]["anexos"][0]["url"] == (
+            f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"
+        )
+
         download = client.get(anexo_payload["url"])
         assert download.status_code == 200
         assert download.content == conteudo
     finally:
         if caminho and os.path.exists(caminho):
             os.unlink(caminho)
+
+
+def test_admin_cliente_upload_documental_reaproveita_fluxo_do_chat(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_cliente(client, "cliente@empresa-a.test")
+
+    resposta = client.post(
+        "/cliente/api/chat/upload_doc",
+        headers={"X-CSRF-Token": csrf},
+        files={
+            "arquivo": (
+                "checklist-operacional.docx",
+                _docx_bytes_teste("Checklist operacional do admin-cliente para a empresa."),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        },
+    )
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert "Checklist operacional do admin-cliente" in corpo["texto"]
+    assert corpo["nome"] == "checklist-operacional.docx"
+    assert corpo["chars"] >= 20
+    assert corpo["truncado"] is False
 
 
 def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) -> None:

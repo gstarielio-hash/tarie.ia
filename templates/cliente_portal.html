@@ -316,6 +316,18 @@
                             <div id="chat-mensagens" class="msgs"></div>
 
                             <form id="form-chat-msg" class="stack" style="margin-top: 16px;">
+                                <div class="composer-toolbar">
+                                    <button id="btn-chat-upload-doc" class="btn" type="button">Importar PDF/DOCX</button>
+                                    <input
+                                        id="chat-upload-doc"
+                                        type="file"
+                                        accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
+                                        hidden
+                                        aria-hidden="true"
+                                        tabindex="-1"
+                                    >
+                                </div>
+                                <div id="chat-upload-status" class="composer-status" hidden></div>
                                 <label>
                                     Mensagem
                                     <textarea id="chat-mensagem" placeholder="Escreva a proxima orientacao, contexto ou pergunta da empresa."></textarea>

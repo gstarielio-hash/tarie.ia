@@ -338,6 +338,9 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'id="chat-capacidade-nota"' in portal_cliente
     assert 'id="btn-chat-laudo-criar"' in portal_cliente
     assert 'id="form-chat-msg"' in portal_cliente
+    assert 'id="btn-chat-upload-doc"' in portal_cliente
+    assert 'id="chat-upload-doc"' in portal_cliente
+    assert 'id="chat-upload-status"' in portal_cliente
     assert 'id="form-mesa-msg"' in portal_cliente
     assert 'id="usuarios-busca"' in portal_cliente
     assert 'id="chat-busca-laudos"' in portal_cliente
@@ -367,12 +370,15 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert "renderOnboardingEquipe" in portal_js
     assert "renderChatTriagem" in portal_js
     assert "renderChatMovimentos" in portal_js
+    assert "renderChatDocumentoPendente" in portal_js
+    assert "/cliente/api/chat/upload_doc" in portal_js
     assert "renderMesaTriagem" in portal_js
     assert "renderMesaMovimentos" in portal_js
     assert "filtrar-usuarios-status" in portal_js
     assert "filtrar-chat-status" in portal_js
     assert "filtrar-mesa-status" in portal_js
     assert "laudoChatParado" in portal_js
+    assert ".composer-toolbar" in portal_css
     assert "laudoMesaParado" in portal_js
     assert "Ver parados" in portal_js
     assert "Parado ha" in portal_js

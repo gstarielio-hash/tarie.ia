@@ -22,7 +22,7 @@ from app.domains.admin.services import (
     criar_usuario_empresa,
     resetar_senha_usuario_empresa,
 )
-from app.domains.chat.chat import obter_mensagens_laudo, rota_chat
+from app.domains.chat.chat import obter_mensagens_laudo, rota_chat, rota_upload_doc
 from app.domains.chat.laudo import (
     RESPOSTA_GATE_QUALIDADE_REPROVADO,
     RESPOSTA_LAUDO_NAO_ENCONTRADO,
@@ -1803,6 +1803,31 @@ async def api_chat_mensagens_cliente(
     return JSONResponse(payload)
 
 
+@roteador_cliente.post(
+    "/api/chat/upload_doc",
+    responses={
+        200: {"description": "Documento processado com sucesso."},
+        403: {"description": "Upload documental indisponível para a empresa."},
+        413: {"description": "Arquivo acima do limite."},
+        415: {"description": "Tipo de arquivo não suportado."},
+        422: {"description": "Não foi possível extrair texto do documento."},
+    },
+)
+async def api_chat_upload_doc_cliente(
+    request: Request,
+    arquivo: UploadFile = File(...),
+    usuario: Usuario = Depends(exigir_admin_cliente),
+    banco: Session = Depends(obter_banco),
+):
+    garantir_csrf_cliente(request)
+    return await rota_upload_doc(
+        request=request,
+        arquivo=arquivo,
+        usuario=usuario,
+        banco=banco,
+    )
+
+
 @roteador_cliente.post("/api/chat/mensagem")
 async def api_chat_enviar_cliente(
     dados: DadosChat,
@@ -1949,13 +1974,18 @@ async def api_mesa_completo_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    return await obter_laudo_completo(
+    resposta = await obter_laudo_completo(
         laudo_id=laudo_id,
         incluir_historico=incluir_historico,
         cursor=cursor,
         limite=limite,
         usuario=usuario,
         banco=banco,
+    )
+    payload = _payload_json_resposta(resposta)
+    return JSONResponse(
+        _rebase_urls_anexos_cliente(payload, laudo_id=laudo_id),
+        status_code=getattr(resposta, "status_code", 200),
     )
 
 
@@ -1969,7 +1999,7 @@ async def api_mesa_pacote_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    return await obter_pacote_mesa_laudo(
+    resposta = await obter_pacote_mesa_laudo(
         laudo_id=laudo_id,
         request=request,
         limite_whispers=limite_whispers,
@@ -1977,6 +2007,11 @@ async def api_mesa_pacote_cliente(
         limite_revisoes=limite_revisoes,
         usuario=usuario,
         banco=banco,
+    )
+    payload = _payload_json_resposta(resposta)
+    return JSONResponse(
+        _rebase_urls_anexos_cliente(payload, laudo_id=laudo_id),
+        status_code=getattr(resposta, "status_code", 200),
     )
 
 
