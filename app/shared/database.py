@@ -1377,30 +1377,46 @@ def _bootstrap_admin_inicial_producao() -> None:
     from app.shared.security import criar_hash_senha
 
     with SessaoLocal() as banco:
-        total_usuarios = int(banco.scalar(select(func.count()).select_from(Usuario)) or 0)
-        if total_usuarios > 0:
-            logger.info("Bootstrap inicial de produção ignorado: já existem usuários cadastrados.")
-            return
-
-        empresa = Empresa(
-            nome_fantasia=nome_empresa,
-            cnpj=cnpj_empresa,
-            plano_ativo=PlanoEmpresa.ILIMITADO.value,
-        )
-        banco.add(empresa)
-        banco.flush()
-
-        banco.add(
-            Usuario(
-                empresa_id=int(empresa.id),
-                nome_completo=nome_admin,
-                email=email_admin,
-                senha_hash=criar_hash_senha(senha_admin),
-                nivel_acesso=int(NivelAcesso.DIRETORIA),
-                ativo=True,
-                senha_temporaria_ativa=False,
+        empresa = banco.scalar(select(Empresa).where(Empresa.cnpj == cnpj_empresa))
+        if not empresa:
+            empresa = Empresa(
+                nome_fantasia=nome_empresa,
+                cnpj=cnpj_empresa,
+                plano_ativo=PlanoEmpresa.ILIMITADO.value,
             )
-        )
+            banco.add(empresa)
+            banco.flush()
+
+        usuario = banco.scalar(select(Usuario).where(Usuario.email == email_admin))
+        if usuario:
+            usuario.empresa_id = int(empresa.id)
+            usuario.nome_completo = nome_admin
+            usuario.senha_hash = criar_hash_senha(senha_admin)
+            usuario.nivel_acesso = int(NivelAcesso.DIRETORIA)
+            usuario.ativo = True
+            usuario.tentativas_login = 0
+            usuario.bloqueado_ate = None
+            usuario.status_bloqueio = False
+            usuario.senha_temporaria_ativa = False
+        else:
+            total_usuarios = int(banco.scalar(select(func.count()).select_from(Usuario)) or 0)
+            if total_usuarios > 0:
+                logger.info(
+                    "Bootstrap inicial de produção criando Admin-CEO %s mesmo com outros usuários já cadastrados.",
+                    email_admin,
+                )
+
+            banco.add(
+                Usuario(
+                    empresa_id=int(empresa.id),
+                    nome_completo=nome_admin,
+                    email=email_admin,
+                    senha_hash=criar_hash_senha(senha_admin),
+                    nivel_acesso=int(NivelAcesso.DIRETORIA),
+                    ativo=True,
+                    senha_temporaria_ativa=False,
+                )
+            )
         banco.commit()
         logger.info("Bootstrap inicial de produção concluído para %s.", email_admin)
 

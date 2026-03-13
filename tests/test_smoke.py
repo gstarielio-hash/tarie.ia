@@ -2,8 +2,12 @@ import json
 
 from fastapi.testclient import TestClient
 from pathlib import Path
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import app.shared.database as banco_dados
+import app.shared.security as seguranca
 import main
 
 
@@ -160,6 +164,54 @@ def test_database_url_render_usa_driver_psycopg() -> None:
     assert banco_dados._normalizar_url_banco("postgres://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
     assert banco_dados._normalizar_url_banco("postgresql://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
     assert banco_dados._normalizar_url_banco("postgresql+psycopg://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
+
+
+def test_bootstrap_admin_producao_garante_primeiro_acesso_mesmo_com_outros_usuarios(monkeypatch) -> None:
+    engine = create_engine(
+        "sqlite://",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    banco_dados.Base.metadata.create_all(engine)
+    sessao_teste = sessionmaker(bind=engine, autocommit=False, autoflush=False, expire_on_commit=False)
+
+    monkeypatch.setattr(banco_dados, "SessaoLocal", sessao_teste)
+    monkeypatch.setattr(banco_dados, "_EM_PRODUCAO", True)
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_EMAIL", "admin@tariel.ia")
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_PASSWORD", "Senha@123456")
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_NOME", "Gabriel")
+    monkeypatch.setenv("BOOTSTRAP_EMPRESA_NOME", "Tariel.ia")
+    monkeypatch.setenv("BOOTSTRAP_EMPRESA_CNPJ", "11111111111111")
+
+    with sessao_teste() as banco:
+        empresa = banco_dados.Empresa(
+            nome_fantasia="Cliente A",
+            cnpj="22222222222222",
+            plano_ativo=banco_dados.PlanoEmpresa.INICIAL.value,
+        )
+        banco.add(empresa)
+        banco.flush()
+        banco.add(
+            banco_dados.Usuario(
+                empresa_id=int(empresa.id),
+                nome_completo="Inspetor Existente",
+                email="inspetor@cliente.com",
+                senha_hash=seguranca.criar_hash_senha("OutraSenha@123"),
+                nivel_acesso=int(banco_dados.NivelAcesso.INSPETOR),
+            )
+        )
+        banco.commit()
+
+    banco_dados._bootstrap_admin_inicial_producao()
+
+    with sessao_teste() as banco:
+        admin = banco.query(banco_dados.Usuario).filter_by(email="admin@tariel.ia").one()
+        assert admin.nome_completo == "Gabriel"
+        assert admin.nivel_acesso == int(banco_dados.NivelAcesso.DIRETORIA)
+        assert admin.empresa.cnpj == "11111111111111"
+        assert admin.senha_temporaria_ativa is False
+        assert seguranca.verificar_senha("Senha@123456", admin.senha_hash) is True
 
 
 def test_openapi_do_inspetor_endurece_request_bodies_criticos() -> None:
