@@ -55,7 +55,6 @@ logger = logging.getLogger("tariel.banco_dados")
 _DIR_BASE = os.path.dirname(os.path.abspath(__file__))
 _DIR_PROJETO = Path(__file__).resolve().parents[2]
 _URL_PADRAO = f"sqlite:///{_DIR_PROJETO / 'tariel_admin.db'}"
-URL_BANCO = env_str("DATABASE_URL", _URL_PADRAO)
 _ALEMBIC_INI = _DIR_PROJETO / "alembic.ini"
 _ALEMBIC_DIR = _DIR_PROJETO / "alembic"
 
@@ -63,13 +62,30 @@ _settings = get_settings()
 _AMBIENTE = _settings.ambiente
 _SEED_DEV_BOOTSTRAP = env_bool("SEED_DEV_BOOTSTRAP", False)
 
-_EH_SQLITE = URL_BANCO.startswith("sqlite")
-_EH_SQLITE_MEMORIA = _EH_SQLITE and (URL_BANCO in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in URL_BANCO or "mode=memory" in URL_BANCO)
 _EM_PRODUCAO = _settings.em_producao
 
 
 def agora_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _normalizar_url_banco(valor: str) -> str:
+    texto = str(valor or "").strip()
+    if not texto:
+        return _URL_PADRAO
+
+    if texto.startswith("postgres://"):
+        return "postgresql+psycopg://" + texto.removeprefix("postgres://")
+
+    if texto.startswith("postgresql://") and not re.match(r"^postgresql\+[a-z0-9_]+://", texto):
+        return "postgresql+psycopg://" + texto.removeprefix("postgresql://")
+
+    return texto
+
+
+URL_BANCO = _normalizar_url_banco(env_str("DATABASE_URL", _URL_PADRAO))
+_EH_SQLITE = URL_BANCO.startswith("sqlite")
+_EH_SQLITE_MEMORIA = _EH_SQLITE and (URL_BANCO in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in URL_BANCO or "mode=memory" in URL_BANCO)
 
 
 def _normalizar_texto_chave(valor: Any) -> str:

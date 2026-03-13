@@ -3,6 +3,7 @@ import json
 from fastapi.testclient import TestClient
 from pathlib import Path
 
+import app.shared.database as banco_dados
 import main
 
 
@@ -153,6 +154,12 @@ def test_template_revisor_aponta_websocket_com_prefixo_revisao() -> None:
     assert 'id="btn-anexo-resposta"' in painel_revisor_html
     assert 'id="input-anexo-resposta"' in painel_revisor_html
     assert 'id="preview-resposta-anexo"' in painel_revisor_html
+
+
+def test_database_url_render_usa_driver_psycopg() -> None:
+    assert banco_dados._normalizar_url_banco("postgres://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
+    assert banco_dados._normalizar_url_banco("postgresql://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
+    assert banco_dados._normalizar_url_banco("postgresql+psycopg://user:pass@host:5432/app") == "postgresql+psycopg://user:pass@host:5432/app"
 
 
 def test_openapi_do_inspetor_endurece_request_bodies_criticos() -> None:
