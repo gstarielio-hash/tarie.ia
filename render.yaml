@@ -31,10 +31,6 @@ services:
         sync: false
       - key: GOOGLE_APPLICATION_CREDENTIALS
         sync: false
-      - key: ALLOWED_HOSTS
-        sync: false
-      - key: APP_HOST_PUBLICO
-        sync: false
       - key: SESSION_COOKIE_NAME
         value: cracha_tariel_seguro
       - key: SEED_DEV_BOOTSTRAP
