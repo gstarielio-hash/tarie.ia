@@ -1,5 +1,5 @@
 /* ==========================================
-   DASHBOARD ADMIN WF — TEMA GRAFITE CORPORATIVO
+   DASHBOARD ADMIN TARIEL.IA — TEMA GRAFITE CORPORATIVO
    Escopo: /admin/* — alinhado ao chat/mesa
    ========================================== */
 
@@ -168,6 +168,18 @@ body:has(.admin-layout) {
     gap: 12px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     flex-shrink: 0;
+}
+
+.admin-layout .logo-area--brand {
+    display: grid;
+    gap: 8px;
+    align-items: start;
+}
+
+.admin-layout .logo-area--brand img {
+    display: block;
+    width: min(180px, 100%);
+    height: auto;
 }
 
 .admin-layout .logo-area .material-symbols-rounded {

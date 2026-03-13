@@ -1,5 +1,5 @@
 """
-rotas_admin.py — Tariel Control Tower
+rotas_admin.py — Tariel.ia
 Rotas do portal Admin-CEO
 
 Responsabilidades:

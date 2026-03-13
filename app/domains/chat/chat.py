@@ -820,7 +820,7 @@ async def rota_pdf(
 ):
     exigir_csrf(request)
 
-    nome_arquivo = f"Laudo_WF_{uuid.uuid4().hex[:12]}.pdf"
+    nome_arquivo = f"Laudo_Tarielia_{uuid.uuid4().hex[:12]}.pdf"
     caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
 
     laudo_id_candidato = dados.laudo_id or laudo_id_sessao(request)
@@ -881,7 +881,7 @@ async def rota_pdf(
 
         return FileResponse(
             path=caminho_pdf,
-            filename="Laudo_ART_WF.pdf",
+            filename="Laudo_ART_Tarielia.pdf",
             media_type="application/pdf",
             background=BackgroundTask(safe_remove_file, caminho_pdf),
         )

@@ -1,5 +1,5 @@
 # ==========================================
-# TARIEL CONTROL TOWER — CLIENTE_IA.PY
+# TARIEL.IA — CLIENTE_IA.PY
 # Responsabilidade: Comunicação com Google Gemini,
 # Streaming, OCR, Saídas Estruturadas e Roteamento @insp
 # ==========================================
@@ -137,7 +137,7 @@ _RE_MENCAO_ENG = re.compile(r"^@eng\b", re.IGNORECASE)
 
 class ClienteIA:
     _INSTRUCAO_SISTEMA: str = """
-Você é a Tariel IA, Engenheira Especialista em Segurança e Diagnóstico Industrial da WF Soluções Industriais, sediada em Sertãozinho-SP.
+Você é a Tariel.ia, especialista em segurança, inspeção e diagnóstico técnico.
 
 Suas competências técnicas abrangem:
 - NR-10, NR-12, NR-13, NR-33, NR-35, SPDA, LOTO, AVCB, CMAR

@@ -1249,19 +1249,20 @@ def _seed_dev() -> None:
     from sqlalchemy import select
     from app.shared.security import criar_hash_senha
 
-    senha_admin = env_str("SEED_ADMIN_SENHA", "Admin@123")
-    senha_admin_cliente = env_str("SEED_CLIENTE_SENHA", "Dev@123456")
-    senha_inspetor = env_str("SEED_INSPETOR_SENHA", "Dev@123456")
-    senha_revisor = env_str("SEED_REVISOR_SENHA", "Dev@123456")
+    senha_padrao_seed = env_str("SEED_DEV_SENHA_PADRAO", "Dev@123456")
+    senha_admin = env_str("SEED_ADMIN_SENHA", senha_padrao_seed)
+    senha_admin_cliente = env_str("SEED_CLIENTE_SENHA", senha_padrao_seed)
+    senha_inspetor = env_str("SEED_INSPETOR_SENHA", senha_padrao_seed)
+    senha_revisor = env_str("SEED_REVISOR_SENHA", senha_padrao_seed)
 
-    if senha_admin == "Admin@123":
-        logger.warning("Seed DEV usando senha padrão para admin. Não use isso fora de desenvolvimento.")
+    if senha_padrao_seed == "Dev@123456":
+        logger.warning("Seed DEV usando senha padrão compartilhada. Não use isso fora de desenvolvimento.")
 
     with SessaoLocal() as banco:
         empresa = banco.scalar(select(Empresa).where(Empresa.cnpj == "00000000000000"))
         if not empresa:
             empresa = Empresa(
-                nome_fantasia="WF Engenharia (DEV)",
+                nome_fantasia="Empresa Demo (DEV)",
                 cnpj="00000000000000",
                 plano_ativo=PlanoEmpresa.ILIMITADO.value,
             )
@@ -1271,7 +1272,7 @@ def _seed_dev() -> None:
         empresa_admin = banco.scalar(select(Empresa).where(Empresa.cnpj == "99999999999999"))
         if not empresa_admin:
             empresa_admin = Empresa(
-                nome_fantasia="Tariel IA Interno (DEV)",
+                nome_fantasia="Tariel.ia Interno (DEV)",
                 cnpj="99999999999999",
                 plano_ativo=PlanoEmpresa.ILIMITADO.value,
             )
@@ -1281,28 +1282,28 @@ def _seed_dev() -> None:
         usuarios_seed = [
             (
                 empresa_admin.id,
-                "admin@wf.com.br",
+                "admin@tariel.ia",
                 "Diretoria Dev",
                 int(NivelAcesso.DIRETORIA),
                 senha_admin,
             ),
             (
                 empresa.id,
-                "admin-cliente@wf.com.br",
+                "admin-cliente@tariel.ia",
                 "Admin-Cliente Dev",
                 int(NivelAcesso.ADMIN_CLIENTE),
                 senha_admin_cliente,
             ),
             (
                 empresa.id,
-                "inspetor@wf.com.br",
+                "inspetor@tariel.ia",
                 "Inspetor Dev",
                 int(NivelAcesso.INSPETOR),
                 senha_inspetor,
             ),
             (
                 empresa.id,
-                "revisor@wf.com.br",
+                "revisor@tariel.ia",
                 "Engenheiro Revisor (Dev)",
                 int(NivelAcesso.REVISOR),
                 senha_revisor,
@@ -1315,6 +1316,10 @@ def _seed_dev() -> None:
                 usuario.empresa_id = empresa_destino_id
                 usuario.nome_completo = nome
                 usuario.nivel_acesso = nivel
+                usuario.senha_hash = criar_hash_senha(senha)
+                usuario.ativo = True
+                usuario.tentativas_login = 0
+                usuario.bloqueado_ate = None
                 continue
 
             banco.add(

@@ -16,7 +16,7 @@
 
     function log(nivel, ...args) {
         if (EM_PRODUCAO) return;
-        console[nivel]("[Painel WF]", ...args);
+        console[nivel]("[Painel Tariel]", ...args);
     }
 
     // FIX: instância encapsulada — sem vazamento para window
@@ -157,7 +157,7 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            // FIX: estilo consistente com o restante do painel WF
+                            // FIX: estilo consistente com o restante do painel administrativo
                             backgroundColor: "#0F2B46",
                             titleFont:  { family: "Inter", size: 12 },
                             bodyFont:   { family: "Inter", size: 14, weight: "bold" },

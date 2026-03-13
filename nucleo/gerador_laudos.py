@@ -1,5 +1,5 @@
 # ==========================================
-# TARIEL CONTROL TOWER — GERADOR_LAUDOS.PY
+# TARIEL.IA — GERADOR_LAUDOS.PY
 # Responsabilidade: Gerar PDF de laudo técnico,
 # suportar relatórios estruturados (JSON) e
 # persistir registro no banco.
@@ -71,12 +71,12 @@ _SUBSTITUICOES_UNICODE: dict[str, str] = {
 }
 
 # ==========================================
-# TEMPLATE DO DOCUMENTO WF
+# TEMPLATE DO DOCUMENTO TARIEL.IA
 # ==========================================
 
 
-class PDF_WF(FPDF):
-    """Template de PDF com cabeçalho e rodapé padrão WF."""
+class PDF_TARIEL(FPDF):
+    """Template de PDF com cabeçalho e rodapé padrão Tariel.ia."""
 
     def header(self) -> None:
         if self.page_no() > 1:
@@ -85,7 +85,7 @@ class PDF_WF(FPDF):
             self.cell(
                 0,
                 10,
-                "WF Engenharia - Continuacao do Laudo Tecnico",
+                "Tariel.ia - Continuacao do Laudo Tecnico",
                 new_x=XPos.LMARGIN,
                 new_y=YPos.NEXT,
                 align="R",
@@ -101,7 +101,7 @@ class PDF_WF(FPDF):
         self.cell(
             0,
             10,
-            f"Documento Tecnico | WF Engenharia | Pagina {self.page_no()} / {{nb}}",
+            f"Documento Tecnico | Tariel.ia | Pagina {self.page_no()} / {{nb}}",
             align="C",
         )
 
@@ -128,7 +128,7 @@ class PDF_MESA_PENDENCIAS(FPDF):
         self.cell(
             0,
             6,
-            "WF Engenharia | Mesa Avaliadora",
+            "Tariel.ia | Mesa Avaliadora",
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
             align="R",
@@ -158,7 +158,7 @@ class PDF_MESA_PACOTE(FPDF):
         self.cell(
             0,
             6,
-            "WF Engenharia | Mesa Avaliadora",
+            "Tariel.ia | Mesa Avaliadora",
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
             align="R",
@@ -242,7 +242,7 @@ class GeradorLaudos:
     # ── MÚSICO 1: PDF de Texto Corrido (Padrão) ──────────────────────────────
 
     @staticmethod
-    def _construir_pdf_texto(pdf: PDF_WF, dados: dict, citacoes: Optional[list]) -> None:
+    def _construir_pdf_texto(pdf: PDF_TARIEL, dados: dict, citacoes: Optional[list]) -> None:
         """Desenha o PDF tradicional baseado no texto livre da IA."""
         # Título do Parecer
         pdf.set_font("helvetica", "B", 12)
@@ -267,7 +267,7 @@ class GeradorLaudos:
     # ── MÚSICO 2: PDF Estruturado CBM-GO (Checklist) ─────────────────────────
 
     @staticmethod
-    def _construir_pdf_estruturado(pdf: PDF_WF, dados: dict) -> None:
+    def _construir_pdf_estruturado(pdf: PDF_TARIEL, dados: dict) -> None:
         """Desenha as tabelas do Bombeiro a partir do JSON gerado pela IA."""
         json_dados = dados["dados_formulario"]
 
@@ -524,10 +524,10 @@ class GeradorLaudos:
     ) -> str:
         caminho_seguro = cls._validar_caminho_saida(caminho_saida)
         dados_validados = cls._validar_dados_entrada(dados)
-        codigo_hash = f"WF-{uuid.uuid4().hex[:12].upper()}"
+        codigo_hash = f"TRL-{uuid.uuid4().hex[:12].upper()}"
 
         # ── 1. Inicializa o PDF e Cabeçalhos ──
-        pdf = PDF_WF()
+        pdf = PDF_TARIEL()
         pdf.alias_nb_pages()
         pdf.add_page()
         pdf.set_auto_page_break(auto=True, margin=20)
@@ -544,7 +544,7 @@ class GeradorLaudos:
         pdf.cell(
             0,
             5,
-            "Diagnostico Assistido por Inteligencia Artificial (Tariel IA)",
+            "Diagnostico Assistido por Inteligencia Artificial (Tariel.ia)",
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
             align="C",
@@ -611,13 +611,13 @@ class GeradorLaudos:
         abertas: int,
         resolvidas: int,
         pendencias: list[dict],
-        engenheiro_nome: str = "Mesa Avaliadora WF",
+        engenheiro_nome: str = "Mesa Avaliadora",
         engenheiro_cargo: str = "Engenheiro Revisor",
         engenheiro_crea: str = "Nao informado",
-        carimbo_texto: str = "CARIMBO DIGITAL WF",
+        carimbo_texto: str = "CARIMBO DIGITAL TARIEL.IA",
     ) -> str:
         caminho_seguro = cls._validar_caminho_saida(caminho_saida)
-        codigo_hash = f"WFM-{uuid.uuid4().hex[:12].upper()}"
+        codigo_hash = f"TRM-{uuid.uuid4().hex[:12].upper()}"
 
         pdf = PDF_MESA_PENDENCIAS()
         pdf.alias_nb_pages()
@@ -629,10 +629,10 @@ class GeradorLaudos:
         inspetor_seguro = cls._sanitizar_texto_para_pdf(str(inspetor or "N/A")[:_MAX_TEXTO_CAMPO_META])
         data_segura = cls._sanitizar_texto_para_pdf(str(data_geracao or "N/A")[:40])
         filtro_seguro = cls._sanitizar_texto_para_pdf(str(filtro or "abertas").upper()[:20])
-        assinatura_nome_seguro = cls._sanitizar_texto_para_pdf(str(engenheiro_nome or "Mesa Avaliadora WF")[:160])
+        assinatura_nome_seguro = cls._sanitizar_texto_para_pdf(str(engenheiro_nome or "Mesa Avaliadora")[:160])
         assinatura_cargo_seguro = cls._sanitizar_texto_para_pdf(str(engenheiro_cargo or "Engenheiro Revisor")[:120])
         assinatura_crea_seguro = cls._sanitizar_texto_para_pdf(str(engenheiro_crea or "Nao informado")[:80])
-        carimbo_seguro = cls._sanitizar_texto_para_pdf(str(carimbo_texto or "CARIMBO DIGITAL WF")[:120])
+        carimbo_seguro = cls._sanitizar_texto_para_pdf(str(carimbo_texto or "CARIMBO DIGITAL TARIEL.IA")[:120])
 
         pdf.set_font("helvetica", "B", 15)
         pdf.set_text_color(15, 43, 70)
@@ -774,13 +774,13 @@ class GeradorLaudos:
         pendencias_abertas: list[dict[str, Any]] | None,
         whispers_recentes: list[dict[str, Any]] | None,
         revisoes_recentes: list[dict[str, Any]] | None,
-        engenheiro_nome: str = "Mesa Avaliadora WF",
+        engenheiro_nome: str = "Mesa Avaliadora",
         engenheiro_cargo: str = "Engenheiro Revisor",
         engenheiro_crea: str = "Nao informado",
-        carimbo_texto: str = "CARIMBO DIGITAL WF",
+        carimbo_texto: str = "CARIMBO DIGITAL TARIEL.IA",
     ) -> str:
         caminho_seguro = cls._validar_caminho_saida(caminho_saida)
-        hash_seguro = cls._sanitizar_texto_para_pdf(str(codigo_hash or f"WFP-{uuid.uuid4().hex[:10].upper()}")[:40])
+        hash_seguro = cls._sanitizar_texto_para_pdf(str(codigo_hash or f"TRP-{uuid.uuid4().hex[:10].upper()}")[:40])
 
         resumo_mensagens = resumo_mensagens or {}
         resumo_evidencias = resumo_evidencias or {}

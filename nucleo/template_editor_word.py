@@ -64,7 +64,7 @@ def documento_editor_padrao() -> dict[str, Any]:
                 {
                     "type": "heading",
                     "attrs": {"level": 1},
-                    "content": [{"type": "text", "text": "Template Técnico WF"}],
+                    "content": [{"type": "text", "text": "Template Técnico Tariel.ia"}],
                 },
                 {
                     "type": "paragraph",
@@ -433,7 +433,7 @@ def montar_html_documento_editor(
     watermark_html = ""
     if watermark_texto:
         watermark_html = (
-            '<div class="wf-watermark">'
+            '<div class="tariel-watermark">'
             + watermark_texto
             + "</div>"
         )
@@ -460,13 +460,13 @@ def montar_html_documento_editor(
     body {{
       counter-reset: section;
     }}
-    .wf-doc {{
+    .tariel-doc {{
       position: relative;
       min-height: 100%;
       padding-top: 18mm;
       padding-bottom: 14mm;
     }}
-    .wf-header {{
+    .tariel-header {{
       position: fixed;
       top: 0;
       left: 0;
@@ -477,7 +477,7 @@ def montar_html_documento_editor(
       color: #444;
       padding: 2mm 4mm;
     }}
-    .wf-footer {{
+    .tariel-footer {{
       position: fixed;
       bottom: 0;
       left: 0;
@@ -488,33 +488,33 @@ def montar_html_documento_editor(
       color: #555;
       padding: 2mm 4mm;
     }}
-    .wf-body p {{
+    .tariel-body p {{
       margin: 0 0 10px;
     }}
-    .wf-body h1, .wf-body h2, .wf-body h3, .wf-body h4 {{
+    .tariel-body h1, .tariel-body h2, .tariel-body h3, .tariel-body h4 {{
       margin: 0 0 10px;
       line-height: 1.2;
     }}
-    .wf-body ul, .wf-body ol {{
+    .tariel-body ul, .tariel-body ol {{
       margin: 0 0 10px 22px;
     }}
-    .wf-body table {{
+    .tariel-body table {{
       width: 100%;
       border-collapse: collapse;
       margin: 0 0 10px;
       page-break-inside: avoid;
     }}
-    .wf-body td, .wf-body th {{
+    .tariel-body td, .tariel-body th {{
       border: 1px solid #9a9a9a;
       padding: 6px 7px;
       vertical-align: top;
     }}
-    .wf-body img {{
+    .tariel-body img {{
       max-width: 100%;
       height: auto;
       display: inline-block;
     }}
-    .wf-watermark {{
+    .tariel-watermark {{
       position: fixed;
       inset: 45% 0 auto 0;
       text-align: center;
@@ -527,18 +527,18 @@ def montar_html_documento_editor(
       font-weight: 700;
       user-select: none;
     }}
-    .wf-body {{
+    .tariel-body {{
       position: relative;
       z-index: 2;
     }}
   </style>
 </head>
 <body>
-  <div class="wf-header">{cabecalho}</div>
-  <div class="wf-footer">{rodape}</div>
+  <div class="tariel-header">{cabecalho}</div>
+  <div class="tariel-footer">{rodape}</div>
   {watermark_html}
-  <main class="wf-doc">
-    <section class="wf-body">{body_html}</section>
+  <main class="tariel-doc">
+    <section class="tariel-body">{body_html}</section>
   </main>
 </body>
 </html>
@@ -681,7 +681,7 @@ def gerar_pdf_base_placeholder_editor(
     pdf.multi_cell(
         0,
         6,
-        "Base inicial do editor rico Tariel WF. Este PDF sera substituido por snapshot na publicacao.",
+        "Base inicial do editor rico Tariel.ia. Este PDF sera substituido por snapshot na publicacao.",
     )
     raw = pdf.output()
     if isinstance(raw, bytes):

@@ -1,12 +1,12 @@
 """
-seguranca.py — Tariel Control Tower
-WF Engenharia · Hashing, sessões e dependências de autenticação FastAPI.
+seguranca.py — Tariel.ia
+Hashing, sessões e dependências de autenticação FastAPI.
 
 Arquitetura de sessão (dupla camada):
   Camada 1 — request.session (Starlette SessionMiddleware):
     Cookie HMAC-SHA256 assinado com CHAVE_SECRETA_APP (.env).
     Armazena: session_token, csrf_token.
-    FIX: substitui request.cookies.get("cracha_wf_seguro") — cookie bruto
+    FIX: substitui request.cookies.get("cracha_tariel_seguro") — cookie bruto
     nunca continha o valor decodificado, invalidando toda autenticação.
 
   Camada 2 — SESSOES_ATIVAS (whitelist server-side):
@@ -147,7 +147,7 @@ def limpar_sessoes_expiradas() -> int:
 def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
     """
     FIX: lê request.session["session_token"] (SessionMiddleware assinado)
-    em vez de request.cookies.get("cracha_wf_seguro") (cookie bruto não decodificado).
+    em vez de request.cookies.get("cracha_tariel_seguro") (cookie bruto não decodificado).
 
     Retorna Usuario autenticado ou None — sem levantar exceção.
     As dependências públicas decidem o comportamento (redirect vs HTTPException).

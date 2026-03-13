@@ -1,5 +1,5 @@
 // ==========================================
-// TARIEL CONTROL TOWER — APP_SHELL.JS
+// TARIEL.IA — APP_SHELL.JS
 // Shell global da aplicação.
 // Responsável por:
 // - ler config inicial do backend
@@ -24,7 +24,7 @@
     // =========================================================
 
     function lerConfigInicial() {
-        const cfgEl = document.getElementById("wf-boot");
+        const cfgEl = document.getElementById("tariel-boot");
 
         if (!cfgEl) return {};
 
@@ -36,7 +36,7 @@
     }
 
     function exporConfigGlobal(cfg) {
-        window.WF = Object.freeze({
+        window.TARIEL = Object.freeze({
             csrfToken: cfg.csrfToken ?? "",
             usuario: cfg.usuarioNome ?? "Usuário",
             empresa: cfg.empresaNome ?? "",
@@ -155,8 +155,8 @@
 
     function aplicarBloqueioPorLimiteDePlano() {
         if (
-            window.WF.laudosMesLimite === null ||
-            window.WF.laudosMesUsados < window.WF.laudosMesLimite
+            window.TARIEL.laudosMesLimite === null ||
+            window.TARIEL.laudosMesUsados < window.TARIEL.laudosMesLimite
         ) {
             return;
         }
@@ -175,7 +175,7 @@
     }
 
     function aplicarRestricaoUploadPorPlano() {
-        if (window.WF.planoUploadDoc) return;
+        if (window.TARIEL.planoUploadDoc) return;
 
         const inputAnexo = document.getElementById("input-anexo");
         const btnAnexo = document.getElementById("btn-anexo");
@@ -340,7 +340,7 @@
                     }
                 });
             } catch (_) {
-                console.warn("[WF] Service Worker indisponível — app continua funcionando.");
+                console.warn("[Tariel] Service Worker indisponível — app continua funcionando.");
             }
         });
 

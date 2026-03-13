@@ -75,9 +75,9 @@
 
     const PRESETS = {
         inspecao_geral: {
-            nome: "Template Inspeção Geral WF",
+            nome: "Template Inspeção Geral Tariel.ia",
             observacoes: "Modelo padrão para inspeções iniciais e periódicas.",
-            header: "WF Soluções Industriais • {{token:cliente_nome}}",
+            header: "Tariel.ia • {{token:cliente_nome}}",
             footer: "Documento técnico interno • Página {{token:pagina_atual}}",
             watermark: "RASCUNHO",
             doc: {
@@ -119,11 +119,11 @@
             },
         },
         nr12_maquinas: {
-            nome: "Template NR-12 Máquinas WF",
+            nome: "Template NR-12 Máquinas Tariel.ia",
             observacoes: "Modelo orientado para adequação NR-12 em máquinas e equipamentos.",
-            header: "WF NR-12 • {{token:cliente_nome}} • {{token:setor}}",
+            header: "Tariel.ia NR-12 • {{token:cliente_nome}} • {{token:setor}}",
             footer: "Conformidade NR-12 • Revisão {{token:revisao_template}}",
-            watermark: "WF NR12",
+            watermark: "TARIEL NR12",
             doc: {
                 type: "doc",
                 content: [
@@ -139,9 +139,9 @@
             },
         },
         rti_eletrica: {
-            nome: "Template RTI Elétrica WF",
+            nome: "Template RTI Elétrica Tariel.ia",
             observacoes: "Modelo para relatório técnico de instalações elétricas.",
-            header: "WF RTI Elétrica • {{token:cliente_nome}}",
+            header: "Tariel.ia RTI Elétrica • {{token:cliente_nome}}",
             footer: "Documento com ART • Uso interno",
             watermark: "ELETRICA",
             doc: {
@@ -159,9 +159,9 @@
             },
         },
         avcb_bombeiros: {
-            nome: "Template AVCB Bombeiros WF",
+            nome: "Template AVCB Bombeiros Tariel.ia",
             observacoes: "Modelo para projeto e conformidade AVCB.",
-            header: "WF AVCB • {{token:cliente_nome}}",
+            header: "Tariel.ia AVCB • {{token:cliente_nome}}",
             footer: "Conformidade contra incêndio • Revisão técnica",
             watermark: "AVCB",
             doc: {
@@ -334,7 +334,7 @@
         state.editor = new Editor({
             element: els.editorSurface,
             extensions: [starterKitMod.default.configure({ heading: { levels: [1, 2, 3] } }), underlineMod.default, AssetImage, tableMod.default.configure({ resizable: true }), tableRowMod.default, tableHeaderMod.default, tableCellMod.default, textAlignMod.default.configure({ types: ["heading", "paragraph"] }), PlaceholderNode],
-            content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Novo template técnico WF" }] }] },
+            content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Novo template técnico Tariel.ia" }] }] },
             onUpdate: () => { if (state.carregandoTemplate) return; updateToolbarState(); agendarAutosave(); },
             onSelectionUpdate: () => updateToolbarState(),
             onCreate: () => updateToolbarState(),
@@ -388,7 +388,7 @@
 
     const criarTemplateEditorA4 = async () => {
         await carregarDependenciasEditor();
-        const nome = String(els.editorNome?.value || "").trim() || "Novo Template Word WF";
+        const nome = String(els.editorNome?.value || "").trim() || "Novo Template Word Tariel.ia";
         const codigoDigitado = String(els.editorCodigo?.value || "").trim();
         const versao = Math.max(1, Math.floor(n(els.editorVersao?.value, 1)));
         const observacoes = String(els.editorObs?.value || "").trim();
@@ -429,7 +429,7 @@
         if (!preset) return;
 
         if (!state.templateId) {
-            if (els.editorNome) els.editorNome.value = String(preset.nome || "Novo Template Word WF");
+            if (els.editorNome) els.editorNome.value = String(preset.nome || "Novo Template Word Tariel.ia");
             if (els.editorObs) els.editorObs.value = String(preset.observacoes || "");
             if (els.editorCodigo) els.editorCodigo.value = "";
             await criarTemplateEditorA4();
@@ -610,7 +610,7 @@
         const queryNovo = query.get("novo") === "1";
 
         if (els.editorPreviewDados && !els.editorPreviewDados.value.trim()) els.editorPreviewDados.value = String(config.dadosPreviewExemploJson || "{}");
-        if (els.editorNome && !String(els.editorNome.value || "").trim()) els.editorNome.value = "Novo Template Word WF";
+        if (els.editorNome && !String(els.editorNome.value || "").trim()) els.editorNome.value = "Novo Template Word Tariel.ia";
         if (els.editorCodigo && !String(els.editorCodigo.value || "").trim()) els.editorCodigo.value = gerarCodigoPadrao();
 
         syncLayout();

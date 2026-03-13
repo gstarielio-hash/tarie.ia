@@ -234,12 +234,12 @@ def test_e2e_local_parallel_jornada_multipla(
     base_url = os.getenv("E2E_BASE_URL", "").strip().rstrip("/") or live_server_url.rstrip("/")
     rodadas = _env_int("STRESS_PARALLEL_ROUNDS", 14, 8, 40)
 
-    inspetor_a_email = os.getenv("STRESS_INSPETOR_EMAIL", "stress.inspetor@wf.local").strip()
-    inspetor_b_email = os.getenv("STRESS_INSPETOR2_EMAIL", "stress.inspetor2@wf.local").strip()
+    inspetor_a_email = os.getenv("STRESS_INSPETOR_EMAIL", "stress.inspetor@tariel.local").strip()
+    inspetor_b_email = os.getenv("STRESS_INSPETOR2_EMAIL", "stress.inspetor2@tariel.local").strip()
     inspetor_senha = os.getenv("STRESS_INSPETOR_SENHA", "Stress@123456").strip()
-    revisor_email = os.getenv("STRESS_REVISOR_EMAIL", "stress.revisor@wf.local").strip()
+    revisor_email = os.getenv("STRESS_REVISOR_EMAIL", "stress.revisor@tariel.local").strip()
     revisor_senha = os.getenv("STRESS_REVISOR_SENHA", "Stress@123456").strip()
-    admin_email = os.getenv("STRESS_ADMIN_EMAIL", "stress.admin@wf.local").strip()
+    admin_email = os.getenv("STRESS_ADMIN_EMAIL", "stress.admin@tariel.local").strip()
     admin_senha = os.getenv("STRESS_ADMIN_SENHA", "Stress@123456").strip()
 
     templates = ("padrao", "nr12maquinas", "nr13", "rti")
@@ -417,3 +417,4 @@ def test_e2e_local_parallel_jornada_multipla(
         ctx_b.close()
         ctx_revisor.close()
         ctx_admin.close()
+

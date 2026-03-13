@@ -1,6 +1,6 @@
 """
-main.py — Tariel Control Tower
-WF Engenharia · Aplicação SaaS de Inspeções Industriais
+main.py — Tariel.ia
+Plataforma SaaS de inspeções inteligentes
 
 Responsabilidades deste arquivo:
 - criar e configurar a aplicação FastAPI
@@ -139,7 +139,7 @@ LOG_LEVEL_DEV_TARIEL: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_TARIEL", 
 APP_HOST_PUBLICO: Final[str] = _normalizar_host(
     _obter_str_env(
         "APP_HOST_PUBLICO",
-        "wf.com.br" if EM_PRODUCAO else "127.0.0.1:8000",
+        "tariel.ia" if EM_PRODUCAO else "127.0.0.1:8000",
     )
 )
 
@@ -148,7 +148,7 @@ if _allowed_hosts_env:
     allowed_hosts_base = [_normalizar_host(item) for item in _allowed_hosts_env.split(",") if _normalizar_host(item)]
 else:
     if EM_PRODUCAO:
-        allowed_hosts_base = ["wf.com.br", "*.wf.com.br"]
+        allowed_hosts_base = ["tariel.ia", "*.tariel.ia"]
     else:
         # Em dev, permite acesso por IP local (ex.: celular via 192.168.x.x)
         # sem exigir ajuste manual de ALLOWED_HOSTS.
@@ -169,9 +169,9 @@ CHAVE_SECRETA = _obter_str_env("CHAVE_SECRETA_APP", "")
 NOME_COOKIE_SESSAO: Final[str] = (
     _obter_str_env(
         "SESSION_COOKIE_NAME",
-        "cracha_wf_seguro",
+        "cracha_tariel_seguro",
     )
-    or "cracha_wf_seguro"
+    or "cracha_tariel_seguro"
 )
 MAX_AGE_SESSAO: Final[int] = max(_obter_int_env("SESSION_MAX_AGE", 2592000), 300)
 
@@ -180,7 +180,7 @@ if not CHAVE_SECRETA:
         sys.stderr.write("[CRITICAL] CHAVE_SECRETA_APP não definida. Impossível iniciar em produção.\n")
         sys.exit(1)
 
-    CHAVE_SECRETA = "dev-chave-fixa-tariel-wf-2026-nao-usar-em-producao"
+    CHAVE_SECRETA = "dev-chave-fixa-tariel-2026-nao-usar-em-producao"
 
 if EM_PRODUCAO and len(CHAVE_SECRETA) < 32:
     sys.stderr.write("[CRITICAL] CHAVE_SECRETA_APP muito curta. Use ao menos 32 caracteres em produção.\n")
@@ -857,7 +857,7 @@ class MiddlewareHeadersSeguranca(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(
-        "Iniciando Tariel Control Tower",
+        "Iniciando Tariel.ia",
         extra={
             "ambiente": AMBIENTE,
             "versao": APP_VERSAO,
@@ -881,7 +881,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    logger.info("Encerrando Tariel Control Tower")
+    logger.info("Encerrando Tariel.ia")
 
 
 # =============================================================================
@@ -891,7 +891,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Tariel Control Tower",
+        title="Tariel.ia",
         version=APP_VERSAO,
         docs_url=None if EM_PRODUCAO else "/docs",
         redoc_url=None if EM_PRODUCAO else "/redoc",
@@ -1082,7 +1082,7 @@ def create_app() -> FastAPI:
 
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
-        for nome in ("img/favicon.ico", "img/logo_wf.png"):
+        for nome in ("img/favicon.ico", "img/favicon-32x32.png", "img/android-chrome-192x192.png"):
             caminho = DIR_STATIC / nome
             if caminho.is_file():
                 return FileResponse(

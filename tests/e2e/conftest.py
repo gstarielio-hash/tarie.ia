@@ -122,19 +122,19 @@ def live_server_url(tmp_path_factory: pytest.TempPathFactory) -> str:
 def credenciais_seed() -> dict[str, dict[str, str]]:
     return {
         "inspetor": {
-            "email": "inspetor@wf.com.br",
+            "email": "inspetor@tariel.ia",
             "senha": "Dev@123456",
         },
         "revisor": {
-            "email": "revisor@wf.com.br",
+            "email": "revisor@tariel.ia",
             "senha": "Dev@123456",
         },
         "admin_cliente": {
-            "email": "admin-cliente@wf.com.br",
+            "email": "admin-cliente@tariel.ia",
             "senha": "Dev@123456",
         },
         "admin": {
-            "email": "admin@wf.com.br",
-            "senha": "Admin@123",
+            "email": "admin@tariel.ia",
+            "senha": "Dev@123456",
         },
     }

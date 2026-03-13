@@ -8,7 +8,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
 
-    <title>Portal do Inspetor • Tariel Control</title>
+    <title>Portal do Inspetor • tariel.ia</title>
 
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,6 +77,18 @@
         .cabecalho-login {
             margin-bottom: 28px;
             text-align: center;
+        }
+
+        .brand-login {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .brand-login img {
+            display: block;
+            width: min(220px, 100%);
+            height: auto;
         }
 
         .cabecalho-login h1 {
@@ -265,6 +277,10 @@
                 border: none;
                 border-radius: 0;
             }
+
+            .brand-login img {
+                width: min(196px, 100%);
+            }
         }
     </style>
 </head>
@@ -272,9 +288,12 @@
 <body>
     <main class="box-login" aria-label="Portal do inspetor">
         <header class="cabecalho-login">
+            <div class="brand-login" aria-hidden="true">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+            </div>
             <h1>
                 <span class="material-symbols-rounded" aria-hidden="true">engineering</span>
-                Tariel IA
+                tariel.ia
             </h1>
             <p>Portal do Inspetor de Campo</p>
         </header>
@@ -295,7 +314,7 @@
                     <span class="material-symbols-rounded campo-icone" aria-hidden="true">mail</span>
                     <input type="email" id="email" name="email" class="form-control" required autocomplete="username"
                         autocapitalize="off" spellcheck="false" inputmode="email" placeholder="nome@empresa.com.br" {%
-                        if not em_producao %}value="inspetor@wf.com.br" {% endif %} autocomplete="username">
+                        if not em_producao %}value="inspetor@tariel.ia" {% endif %} autocomplete="username">
                 </div>
             </div>
 

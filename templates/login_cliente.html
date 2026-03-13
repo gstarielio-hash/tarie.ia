@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
-    <title>Portal Admin-Cliente • Tariel Control</title>
+    <title>Portal Admin-Cliente • tariel.ia</title>
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +15,9 @@
 <body class="auth-shell">
     <main class="auth-layout auth-layout--split">
         <section class="auth-hero">
+            <div class="auth-brand" aria-hidden="true">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+            </div>
             <span class="auth-eyebrow">Portal Admin-Cliente</span>
             <h1 class="auth-title">Gerencie a sua empresa com o mesmo login do dia a dia.</h1>
             <p class="auth-description">
@@ -50,12 +53,12 @@
 
                 <label>
                     E-mail
-                    <input type="email" name="email" autocomplete="username" placeholder="voce@empresa.com.br" required>
+                    <input type="email" name="email" autocomplete="username" placeholder="voce@empresa.com.br" {% if not em_producao %}value="admin-cliente@tariel.ia"{% endif %} required>
                 </label>
 
                 <label>
                     Senha
-                    <input type="password" name="senha" autocomplete="current-password" placeholder="Sua senha de acesso" required>
+                    <input type="password" name="senha" autocomplete="current-password" placeholder="Sua senha de acesso" {% if not em_producao %}value="Dev@123456"{% endif %} required>
                 </label>
 
                 <label class="auth-checkbox">

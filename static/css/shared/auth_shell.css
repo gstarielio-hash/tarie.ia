@@ -68,6 +68,22 @@ body.auth-shell {
         linear-gradient(180deg, rgba(19, 27, 37, 0.98), rgba(10, 17, 24, 0.98));
 }
 
+.auth-brand {
+    display: inline-flex;
+    align-items: center;
+    width: min(232px, 100%);
+}
+
+.auth-brand img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.auth-brand--compact {
+    width: min(196px, 100%);
+}
+
 .auth-card {
     display: grid;
     align-content: start;
@@ -286,6 +302,14 @@ body.auth-shell {
 
     .auth-title {
         font-size: 1.9rem;
+    }
+
+    .auth-brand {
+        width: min(210px, 100%);
+    }
+
+    .auth-brand--compact {
+        width: min(186px, 100%);
     }
 
     .auth-actions,

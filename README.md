@@ -1,12 +1,12 @@
-# Tariel Control
+# Tariel.ia
 
 Aplicação SaaS de inspeções industriais com backend FastAPI, SQLAlchemy, templates Jinja2 e assets estáticos.
 
-## Roadmap do produto WF
+## Roadmap do produto
 
 Backlog mestre da etapa antiga (priorizado e com status):
 
-- `ROADMAP_WF_BACKLOG.md`
+- `ROADMAP_BACKLOG.md`
 
 ## Stack detectada
 
@@ -118,9 +118,10 @@ Os testes E2E estão em `tests/e2e` e sobem a aplicação automaticamente em uma
 
 Usuários seed usados nos E2E:
 
-- `inspetor@wf.com.br` / `Dev@123456`
-- `revisor@wf.com.br` / `Dev@123456`
-- `admin@wf.com.br` / `Admin@123`
+- `admin@tariel.ia` / `Dev@123456`
+- `admin-cliente@tariel.ia` / `Dev@123456`
+- `inspetor@tariel.ia` / `Dev@123456`
+- `revisor@tariel.ia` / `Dev@123456`
 
 Executar:
 

@@ -281,7 +281,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: block;
     margin-bottom: 10px;
     font-size: 56px;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
     filter: drop-shadow(0 0 14px rgba(244, 123, 32, 0.35));
 }
 
@@ -463,10 +463,10 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .acao-padrao .icone-acao {
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
-.estatisticas-wf {
+.estatisticas-tariel {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -492,7 +492,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .stat-valor {
     font-size: 22px;
     font-weight: 700;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
 .stat-label {
@@ -708,7 +708,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .chip-documento .material-symbols-rounded {
     flex-shrink: 0;
     font-size: 14px !important;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
 .chip-documento span:last-child {
@@ -866,7 +866,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .texto-msg h3 {
     font-size: 13.5px;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
 .texto-msg ul,
@@ -881,7 +881,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .texto-msg strong,
 .texto-msg b {
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
     font-weight: 600;
 }
 
@@ -918,7 +918,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .texto-msg blockquote {
     margin: 12px 0;
     padding: 8px 14px;
-    border-left: 3px solid var(--accent-wf, #F47B20);
+    border-left: 3px solid var(--accent-tariel, #F47B20);
     border-radius: 0 6px 6px 0;
     background: rgba(244, 123, 32, 0.05);
     color: var(--text-secondary, #c6d5e3);
@@ -926,7 +926,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 }
 
 .texto-msg a {
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
     text-decoration: underline;
 }
 
@@ -956,7 +956,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     padding: 8px 12px;
     text-align: left;
     font-weight: 600;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
     background: rgba(244, 123, 32, 0.1);
     border-bottom: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
 }
@@ -1335,7 +1335,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .chip-doc-icone {
     flex-shrink: 0;
     font-size: 15px !important;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
 .chip-doc-nome {
@@ -1395,9 +1395,9 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .box-arraste {
     padding: 48px 72px;
     text-align: center;
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
     background: rgba(244, 123, 32, 0.06);
-    border: 2px dashed var(--accent-wf, #F47B20);
+    border: 2px dashed var(--accent-tariel, #F47B20);
     border-radius: 20px;
     pointer-events: none;
     animation: pulsar-borda 2s ease-in-out infinite;
@@ -1509,7 +1509,7 @@ body.sidebar-colapsada .pilula-entrada {
 .pilula-entrada:focus-within {
     border-color: rgba(244, 123, 32, 0.70);
     box-shadow:
-        var(--ring-wf, 0 0 0 3px rgba(244, 123, 32, 0.16)),
+        var(--ring-tariel, 0 0 0 3px rgba(244, 123, 32, 0.16)),
         0 16px 40px rgba(0, 0, 0, 0.3);
     background:
         radial-gradient(circle at top center, rgba(244, 123, 32, 0.12), transparent 38%),
@@ -1718,7 +1718,7 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .dica-composer strong {
-    color: var(--accent-wf, #F47B20);
+    color: var(--accent-tariel, #F47B20);
 }
 
 .btn-ir-fim-chat {
@@ -2050,7 +2050,7 @@ body.pagina-chat-mesa .btn-ir-fim-chat {
     margin-left: 4px;
     vertical-align: middle;
     border-radius: 1px;
-    background-color: var(--accent-wf, #F47B20);
+    background-color: var(--accent-tariel, #F47B20);
     animation: piscar-cursor 1s step-end infinite;
 }
 
@@ -2224,7 +2224,7 @@ body.pagina-chat-mesa .btn-ir-fim-chat {
     margin: 8px 0 10px;
     padding: 8px 10px;
     border: 1px solid rgba(244, 123, 32, 0.45);
-    border-left: 3px solid var(--accent-wf, #F47B20);
+    border-left: 3px solid var(--accent-tariel, #F47B20);
     border-radius: 10px;
     background: rgba(244, 123, 32, 0.08);
     color: #ffd9bd;
@@ -2365,7 +2365,7 @@ body.modo-foco .tela-boas-vindas {
         padding: 14px 12px;
     }
 
-    .estatisticas-wf {
+    .estatisticas-tariel {
         margin-top: 16px;
         padding: 12px 16px;
     }
@@ -2421,7 +2421,7 @@ body.modo-foco .tela-boas-vindas {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .estatisticas-wf {
+    .estatisticas-tariel {
         flex-direction: column;
         gap: 14px;
     }
@@ -2595,3 +2595,5 @@ body.modo-foco .tela-boas-vindas {
         color: #666666;
     }
 }
+
+

@@ -254,7 +254,7 @@ def _disparar_email_boas_vindas(email: str, empresa: str, senha: str) -> None:
         empresa, email,
     )
     # TODO: implementar envio real. Exemplo com SendGrid:
-    # sendgrid_client.send(to=email, subject="Bem-vindo à WF", body=f"Senha: {senha}")
+    # sendgrid_client.send(to=email, subject="Bem-vindo à Tariel.ia", body=f"Senha: {senha}")
     raise NotImplementedError(
         "Serviço de e-mail não configurado. "
         "Implemente _disparar_email_boas_vindas com SendGrid/SES/SMTP."

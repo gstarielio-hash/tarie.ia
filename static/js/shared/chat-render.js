@@ -337,7 +337,7 @@
 
             const nomeRemetente = document.createElement("span");
             nomeRemetente.className = "nome-remetente";
-            nomeRemetente.textContent = `Tariel IA • ${textoSeguro(getNomeEmpresa?.() || "Empresa")}`;
+            nomeRemetente.textContent = `Tariel.ia • ${textoSeguro(getNomeEmpresa?.() || "Empresa")}`;
 
             const textoMsg = document.createElement("div");
             textoMsg.className = "texto-msg";

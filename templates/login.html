@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#171A20">
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
-    <title>Portal Admin-CEO • Tariel Control</title>
+    <title>Portal Admin-CEO • tariel.ia</title>
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,14 +52,15 @@
             margin-bottom: 30px;
         }
 
-        .logo-area .icone {
-            font-size: 48px;
-            color: #F47B20;
+        .logo-area img {
+            display: block;
+            width: min(220px, 100%);
+            height: auto;
+            margin: 0 auto 14px;
         }
 
         .logo-area h1 {
-            font-size: 24px;
-            margin-top: 10px;
+            font-size: 22px;
             font-weight: 600;
         }
 
@@ -284,6 +285,17 @@
             background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(4px);
         }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 24px;
+            }
+
+            .logo-area img {
+                width: min(196px, 100%);
+                margin-bottom: 12px;
+            }
+        }
     </style>
 </head>
 
@@ -291,8 +303,8 @@
     <div class="login-container" role="main" aria-label="Formulário de acesso">
 
         <div class="logo-area">
-            <span class="material-symbols-rounded icone" aria-hidden="true">shield_person</span>
-            <h1>Acesso Restrito</h1>
+            <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+            <h1>Portal Admin-CEO</h1>
             <p>Portal Admin-CEO</p>
         </div>
 
@@ -315,7 +327,7 @@
 
             <div class="input-group">
                 <label for="email">E-mail Corporativo</label>
-                <input type="email" id="email" name="email" required placeholder="diretoria@wf.com.br"
+                <input type="email" id="email" name="email" required placeholder="ceo@tariel.ia"
                     autocomplete="email" inputmode="email" spellcheck="false" autocapitalize="none"
                     aria-describedby="msg-email" autocomplete="username">
                 <span class="msg-campo" id="msg-email" aria-live="polite"></span>
@@ -342,7 +354,7 @@
 
         <p class="rodape-login">
             Acesso restrito a membros da<br>
-            <strong>Admin-CEO da Tariel Control</strong>
+            <strong>Admin-CEO da Tariel.ia</strong>
         </p>
     </div>
 
@@ -352,8 +364,8 @@
 
             // ── Autofill APENAS em localhost (dev) ─────────────────────────────────────
             if (["localhost", "127.0.0.1"].includes(location.hostname)) {
-                document.getElementById("email").value = "admin@wf.com.br";
-                document.getElementById("senha").value = "Admin@2026";
+                document.getElementById("email").value = "admin@tariel.ia";
+                document.getElementById("senha").value = "Dev@123456";
                 document.getElementById("badge-dev").style.display = "block";
             }
 
@@ -427,7 +439,7 @@
             // ── Rate limiting visual (3 tentativas → bloqueio 30s) ────────────────────
             const LIMITE_TENTATIVAS = 3;
             const BLOQUEIO_MS = 30_000;
-            const CHAVE_LS = "wf_login_tentativas";
+            const CHAVE_LS = "tariel_login_tentativas";
 
             function carregarEstado() {
                 try { return JSON.parse(localStorage.getItem(CHAVE_LS)) || { count: 0, desde: 0 }; }
@@ -522,3 +534,4 @@
 </body>
 
 </html>
+

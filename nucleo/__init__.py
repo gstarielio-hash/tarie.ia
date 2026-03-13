@@ -1,1 +1,1 @@
-"""Pacote de núcleo de serviços Tariel Control."""
+"""Pacote de núcleo de serviços Tariel.ia."""

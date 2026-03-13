@@ -66,8 +66,8 @@
     const listaHistorico = document.getElementById("lista-historico");
     const btnIrFimChat = document.getElementById("btn-ir-fim-chat");
 
-    const NOME_USUARIO = String(window.WF?.usuario || "Inspetor WF");
-    const NOME_EMPRESA = String(window.WF?.empresa || "WF Soluções");
+    const NOME_USUARIO = String(window.TARIEL?.usuario || "Inspetor");
+    const NOME_EMPRESA = String(window.TARIEL?.empresa || "Sua empresa");
 
     if (!campoMensagem || !btnEnviar || !areaMensagens) {
         log("error", "Elementos DOM críticos não encontrados. API.js não inicializado.");
@@ -113,8 +113,7 @@
     function obterModoAtualSeguro() {
         return (
             window.TarielUI?.obterModo?.()
-            ?? localStorage.getItem("wfmodoresposta")
-            ?? localStorage.getItem("wf_modo_resposta")
+            ?? localStorage.getItem("tariel_modo_resposta")
             ?? "detalhado"
         );
     }
@@ -268,7 +267,7 @@
     let iaRespondendo = false;
     let contadorArraste = 0;
     let controllerStream = null;
-    let laudoAtualId = normalizarNumero(window.WF?.laudoAtivoId ?? null);
+    let laudoAtualId = normalizarNumero(window.TARIEL?.laudoAtivoId ?? null);
     let historicoConversa = [];
     let historicoLaudoPaginado = [];
     let cursorHistoricoProximo = null;
@@ -288,7 +287,7 @@
     // ESTADO DO RELATÓRIO
     // =========================================================================
 
-    let _estadoRelatorio = normalizarEstadoRelatorio(window.WF?.estadoRelatorio ?? "sem_relatorio");
+    let _estadoRelatorio = normalizarEstadoRelatorio(window.TARIEL?.estadoRelatorio ?? "sem_relatorio");
     if (!_estadoRelatorio) {
         _estadoRelatorio = "sem_relatorio";
     }

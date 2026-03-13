@@ -10,7 +10,7 @@ banco = SessaoLocal()
 
 try:
     empresa = Empresa(
-        nome_fantasia="WF Engenharia",
+        nome_fantasia="Tariel.ia Demo",
         cnpj="00.000.000/0001-00",
         plano_ativo=PlanoEmpresa.ILIMITADO.value,
     )
@@ -19,8 +19,8 @@ try:
 
     admin = Usuario(
         empresa_id=empresa.id,
-        nome_completo="Administrador WF",
-        email="admin@wf.com.br",
+        nome_completo="Administrador Tariel.ia",
+        email="admin@tariel.ia",
         senha_hash=criar_hash_senha("Admin@2026"),  # ← corrigido
         nivel_acesso=int(NivelAcesso.DIRETORIA),
         ativo=True,

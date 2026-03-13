@@ -1,5 +1,5 @@
 /* ==========================================
-   GLOBAL - PADRÃO EMPRESA WF (B2B Industrial)
+   GLOBAL - PADRÃO TARIEL.IA (B2B Tech)
    Base visual única do sistema
    ========================================== */
 
@@ -48,7 +48,7 @@
     --text-on-accent: #FFFFFF;
 
     /* ── Acento ─────────────────────────────── */
-    --accent-wf: var(--cor-secundaria);
+    --accent-tariel: var(--cor-secundaria);
     --accent-hover: #D86815;
     --accent-active: #BE5F11;
     --accent-soft: #F1BA8F;
@@ -123,7 +123,7 @@
 
     /* ── Focus / A11y ───────────────────────── */
     --focus-ring: 0 0 0 3px rgba(214, 122, 50, 0.24);
-    --ring-wf: 0 0 0 3px rgba(214, 122, 50, 0.18);
+    --ring-tariel: 0 0 0 3px rgba(214, 122, 50, 0.18);
 
     /* ── Badges ─────────────────────────────── */
     --badge-conforme: #4CAF50;
@@ -331,7 +331,7 @@ b {
    ========================================== */
 
 :focus-visible {
-    outline: 2px solid var(--accent-wf);
+    outline: 2px solid var(--accent-tariel);
     outline-offset: 2px;
 }
 
@@ -592,7 +592,7 @@ body *::-webkit-scrollbar-thumb:hover {
 }
 
 .is-accent {
-    color: var(--accent-wf) !important;
+    color: var(--accent-tariel) !important;
 }
 
 .is-danger {
@@ -660,3 +660,5 @@ body *::-webkit-scrollbar-thumb:hover {
         scroll-behavior: auto !important;
     }
 }
+
+

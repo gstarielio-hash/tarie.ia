@@ -496,7 +496,7 @@
 
     function limparEstadoHomeNoCliente() {
         try {
-            localStorage.removeItem("wf_laudo_atual");
+            localStorage.removeItem("tariel_laudo_atual");
         } catch (_) {
             // silêncio intencional
         }
@@ -539,7 +539,7 @@
 
     function marcarForcaTelaInicial() {
         try {
-            sessionStorage.setItem("wf_force_home_landing", "1");
+            sessionStorage.setItem("tariel_force_home_landing", "1");
         } catch (_) {
             // silêncio intencional
         }
@@ -1307,7 +1307,7 @@
             return "";
         }
 
-        const linhas = ["Contexto inicial da inspeção WF:"];
+        const linhas = ["Contexto inicial da inspeção:"];
 
         if (empresa) linhas.push(`- Empresa/Planta: ${empresa}`);
         if (setor) linhas.push(`- Setor/Linha: ${setor}`);
@@ -3079,3 +3079,4 @@
         boot();
     }
 })();
+

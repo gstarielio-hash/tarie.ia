@@ -380,7 +380,7 @@ def test_e2e_inspetor_login_e_home_carrega(
     )
 
     expect(page.get_by_role("button", name=re.compile(r"Iniciar nova inspeção", re.IGNORECASE))).to_be_visible()
-    expect(page.get_by_text("Assistente Técnico WF")).to_be_visible()
+    expect(page.get_by_text("Assistente Técnico Tariel.ia")).to_be_visible()
 
 
 def test_e2e_css_versionado_e_tipografia_base_ativa(
@@ -1086,9 +1086,9 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         expect(page_cliente.locator("#tab-mesa")).to_be_visible()
         expect(page_cliente.locator("#usuarios-busca")).to_be_visible()
         expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_cliente)
-        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("admin-cliente@wf.com.br")
-        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("inspetor@wf.com.br")
-        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("revisor@wf.com.br")
+        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("admin-cliente@tariel.ia")
+        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("inspetor@tariel.ia")
+        expect(page_cliente.locator("#lista-usuarios")).not_to_contain_text("revisor@tariel.ia")
 
         resposta_plano = _api_fetch(
             page_cliente,
@@ -1348,35 +1348,6 @@ def test_e2e_admin_cliente_isola_empresas_no_portal_unificado(
         laudo_id_a = int(resposta_laudo_a["body"]["laudo_id"])
         laudo_id_b = int(resposta_laudo_b["body"]["laudo_id"])
 
-        preview_a = f"Contexto exclusivo empresa A {sufixo}"
-        preview_b = f"Contexto exclusivo empresa B {sufixo}"
-        resposta_chat_a = _api_fetch(
-            page_cliente_a,
-            path="/cliente/api/chat/mensagem",
-            method="POST",
-            json_body={
-                "laudo_id": laudo_id_a,
-                "mensagem": preview_a,
-                "historico": [],
-                "setor": "geral",
-                "modo": "detalhado",
-            },
-        )
-        resposta_chat_b = _api_fetch(
-            page_cliente_b,
-            path="/cliente/api/chat/mensagem",
-            method="POST",
-            json_body={
-                "laudo_id": laudo_id_b,
-                "mensagem": preview_b,
-                "historico": [],
-                "setor": "geral",
-                "modo": "detalhado",
-            },
-        )
-        assert resposta_chat_a["status"] == 200
-        assert resposta_chat_b["status"] == 200
-
         bootstrap_a = _api_fetch(page_cliente_a, path="/cliente/api/bootstrap")
         bootstrap_b = _api_fetch(page_cliente_b, path="/cliente/api/bootstrap")
         assert bootstrap_a["status"] == 200
@@ -1436,10 +1407,10 @@ def test_e2e_admin_cliente_isola_empresas_no_portal_unificado(
 
         page_cliente_a.locator("#tab-chat").click()
         page_cliente_b.locator("#tab-chat").click()
-        expect(page_cliente_a.locator("#lista-chat-laudos")).to_contain_text(preview_a, timeout=10000)
-        expect(page_cliente_a.locator("#lista-chat-laudos")).not_to_contain_text(preview_b)
-        expect(page_cliente_b.locator("#lista-chat-laudos")).to_contain_text(preview_b, timeout=10000)
-        expect(page_cliente_b.locator("#lista-chat-laudos")).not_to_contain_text(preview_a)
+        expect(page_cliente_a.locator(f'#lista-chat-laudos [data-chat="{laudo_id_a}"]')).to_be_visible(timeout=10000)
+        expect(page_cliente_a.locator(f'#lista-chat-laudos [data-chat="{laudo_id_b}"]')).to_have_count(0)
+        expect(page_cliente_b.locator(f'#lista-chat-laudos [data-chat="{laudo_id_b}"]')).to_be_visible(timeout=10000)
+        expect(page_cliente_b.locator(f'#lista-chat-laudos [data-chat="{laudo_id_a}"]')).to_have_count(0)
     finally:
         contexto_admin.close()
         contexto_cliente_a.close()

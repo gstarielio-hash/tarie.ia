@@ -11,10 +11,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.shared.database import MensagemLaudo, NivelAcesso, StatusRevisao, TipoMensagem, Usuario
 
-ASSINATURA_MESA_NOME_PADRAO = os.getenv("MESA_ENG_NOME_PADRAO", "Mesa Avaliadora WF").strip()
+ASSINATURA_MESA_NOME_PADRAO = os.getenv("MESA_ENG_NOME_PADRAO", "Mesa Avaliadora").strip()
 ASSINATURA_MESA_CARGO_PADRAO = os.getenv("MESA_ENG_CARGO_PADRAO", "Engenheiro Revisor").strip()
 ASSINATURA_MESA_CREA_PADRAO = os.getenv("MESA_ENG_CREA_PADRAO", "").strip()
-ASSINATURA_MESA_CARIMBO_PADRAO = os.getenv("MESA_ENG_CARIMBO_PADRAO", "CARIMBO DIGITAL WF").strip()
+ASSINATURA_MESA_CARIMBO_PADRAO = os.getenv("MESA_ENG_CARIMBO_PADRAO", "CARIMBO DIGITAL TARIEL.IA").strip()
 
 MAPA_FILTRO_PENDENCIAS_LABEL = {
     "abertas": "Abertas",
@@ -128,10 +128,10 @@ def obter_assinatura_mesa_para_pdf(
     laudo_id: int,
     empresa_id: int,
 ) -> dict[str, str]:
-    nome_padrao = ASSINATURA_MESA_NOME_PADRAO or "Mesa Avaliadora WF"
+    nome_padrao = ASSINATURA_MESA_NOME_PADRAO or "Mesa Avaliadora"
     cargo_padrao = ASSINATURA_MESA_CARGO_PADRAO or "Engenheiro Revisor"
     crea_padrao = ASSINATURA_MESA_CREA_PADRAO or "Nao informado"
-    carimbo_padrao = ASSINATURA_MESA_CARIMBO_PADRAO or "CARIMBO DIGITAL WF"
+    carimbo_padrao = ASSINATURA_MESA_CARIMBO_PADRAO or "CARIMBO DIGITAL TARIEL.IA"
 
     revisor_remetente = (
         banco.query(Usuario)

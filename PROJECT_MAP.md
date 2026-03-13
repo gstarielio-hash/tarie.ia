@@ -1,6 +1,6 @@
 # Project Map
 
-Mapa curto para navegar no Tariel Control sem gastar contexto a toa.
+Mapa curto para navegar no Tariel.ia sem gastar contexto a toa.
 
 ## Entradas principais
 

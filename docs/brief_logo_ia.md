@@ -7,7 +7,7 @@ Use este material para gerar a nova logo do projeto em ferramentas de imagem por
 Criar uma identidade visual para um sistema SaaS industrial de inspeções, laudos técnicos, chat operacional e mesa avaliadora.
 
 Marca atual do produto:
-- nome principal: `Tariel Control`
+- nome principal: `Tariel.ia`
 - contexto da marca: engenharia, inspeção, operação técnica, confiabilidade, multiportal
 
 ## Direção visual
@@ -75,25 +75,25 @@ Evitar cara de:
 ## Prompt principal
 
 ```text
-Create a premium industrial SaaS logo for “Tariel Control”, a technical inspection and engineering operations platform. The logo must feel robust, precise, trustworthy, clean, and professional. Use a strong square symbol that works as an app icon and favicon, plus a refined horizontal version with the brand name. Visual language should be geometric, minimal, technical, and elegant, with high legibility at small sizes. Use a dark graphite and safety-orange palette, primarily #10151D, #172131, #F47B20, and subtle light neutral accents. The symbol may suggest inspection, validation, structural logic, controlled workflow, or engineering precision, but must not be literal or cartoonish. Avoid startup fluff, mascots, futuristic sci-fi clichés, neon, 3D effects, excessive gradients, and thin details. Transparent background. Produce a clean vector-style logo presentation, centered, without mockups, without paper, without business cards, without environment scene.
+Create a premium tech SaaS logo for “Tariel.ia”, an AI-powered inspection and operational intelligence platform. The logo must feel precise, trustworthy, clean, and professional. Use a strong symbol that works as an app icon and favicon, plus a refined horizontal version with the brand name. Visual language should be geometric, minimal, technical, and elegant, with high legibility at small sizes. Use a dark graphite and safety-orange palette, primarily #10151D, #172131, #F47B20, and subtle light neutral accents. The symbol may suggest intelligence, validation, structured flow, or operational precision, but must not be literal or cartoonish. Avoid startup fluff, mascots, futuristic sci-fi clichés, neon, 3D effects, excessive gradients, and thin details. Transparent background. Produce a clean vector-style logo presentation, centered, without mockups, without paper, without business cards, without environment scene.
 ```
 
 ## Prompt para o símbolo quadrado
 
 ```text
-Design a square icon logo for “Tariel Control” with an industrial engineering feel. The symbol must be bold, minimal, geometric, and highly legible at favicon size. Use dark graphite and safety-orange. It should suggest technical control, inspection, structure, or validation, but in an abstract and premium way. Rounded-square or shield-like silhouette is welcome. Transparent background. No text. No mockup. No 3D. No mascot. No neon. No overly complex detail.
+Design a square icon logo for “Tariel.ia” with a premium technology feel. The symbol must be bold, minimal, geometric, and highly legible at favicon size. Use dark graphite and safety-orange. It should suggest intelligence, structured control, or validation, but in an abstract and premium way. Rounded-square or shield-like silhouette is welcome. Transparent background. No text. No mockup. No 3D. No mascot. No neon. No overly complex detail.
 ```
 
 ## Prompt para a versão horizontal
 
 ```text
-Design a horizontal logo lockup for “Tariel Control” using a strong square symbol on the left and a clean technical wordmark on the right. Style: industrial, premium, precise, sober, trustworthy, minimal. Colors: graphite dark tones with safety-orange accent. Typography should feel technical and modern, similar in spirit to IBM Plex Sans or a custom geometric industrial sans. Transparent background. No mockup, no paper texture, no perspective scene.
+Design a horizontal logo lockup for “Tariel.ia” using a strong symbol on the left and a clean technical wordmark on the right. Style: premium, precise, sober, trustworthy, minimal, technology-first. Colors: graphite dark tones with safety-orange accent. Typography should feel technical and modern, similar in spirit to IBM Plex Sans or a custom geometric sans. Transparent background. No mockup, no paper texture, no perspective scene.
 ```
 
 ## Prompt para favicon/app icon
 
 ```text
-Create a favicon-ready app icon for “Tariel Control”. It must be extremely simple, geometric, high-contrast, premium, and legible at 16x16, 32x32, and 48x48. Use a dark graphite base with safety-orange accent. No text. No thin lines. No complex inner shapes. Transparent background. Flat vector style.
+Create a favicon-ready app icon for “Tariel.ia”. It must be extremely simple, geometric, high-contrast, premium, and legible at 16x16, 32x32, and 48x48. Use a dark graphite base with safety-orange accent. No text. No thin lines. No complex inner shapes. Transparent background. Flat vector style.
 ```
 
 ## Negative prompt

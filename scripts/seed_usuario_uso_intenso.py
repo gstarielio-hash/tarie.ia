@@ -13,7 +13,7 @@ from app.shared.database import Empresa, NivelAcesso, PlanoEmpresa, SessaoLocal,
 from app.shared.security import criar_hash_senha  # noqa: E402
 
 
-EMPRESA_NOME: Final[str] = "WF Lab Carga Local"
+EMPRESA_NOME: Final[str] = "Tariel.ia Lab Carga Local"
 EMPRESA_CNPJ: Final[str] = "00.999.999/0001-91"
 SENHA_PADRAO: Final[str] = "Stress@123456"
 
@@ -29,26 +29,26 @@ class UsuarioCarga:
 
 USUARIOS_CARGA: Final[tuple[UsuarioCarga, ...]] = (
     UsuarioCarga(
-        email="stress.inspetor@wf.local",
+        email="stress.inspetor@tariel.local",
         nome="Inspetor Carga Local",
         nivel=int(NivelAcesso.INSPETOR),
         senha=SENHA_PADRAO,
     ),
     UsuarioCarga(
-        email="stress.inspetor2@wf.local",
+        email="stress.inspetor2@tariel.local",
         nome="Inspetor Carga Local 2",
         nivel=int(NivelAcesso.INSPETOR),
         senha=SENHA_PADRAO,
     ),
     UsuarioCarga(
-        email="stress.revisor@wf.local",
+        email="stress.revisor@tariel.local",
         nome="Revisor Carga Local",
         nivel=int(NivelAcesso.REVISOR),
         senha=SENHA_PADRAO,
         crea="123456-SP",
     ),
     UsuarioCarga(
-        email="stress.admin@wf.local",
+        email="stress.admin@tariel.local",
         nome="Admin Carga Local",
         nivel=int(NivelAcesso.DIRETORIA),
         senha=SENHA_PADRAO,

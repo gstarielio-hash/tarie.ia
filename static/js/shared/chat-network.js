@@ -1,5 +1,5 @@
 // ==========================================
-// TARIEL CONTROL TOWER — CHAT-NETWORK.JS
+// TARIEL.IA — CHAT-NETWORK.JS
 // Camada de rede e orquestração do chat.
 // Responsável por:
 // - estado do relatório
@@ -35,8 +35,8 @@
             telaBoasVindas = null,
             setorSelect = null,
 
-            getNomeUsuario = () => "Inspetor WF",
-            getNomeEmpresa = () => "WF Soluções",
+            getNomeUsuario = () => "Inspetor",
+            getNomeEmpresa = () => "Sua empresa",
 
             getLaudoAtualId = () => null,
             setLaudoAtualId = () => {},
@@ -749,7 +749,7 @@
                 log("warn", `PDF backend falhou (${erro.message}). Usando fallback TXT.`);
 
                 const conteudo = [
-                    "LAUDO TÉCNICO — WF SOLUÇÕES INDUSTRIAIS",
+                    "LAUDO TÉCNICO — TARIEL.IA",
                     `Inspetor: ${getNomeUsuario()}`,
                     `Empresa: ${getNomeEmpresa()}`,
                     `Setor: ${String(sanitizarSetor(setorSelect?.value || "geral")).toUpperCase()}`,

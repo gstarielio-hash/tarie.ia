@@ -22,9 +22,9 @@ try {
         $BaseUrl = $server.BaseUrl
     }
 
-    $env:LOCUST_INSPETOR_EMAIL = $env:LOCUST_INSPETOR_EMAIL ?? "inspetor@wf.com.br"
+    $env:LOCUST_INSPETOR_EMAIL = $env:LOCUST_INSPETOR_EMAIL ?? "inspetor@tariel.ia"
     $env:LOCUST_INSPETOR_SENHA = $env:LOCUST_INSPETOR_SENHA ?? "Dev@123456"
-    $env:LOCUST_REVISOR_EMAIL = $env:LOCUST_REVISOR_EMAIL ?? "revisor@wf.com.br"
+    $env:LOCUST_REVISOR_EMAIL = $env:LOCUST_REVISOR_EMAIL ?? "revisor@tariel.ia"
     $env:LOCUST_REVISOR_SENHA = $env:LOCUST_REVISOR_SENHA ?? "Dev@123456"
 
     & $locustExe `

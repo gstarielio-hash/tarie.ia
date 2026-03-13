@@ -108,7 +108,7 @@ def _serializar_perfil_usuario(usuario: Usuario) -> dict[str, str]:
         "foto_perfil_url": str(getattr(usuario, "foto_perfil_url", "") or "").strip(),
         "empresa_nome": str(
             getattr(getattr(usuario, "empresa", None), "nome_fantasia", "")
-            or "WF Soluções"
+            or "Sua empresa"
         ).strip(),
     }
 

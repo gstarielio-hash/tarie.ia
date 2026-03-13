@@ -543,9 +543,9 @@
 
         try {
             viaUrl = urlSolicitaTelaInicial();
-            viaSessao = sessionStorage.getItem("wf_force_home_landing") === "1";
+            viaSessao = sessionStorage.getItem("tariel_force_home_landing") === "1";
             if (viaSessao) {
-                sessionStorage.removeItem("wf_force_home_landing");
+                sessionStorage.removeItem("tariel_force_home_landing");
             }
         } catch (_) {
             // silêncio intencional
@@ -767,3 +767,4 @@
         normalizarEstadoRelatorio,
     });
 })();
+

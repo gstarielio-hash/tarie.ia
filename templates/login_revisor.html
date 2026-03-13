@@ -8,7 +8,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="referrer" content="no-referrer">
 
-    <title>Mesa de Avaliação • Tariel IA</title>
+    <title>Mesa Avaliadora • tariel.ia</title>
 
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -77,6 +77,18 @@
         .cabecalho-login {
             margin-bottom: 28px;
             text-align: center;
+        }
+
+        .brand-login {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .brand-login img {
+            display: block;
+            width: min(220px, 100%);
+            height: auto;
         }
 
         .cabecalho-login h1 {
@@ -288,6 +300,10 @@
                 border: none;
                 border-radius: 0;
             }
+
+            .brand-login img {
+                width: min(196px, 100%);
+            }
         }
     </style>
 </head>
@@ -295,9 +311,12 @@
 <body>
     <main class="box-login" aria-label="Mesa de avaliação da engenharia">
         <header class="cabecalho-login">
+            <div class="brand-login" aria-hidden="true">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+            </div>
             <h1>
                 <span class="material-symbols-rounded" aria-hidden="true">fact_check</span>
-                Tariel IA
+                tariel.ia
             </h1>
             <p>Mesa de Avaliação (Engenharia)</p>
         </header>
@@ -317,8 +336,8 @@
                 <div class="campo-wrapper">
                     <span class="material-symbols-rounded campo-icone" aria-hidden="true">mail</span>
                     <input type="email" id="email" name="email" class="form-control" required autocomplete="username"
-                        autocapitalize="off" spellcheck="false" inputmode="email" placeholder="revisor@wf.com.br" {% if
-                        not em_producao %}value="revisor@wf.com.br" {% endif %} autocomplete="username">
+                        autocapitalize="off" spellcheck="false" inputmode="email" placeholder="revisor@tariel.ia" {% if
+                        not em_producao %}value="revisor@tariel.ia" {% endif %} autocomplete="username">
                 </div>
             </div>
 
@@ -349,7 +368,7 @@
         </form>
 
         <p class="rodape-login">
-            Ambiente interno para análise e revisão de laudos da <strong>WF Engenharia</strong>.
+            Ambiente interno para análise e revisão de laudos com a <strong>tariel.ia</strong>.
         </p>
     </main>
 

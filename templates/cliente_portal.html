@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <title>{{ empresa.nome_fantasia | e }} • Portal Admin-Cliente</title>
+    <title>{{ empresa.nome_fantasia | e }} • Portal Admin-Cliente • tariel.ia</title>
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +16,9 @@
     <div class="cliente-shell">
         <header class="cliente-hero">
             <section class="hero-card hero-card--primary">
+                <div class="hero-brand" aria-hidden="true">
+                    <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+                </div>
                 <p class="hero-eyebrow">Portal Admin-Cliente</p>
                 <h1 class="hero-title">{{ empresa.nome_fantasia | e }}</h1>
                 <p class="hero-description">

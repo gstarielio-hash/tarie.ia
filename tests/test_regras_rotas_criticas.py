@@ -1223,7 +1223,7 @@ def test_revisor_criar_template_editor_rico_e_detalhar(ambiente_critico) -> None
             "Content-Type": "application/json",
         },
         json={
-            "nome": "Template Word WF",
+            "nome": "Template Word Tariel.ia",
             "codigo_template": "rti_word",
             "versao": 1,
             "origem_modo": "a4",
@@ -1295,7 +1295,7 @@ def test_revisor_salvar_e_preview_template_editor_rico(ambiente_critico) -> None
                 },
             },
             "estilo_json": {
-                "cabecalho_texto": "WF {{token:cliente_nome}}",
+                "cabecalho_texto": "Tariel.ia {{token:cliente_nome}}",
                 "rodape_texto": "Revisão Técnica",
                 "marca_dagua": {"texto": "CONFIDENCIAL", "opacity": 0.08},
                 "pagina": {"margens_mm": {"top": 18, "right": 14, "bottom": 18, "left": 14}},
@@ -1585,7 +1585,7 @@ def test_api_gerar_pdf_usa_template_editor_rico_ativo(ambiente_critico) -> None:
         laudo.tipo_template = "cbmgo"
         laudo.dados_formulario = {
             "informacoes_gerais": {"local_inspecao": "Planta Leste"},
-            "tokens": {"cliente_nome": "WF Cliente"},
+            "tokens": {"cliente_nome": "Cliente Tariel"},
         }
 
         banco.add(
@@ -1616,7 +1616,7 @@ def test_api_gerar_pdf_usa_template_editor_rico_ativo(ambiente_critico) -> None:
                     },
                 },
                 assets_json=[],
-                estilo_json={"cabecalho_texto": "WF", "rodape_texto": "Mesa"},
+                estilo_json={"cabecalho_texto": "Tariel.ia", "rodape_texto": "Mesa"},
             )
         )
         banco.commit()
@@ -4265,7 +4265,7 @@ def test_inspetor_exportar_pendencias_pdf_retorna_arquivo(ambiente_critico) -> N
     texto_pdf_maiusculo = texto_pdf.upper()
 
     assert "RELATORIO DE PENDENCIAS DA MESA AVALIADORA" in texto_pdf_maiusculo
-    assert "CARIMBO DIGITAL WF" in texto_pdf_maiusculo
+    assert "CARIMBO DIGITAL TARIEL.IA" in texto_pdf_maiusculo
     assert "REVISOR A" in texto_pdf_maiusculo
     assert "123456-SP" in texto_pdf_maiusculo
 

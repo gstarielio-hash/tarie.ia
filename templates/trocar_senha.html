@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ titulo_pagina | default("Troca de Senha") | e }}</title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,6 +14,9 @@
     <main class="auth-layout auth-layout--single">
         <section class="auth-card" style="width:min(100%, 560px); margin:0 auto;">
             <div class="auth-card-header">
+                <div class="auth-brand auth-brand--compact" aria-hidden="true">
+                    <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+                </div>
                 <span class="auth-eyebrow">Seguranca de acesso</span>
                 <h1 class="auth-card-title">{{ titulo_pagina | default("Troca de Senha") | e }}</h1>
                 <p class="auth-card-subtitle">{{ subtitulo_pagina | default("Atualize sua senha para continuar.") | e }}</p>

@@ -15,7 +15,7 @@
     - Enviar CSP por header HTTP no backend.
     #}
 
-    <title>Tariel Control Tower • Dashboard IA</title>
+    <title>Tariel.ia • Dashboard IA</title>
 
     <link rel="manifest" href="/app/manifesto.json">
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
@@ -30,27 +30,27 @@
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --wf-bg: #15191F;
-            --wf-text: #ECEEF2;
-            --wf-text-soft: #B5BDC8;
-            --wf-surface: #1E232B;
-            --wf-border: #3A424F;
-            --wf-accent: #F47B20;
-            --wf-accent-dark: #D86815;
-            --wf-success: #8FD49B;
-            --wf-success-bg: rgba(46, 125, 50, .16);
-            --wf-danger: #F1A9A9;
-            --wf-danger-bg: rgba(198, 40, 40, .18);
-            --wf-warning: #FFC282;
-            --wf-warning-bg: rgba(179, 71, 0, .16);
-            --wf-info: #D6DBE3;
-            --wf-info-bg: rgba(191, 198, 209, .12);
-            --wf-green: #8FD49B;
-            --wf-green-bg: rgba(46, 125, 50, .16);
-            --wf-orange-bg: rgba(244, 123, 32, .1);
-            --wf-radius-sm: 8px;
-            --wf-radius-md: 12px;
-            --wf-shadow-sm: 0 8px 22px rgba(0, 0, 0, .24);
+            --tariel-bg: #15191F;
+            --tariel-text: #ECEEF2;
+            --tariel-text-soft: #B5BDC8;
+            --tariel-surface: #1E232B;
+            --tariel-border: #3A424F;
+            --tariel-accent: #F47B20;
+            --tariel-accent-dark: #D86815;
+            --tariel-success: #8FD49B;
+            --tariel-success-bg: rgba(46, 125, 50, .16);
+            --tariel-danger: #F1A9A9;
+            --tariel-danger-bg: rgba(198, 40, 40, .18);
+            --tariel-warning: #FFC282;
+            --tariel-warning-bg: rgba(179, 71, 0, .16);
+            --tariel-info: #D6DBE3;
+            --tariel-info-bg: rgba(191, 198, 209, .12);
+            --tariel-green: #8FD49B;
+            --tariel-green-bg: rgba(46, 125, 50, .16);
+            --tariel-orange-bg: rgba(244, 123, 32, .1);
+            --tariel-radius-sm: 8px;
+            --tariel-radius-md: 12px;
+            --tariel-shadow-sm: 0 8px 22px rgba(0, 0, 0, .24);
             color-scheme: dark;
         }
 
@@ -88,8 +88,8 @@
             align-items: center;
             gap: 8px;
             padding: 10px 20px;
-            border-radius: var(--wf-radius-sm);
-            background: var(--wf-accent);
+            border-radius: var(--tariel-radius-sm);
+            background: var(--tariel-accent);
             color: #fff;
             text-decoration: none;
             font-size: 14px;
@@ -98,7 +98,7 @@
         }
 
         .btn-novo-cliente:hover {
-            background: var(--wf-accent-dark);
+            background: var(--tariel-accent-dark);
             transform: translateY(-1px);
         }
 
@@ -110,7 +110,7 @@
         .item-menu.logout-btn:focus-visible,
         .alert-fechar:focus-visible,
         .link-acao-tabela:focus-visible {
-            outline: 2px solid var(--wf-accent);
+            outline: 2px solid var(--tariel-accent);
             outline-offset: 2px;
         }
 
@@ -120,7 +120,7 @@
             gap: 10px;
             margin-bottom: 20px;
             padding: 12px 16px;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             font-size: 14px;
             font-weight: 600;
             transition: opacity .25s ease, transform .25s ease;
@@ -132,14 +132,14 @@
         }
 
         .alert-success {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
-            border-left: 4px solid var(--wf-green);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
+            border-left: 4px solid var(--tariel-green);
         }
 
         .alert-error {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
             border-left: 4px solid #EF5350;
         }
 
@@ -160,16 +160,16 @@
 
         .box-grafico {
             padding: 24px;
-            border: 1px solid var(--wf-border);
-            border-radius: var(--wf-radius-md);
-            background: var(--wf-surface);
-            box-shadow: var(--wf-shadow-sm);
+            border: 1px solid var(--tariel-border);
+            border-radius: var(--tariel-radius-md);
+            background: var(--tariel-surface);
+            box-shadow: var(--tariel-shadow-sm);
         }
 
         .box-grafico h3,
         .box-tabela h3 {
             margin-bottom: 16px;
-            color: var(--wf-text);
+            color: var(--tariel-text);
             font-size: 15px;
             font-weight: 700;
         }
@@ -197,18 +197,18 @@
         }
 
         .badge.conforme {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
         }
 
         .badge.critico {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
         }
 
         .badge.atencao {
-            background: var(--wf-warning-bg);
-            color: var(--wf-warning);
+            background: var(--tariel-warning-bg);
+            color: var(--tariel-warning);
         }
 
         .item-menu.logout-btn {
@@ -219,7 +219,7 @@
             margin-top: auto;
             padding: 10px 16px;
             border: none;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             background: none;
             color: inherit;
             text-align: left;
@@ -232,7 +232,7 @@
 
         .item-menu.destaque {
             background: rgba(244, 123, 32, .1);
-            color: var(--wf-accent) !important;
+            color: var(--tariel-accent) !important;
         }
 
         .usuario-painel {
@@ -242,7 +242,7 @@
             margin-top: auto;
             padding: 12px 16px;
             border-top: 1px solid rgba(255, 255, 255, .08);
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
         }
 
@@ -261,7 +261,7 @@
         }
 
         .cnpj-mascarado {
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
             font-variant-numeric: tabular-nums;
         }
@@ -292,25 +292,25 @@
         }
 
         .icone-card--clientes {
-            background: var(--wf-info-bg);
-            color: var(--wf-info);
+            background: var(--tariel-info-bg);
+            color: var(--tariel-info);
         }
 
         .icone-card--inspecoes {
-            background: var(--wf-green-bg);
-            color: var(--wf-green);
+            background: var(--tariel-green-bg);
+            color: var(--tariel-green);
         }
 
         .icone-card--receita {
-            background: var(--wf-orange-bg);
-            color: var(--wf-accent);
+            background: var(--tariel-orange-bg);
+            color: var(--tariel-accent);
         }
 
         .link-acao-tabela {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            color: var(--wf-accent);
+            color: var(--tariel-accent);
             text-decoration: none;
             font-size: 13px;
             font-weight: 600;
@@ -322,7 +322,7 @@
 
         .texto-vazio-tabela {
             padding: 24px;
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             text-align: center;
         }
     </style>
@@ -335,9 +335,9 @@
 
     <div class="admin-layout">
         <aside class="sidebar" aria-label="Menu administrativo">
-            <div class="logo-area">
-                <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
-                <h2>Tariel Control</h2>
+            <div class="logo-area logo-area--brand">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+                <span class="versao-logo">Admin-CEO</span>
             </div>
 
             <nav class="menu-admin" aria-label="Menu principal">
@@ -532,7 +532,7 @@
         (() => {
             "use strict";
 
-            window.WF = Object.freeze({
+            window.TARIEL = Object.freeze({
                 csrfToken: document.querySelector('meta[name="csrf-token"]')?.content ?? ""
             });
 
@@ -558,3 +558,4 @@
 </body>
 
 </html>
+

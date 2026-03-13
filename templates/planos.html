@@ -9,7 +9,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>Planos — Sistema WF</title>
+    <title>Planos — Tariel.ia</title>
 
     <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
 
@@ -427,7 +427,7 @@
         </a>
         <div class="logo-cabecalho" aria-hidden="true">
             <div class="avatar-ia-sm">TI</div>
-            WF Soluções Industriais
+            Tariel.ia
         </div>
     </header>
 
@@ -525,7 +525,7 @@
                     Plano atual
                 </button>
                 {% else %}
-                <a href="mailto:comercial@wf.com.br?subject=Plano%20Inicial%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                <a href="mailto:comercial@tariel.ia?subject=Plano%20Inicial%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
                     class="btn-plano btn-plano-secundario" aria-label="Contratar plano Inicial">
                     <span class="material-symbols-rounded">mail</span>
                     Falar com vendas
@@ -594,7 +594,7 @@
                     Plano atual
                 </button>
                 {% else %}
-                <a href="mailto:comercial@wf.com.br?subject=Plano%20Intermedi%C3%A1rio%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                <a href="mailto:comercial@tariel.ia?subject=Plano%20Intermedi%C3%A1rio%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
                     class="btn-plano btn-plano-primario" aria-label="Contratar plano Intermediário">
                     <span class="material-symbols-rounded">rocket_launch</span>
                     Fazer upgrade
@@ -657,7 +657,7 @@
                     Plano atual
                 </button>
                 {% else %}
-                <a href="mailto:comercial@wf.com.br?subject=Plano%20Ilimitado%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
+                <a href="mailto:comercial@tariel.ia?subject=Plano%20Ilimitado%20—%20{{ usuario.empresa.nome_fantasia | urlencode }}"
                     class="btn-plano btn-plano-secundario" aria-label="Contratar plano Ilimitado">
                     <span class="material-symbols-rounded">mail</span>
                     Falar com vendas
@@ -673,10 +673,10 @@
     <footer class="rodape-planos">
         <p>
             Para upgrade ou dúvidas sobre faturamento, entre em contato com
-            <a href="mailto:comercial@wf.com.br">comercial@wf.com.br</a>
+            <a href="mailto:comercial@tariel.ia">comercial@tariel.ia</a>
         </p>
         <p style="margin-top:6px;">
-            WF Soluções Industriais · CNPJ {{ usuario.empresa.cnpj }}
+            Tariel.ia · CNPJ {{ usuario.empresa.cnpj }}
         </p>
     </footer>
 

@@ -14,7 +14,7 @@
     - Enviar X-Content-Type-Options: nosniff por header HTTP.
     #}
 
-    <title>Empresas Assinantes • Tariel Control</title>
+    <title>Empresas Assinantes • Tariel.ia</title>
 
     <link rel="icon" href="/static/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,25 +26,25 @@
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --wf-bg: #15191f;
-            --wf-surface: #1e232b;
-            --wf-text: #eceef2;
-            --wf-text-soft: #b5bdc8;
-            --wf-border: #3a424f;
-            --wf-accent: #f47b20;
-            --wf-accent-dark: #d4690f;
-            --wf-success: #8fd49b;
-            --wf-success-bg: rgba(46, 125, 50, .16);
-            --wf-danger: #f1a9a9;
-            --wf-danger-bg: rgba(198, 40, 40, .18);
-            --wf-warning: #ffc282;
-            --wf-warning-bg: rgba(179, 71, 0, .16);
-            --wf-info: #d6dbe3;
-            --wf-info-bg: rgba(191, 198, 209, .12);
-            --wf-shadow: 0 8px 26px rgba(0, 0, 0, .28);
-            --wf-radius-sm: 8px;
-            --wf-radius-md: 10px;
-            --wf-radius-lg: 12px;
+            --tariel-bg: #15191f;
+            --tariel-surface: #1e232b;
+            --tariel-text: #eceef2;
+            --tariel-text-soft: #b5bdc8;
+            --tariel-border: #3a424f;
+            --tariel-accent: #f47b20;
+            --tariel-accent-dark: #d4690f;
+            --tariel-success: #8fd49b;
+            --tariel-success-bg: rgba(46, 125, 50, .16);
+            --tariel-danger: #f1a9a9;
+            --tariel-danger-bg: rgba(198, 40, 40, .18);
+            --tariel-warning: #ffc282;
+            --tariel-warning-bg: rgba(179, 71, 0, .16);
+            --tariel-info: #d6dbe3;
+            --tariel-info-bg: rgba(191, 198, 209, .12);
+            --tariel-shadow: 0 8px 26px rgba(0, 0, 0, .28);
+            --tariel-radius-sm: 8px;
+            --tariel-radius-md: 10px;
+            --tariel-radius-lg: 12px;
             color-scheme: dark;
         }
 
@@ -60,9 +60,9 @@
         .filtros select {
             min-height: 42px;
             padding: 9px 14px;
-            border: 1px solid var(--wf-border);
-            border-radius: var(--wf-radius-sm);
-            background: var(--wf-surface);
+            border: 1px solid var(--tariel-border);
+            border-radius: var(--tariel-radius-sm);
+            background: var(--tariel-surface);
             font: inherit;
             font-size: 14px;
         }
@@ -79,7 +79,7 @@
         .filtros input:focus,
         .filtros select:focus {
             outline: none;
-            border-color: var(--wf-accent);
+            border-color: var(--tariel-accent);
             box-shadow: 0 0 0 3px rgba(244, 123, 32, .12);
         }
 
@@ -93,7 +93,7 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             font: inherit;
             cursor: pointer;
             text-decoration: none;
@@ -114,7 +114,7 @@
             min-height: 42px;
             padding: 9px 18px;
             border: none;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             color: #fff;
             font-weight: 700;
         }
@@ -122,9 +122,9 @@
         .btn-limpar {
             min-height: 42px;
             padding: 9px 14px;
-            border: 1px solid var(--wf-border);
+            border: 1px solid var(--tariel-border);
             background: rgba(191, 198, 209, .12);
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
         }
 
@@ -140,9 +140,9 @@
             align-items: center;
             gap: 14px;
             padding: 16px 20px;
-            border: 1px solid var(--wf-border);
-            border-radius: var(--wf-radius-md);
-            background: var(--wf-surface);
+            border: 1px solid var(--tariel-border);
+            border-radius: var(--tariel-radius-md);
+            background: var(--tariel-surface);
             box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
         }
 
@@ -157,29 +157,29 @@
         }
 
         .stat-mini .num {
-            color: var(--wf-text);
+            color: var(--tariel-text);
             font-size: 22px;
             font-weight: 700;
         }
 
         .stat-mini .label {
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 12px;
         }
 
         .icone--clientes {
-            background: var(--wf-info-bg);
-            color: var(--wf-info);
+            background: var(--tariel-info-bg);
+            color: var(--tariel-info);
         }
 
         .icone--ativos {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
         }
 
         .icone--bloqueados {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
         }
 
         .acoes-tabela {
@@ -192,13 +192,13 @@
         .btn-ver {
             padding: 5px 12px;
             border: none;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             color: #fff;
             font-size: 12px;
         }
 
         .btn-ver:hover {
-            background: var(--wf-accent-dark);
+            background: var(--tariel-accent-dark);
         }
 
         .btn-block,
@@ -209,14 +209,14 @@
 
         .btn-block {
             border: 1px solid #ef9a9a;
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
         }
 
         .btn-unblock {
             border: 1px solid #a5d6a7;
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
         }
 
         .badge {
@@ -231,23 +231,23 @@
         }
 
         .badge.conforme {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
         }
 
         .badge.critico {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
         }
 
         .badge.atencao {
-            background: var(--wf-warning-bg);
-            color: var(--wf-warning);
+            background: var(--tariel-warning-bg);
+            color: var(--tariel-warning);
         }
 
         .badge.info {
-            background: var(--wf-info-bg);
-            color: var(--wf-info);
+            background: var(--tariel-info-bg);
+            color: var(--tariel-info);
         }
 
         .alert {
@@ -256,7 +256,7 @@
             gap: 10px;
             margin-bottom: 20px;
             padding: 12px 16px;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             font-size: 14px;
             font-weight: 600;
             transition: opacity .25s ease, transform .25s ease;
@@ -268,14 +268,14 @@
         }
 
         .alert-success {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
             border-left: 4px solid #4CAF50;
         }
 
         .alert-error {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
             border-left: 4px solid #EF5350;
         }
 
@@ -302,7 +302,7 @@
             margin-top: auto;
             padding: 10px 16px;
             border: none;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             background: none;
             color: inherit;
             text-align: left;
@@ -316,25 +316,25 @@
 
         .btn-novo-cliente {
             padding: 10px 18px;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             color: #fff;
             font-size: 14px;
             font-weight: 700;
         }
 
         .btn-novo-cliente:hover {
-            background: var(--wf-accent-dark);
+            background: var(--tariel-accent-dark);
         }
 
         .cnpj-mascarado {
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
             font-variant-numeric: tabular-nums;
         }
 
         .estado-vazio-tabela {
             padding: 30px;
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             text-align: center;
         }
 
@@ -361,7 +361,7 @@
         .btn-block:focus-visible,
         .btn-unblock:focus-visible,
         .alert-fechar:focus-visible {
-            outline: 2px solid var(--wf-accent);
+            outline: 2px solid var(--tariel-accent);
             outline-offset: 2px;
         }
 
@@ -400,9 +400,9 @@
 
     <div class="admin-layout">
         <aside class="sidebar" aria-label="Menu administrativo">
-            <div class="logo-area">
-                <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
-                <h2>Tariel Control</h2>
+            <div class="logo-area logo-area--brand">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+                <span class="versao-logo">Admin-CEO</span>
             </div>
 
             <nav class="menu-admin" aria-label="Navegação administrativa">
@@ -602,7 +602,7 @@
         (() => {
             "use strict";
 
-            window.WF = Object.freeze({
+            window.TARIEL = Object.freeze({
                 csrfToken: document.querySelector('meta[name="csrf-token"]')?.content ?? ""
             });
 
@@ -634,3 +634,4 @@
 </body>
 
 </html>
+

@@ -5,7 +5,7 @@ from interface.janela_principal import JanelaPrincipal
 
 
 def principal():
-    # Inicializa a aplicação base para o sistema de inspeções da Empresa WF
+    # Inicializa a aplicação base para o sistema de inspeções Tariel.ia
     aplicacao = QApplication(sys.argv)
 
     # Define o estilo 'Fusion' para garantir consistência visual em ambientes industriais (Windows/Linux)
@@ -23,7 +23,7 @@ def principal():
         # Alerta de sistema caso o arquivo mude de nome ou pasta, facilitando a manutenção técnica
         print(f"⚠️ Alerta de Sistema: Arquivo de estilo não encontrado no caminho: {caminho_estilo}")
 
-    # --- INICIALIZAÇÃO DO SISTEMA WF ---
+    # --- INICIALIZAÇÃO DO SISTEMA TARIEL.IA ---
     # Instancia a JanelaPrincipal (que agora gerencia o SQLite e a interface de ART/Laudos)
     janela_sistema = JanelaPrincipal()
 

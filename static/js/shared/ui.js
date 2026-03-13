@@ -1,5 +1,5 @@
 // =========================================================================
-// TARIEL CONTROL TOWER — UI.JS (VERSÃO AJUSTADA)
+// TARIEL.IA — UI.JS (VERSÃO AJUSTADA)
 // Orquestração: Sidebar, Login/Logout, Notificações, Modo Foco e Suporte
 // =========================================================================
 
@@ -11,8 +11,8 @@
         window.location.hostname !== "127.0.0.1";
 
     const MARCADOR_ENG = "eng ";
-    const KEY_MODO_FOCO = "wf_modo_foco";
-    const KEY_MODO_RESPOSTA = "wf_modo_resposta";
+    const KEY_MODO_FOCO = "tariel_modo_foco";
+    const KEY_MODO_RESPOSTA = "tariel_modo_resposta";
     const TOGGLE_COLOR = "#F47B20";
     const _toastsAtivos = new Map();
     let _dockRapidoSyncRaf = 0;
@@ -540,7 +540,7 @@
     }
 
     async function executarLogout() {
-        if (!confirm("Deseja realmente sair do sistema Tariel WF?")) return;
+        if (!confirm("Deseja realmente sair do sistema Tariel.ia?")) return;
 
         try {
             if (navigator.serviceWorker?.controller) {

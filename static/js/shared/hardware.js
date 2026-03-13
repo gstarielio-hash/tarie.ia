@@ -1,5 +1,5 @@
 // ==========================================
-// TARIEL CONTROL TOWER — HARDWARE.JS
+// TARIEL.IA — HARDWARE.JS
 // Responsabilidades: GPS, microfone/voz,
 // câmera, estampa de auditoria
 // ==========================================
@@ -135,7 +135,7 @@
     const MAX_TENTATIVAS = 5;
 
     const PLACEHOLDER_PADRAO = "Descreva a inconformidade, solicite um orçamento ou envie a foto...";
-    const PLACEHOLDER_OUVINDO = "🎙️ Ouvindo relatório técnico WF...";
+    const PLACEHOLDER_OUVINDO = "🎙️ Ouvindo relatório técnico Tariel.ia...";
     const ERROS_RECUPERAVEIS = new Set(["no-speech", "audio-capture", "network"]);
 
     function _inicializarMicrofone() {
@@ -471,7 +471,7 @@
             wordBreak: "break-all",
         });
 
-        estampa.textContent = `WF Inspeções  ${dataHora}  GPS: ${coordenadas}`;
+        estampa.textContent = `Tariel.ia  ${dataHora}  GPS: ${coordenadas}`;
         container.appendChild(estampa);
     }
 
@@ -512,7 +512,7 @@
     // NAMESPACE DE EXPORTS
     // =========================================================================
 
-    window.HardwareWF = {
+    window.HardwareTariel = {
         processarImagemAuditoria,
         obterLocalizacaoGPS,
         pararGravacao,

@@ -1,6 +1,6 @@
 """
-rotas_admin.py — Tariel Control Tower
-WF Engenharia · Rotas do painel administrativo (Diretoria)
+rotas_admin.py — Tariel.ia
+Rotas do painel administrativo central
 """
 
 import logging

@@ -1,5 +1,5 @@
 # ==========================================
-# TARIEL CONTROL TOWER — ROTAS_REVISOR.PY
+# TARIEL.IA — ROTAS_REVISOR.PY
 # Responsabilidade: Mesa Avaliadora + Whisper System (Engenharia ↔ Inspetor)
 # ==========================================
 
@@ -1872,7 +1872,7 @@ async def exportar_pacote_mesa_laudo_pdf(
                 engenheiro_nome=usuario.nome,
                 engenheiro_cargo="Engenheiro Revisor",
                 engenheiro_crea=(str(usuario.crea or "").strip()[:40] or "Nao informado"),
-                carimbo_texto="CARIMBO DIGITAL WF",
+                carimbo_texto="CARIMBO DIGITAL TARIEL.IA",
             )
 
         return FileResponse(

@@ -45,7 +45,7 @@
         }
 
         function nomeArquivoLaudo(extensao) {
-            return `LaudoWF-${obterDataAtualBR().replace(/\//g, "-")}.${extensao}`;
+            return `LaudoTarielia-${obterDataAtualBR().replace(/\//g, "-")}.${extensao}`;
         }
 
         function remetenteEhEngenharia(remetente) {

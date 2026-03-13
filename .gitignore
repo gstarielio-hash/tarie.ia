@@ -37,3 +37,6 @@ allure-report/
 playwright-report/
 locust-report.html
 locust-report_*.html
+.hypothesis/
+review-*.png
+fotos/

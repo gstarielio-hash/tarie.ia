@@ -55,7 +55,7 @@ class TarielInspetorUser(TarielBaseUser):
         self._login_form(
             login_path="/app/login",
             landing_path="/app/",
-            email=os.getenv("LOCUST_INSPETOR_EMAIL", "inspetor@wf.com.br"),
+            email=os.getenv("LOCUST_INSPETOR_EMAIL", "inspetor@tariel.ia"),
             senha=os.getenv("LOCUST_INSPETOR_SENHA", "Dev@123456"),
         )
 
@@ -79,7 +79,7 @@ class TarielRevisorUser(TarielBaseUser):
         self._login_form(
             login_path="/revisao/login",
             landing_path="/revisao/painel",
-            email=os.getenv("LOCUST_REVISOR_EMAIL", "revisor@wf.com.br"),
+            email=os.getenv("LOCUST_REVISOR_EMAIL", "revisor@tariel.ia"),
             senha=os.getenv("LOCUST_REVISOR_SENHA", "Dev@123456"),
         )
 

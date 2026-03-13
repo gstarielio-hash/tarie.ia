@@ -1,5 +1,5 @@
 # ==========================================
-# TARIEL CONTROL TOWER — ROTAS_INSPETOR.PY
+# TARIEL.IA — ROTAS_INSPETOR.PY
 # Responsabilidade: área do inspetor (/app/)
 # Chat IA, geração de PDF, histórico de laudos
 # ==========================================
@@ -304,14 +304,14 @@ async def rota_pdf(
     dados_json  = await request.json()
     string_json = json.dumps(dados_json, ensure_ascii=False)
 
-    nome_arquivo = f"Laudo_WF_{uuid.uuid4().hex[:12]}.pdf"
+    nome_arquivo = f"Laudo_Tarielia_{uuid.uuid4().hex[:12]}.pdf"
     caminho_pdf  = os.path.join(tempfile.gettempdir(), nome_arquivo)
 
     try:
         GeradorLaudos.gerar_pdf_inspecao(string_json, caminho_pdf)
         return FileResponse(
             path=caminho_pdf,
-            filename="Laudo_ART_WF.pdf",
+            filename="Laudo_ART_Tarielia.pdf",
             media_type="application/pdf",
             background=BackgroundTask(os.remove, caminho_pdf),
         )

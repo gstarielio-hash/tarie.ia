@@ -14,7 +14,7 @@
     - Enviar X-Content-Type-Options: nosniff por header HTTP.
     #}
 
-    <title>{{ empresa.nome_fantasia | e }} • Tariel Control</title>
+    <title>{{ empresa.nome_fantasia | e }} • Tariel.ia</title>
 
     <link rel="icon" href="/static/img/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,23 +26,23 @@
 
     <style nonce="{{ csp_nonce }}">
         :root {
-            --wf-bg: #15191f;
-            --wf-surface: #1e232b;
-            --wf-text: #eceef2;
-            --wf-text-soft: #b5bdc8;
-            --wf-border: #3a424f;
-            --wf-accent: #f47b20;
-            --wf-accent-dark: #d4690f;
-            --wf-danger: #f1a9a9;
-            --wf-danger-bg: rgba(198, 40, 40, .18);
-            --wf-success: #8fd49b;
-            --wf-success-bg: rgba(46, 125, 50, .16);
-            --wf-warning: #ffc282;
-            --wf-warning-bg: rgba(179, 71, 0, .16);
-            --wf-shadow: 0 8px 26px rgba(0, 0, 0, .28);
-            --wf-radius-sm: 8px;
-            --wf-radius-md: 12px;
-            --wf-radius-lg: 14px;
+            --tariel-bg: #15191f;
+            --tariel-surface: #1e232b;
+            --tariel-text: #eceef2;
+            --tariel-text-soft: #b5bdc8;
+            --tariel-border: #3a424f;
+            --tariel-accent: #f47b20;
+            --tariel-accent-dark: #d4690f;
+            --tariel-danger: #f1a9a9;
+            --tariel-danger-bg: rgba(198, 40, 40, .18);
+            --tariel-success: #8fd49b;
+            --tariel-success-bg: rgba(46, 125, 50, .16);
+            --tariel-warning: #ffc282;
+            --tariel-warning-bg: rgba(179, 71, 0, .16);
+            --tariel-shadow: 0 8px 26px rgba(0, 0, 0, .28);
+            --tariel-radius-sm: 8px;
+            --tariel-radius-md: 12px;
+            --tariel-radius-lg: 14px;
             color-scheme: dark;
         }
 
@@ -51,7 +51,7 @@
             align-items: center;
             gap: 6px;
             margin-bottom: 20px;
-            color: var(--wf-accent);
+            color: var(--tariel-accent);
             text-decoration: none;
             font-size: 14px;
             font-weight: 600;
@@ -69,7 +69,7 @@
             margin-top: auto;
             padding: 10px 16px;
             border: none;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             background: none;
             color: inherit;
             text-align: left;
@@ -82,7 +82,7 @@
         }
 
         .item-menu.logout-btn:focus-visible,
-        .btn-acao-wf:focus-visible,
+        .btn-acao-tariel:focus-visible,
         .btn-reset:focus-visible,
         .btn-salvar-crea:focus-visible,
         .btn-add:focus-visible,
@@ -91,7 +91,7 @@
         .modal-fechar-x:focus-visible,
         .alert-fechar:focus-visible,
         .voltar:focus-visible {
-            outline: 2px solid var(--wf-accent);
+            outline: 2px solid var(--tariel-accent);
             outline-offset: 2px;
         }
 
@@ -104,14 +104,14 @@
 
         .info-card,
         .secao {
-            background: var(--wf-surface);
-            box-shadow: var(--wf-shadow);
+            background: var(--tariel-surface);
+            box-shadow: var(--tariel-shadow);
         }
 
         .info-card {
             padding: 16px 20px;
-            border: 1px solid var(--wf-border);
-            border-radius: var(--wf-radius-md);
+            border: 1px solid var(--tariel-border);
+            border-radius: var(--tariel-radius-md);
         }
 
         .info-card .label {
@@ -123,13 +123,13 @@
         }
 
         .info-card .valor {
-            color: var(--wf-text);
+            color: var(--tariel-text);
             font-size: 18px;
             font-weight: 700;
         }
 
         .valor-auxiliar {
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
             font-weight: 400;
         }
@@ -146,15 +146,15 @@
             width: 0;
             height: 100%;
             border-radius: inherit;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             transition: width .35s ease, background-color .2s ease;
         }
 
         .secao {
             margin-bottom: 20px;
             padding: 24px;
-            border: 1px solid var(--wf-border);
-            border-radius: var(--wf-radius-lg);
+            border: 1px solid var(--tariel-border);
+            border-radius: var(--tariel-radius-lg);
         }
 
         .secao h3 {
@@ -162,7 +162,7 @@
             align-items: center;
             gap: 8px;
             margin-bottom: 16px;
-            color: var(--wf-text);
+            color: var(--tariel-text);
             font-size: 15px;
             font-weight: 700;
         }
@@ -174,7 +174,7 @@
             margin-bottom: 24px;
         }
 
-        .btn-acao-wf,
+        .btn-acao-tariel,
         .btn-add,
         .btn-reset,
         .btn-modal-cancelar,
@@ -188,7 +188,7 @@
             transition: transform .15s ease, filter .15s ease, background-color .15s ease, border-color .15s ease;
         }
 
-        .btn-acao-wf:hover,
+        .btn-acao-tariel:hover,
         .btn-add:hover,
         .btn-reset:hover,
         .btn-modal-cancelar:hover,
@@ -197,29 +197,29 @@
             filter: brightness(.98);
         }
 
-        .btn-acao-wf {
+        .btn-acao-tariel {
             padding: 9px 16px;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             border: 1px solid transparent;
             font-size: 13px;
             font-weight: 700;
         }
 
         .btn-block {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
             border-color: rgba(198, 40, 40, .42);
         }
 
         .btn-unblock {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
             border-color: rgba(46, 125, 50, .42);
         }
 
         .btn-plano {
             background: rgba(191, 198, 209, .14);
-            color: var(--wf-text);
+            color: var(--tariel-text);
             border-color: rgba(191, 198, 209, .34);
         }
 
@@ -235,18 +235,18 @@
         }
 
         .badge.conforme {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
         }
 
         .badge.critico {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
         }
 
         .badge.atencao {
-            background: var(--wf-warning-bg);
-            color: var(--wf-warning);
+            background: var(--tariel-warning-bg);
+            color: var(--tariel-warning);
         }
 
         .badge.status-empresa {
@@ -260,7 +260,7 @@
             gap: 10px;
             margin-bottom: 20px;
             padding: 12px 16px;
-            border-radius: var(--wf-radius-sm);
+            border-radius: var(--tariel-radius-sm);
             font-size: 14px;
             font-weight: 600;
             transition: opacity .25s ease, transform .25s ease;
@@ -272,14 +272,14 @@
         }
 
         .alert-success {
-            background: var(--wf-success-bg);
-            color: var(--wf-success);
+            background: var(--tariel-success-bg);
+            color: var(--tariel-success);
             border-left: 4px solid #4caf50;
         }
 
         .alert-error {
-            background: var(--wf-danger-bg);
-            color: var(--wf-danger);
+            background: var(--tariel-danger-bg);
+            color: var(--tariel-danger);
             border-left: 4px solid #ef5350;
         }
 
@@ -305,7 +305,7 @@
             gap: 8px;
             margin-top: 16px;
             padding-top: 16px;
-            border-top: 1px solid var(--wf-border);
+            border-top: 1px solid var(--tariel-border);
         }
 
         .campo-form {
@@ -316,7 +316,7 @@
         .form-inline label {
             display: block;
             margin-bottom: 4px;
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 12px;
         }
 
@@ -324,17 +324,17 @@
         .modal-plano select {
             width: 100%;
             padding: 9px 12px;
-            border: 1px solid var(--wf-border);
+            border: 1px solid var(--tariel-border);
             border-radius: 6px;
             font: inherit;
             font-size: 13px;
-            background: var(--wf-surface);
+            background: var(--tariel-surface);
         }
 
         .form-inline input:focus,
         .modal-plano select:focus {
             outline: none;
-            border-color: var(--wf-accent);
+            border-color: var(--tariel-accent);
             box-shadow: 0 0 0 3px rgba(244, 123, 32, .12);
         }
 
@@ -342,7 +342,7 @@
             padding: 9px 14px;
             border: none;
             border-radius: 6px;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             color: #fff;
             font-size: 13px;
             font-weight: 700;
@@ -353,8 +353,8 @@
             padding: 5px 10px;
             border: 1px solid #ffcc80;
             border-radius: 6px;
-            background: var(--wf-warning-bg);
-            color: var(--wf-warning);
+            background: var(--tariel-warning-bg);
+            color: var(--tariel-warning);
             font-size: 12px;
         }
 
@@ -368,16 +368,16 @@
         .form-crea-inline input {
             width: 130px;
             padding: 6px 8px;
-            border: 1px solid var(--wf-border);
+            border: 1px solid var(--tariel-border);
             border-radius: 6px;
             font: inherit;
             font-size: 12px;
-            background: var(--wf-surface);
+            background: var(--tariel-surface);
         }
 
         .form-crea-inline input:focus {
             outline: none;
-            border-color: var(--wf-accent);
+            border-color: var(--tariel-accent);
             box-shadow: 0 0 0 2px rgba(244, 123, 32, .12);
         }
 
@@ -386,7 +386,7 @@
             border: 1px solid rgba(191, 198, 209, .34);
             border-radius: 6px;
             background: rgba(191, 198, 209, .14);
-            color: var(--wf-text);
+            color: var(--tariel-text);
             font-size: 12px;
             font-weight: 700;
             cursor: pointer;
@@ -394,12 +394,12 @@
 
         .estado-vazio-tabela {
             padding: 20px;
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             text-align: center;
         }
 
         .texto-suave {
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 13px;
         }
 
@@ -424,13 +424,13 @@
             max-width: 380px;
             padding: 28px;
             border-radius: 12px;
-            background: var(--wf-surface);
+            background: var(--tariel-surface);
             box-shadow: 0 20px 40px rgba(0, 0, 0, .22);
         }
 
         .modal-plano h3 {
             margin-bottom: 16px;
-            color: var(--wf-text);
+            color: var(--tariel-text);
         }
 
         .modal-actions {
@@ -451,14 +451,14 @@
             padding: 9px 16px;
             border: none;
             border-radius: 6px;
-            background: var(--wf-accent);
+            background: var(--tariel-accent);
             color: #fff;
             font-size: 13px;
             font-weight: 700;
         }
 
         .btn-modal-confirmar:hover {
-            background: var(--wf-accent-dark);
+            background: var(--tariel-accent-dark);
         }
 
         .modal-fechar-x {
@@ -467,14 +467,14 @@
             right: 14px;
             border: none;
             background: none;
-            color: var(--wf-text-soft);
+            color: var(--tariel-text-soft);
             font-size: 20px;
             line-height: 1;
             cursor: pointer;
         }
 
         .modal-fechar-x:hover {
-            color: var(--wf-text);
+            color: var(--tariel-text);
         }
 
         .sr-only {
@@ -510,9 +510,9 @@
 
     <div class="admin-layout">
         <aside class="sidebar" aria-label="Menu administrativo">
-            <div class="logo-area">
-                <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
-                <h2>Tariel Control</h2>
+            <div class="logo-area logo-area--brand">
+                <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
+                <span class="versao-logo">Admin-CEO</span>
             </div>
 
             <nav class="menu-admin" aria-label="Navegação administrativa">
@@ -634,7 +634,7 @@
                 <form method="POST" action="/admin/clientes/{{ empresa.id | int }}/bloquear">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <button type="submit"
-                        class="btn-acao-wf {{ 'btn-unblock' if empresa.status_bloqueio else 'btn-block' }}"
+                        class="btn-acao-tariel {{ 'btn-unblock' if empresa.status_bloqueio else 'btn-block' }}"
                         data-confirmar="{{ 'Deseja desbloquear o acesso desta empresa?' if empresa.status_bloqueio else 'Deseja bloquear o acesso desta empresa? Os usuários não conseguirão entrar.' }}"
                         aria-label="{{ 'Desbloquear acesso da empresa' if empresa.status_bloqueio else 'Bloquear acesso da empresa' }}">
                         <span class="material-symbols-rounded" aria-hidden="true">
@@ -644,7 +644,7 @@
                     </button>
                 </form>
 
-                <button type="button" class="btn-acao-wf btn-plano" id="btn-abrir-modal-plano" aria-haspopup="dialog"
+                <button type="button" class="btn-acao-tariel btn-plano" id="btn-abrir-modal-plano" aria-haspopup="dialog"
                     aria-controls="modal-plano" aria-expanded="false">
                     <span class="material-symbols-rounded" aria-hidden="true">swap_horiz</span>
                     Trocar Plano
@@ -986,3 +986,4 @@
 </body>
 
 </html>
+

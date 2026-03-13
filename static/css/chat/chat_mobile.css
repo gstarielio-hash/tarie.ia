@@ -37,7 +37,7 @@
         max-width: 100%;
     }
 
-    .estatisticas-wf {
+    .estatisticas-tariel {
         max-width: 100%;
         padding: 14px 18px;
     }
@@ -177,7 +177,7 @@
         font-size: 12px;
     }
 
-    .estatisticas-wf {
+    .estatisticas-tariel {
         flex-direction: column;
         gap: 12px;
         padding: 14px 16px;
@@ -656,7 +656,7 @@
         padding: 12px;
     }
 
-    .estatisticas-wf {
+    .estatisticas-tariel {
         padding: 12px;
     }
 
@@ -794,7 +794,7 @@
 @media print {
     .overlay-sidebar,
     .barra-historico,
-    .cabecalho-wf,
+    .cabecalho-tariel,
     .rodape-entrada,
     .indicador-digitando,
     .sidebar-acoes-rodape,
@@ -805,3 +805,4 @@
         display: none !important;
     }
 }
+

@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Sistema WF • Inspeções Industriais{% endblock %}
+{% block title %}Tariel.ia • Inspeções Inteligentes{% endblock %}
 
 {# ============================================================
    HEADER DO CHAT
    ============================================================ #}
 {% block header %}
-<header class="cabecalho-wf">
+<header class="cabecalho-tariel">
     <div class="logo-titulo">
         <button
             type="button"
@@ -22,7 +22,7 @@
         <div class="logo-info">
             <div class="logo-linha">
                 <div class="avatar-ia" aria-hidden="true">TI</div>
-                <h1>Assistente Técnico WF</h1>
+                <h1>Assistente Técnico Tariel.ia</h1>
             </div>
 
             <div class="status-conexao" id="status-conexao" aria-live="polite">
@@ -266,7 +266,7 @@
                 <span class="material-symbols-rounded">manage_accounts</span>
             </div>
 
-            <h2>Central de Inspeções WF</h2>
+            <h2>Central de Inspeções Tariel.ia</h2>
 
             <p>
                 Abra uma nova inspeção por modalidade ou em <strong>Chat Livre</strong>.
@@ -391,7 +391,7 @@
                 </button>
             </div>
 
-            <div class="estatisticas-wf" aria-label="Estatísticas da WF Soluções">
+            <div class="estatisticas-tariel" aria-label="Estatísticas da plataforma Tariel.ia">
                 <div class="stat-item">
                     <span class="stat-valor">+600</span>
                     <span class="stat-label">Empresas Atendidas</span>
@@ -707,7 +707,7 @@
 
         <p class="aviso-rodape">
             Este assistente não substitui laudo técnico com ART.
-            A WF Soluções Industriais garante o sigilo dos dados.
+            A Tariel.ia mantém o sigilo operacional dos dados.
         </p>
     </footer>
 </main>
@@ -739,7 +739,7 @@
 
         <div class="modal-body">
             <p id="modal-descricao">
-                Selecione a modalidade para iniciar o laudo com estrutura WF.
+                Selecione a modalidade para iniciar o laudo com o fluxo guiado da Tariel.ia.
             </p>
 
             <label id="label-template-inspecao" for="select-template-inspecao" class="modal-label">
@@ -798,7 +798,7 @@
                         class="modal-input"
                         type="text"
                         maxlength="120"
-                        placeholder="Ex: Usina Metalúrgica WF - Unidade 02"
+                        placeholder="Ex: Planta Metalúrgica - Unidade 02"
                     >
                 </div>
 
@@ -1045,3 +1045,4 @@
 <script src="/static/js/chat/chat_painel_relatorio.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 <script src="/static/js/chat/chat_painel_index.js?v={{ v_app }}" defer nonce="{{ csp_nonce }}"></script>
 {% endblock %}
+

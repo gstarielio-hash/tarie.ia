@@ -19,7 +19,7 @@
 "use strict";
 
 const VERSAO_APP = "3.0.1";
-const PREFIXO_CACHE = "wf-";
+const PREFIXO_CACHE = "tariel-";
 const CACHE_ESTATICO = `${PREFIXO_CACHE}estatico-v${VERSAO_APP}`;
 const CACHE_DINAMICO = `${PREFIXO_CACHE}dinamico-v${VERSAO_APP}`;
 const CACHE_FONTES = `${PREFIXO_CACHE}fontes-v${VERSAO_APP}`;
@@ -58,7 +58,7 @@ const ROTAS_SEM_CACHE = [
 function log(nivel, ...args) {
     if (EM_PRODUCAO) return;
     const fn = console?.[nivel] || console.log;
-    fn("[WF SW]", ...args);
+    fn("[Tariel SW]", ...args);
 }
 
 // ==========================================
@@ -371,7 +371,7 @@ function _htmlOffline() {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Sem Conexão • Tariel WF</title>
+  <title>Sem Conexão • Tariel.ia</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{
@@ -415,7 +415,7 @@ function _htmlOffline() {
   <div class="card" role="main" aria-labelledby="offline-titulo">
     <div class="icone" aria-hidden="true">📡</div>
     <h1 id="offline-titulo">Sem Conexão</h1>
-    <p>O Tariel WF não conseguiu conectar ao servidor.<br>Verifique sua rede e tente novamente.</p>
+    <p>O Tariel.ia não conseguiu conectar ao servidor.<br>Verifique sua rede e tente novamente.</p>
     <div class="acoes">
       <a href="${ESCOPO_APP}/" aria-label="Tentar reconectar">Tentar Novamente</a>
     </div>
@@ -547,3 +547,4 @@ async function _limparCacheExpirado() {
         log("warn", "Falha ao limpar cache expirado:", e?.message || e);
     }
 }
+

@@ -25,7 +25,7 @@ _NIVEL_DIRETORIA = 99
 
 
 def _emails_diretoria_central() -> list[str]:
-    bruto = os.getenv("EMAILS_DIRETORIA_CENTRAL", "admin@wf.com.br")
+    bruto = os.getenv("EMAILS_DIRETORIA_CENTRAL", "admin@tariel.ia")
     return [item.strip().lower() for item in bruto.split(",") if item.strip()]
 
 

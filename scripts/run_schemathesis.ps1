@@ -49,13 +49,13 @@ try {
             if ($server) {
                 & $pythonExe (Join-Path $root "scripts\seed_schemathesis_data.py") `
                     --database-url $server.DatabaseUrl `
-                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@wf.com.br") `
-                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@wf.com.br")
+                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@tariel.ia") `
+                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@tariel.ia")
             }
             $auth = Get-PortalAuthHeaders `
                 -BaseUrl $BaseUrl `
                 -Portal "inspetor" `
-                -Email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@wf.com.br") `
+                -Email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@tariel.ia") `
                 -Senha ($env:SCHEMA_INSPETOR_SENHA ?? "Dev@123456")
             $headers += @("-H", "Cookie:$($auth.Cookie)")
             $headers += @("-H", "X-CSRF-Token:$($auth.CsrfToken)")
@@ -67,13 +67,13 @@ try {
             if ($server) {
                 & $pythonExe (Join-Path $root "scripts\seed_schemathesis_data.py") `
                     --database-url $server.DatabaseUrl `
-                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@wf.com.br") `
-                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@wf.com.br")
+                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@tariel.ia") `
+                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@tariel.ia")
             }
             $auth = Get-PortalAuthHeaders `
                 -BaseUrl $BaseUrl `
                 -Portal "revisor" `
-                -Email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@wf.com.br") `
+                -Email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@tariel.ia") `
                 -Senha ($env:SCHEMA_REVISOR_SENHA ?? "Dev@123456")
             $headers += @("-H", "Cookie:$($auth.Cookie)")
             $headers += @("-H", "X-CSRF-Token:$($auth.CsrfToken)")
@@ -85,8 +85,8 @@ try {
             $auth = Get-PortalAuthHeaders `
                 -BaseUrl $BaseUrl `
                 -Portal "admin" `
-                -Email ($env:SCHEMA_ADMIN_EMAIL ?? "admin@wf.com.br") `
-                -Senha ($env:SCHEMA_ADMIN_SENHA ?? "Admin@123")
+                -Email ($env:SCHEMA_ADMIN_EMAIL ?? "admin@tariel.ia") `
+                -Senha ($env:SCHEMA_ADMIN_SENHA ?? "Dev@123456")
             $headers += @("-H", "Cookie:$($auth.Cookie)")
             $headers += @("-H", "X-CSRF-Token:$($auth.CsrfToken)")
         }
@@ -97,13 +97,13 @@ try {
             if ($server) {
                 & $pythonExe (Join-Path $root "scripts\seed_schemathesis_data.py") `
                     --database-url $server.DatabaseUrl `
-                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@wf.com.br") `
-                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@wf.com.br")
+                    --inspetor-email ($env:SCHEMA_INSPETOR_EMAIL ?? "inspetor@tariel.ia") `
+                    --revisor-email ($env:SCHEMA_REVISOR_EMAIL ?? "revisor@tariel.ia")
             }
             $auth = Get-PortalAuthHeaders `
                 -BaseUrl $BaseUrl `
                 -Portal "cliente" `
-                -Email ($env:SCHEMA_CLIENTE_EMAIL ?? "cliente@wf.com.br") `
+                -Email ($env:SCHEMA_CLIENTE_EMAIL ?? "cliente@tariel.ia") `
                 -Senha ($env:SCHEMA_CLIENTE_SENHA ?? "Dev@123456")
             $headers += @("-H", "Cookie:$($auth.Cookie)")
             $headers += @("-H", "X-CSRF-Token:$($auth.CsrfToken)")

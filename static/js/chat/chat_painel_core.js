@@ -1,5 +1,5 @@
 // ==========================================
-// TARIEL CONTROL TOWER — CHAT_PAINEL_CORE.JS
+// TARIEL.IA — CHAT_PAINEL_CORE.JS
 // Papel: núcleo compartilhado do chat.
 // Responsável por:
 // - namespace global do painel
@@ -27,7 +27,7 @@
     const CONFIG = {
         EM_PRODUCAO,
         CSRF_TOKEN: document.querySelector('meta[name="csrf-token"]')?.content ?? "",
-        KEY_LAUDO_ATUAL: "wf_laudo_atual",
+        KEY_LAUDO_ATUAL: "tariel_laudo_atual",
         ATALHO_MESA_AVALIADORA: "@insp ",
         BOOT_RETRIES_MAX: 40,
         BOOT_RETRY_MS: 100,
@@ -127,19 +127,19 @@
 
     function obterNomeUsuario() {
         return (
-            window.WF?.usuario ||
+            window.TARIEL?.usuario ||
             qs("#nome-usuario")?.textContent?.trim() ||
             document.body.dataset.nomeUsuario ||
-            "Inspetor WF"
+            "Inspetor"
         );
     }
 
     function obterNomeEmpresa() {
         return (
-            window.WF?.empresa ||
+            window.TARIEL?.empresa ||
             qs(".info-usuario")?.textContent?.trim() ||
             document.body.dataset.nomeEmpresa ||
-            "WF Soluções"
+            "Sua empresa"
         );
     }
 

@@ -135,11 +135,11 @@ def test_e2e_local_jornada_intensa_completa(
     base_url = os.getenv("E2E_BASE_URL", "").strip().rstrip("/") or live_server_url.rstrip("/")
     rodadas = _env_int("STRESS_LAUDOS_ROUNDS", 16, 8, 80)
 
-    inspetor_email = os.getenv("STRESS_INSPETOR_EMAIL", "stress.inspetor@wf.local").strip()
+    inspetor_email = os.getenv("STRESS_INSPETOR_EMAIL", "stress.inspetor@tariel.local").strip()
     inspetor_senha = os.getenv("STRESS_INSPETOR_SENHA", "Stress@123456").strip()
-    revisor_email = os.getenv("STRESS_REVISOR_EMAIL", "stress.revisor@wf.local").strip()
+    revisor_email = os.getenv("STRESS_REVISOR_EMAIL", "stress.revisor@tariel.local").strip()
     revisor_senha = os.getenv("STRESS_REVISOR_SENHA", "Stress@123456").strip()
-    admin_email = os.getenv("STRESS_ADMIN_EMAIL", "stress.admin@wf.local").strip()
+    admin_email = os.getenv("STRESS_ADMIN_EMAIL", "stress.admin@tariel.local").strip()
     admin_senha = os.getenv("STRESS_ADMIN_SENHA", "Stress@123456").strip()
 
     templates = ("padrao", "nr12maquinas", "nr13", "rti")
@@ -434,3 +434,4 @@ def test_e2e_local_jornada_intensa_completa(
         contexto_inspetor.close()
         contexto_revisor.close()
         contexto_admin.close()
+

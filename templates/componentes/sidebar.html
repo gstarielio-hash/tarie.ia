@@ -60,7 +60,7 @@
 {% set laudos_nao_pinados = laudos | rejectattr('pinado') | list %}
 
 {% set usuario_nome = (usuario.nome_completo if usuario else 'Usuário') %}
-{% set empresa_nome = (usuario.empresa.nome_fantasia if usuario and usuario.empresa else 'WF Soluções') %}
+{% set empresa_nome = (usuario.empresa.nome_fantasia if usuario and usuario.empresa else 'Sua empresa') %}
 {% set usuario_email = (usuario.email if usuario else '') %}
 {% set usuario_telefone = (usuario.telefone if usuario and usuario.telefone else '') %}
 {% set usuario_foto_url = (usuario.foto_perfil_url if usuario and usuario.foto_perfil_url else '') %}

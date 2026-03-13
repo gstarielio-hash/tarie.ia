@@ -409,6 +409,35 @@ def test_manifesto_aponta_para_icones_existentes_e_sem_marca_legada() -> None:
         assert caminho.exists(), f"Icone ausente no manifesto: {icone['src']}"
 
 
+def test_portais_principais_referenciam_logo_horizontal_da_marca() -> None:
+    raiz = Path(__file__).resolve().parents[1]
+    logo_dark = raiz / "static" / "img" / "logo-horizontal-dark.png"
+    logo_light = raiz / "static" / "img" / "logo-horizontal-light.png"
+
+    assert logo_dark.exists()
+    assert logo_light.exists()
+
+    login_admin = (raiz / "templates" / "login.html").read_text(encoding="utf-8")
+    login_cliente = (raiz / "templates" / "login_cliente.html").read_text(encoding="utf-8")
+    login_app = (raiz / "templates" / "login_app.html").read_text(encoding="utf-8")
+    login_revisor = (raiz / "templates" / "login_revisor.html").read_text(encoding="utf-8")
+    trocar_senha = (raiz / "templates" / "trocar_senha.html").read_text(encoding="utf-8")
+    portal_cliente = (raiz / "templates" / "cliente_portal.html").read_text(encoding="utf-8")
+    dashboard = (raiz / "templates" / "dashboard.html").read_text(encoding="utf-8")
+    clientes = (raiz / "templates" / "clientes.html").read_text(encoding="utf-8")
+    detalhe = (raiz / "templates" / "cliente_detalhe.html").read_text(encoding="utf-8")
+
+    assert '/static/img/logo-horizontal-dark.png' in login_admin
+    assert '/static/img/logo-horizontal-dark.png' in login_cliente
+    assert '/static/img/logo-horizontal-dark.png' in login_app
+    assert '/static/img/logo-horizontal-dark.png' in login_revisor
+    assert '/static/img/logo-horizontal-dark.png' in trocar_senha
+    assert '/static/img/logo-horizontal-dark.png' in portal_cliente
+    assert '/static/img/logo-horizontal-dark.png' in dashboard
+    assert '/static/img/logo-horizontal-dark.png' in clientes
+    assert '/static/img/logo-horizontal-dark.png' in detalhe
+
+
 def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None:
     raiz = Path(__file__).resolve().parents[1]
     login_admin = (raiz / "templates" / "login.html").read_text(encoding="utf-8")
@@ -423,7 +452,7 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     security = (raiz / "app" / "shared" / "security.py").read_text(encoding="utf-8")
 
     assert "Portal Admin-CEO" in login_admin
-    assert "Admin-CEO da Tariel Control" in login_admin
+    assert "Admin-CEO da Tariel.ia" in login_admin
     assert "Portal Admin-Cliente" in login_cliente
     assert "Admin-CEO" in login_cliente
     assert "Portal do Inspetor" in login_app

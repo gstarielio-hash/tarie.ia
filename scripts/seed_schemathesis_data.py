@@ -330,8 +330,8 @@ def _garantir_asset_template_seed(*, template: TemplateLaudo) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Semeia dados válidos para Schemathesis.")
     parser.add_argument("--database-url", required=True)
-    parser.add_argument("--inspetor-email", default="inspetor@wf.com.br")
-    parser.add_argument("--revisor-email", default="revisor@wf.com.br")
+    parser.add_argument("--inspetor-email", default="inspetor@tariel.ia")
+    parser.add_argument("--revisor-email", default="revisor@tariel.ia")
     args = parser.parse_args()
 
     engine = create_engine(args.database_url, future=True)

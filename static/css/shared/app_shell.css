@@ -76,7 +76,7 @@
 
 .toast-sw__btn--primary {
     padding: 6px 12px;
-    background: var(--accent-wf, #D67A32);
+    background: var(--accent-tariel, #D67A32);
     color: #fff;
     font-size: 13px;
     font-weight: 600;
@@ -384,3 +384,5 @@ body.pagina-chat-mesa .btn-toggle-ui .material-symbols-rounded {
         display: none !important;
     }
 }
+
+

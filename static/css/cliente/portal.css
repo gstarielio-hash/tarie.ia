@@ -95,6 +95,19 @@ a {
     pointer-events: none;
 }
 
+.hero-brand {
+    display: inline-flex;
+    align-items: center;
+    width: min(236px, 100%);
+    margin-bottom: 16px;
+}
+
+.hero-brand img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
 .hero-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -1337,6 +1350,11 @@ tr.user-row-highlight .user-name {
 @media (max-width: 760px) {
     .cliente-shell {
         padding: 14px;
+    }
+
+    .hero-brand {
+        width: min(208px, 100%);
+        margin-bottom: 14px;
     }
 
     .hero-card,
