@@ -82,11 +82,42 @@
                         <input type="checkbox" name="lembrar" value="true">
                         Manter conectado neste dispositivo
                     </label>
-                    <span>Use a conta administrativa da empresa.</span>
+                    <button class="auth-helper-link" type="button" data-auth-message="A recuperação de senha do Admin-Cliente entra na próxima etapa. Por enquanto, solicite a redefinição ao Admin-CEO ou ao responsável técnico da implantação.">Esqueceu a senha?</button>
                 </div>
 
                 <button class="auth-button" type="submit">Entrar no Portal Admin-Cliente</button>
             </form>
+
+            <div class="auth-separator"><span>ou</span></div>
+
+            <div class="auth-provider-group">
+                <p class="auth-provider-title">Entrar com</p>
+                <div class="auth-provider-actions">
+                    <button class="auth-provider-button" type="button" data-auth-message="O login com Google será integrado ao fluxo do Admin-Cliente na próxima etapa. Por enquanto, use e-mail e senha da empresa.">
+                        <span class="auth-provider-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img">
+                                <path fill="#EA4335" d="M12 10.2v3.95h5.49c-.24 1.27-.96 2.35-2.04 3.08l3.3 2.56c1.92-1.76 3.03-4.35 3.03-7.42 0-.73-.07-1.44-.2-2.12z"/>
+                                <path fill="#34A853" d="M12 22c2.92 0 5.37-.96 7.16-2.61l-3.3-2.56c-.92.61-2.09.98-3.86.98-2.97 0-5.48-2-6.38-4.69l-3.41 2.63C4 19.36 7.69 22 12 22z"/>
+                                <path fill="#4A90E2" d="M5.62 13.12A6.98 6.98 0 0 1 5.26 11c0-.73.13-1.43.36-2.12L2.21 6.25A11.02 11.02 0 0 0 1 11c0 1.76.42 3.43 1.21 4.75z"/>
+                                <path fill="#FBBC05" d="M12 4.19c1.59 0 3.01.55 4.13 1.63l3.09-3.09C17.36 1 14.92 0 12 0 7.69 0 4 2.64 2.21 6.25l3.41 2.63c.9-2.69 3.41-4.69 6.38-4.69z"/>
+                            </svg>
+                        </span>
+                        Continuar com Google
+                    </button>
+                    <button class="auth-provider-button" type="button" data-auth-message="O login com Microsoft será integrado ao fluxo do Admin-Cliente na próxima etapa. Por enquanto, use e-mail e senha da empresa.">
+                        <span class="auth-provider-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" role="img">
+                                <rect x="2" y="2" width="9" height="9" fill="#F25022"/>
+                                <rect x="13" y="2" width="9" height="9" fill="#7FBA00"/>
+                                <rect x="2" y="13" width="9" height="9" fill="#00A4EF"/>
+                                <rect x="13" y="13" width="9" height="9" fill="#FFB900"/>
+                            </svg>
+                        </span>
+                        Continuar com Microsoft
+                    </button>
+                </div>
+                <p class="auth-social-note" data-auth-feedback hidden></p>
+            </div>
 
             <div class="auth-links">
                 <a href="/admin/login">Admin-CEO</a>
@@ -124,6 +155,15 @@
                     if (!botao) return;
                     botao.disabled = true;
                     botao.innerHTML = "<span>Entrando...</span>";
+                });
+            });
+
+            const feedback = document.querySelector("[data-auth-feedback]");
+            document.querySelectorAll("[data-auth-message]").forEach((botao) => {
+                botao.addEventListener("click", () => {
+                    if (!feedback) return;
+                    feedback.textContent = botao.getAttribute("data-auth-message") || "";
+                    feedback.hidden = !feedback.textContent;
                 });
             });
         })();
