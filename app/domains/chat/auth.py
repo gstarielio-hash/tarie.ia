@@ -57,6 +57,7 @@ from app.shared.security import (
     encerrar_sessao,
     limpar_sessao_portal,
     obter_dados_sessao_portal,
+    obter_token_autenticacao_request,
     obter_usuario_html,
     token_esta_ativo,
     exigir_inspetor,
@@ -89,6 +90,14 @@ class DadosAtualizarPerfilUsuario(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
 
+class DadosLoginMobileInspetor(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    senha: str = Field(..., min_length=1, max_length=128)
+    lembrar: bool = Field(default=True)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
 def _normalizar_telefone(telefone: str) -> str:
     valor = str(telefone or "").strip()
     if not valor:
@@ -111,6 +120,20 @@ def _serializar_perfil_usuario(usuario: Usuario) -> dict[str, str]:
             getattr(getattr(usuario, "empresa", None), "nome_fantasia", "")
             or "Sua empresa"
         ).strip(),
+    }
+
+
+def _serializar_usuario_mobile(usuario: Usuario) -> dict[str, object]:
+    perfil = _serializar_perfil_usuario(usuario)
+    return {
+        "id": int(usuario.id),
+        "nome_completo": perfil["nome_completo"],
+        "email": perfil["email"],
+        "telefone": perfil["telefone"],
+        "foto_perfil_url": perfil["foto_perfil_url"],
+        "empresa_nome": perfil["empresa_nome"],
+        "empresa_id": int(usuario.empresa_id or 0),
+        "nivel_acesso": int(usuario.nivel_acesso),
     }
 
 
@@ -321,6 +344,90 @@ async def processar_login_app(
     logger.info("Login inspetor | usuario_id=%s | email=%s", usuario.id, email_normalizado)
 
     return RedirectResponse(url="/app/", status_code=303)
+
+
+async def api_login_mobile_inspetor(
+    request: Request,
+    payload: DadosLoginMobileInspetor,
+    banco: Session = Depends(obter_banco),
+):
+    email_normalizado = normalizar_email(payload.email)
+    senha = str(payload.senha or "")
+
+    if not email_normalizado or not senha:
+        raise HTTPException(status_code=400, detail="Preencha e-mail e senha.")
+
+    usuario = banco.scalar(select(Usuario).where(Usuario.email == email_normalizado))
+    if not usuario or not verificar_senha(senha, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas.")
+
+    if int(usuario.nivel_acesso) not in NIVEIS_PERMITIDOS_APP:
+        raise HTTPException(status_code=403, detail="Acesso permitido apenas para Inspetores.")
+
+    if usuario.senha_temporaria_ativa:
+        raise HTTPException(
+            status_code=409,
+            detail="Finalize a troca obrigatória de senha no portal web antes do primeiro login mobile.",
+        )
+
+    if usuario_tem_bloqueio_ativo(usuario):
+        raise HTTPException(status_code=403, detail="Usuário bloqueado no momento.")
+
+    token = criar_sessao(
+        usuario.id,
+        lembrar=bool(payload.lembrar),
+        ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", ""),
+    )
+
+    if hasattr(usuario, "registrar_login_sucesso"):
+        usuario.registrar_login_sucesso(ip=request.client.host if request.client else None)
+    banco.commit()
+    banco.refresh(usuario)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "auth_mode": "bearer",
+            "access_token": token,
+            "token_type": "bearer",
+            "usuario": _serializar_usuario_mobile(usuario),
+        }
+    )
+
+
+async def api_bootstrap_mobile_inspetor(
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    return JSONResponse(
+        {
+            "ok": True,
+            "app": {
+                "nome": "Tariel Inspetor",
+                "portal": "inspetor",
+                "api_base_url": str(request.base_url).rstrip("/"),
+                "suporte_whatsapp": PADRAO_SUPORTE_WHATSAPP,
+            },
+            "usuario": _serializar_usuario_mobile(usuario),
+        }
+    )
+
+
+async def api_logout_mobile_inspetor(
+    request: Request,
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    token = obter_token_autenticacao_request(request)
+    if token:
+        encerrar_sessao(token)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "usuario_id": int(usuario.id),
+        }
+    )
 
 
 async def logout_inspetor(
@@ -591,6 +698,21 @@ roteador_auth.add_api_route(
         415: {"description": "Formato de imagem não suportado."},
     },
 )
+roteador_auth.add_api_route(
+    "/api/mobile/auth/login",
+    api_login_mobile_inspetor,
+    methods=["POST"],
+)
+roteador_auth.add_api_route(
+    "/api/mobile/bootstrap",
+    api_bootstrap_mobile_inspetor,
+    methods=["GET"],
+)
+roteador_auth.add_api_route(
+    "/api/mobile/auth/logout",
+    api_logout_mobile_inspetor,
+    methods=["POST"],
+)
 
 __all__ = [
     "roteador_auth",
@@ -601,6 +723,9 @@ __all__ = [
     "logout_inspetor",
     "pagina_inicial",
     "pagina_planos",
+    "api_login_mobile_inspetor",
+    "api_bootstrap_mobile_inspetor",
+    "api_logout_mobile_inspetor",
     "api_obter_perfil_usuario",
     "api_atualizar_perfil_usuario",
     "api_upload_foto_perfil_usuario",

@@ -1,0 +1,12 @@
+Starting project at C:\Users\gabri\Desktop\Tariel\Tariel Control\android
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+› Opening exp://192.168.18.31:8082 on Pixel_7a
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Android .\index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Android .\index.ts ▓░░░░░░░░░░░░░░░ 12.2% ( 41/193)
+Android .\index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 84.3% (595/648)
+Android Bundled 10234ms index.ts (782 modules)
+ WARN  SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context

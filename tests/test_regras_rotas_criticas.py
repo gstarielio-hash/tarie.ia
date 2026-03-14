@@ -402,6 +402,51 @@ def test_sessao_inspetor_nao_vaza_para_portal_admin(ambiente_critico) -> None:
     assert resposta_admin.headers["location"] == "/admin/login"
 
 
+def test_login_mobile_inspetor_retorna_token_e_bootstrap_funciona(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+
+    resposta_login = client.post(
+        "/app/api/mobile/auth/login",
+        json={
+            "email": "inspetor@empresa-a.test",
+            "senha": SENHA_PADRAO,
+            "lembrar": True,
+        },
+    )
+
+    assert resposta_login.status_code == 200
+    corpo_login = resposta_login.json()
+    assert corpo_login["auth_mode"] == "bearer"
+    assert corpo_login["token_type"] == "bearer"
+    assert corpo_login["usuario"]["email"] == "inspetor@empresa-a.test"
+
+    headers = {"Authorization": f"Bearer {corpo_login['access_token']}"}
+
+    resposta_bootstrap = client.get("/app/api/mobile/bootstrap", headers=headers)
+    assert resposta_bootstrap.status_code == 200
+    corpo_bootstrap = resposta_bootstrap.json()
+    assert corpo_bootstrap["app"]["portal"] == "inspetor"
+    assert corpo_bootstrap["usuario"]["empresa_nome"] == "Empresa A"
+
+    resposta_perfil = client.put(
+        "/app/api/perfil",
+        headers=headers,
+        json={
+            "nome_completo": "Inspetor Mobile A",
+            "email": "inspetor@empresa-a.test",
+            "telefone": "(11) 99999-0000",
+        },
+    )
+    assert resposta_perfil.status_code == 200
+    assert resposta_perfil.json()["perfil"]["nome_completo"] == "Inspetor Mobile A"
+
+    resposta_logout = client.post("/app/api/mobile/auth/logout", headers=headers)
+    assert resposta_logout.status_code == 200
+
+    resposta_bootstrap_expirado = client.get("/app/api/mobile/bootstrap", headers=headers)
+    assert resposta_bootstrap_expirado.status_code == 401
+
+
 def test_sessao_revisor_nao_vaza_para_portal_admin(ambiente_critico) -> None:
     client = ambiente_critico["client"]
 

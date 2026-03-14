@@ -17,6 +17,7 @@ from app.domains.chat.laudo_state_helpers import (
     obter_status_card_laudo,
 )
 from app.domains.chat.normalization import TIPOS_TEMPLATE_VALIDOS
+from app.shared.security import obter_token_bearer_request, token_esta_ativo
 from app.shared.database import Laudo, Usuario
 
 CHAVE_CSRF_INSPETOR = "csrf_token_inspetor"
@@ -48,6 +49,10 @@ def contexto_base(request: Request) -> dict[str, Any]:
 
 
 def validar_csrf(request: Request, token_form: str = "") -> bool:
+    token_bearer = obter_token_bearer_request(request)
+    if token_bearer:
+        return token_esta_ativo(token_bearer)
+
     token_sessao = request.session.get(CHAVE_CSRF_INSPETOR) or request.session.get("csrf_token", "")
     if not token_sessao:
         return False

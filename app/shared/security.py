@@ -334,6 +334,22 @@ def portal_por_caminho(caminho: str | None) -> str | None:
     return None
 
 
+def obter_token_bearer_request(request: Request | None) -> str | None:
+    if request is None:
+        return None
+
+    cabecalho = str(request.headers.get("authorization", "") or "").strip()
+    if not cabecalho:
+        return None
+
+    esquema, _, token = cabecalho.partition(" ")
+    if esquema.strip().lower() != "bearer":
+        return None
+
+    token_normalizado = token.strip()
+    return token_normalizado or None
+
+
 def _chaves_sessao_do_portal(portal: str | None) -> dict[str, str] | None:
     portal_normalizado = normalizar_portal_sessao(portal)
     if not portal_normalizado:
@@ -792,13 +808,27 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
         _limpar_sessoes_expiradas()
 
     portal_atual = portal_por_caminho(request.url.path)
-    dados_sessao = obter_dados_sessao_portal(
-        request.session,
-        portal=portal_atual,
-        caminho=request.url.path,
-    )
+    token_bearer = obter_token_bearer_request(request)
+    autenticacao_bearer = bool(token_bearer)
+    dados_sessao = {
+        "portal": portal_atual,
+        "token": None,
+        "usuario_id": None,
+        "empresa_id": None,
+        "nivel_acesso": None,
+        "nome": None,
+    }
 
-    token = dados_sessao.get("token")
+    if autenticacao_bearer:
+        token = token_bearer
+    else:
+        dados_sessao = obter_dados_sessao_portal(
+            request.session,
+            portal=portal_atual,
+            caminho=request.url.path,
+        )
+        token = dados_sessao.get("token")
+
     ip = _normalizar_ip(request) or "desconhecido"
 
     if not token:
@@ -806,7 +836,8 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if not token_esta_ativo(token):
         logger.warning("Token inativo ou expirado | ip=%s", ip)
-        _limpar_chaves_sessao_request(request, portal=portal_atual)
+        if not autenticacao_bearer:
+            _limpar_chaves_sessao_request(request, portal=portal_atual)
         return None
 
     with _lock_sessoes:
@@ -828,13 +859,15 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
             ip,
         )
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request, portal=portal_atual)
+        if not autenticacao_bearer:
+            _limpar_chaves_sessao_request(request, portal=portal_atual)
         return None
 
     usuario = banco.get(Usuario, usuario_id)
     if not usuario:
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request, portal=portal_atual)
+        if not autenticacao_bearer:
+            _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Usuário inexistente com sessão ativa | usuario_id=%s | ip=%s",
             usuario_id,
@@ -844,7 +877,8 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if usuario_tem_bloqueio_ativo(usuario):
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request, portal=portal_atual)
+        if not autenticacao_bearer:
+            _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Acesso negado — bloqueio ativo | usuario_id=%s | ip=%s",
             usuario.id,
@@ -854,7 +888,8 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     if meta and not _contexto_sessao_confere(meta, request):
         encerrar_sessao(token)
-        _limpar_chaves_sessao_request(request, portal=portal_atual)
+        if not autenticacao_bearer:
+            _limpar_chaves_sessao_request(request, portal=portal_atual)
         logger.warning(
             "Sessão invalidada por divergência de contexto | usuario_id=%s | ip=%s",
             usuario.id,
@@ -866,10 +901,31 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
     try:
         request.state.usuario_autenticado = usuario
+        request.state.token_autenticado = token
+        request.state.autenticacao_bearer = autenticacao_bearer
     except Exception:
         pass
 
     return usuario
+
+
+def obter_token_autenticacao_request(request: Request) -> str | None:
+    token = str(getattr(request.state, "token_autenticado", "") or "").strip()
+    if token:
+        return token
+
+    token_bearer = obter_token_bearer_request(request)
+    if token_bearer:
+        return token_bearer
+
+    portal_atual = portal_por_caminho(request.url.path)
+    dados_sessao = obter_dados_sessao_portal(
+        request.session,
+        portal=portal_atual,
+        caminho=request.url.path,
+    )
+    token_sessao = str(dados_sessao.get("token") or "").strip()
+    return token_sessao or None
 
 
 # =========================================================

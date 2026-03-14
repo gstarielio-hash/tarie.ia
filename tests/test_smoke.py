@@ -290,6 +290,34 @@ def test_openapi_do_inspetor_endurece_chat_e_perfil() -> None:
     assert "text/event-stream" in op_sse["responses"]["200"]["content"]
 
 
+def test_openapi_expoe_endpoints_mobile_do_inspetor() -> None:
+    with TestClient(main.app) as cliente:
+        schema = cliente.get("/openapi.json").json()
+
+    paths = schema["paths"]
+    assert "/app/api/mobile/auth/login" in paths
+    assert "/app/api/mobile/bootstrap" in paths
+    assert "/app/api/mobile/auth/logout" in paths
+    assert "requestBody" in paths["/app/api/mobile/auth/login"]["post"]
+
+
+def test_base_mobile_do_inspetor_foi_isolada_em_android() -> None:
+    raiz = Path(__file__).resolve().parents[1]
+    package_mobile = json.loads((raiz / "android" / "package.json").read_text(encoding="utf-8"))
+    app_mobile = json.loads((raiz / "android" / "app.json").read_text(encoding="utf-8"))
+    readme_mobile = (raiz / "android" / "README.md").read_text(encoding="utf-8")
+    env_mobile = (raiz / "android" / ".env.example").read_text(encoding="utf-8")
+
+    assert package_mobile["name"] == "tariel-inspetor-mobile"
+    assert package_mobile["scripts"]["typecheck"] == "tsc --noEmit"
+    assert app_mobile["expo"]["name"] == "Tariel Inspetor"
+    assert app_mobile["expo"]["slug"] == "tariel-inspetor"
+    assert app_mobile["expo"]["android"]["package"] == "com.tarielia.inspetor"
+    assert (raiz / "android" / "src" / "features" / "InspectorMobileApp.tsx").exists()
+    assert "login mobile do inspetor via token bearer" in readme_mobile
+    assert "EXPO_PUBLIC_API_BASE_URL=" in env_mobile
+
+
 def test_openapi_do_revisor_endurece_templates_laudo_para_schemathesis(monkeypatch) -> None:
     monkeypatch.setenv("SCHEMATHESIS_TEST_HINTS", "1")
     main.app.openapi_schema = None

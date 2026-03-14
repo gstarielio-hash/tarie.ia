@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Tariel Inspetor",
+    "slug": "tariel-inspetor",
+    "version": "1.0.0",
+    "scheme": "tarielinspetor",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#091019"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tarielia.inspetor"
+    },
+    "android": {
+      "package": "com.tarielia.inspetor",
+      "adaptiveIcon": {
+        "backgroundColor": "#091019",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://tarie-ia.onrender.com"
+    }
+  }
+}
