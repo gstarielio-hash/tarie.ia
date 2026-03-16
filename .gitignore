@@ -40,3 +40,6 @@ locust-report_*.html
 .hypothesis/
 review-*.png
 fotos/
+local-mobile-api.log
+android/expo-mobile.log
+android/assets/*preview*.png
