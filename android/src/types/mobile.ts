@@ -36,6 +36,11 @@ export interface MobileBootstrapResponse {
   usuario: MobileUser;
 }
 
+export interface MobileLaudoListResponse {
+  ok: boolean;
+  itens: MobileLaudoCard[];
+}
+
 export interface MobileLaudoCard {
   id: number;
   titulo: string;
@@ -53,6 +58,19 @@ export interface MobileLaudoCard {
   possui_historico: boolean;
 }
 
+export interface MobileAttachment {
+  id?: number;
+  nome?: string;
+  nome_original?: string;
+  nome_arquivo?: string;
+  label?: string;
+  mime_type?: string;
+  categoria?: string;
+  tamanho_bytes?: number;
+  eh_imagem?: boolean;
+  url?: string;
+}
+
 export interface MobileChatMessage {
   id: number | null;
   papel: "usuario" | "assistente" | "engenheiro";
@@ -62,7 +80,7 @@ export interface MobileChatMessage {
   is_whisper?: boolean;
   remetente_id?: number | null;
   referencia_mensagem_id?: number | null;
-  anexos?: Array<Record<string, unknown>>;
+  anexos?: MobileAttachment[];
   citacoes?: Array<Record<string, unknown>>;
   confianca_ia?: Record<string, unknown>;
 }
@@ -83,9 +101,42 @@ export interface MobileLaudoMensagensResponse extends MobileLaudoStatusResponse 
   limite: number;
 }
 
+export interface MobileMesaMessage {
+  id: number;
+  laudo_id: number;
+  tipo: string;
+  texto: string;
+  remetente_id: number | null;
+  data: string;
+  lida: boolean;
+  resolvida_em: string;
+  resolvida_em_label: string;
+  resolvida_por_nome: string;
+  referencia_mensagem_id?: number | null;
+  anexos?: MobileAttachment[];
+}
+
+export interface MobileMesaMensagensResponse extends MobileLaudoStatusResponse {
+  itens: MobileMesaMessage[];
+  cursor_proximo: number | null;
+  tem_mais: boolean;
+}
+
+export interface MobileMesaSendResponse extends MobileLaudoStatusResponse {
+  laudo_id: number;
+  mensagem: MobileMesaMessage;
+}
+
 export interface MobileChatSendResult {
   laudoId: number | null;
   laudoCard: MobileLaudoCard | null;
   assistantText: string;
   events: Record<string, unknown>[];
+}
+
+export interface MobileDocumentUploadResponse {
+  texto: string;
+  chars: number;
+  nome: string;
+  truncado: boolean;
 }

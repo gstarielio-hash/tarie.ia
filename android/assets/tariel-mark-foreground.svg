@@ -1,0 +1,24 @@
+<svg width="432" height="432" viewBox="0 0 432 432" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="432" height="432" fill="none"/>
+
+  <path
+    d="M68 118L364 118L323 159L224 159L224 309L161 262L161 159L121 159L68 118Z"
+    fill="#FF6B2C"
+  />
+
+  <path
+    d="M161 223L224 270L224 333L161 286V223Z"
+    fill="#31394E"
+    opacity="0.88"
+  />
+
+  <path
+    d="M221 162H347V229L234 342L221 331V162Z"
+    fill="#F1EAD8"
+  />
+
+  <path
+    d="M260 211H296V228L236 289L198 251L260 211Z"
+    fill="#202635"
+  />
+</svg>

@@ -297,6 +297,7 @@ def test_openapi_expoe_endpoints_mobile_do_inspetor() -> None:
     paths = schema["paths"]
     assert "/app/api/mobile/auth/login" in paths
     assert "/app/api/mobile/bootstrap" in paths
+    assert "/app/api/mobile/laudos" in paths
     assert "/app/api/mobile/auth/logout" in paths
     assert "requestBody" in paths["/app/api/mobile/auth/login"]["post"]
 
@@ -310,11 +311,36 @@ def test_base_mobile_do_inspetor_foi_isolada_em_android() -> None:
 
     assert package_mobile["name"] == "tariel-inspetor-mobile"
     assert package_mobile["scripts"]["typecheck"] == "tsc --noEmit"
+    assert "expo-image-picker" in package_mobile["dependencies"]
+    assert "expo-document-picker" in package_mobile["dependencies"]
     assert app_mobile["expo"]["name"] == "Tariel Inspetor"
     assert app_mobile["expo"]["slug"] == "tariel-inspetor"
     assert app_mobile["expo"]["android"]["package"] == "com.tarielia.inspetor"
+    assert "expo-document-picker" in app_mobile["expo"]["plugins"]
+    assert any(
+        isinstance(item, list) and item[0] == "expo-image-picker"
+        for item in app_mobile["expo"]["plugins"]
+    )
     assert (raiz / "android" / "src" / "features" / "InspectorMobileApp.tsx").exists()
     assert "login mobile do inspetor via token bearer" in readme_mobile
+    assert "home mobile mais estruturada, com cards rápidos de contexto para fluxo, conexão, laudos e fila local" in readme_mobile
+    assert "pós-login refinado com chips de contexto, seção de laudos mais legível e composer com hierarquia visual própria" in readme_mobile
+    assert "camera, imagem e documento direto no composer do chat" in readme_mobile
+    assert "lista compacta de laudos recentes com troca rápida no header" in readme_mobile
+    assert "preview e abertura autenticada de anexos no chat e na mesa" in readme_mobile
+    assert "fila local offline para segurar texto, imagem e documento sem perder o fluxo" in readme_mobile
+    assert "retomada de pendências offline direto no composer do chat ou da mesa" in readme_mobile
+    assert "painel completo da fila offline para revisar, retomar e limpar pendências em campo" in readme_mobile
+    assert "reenvio individual de cada pendência offline quando a conexão voltar" in readme_mobile
+    assert "filtros e diagnóstico rápido da fila offline para separar Chat/Mesa e identificar falhas de reenvio" in readme_mobile
+    assert "backoff automático por pendência para evitar reenvio agressivo quando a rede volta instável" in readme_mobile
+    assert "priorização visual da fila offline para destacar falhas e envios prontos primeiro" in readme_mobile
+    assert "central de atividade do inspetor com badge, feed persistido e monitoramento leve da mesa/status" in readme_mobile
+    assert "cache de leitura offline para reabrir bootstrap, laudos, chat e mesa sem derrubar a sessão" in readme_mobile
+    assert "rascunhos persistidos por laudo no chat e na mesa para retomar de onde parou" in readme_mobile
+    assert "rascunhos persistidos de imagem e documento para não perder anexos preparados" in readme_mobile
+    assert "expo-file-system" in package_mobile["dependencies"]
+    assert "expo-sharing" in package_mobile["dependencies"]
     assert "EXPO_PUBLIC_API_BASE_URL=" in env_mobile
 
 

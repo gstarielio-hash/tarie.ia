@@ -2,9 +2,13 @@ import type {
   MobileBootstrapResponse,
   MobileChatMessage,
   MobileChatSendResult,
+  MobileDocumentUploadResponse,
+  MobileLaudoListResponse,
   MobileLaudoMensagensResponse,
   MobileLaudoStatusResponse,
   MobileLoginResponse,
+  MobileMesaMensagensResponse,
+  MobileMesaSendResponse,
 } from "../types/mobile";
 
 const DEFAULT_API_BASE_URL = "https://tarie-ia.onrender.com";
@@ -14,6 +18,20 @@ export const API_BASE_URL = String(
 )
   .trim()
   .replace(/\/+$/, "");
+
+function inferirMimeType(nomeArquivo: string): string {
+  const nome = String(nomeArquivo || "").trim().toLowerCase();
+  if (nome.endsWith(".pdf")) {
+    return "application/pdf";
+  }
+  if (nome.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  if (nome.endsWith(".doc")) {
+    return "application/msword";
+  }
+  return "application/octet-stream";
+}
 
 function construirHeaders(accessToken?: string, extra?: HeadersInit): Headers {
   const headers = new Headers(extra || {});
@@ -39,7 +57,11 @@ async function lerJsonSeguro<T>(response: Response): Promise<T | null> {
   if (!contentType.includes("application/json")) {
     return null;
   }
-  return (await response.json()) as T;
+  const raw = await response.text();
+  if (!raw.trim()) {
+    return null;
+  }
+  return JSON.parse(raw) as T;
 }
 
 function extrairEventosSse(raw: string): Record<string, unknown>[] {
@@ -107,6 +129,20 @@ export async function carregarBootstrapMobile(accessToken: string): Promise<Mobi
   return payload;
 }
 
+export async function carregarLaudosMobile(accessToken: string): Promise<MobileLaudoListResponse> {
+  const response = await fetch(`${API_BASE_URL}/app/api/mobile/laudos`, {
+    method: "GET",
+    headers: construirHeaders(accessToken),
+  });
+
+  const payload = await lerJsonSeguro<MobileLaudoListResponse | { detail?: string }>(response);
+  if (!response.ok || !payload || !("itens" in payload)) {
+    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar os laudos do inspetor."));
+  }
+
+  return payload;
+}
+
 export async function carregarStatusLaudo(accessToken: string): Promise<MobileLaudoStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/app/api/laudo/status`, {
     method: "GET",
@@ -142,6 +178,9 @@ export async function enviarMensagemChatMobile(
   accessToken: string,
   payload: {
     mensagem: string;
+    dadosImagem?: string;
+    textoDocumento?: string;
+    nomeDocumento?: string;
     laudoId?: number | null;
     historico?: Array<{ papel: "usuario" | "assistente"; texto: string }> | MobileChatMessage[];
   },
@@ -153,6 +192,9 @@ export async function enviarMensagemChatMobile(
     }),
     body: JSON.stringify({
       mensagem: payload.mensagem,
+      dados_imagem: payload.dadosImagem || "",
+      texto_documento: payload.textoDocumento || "",
+      nome_documento: payload.nomeDocumento || "",
       laudo_id: payload.laudoId ?? undefined,
       modo: "detalhado",
       historico: (payload.historico || []).map((item) => ({
@@ -169,7 +211,7 @@ export async function enviarMensagemChatMobile(
   }
 
   if (contentType.includes("application/json")) {
-    const jsonPayload = (await response.json()) as Record<string, unknown>;
+    const jsonPayload = (await lerJsonSeguro<Record<string, unknown>>(response)) || {};
     return {
       laudoId: typeof jsonPayload.laudo_id === "number" ? jsonPayload.laudo_id : payload.laudoId ?? null,
       laudoCard:
@@ -206,6 +248,105 @@ export async function enviarMensagemChatMobile(
     assistantText: assistantText.trim(),
     events,
   };
+}
+
+export async function uploadDocumentoChatMobile(
+  accessToken: string,
+  payload: {
+    uri: string;
+    nome: string;
+    mimeType?: string;
+  },
+): Promise<MobileDocumentUploadResponse> {
+  const formData = new FormData();
+  formData.append("arquivo", {
+    uri: payload.uri,
+    name: payload.nome,
+    type: payload.mimeType || inferirMimeType(payload.nome),
+  } as unknown as Blob);
+
+  const response = await fetch(`${API_BASE_URL}/app/api/upload_doc`, {
+    method: "POST",
+    headers: construirHeaders(accessToken),
+    body: formData,
+  });
+
+  const corpo = await lerJsonSeguro<MobileDocumentUploadResponse | { detail?: string }>(response);
+  if (!response.ok || !corpo || !("texto" in corpo)) {
+    throw new Error(extrairMensagemErro(corpo, "Não foi possível preparar o documento para o chat."));
+  }
+
+  return corpo;
+}
+
+export async function carregarMensagensMesaMobile(
+  accessToken: string,
+  laudoId: number,
+): Promise<MobileMesaMensagensResponse> {
+  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagens`, {
+    method: "GET",
+    headers: construirHeaders(accessToken),
+  });
+
+  const payload = await lerJsonSeguro<MobileMesaMensagensResponse | { detail?: string }>(response);
+  if (!response.ok || !payload || !("itens" in payload)) {
+    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar a conversa da mesa."));
+  }
+
+  return payload;
+}
+
+export async function enviarMensagemMesaMobile(
+  accessToken: string,
+  laudoId: number,
+  texto: string,
+): Promise<MobileMesaSendResponse> {
+  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagem`, {
+    method: "POST",
+    headers: construirHeaders(accessToken, {
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify({ texto }),
+  });
+
+  const payload = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
+  if (!response.ok || !payload || !("mensagem" in payload)) {
+    throw new Error(extrairMensagemErro(payload, "Não foi possível responder à mesa pelo app."));
+  }
+
+  return payload;
+}
+
+export async function enviarAnexoMesaMobile(
+  accessToken: string,
+  laudoId: number,
+  payload: {
+    uri: string;
+    nome: string;
+    mimeType?: string;
+    texto?: string;
+  },
+): Promise<MobileMesaSendResponse> {
+  const formData = new FormData();
+  formData.append("arquivo", {
+    uri: payload.uri,
+    name: payload.nome,
+    type: payload.mimeType || inferirMimeType(payload.nome),
+  } as unknown as Blob);
+  formData.append("texto", payload.texto || "");
+
+  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/anexo`, {
+    method: "POST",
+    headers: construirHeaders(accessToken),
+    body: formData,
+  });
+
+  const corpo = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
+  if (!response.ok || !corpo || !("mensagem" in corpo)) {
+    throw new Error(extrairMensagemErro(corpo, "Não foi possível enviar o anexo para a mesa."));
+  }
+
+  return corpo;
 }
 
 export async function reabrirLaudoMobile(accessToken: string, laudoId: number): Promise<MobileLaudoStatusResponse> {

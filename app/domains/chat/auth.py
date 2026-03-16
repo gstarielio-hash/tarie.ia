@@ -12,7 +12,7 @@ from fastapi import Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.routing import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.settings import env_str
@@ -414,6 +414,36 @@ async def api_bootstrap_mobile_inspetor(
     )
 
 
+async def api_listar_laudos_mobile_inspetor(
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    laudos = list(
+        banco.scalars(
+            select(Laudo)
+            .where(
+                Laudo.empresa_id == usuario.empresa_id,
+                Laudo.usuario_id == usuario.id,
+            )
+            .order_by(func.coalesce(Laudo.atualizado_em, Laudo.criado_em).desc(), Laudo.id.desc())
+            .limit(30)
+        ).all()
+    )
+
+    itens = [
+        serializar_card_laudo(banco, laudo)
+        for laudo in laudos
+        if laudo_possui_historico_visivel(banco, laudo) or laudo.status_revisao != "rascunho"
+    ]
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "itens": itens,
+        }
+    )
+
+
 async def api_logout_mobile_inspetor(
     request: Request,
     usuario: Usuario = Depends(exigir_inspetor),
@@ -709,6 +739,11 @@ roteador_auth.add_api_route(
     methods=["GET"],
 )
 roteador_auth.add_api_route(
+    "/api/mobile/laudos",
+    api_listar_laudos_mobile_inspetor,
+    methods=["GET"],
+)
+roteador_auth.add_api_route(
     "/api/mobile/auth/logout",
     api_logout_mobile_inspetor,
     methods=["POST"],
@@ -725,6 +760,7 @@ __all__ = [
     "pagina_planos",
     "api_login_mobile_inspetor",
     "api_bootstrap_mobile_inspetor",
+    "api_listar_laudos_mobile_inspetor",
     "api_logout_mobile_inspetor",
     "api_obter_perfil_usuario",
     "api_atualizar_perfil_usuario",

@@ -18,19 +18,30 @@
     },
     "android": {
       "package": "com.tarielia.inspetor",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
-        "backgroundColor": "#091019",
+        "backgroundColor": "#00000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundImage": "./assets/android-icon-background.png"
       },
+      "usesCleartextTraffic": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita que o Tariel Inspetor acesse suas imagens para anexar evidências ao laudo.",
+          "cameraPermission": "Permita que o Tariel Inspetor use a câmera para registrar evidências de inspeção."
+        }
+      ],
+      "expo-document-picker",
+      "expo-sharing"
     ],
     "extra": {
       "apiBaseUrl": "https://tarie-ia.onrender.com"

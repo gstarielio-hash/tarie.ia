@@ -25,6 +25,13 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+expo-mobile.log
+emulator-*.png
+window_dump*.xml
+/*.png
+/*.xml
+/*.log
+/assets/_*
 
 # macOS
 .DS_Store
