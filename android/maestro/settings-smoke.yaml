@@ -1,0 +1,77 @@
+appId: com.tarielia.inspetor
+tags:
+  - smoke
+  - settings
+env:
+  LOGIN_EMAIL: inspetor@tariel.ia
+  LOGIN_PASSWORD: Dev@123456
+---
+- launchApp:
+    clearState: true
+
+- runFlow:
+    when:
+      visible:
+        id: login-email-input
+    commands:
+      - tapOn:
+          id: login-email-input
+      - inputText: ${LOGIN_EMAIL}
+      - tapOn:
+          id: login-password-input
+      - inputText: ${LOGIN_PASSWORD}
+      - hideKeyboard
+      - tapOn:
+          id: login-submit-button
+
+- extendedWaitUntil:
+    visible:
+      id: open-settings-button
+    timeout: 20000
+
+- tapOn:
+    id: open-settings-button
+
+- assertVisible:
+    id: settings-drawer
+
+- assertVisible:
+    id: settings-overview-conta-acesso
+
+- tapOn:
+    id: settings-overview-conta-acesso
+
+- extendedWaitUntil:
+    visible:
+      id: settings-section-conta
+    timeout: 10000
+
+- tapOn:
+    id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: settings-overview-experiencia
+    timeout: 10000
+
+- tapOn:
+    id: settings-search-input
+
+- inputText: 2FA
+
+- hideKeyboard
+
+- assertVisible:
+    id: settings-overview-prioridades
+
+- tapOn:
+    id: settings-overview-prioridades
+
+- assertVisible:
+    id: settings-section-prioridades
+
+- tapOn:
+    id: close-settings-drawer-button
+
+- assertVisible:
+    id: chat-tab-button

@@ -5,12 +5,7 @@ $webRoot = Join-Path $root "web"
 Set-Location $root
 
 $logPath = Join-Path $root "local-mobile-api.log"
-if (Test-Path $logPath) {
-    Remove-Item $logPath -Force
-}
-
-$env:SEED_DEV_BOOTSTRAP = "1"
-
+$errorLogPath = Join-Path $root "local-mobile-api.error.log"
 $pythonCandidates = @(
     (Join-Path $root ".venv\Scripts\python.exe"),
     (Join-Path $root "venv\Scripts\python.exe"),
@@ -40,9 +35,20 @@ try {
 
 Start-Sleep -Milliseconds 400
 
-Push-Location $webRoot
-try {
-    & $python -m uvicorn main:app --app-dir . --host 0.0.0.0 --port 8000 *>> $logPath
-} finally {
-    Pop-Location
+if (Test-Path $logPath) {
+    try { Remove-Item $logPath -Force } catch {}
 }
+
+if (Test-Path $errorLogPath) {
+    try { Remove-Item $errorLogPath -Force } catch {}
+}
+
+$env:SEED_DEV_BOOTSTRAP = "1"
+
+Start-Process `
+    -FilePath $python `
+    -ArgumentList @("-m", "uvicorn", "main:app", "--app-dir", ".", "--host", "0.0.0.0", "--port", "8000") `
+    -WorkingDirectory $webRoot `
+    -RedirectStandardOutput $logPath `
+    -RedirectStandardError $errorLogPath `
+    -WindowStyle Hidden | Out-Null

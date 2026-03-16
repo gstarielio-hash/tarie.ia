@@ -13,6 +13,7 @@ import {
   Dimensions,
   Easing,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -357,14 +358,16 @@ function SettingsSection({
   title,
   subtitle,
   children,
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   subtitle?: string;
   children: ReactNode;
+  testID?: string;
 }) {
   return (
-    <View style={styles.settingsSection}>
+    <View style={styles.settingsSection} testID={testID}>
       <View style={styles.settingsSectionHeader}>
         <View style={styles.settingsSectionIcon}>
           <MaterialCommunityIcons name={icon} size={18} color={colors.accent} />
@@ -401,6 +404,7 @@ function SettingsPressRow({
   description,
   onPress,
   danger = false,
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
@@ -408,6 +412,7 @@ function SettingsPressRow({
   description?: string;
   onPress?: () => void;
   danger?: boolean;
+  testID?: string;
 }) {
   const toneColor = danger ? colors.danger : colors.textPrimary;
 
@@ -416,6 +421,7 @@ function SettingsPressRow({
       disabled={!onPress}
       onPress={onPress}
       style={[styles.settingsRow, danger ? styles.settingsRowDanger : null]}
+      testID={testID}
     >
       <View style={[styles.settingsRowIcon, danger ? styles.settingsRowIconDanger : null]}>
         <MaterialCommunityIcons name={icon} size={18} color={danger ? colors.danger : colors.accent} />
@@ -444,15 +450,17 @@ function SettingsSwitchRow({
   description,
   value,
   onValueChange,
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   description?: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
+  testID?: string;
 }) {
   return (
-    <View style={styles.settingsRow}>
+    <View style={styles.settingsRow} testID={testID}>
       <View style={styles.settingsRowIcon}>
         <MaterialCommunityIcons name={icon} size={18} color={colors.accent} />
       </View>
@@ -478,6 +486,7 @@ function SettingsSegmentedRow<T extends string>({
   options,
   value,
   onChange,
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
@@ -485,9 +494,10 @@ function SettingsSegmentedRow<T extends string>({
   options: readonly T[];
   value: T;
   onChange: (value: T) => void;
+  testID?: string;
 }) {
   return (
-    <View style={styles.settingsBlockRow}>
+    <View style={styles.settingsBlockRow} testID={testID}>
       <View style={styles.settingsBlockHeader}>
         <View style={styles.settingsRowIcon}>
           <MaterialCommunityIcons name={icon} size={18} color={colors.accent} />
@@ -526,6 +536,7 @@ function SettingsScaleRow({
   onChange,
   minLabel,
   maxLabel,
+  testID,
 }: {
   title: string;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
@@ -535,9 +546,10 @@ function SettingsScaleRow({
   onChange: (value: number) => void;
   minLabel: string;
   maxLabel: string;
+  testID?: string;
 }) {
   return (
-    <View style={styles.settingsBlockRow}>
+    <View style={styles.settingsBlockRow} testID={testID}>
       <View style={styles.settingsBlockHeader}>
         <View style={styles.settingsRowIcon}>
           <MaterialCommunityIcons name={icon} size={18} color={colors.accent} />
@@ -578,6 +590,7 @@ function SettingsTextField({
   onChangeText,
   placeholder,
   keyboardType,
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
@@ -585,9 +598,10 @@ function SettingsTextField({
   onChangeText: (value: string) => void;
   placeholder: string;
   keyboardType?: "default" | "email-address";
+  testID?: string;
 }) {
   return (
-    <View style={styles.settingsFieldBlock}>
+    <View style={styles.settingsFieldBlock} testID={testID}>
       <View style={styles.settingsFieldLabelRow}>
         <View style={styles.settingsRowIcon}>
           <MaterialCommunityIcons name={icon} size={18} color={colors.accent} />
@@ -600,6 +614,7 @@ function SettingsTextField({
         placeholder={placeholder}
         placeholderTextColor={colors.textSecondary}
         style={styles.settingsTextField}
+        testID={testID ? `${testID}-input` : undefined}
         value={value}
       />
     </View>
@@ -651,6 +666,7 @@ function SettingsOverviewCard({
   badge,
   onPress,
   tone = "muted",
+  testID,
 }: {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
@@ -658,6 +674,7 @@ function SettingsOverviewCard({
   badge: string;
   onPress: () => void;
   tone?: "muted" | "accent" | "success" | "danger";
+  testID?: string;
 }) {
   return (
     <Pressable
@@ -672,6 +689,7 @@ function SettingsOverviewCard({
               ? styles.settingsOverviewCardDanger
               : null,
       ]}
+      testID={testID}
     >
       <View
         style={[
@@ -717,16 +735,18 @@ function SettingsOverviewCard({
 function SecurityProviderCard({
   provider,
   onToggle,
+  testID,
 }: {
   provider: ConnectedProvider;
   onToggle: (provider: ConnectedProvider) => void;
+  testID?: string;
 }) {
   const iconName =
     provider.id === "google" ? "google" : provider.id === "apple" ? "apple" : "microsoft-windows";
   const iconColor = provider.id === "google" ? "#DB4437" : provider.id === "apple" ? colors.textPrimary : "#2563EB";
 
   return (
-    <View style={styles.securityProviderCard}>
+    <View style={styles.securityProviderCard} testID={testID}>
       <View style={styles.securityProviderMain}>
         <View style={styles.securityProviderIconShell}>
           <MaterialCommunityIcons color={iconColor} name={iconName} size={22} />
@@ -750,6 +770,7 @@ function SecurityProviderCard({
           styles.securityProviderActionButton,
           provider.connected ? styles.securityProviderActionButtonDanger : null,
         ]}
+        testID={testID ? `${testID}-toggle` : undefined}
       >
         <Text
           style={[
@@ -768,13 +789,15 @@ function SecuritySessionCard({
   item,
   onClose,
   onReview,
+  testID,
 }: {
   item: SessionDevice;
   onClose: (item: SessionDevice) => void;
   onReview: (item: SessionDevice) => void;
+  testID?: string;
 }) {
   return (
-    <View style={styles.securitySessionCard}>
+    <View style={styles.securitySessionCard} testID={testID}>
       <View style={styles.securitySessionTop}>
         <View style={styles.securitySessionCopy}>
           <View style={styles.securitySessionHeading}>
@@ -797,6 +820,7 @@ function SecuritySessionCard({
             styles.securitySessionActionButton,
             item.suspicious ? styles.securitySessionReviewButtonDanger : styles.securitySessionReviewButton,
           ]}
+          testID={testID ? `${testID}-review` : undefined}
         >
           <Text
             style={[
@@ -811,6 +835,7 @@ function SecuritySessionCard({
           disabled={item.current}
           onPress={() => onClose(item)}
           style={[styles.securitySessionActionButton, item.current ? styles.securitySessionActionButtonDisabled : null]}
+          testID={testID ? `${testID}-close` : undefined}
         >
           <Text style={styles.securitySessionActionText}>{item.current ? "Em uso" : "Encerrar sessão"}</Text>
         </Pressable>
@@ -927,6 +952,26 @@ interface MobileReadCache {
 type ConnectedProviderId = "google" | "apple" | "microsoft";
 type SecurityEventFilter = (typeof SECURITY_EVENT_FILTERS)[number];
 type SettingsDrawerFilter = (typeof SETTINGS_DRAWER_FILTERS)[number]["key"];
+type SettingsSectionKey =
+  | "prioridades"
+  | "conta"
+  | "preferenciasIa"
+  | "aparencia"
+  | "notificacoes"
+  | "contasConectadas"
+  | "sessoes"
+  | "twofa"
+  | "protecaoDispositivo"
+  | "verificacaoIdentidade"
+  | "atividadeSeguranca"
+  | "dadosConversas"
+  | "permissoes"
+  | "segurancaArquivos"
+  | "privacidadeNotificacoes"
+  | "excluirConta"
+  | "recursosAvancados"
+  | "sistema"
+  | "suporte";
 type SettingsDrawerPage =
   | "overview"
   | "prioridades"
@@ -2373,6 +2418,7 @@ export function InspectorMobileApp() {
   const [configuracoesAberta, setConfiguracoesAberta] = useState(false);
   const [anexosAberto, setAnexosAberto] = useState(false);
   const [introVisivel, setIntroVisivel] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [filtroFilaOffline, setFiltroFilaOffline] = useState<OfflineQueueFilter>("all");
   const [monitorandoAtividade, setMonitorandoAtividade] = useState(false);
   const [perfilNome, setPerfilNome] = useState("");
@@ -2504,6 +2550,7 @@ export function InspectorMobileApp() {
   const [buscaConfiguracoes, setBuscaConfiguracoes] = useState("");
   const filtroConfiguracoes: SettingsDrawerFilter = "todos";
   const [settingsDrawerPage, setSettingsDrawerPage] = useState<SettingsDrawerPage>("overview");
+  const [settingsDrawerSection, setSettingsDrawerSection] = useState<SettingsSectionKey | "all">("all");
   const [settingsSheet, setSettingsSheet] = useState<SettingsSheetState | null>(null);
   const [settingsSheetLoading, setSettingsSheetLoading] = useState(false);
   const [settingsSheetNotice, setSettingsSheetNotice] = useState("");
@@ -3203,6 +3250,35 @@ export function InspectorMobileApp() {
 
     return () => clearTimeout(timeout);
   }, [abaAtiva, conversa?.mensagens.length, mensagensMesa.length, session]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session || keyboardHeight <= 0) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+
+    return () => clearTimeout(timeout);
+  }, [keyboardHeight, session]);
 
   useEffect(() => {
     if (!session || statusApi !== "online" || !filaOffline.length || sincronizandoFilaOffline) {
@@ -3980,6 +4056,7 @@ export function InspectorMobileApp() {
     if (!configuracoesAbertaRef.current) {
       configuracoesDrawerX.setValue(SETTINGS_PANEL_CLOSED_X);
       setSettingsDrawerPage("overview");
+      setSettingsDrawerSection("all");
       if (!options?.manterOverlay && !historicoAbertoRef.current) {
         drawerOverlayOpacity.setValue(0);
       }
@@ -3989,6 +4066,7 @@ export function InspectorMobileApp() {
     animarPainelLateral(configuracoesDrawerX, SETTINGS_PANEL_CLOSED_X, () => {
       setConfiguracoesAberta(false);
       setSettingsDrawerPage("overview");
+      setSettingsDrawerSection("all");
     });
 
     if (!options?.manterOverlay && !historicoAbertoRef.current) {
@@ -4038,6 +4116,7 @@ export function InspectorMobileApp() {
       historicoDrawerX.setValue(HISTORY_PANEL_CLOSED_X);
     }
     setSettingsDrawerPage("overview");
+    setSettingsDrawerSection("all");
     setConfiguracoesAberta(true);
     Animated.parallel([
       Animated.timing(drawerOverlayOpacity, {
@@ -4068,11 +4147,16 @@ export function InspectorMobileApp() {
     abrirConfiguracoes();
   }
 
-  function handleAbrirPaginaConfiguracoes(page: SettingsDrawerPage) {
+  function handleAbrirPaginaConfiguracoes(page: SettingsDrawerPage, section: SettingsSectionKey | "all" = "all") {
     setSettingsDrawerPage(page);
+    setSettingsDrawerSection(section);
   }
 
   function handleVoltarResumoConfiguracoes() {
+    if (settingsDrawerSection !== "all") {
+      setSettingsDrawerSection("all");
+      return;
+    }
     setSettingsDrawerPage("overview");
   }
 
@@ -6758,34 +6842,183 @@ export function InspectorMobileApp() {
   const settingsDrawerInOverview = settingsDrawerPage === "overview";
   const settingsDrawerShowingSearchResults = settingsDrawerInOverview && Boolean(buscaConfiguracoesNormalizada);
   const settingsDrawerShowingOverviewCards = settingsDrawerInOverview && !settingsDrawerShowingSearchResults;
+  const keyboardVisible = keyboardHeight > 0;
+  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : "height";
+  const loginKeyboardVerticalOffset = Platform.OS === "ios" ? 18 : 0;
+  const chatKeyboardVerticalOffset = Platform.OS === "ios" ? 8 : 0;
   const settingsDrawerMatchesPage = (page: Exclude<SettingsDrawerPage, "overview">) =>
     settingsDrawerPage === page || settingsDrawerShowingSearchResults;
-  const settingsDrawerPageMeta: Record<Exclude<SettingsDrawerPage, "overview">, { title: string; subtitle: string }> = {
+  const settingsDrawerSectionMeta: Record<
+    SettingsSectionKey,
+    { title: string; subtitle: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }
+  > = {
     prioridades: {
       title: "Ações prioritárias",
       subtitle: "O que merece atenção primeiro nesta conta do inspetor.",
+      icon: "flash-outline",
+    },
+    conta: {
+      title: "Conta",
+      subtitle: "Informações da conta e assinatura do inspetor.",
+      icon: "account-circle-outline",
+    },
+    preferenciasIa: {
+      title: "Preferências da IA",
+      subtitle: "Escolha modelo, idioma, tom e nível de criatividade.",
+      icon: "robot-outline",
+    },
+    aparencia: {
+      title: "Aparência",
+      subtitle: "Tema, densidade, fonte e cor de destaque do aplicativo.",
+      icon: "palette-outline",
+    },
+    notificacoes: {
+      title: "Notificações",
+      subtitle: "Alertas, push, som, vibração e emails.",
+      icon: "bell-outline",
+    },
+    contasConectadas: {
+      title: "Contas conectadas",
+      subtitle: "Google, Apple e Microsoft vinculados ao acesso.",
+      icon: "account-outline",
+    },
+    sessoes: {
+      title: "Sessões e dispositivos",
+      subtitle: "Dispositivos ativos, atividade suspeita e logout remoto.",
+      icon: "devices",
+    },
+    twofa: {
+      title: "Verificação em duas etapas",
+      subtitle: "2FA, método preferido e códigos de recuperação.",
+      icon: "shield-key-outline",
+    },
+    protecaoDispositivo: {
+      title: "Proteção no dispositivo",
+      subtitle: "Biometria, bloqueio local e proteção em multitarefa.",
+      icon: "cellphone-lock",
+    },
+    verificacaoIdentidade: {
+      title: "Verificação de identidade",
+      subtitle: "Reautenticação para ações sensíveis no app.",
+      icon: "shield-account-outline",
+    },
+    atividadeSeguranca: {
+      title: "Atividade de segurança",
+      subtitle: "Eventos críticos, logins e ações sensíveis recentes.",
+      icon: "history",
+    },
+    dadosConversas: {
+      title: "Dados e conversas",
+      subtitle: "Histórico, retenção, exportação e exclusão de conversas.",
+      icon: "database-outline",
+    },
+    permissoes: {
+      title: "Permissões",
+      subtitle: "Câmera, arquivos, microfone, notificações e biometria.",
+      icon: "shield-sync-outline",
+    },
+    segurancaArquivos: {
+      title: "Segurança de arquivos enviados",
+      subtitle: "Formatos, limites, validação e proteção dos uploads.",
+      icon: "file-lock-outline",
+    },
+    privacidadeNotificacoes: {
+      title: "Privacidade em notificações",
+      subtitle: "Controle o quanto aparece das mensagens nas prévias.",
+      icon: "bell-cog-outline",
+    },
+    excluirConta: {
+      title: "Excluir conta",
+      subtitle: "Área crítica para remoção permanente da conta.",
+      icon: "alert-outline",
+    },
+    recursosAvancados: {
+      title: "Recursos avançados",
+      subtitle: "Entrada por voz, integrações e plugins do app.",
+      icon: "flask-outline",
+    },
+    sistema: {
+      title: "Sistema",
+      subtitle: "Idioma, região, bateria, versão e manutenção do app.",
+      icon: "cellphone-cog",
+    },
+    suporte: {
+      title: "Suporte",
+      subtitle: "Ajuda, feedback, diagnóstico e documentos do aplicativo.",
+      icon: "lifebuoy",
+    },
+  };
+  const settingsDrawerPageMeta: Record<
+    Exclude<SettingsDrawerPage, "overview">,
+    { title: string; subtitle: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; sections: SettingsSectionKey[] }
+  > = {
+    prioridades: {
+      title: "Ações prioritárias",
+      subtitle: "O que merece atenção primeiro nesta conta do inspetor.",
+      icon: "flash-outline",
+      sections: ["prioridades"],
     },
     contaAcesso: {
       title: "Conta e acesso",
       subtitle: "Perfil, assinatura, email, senha e métodos de acesso da conta.",
+      icon: "account-circle-outline",
+      sections: ["conta"],
     },
     experiencia: {
       title: "Experiência do app",
       subtitle: "Preferências da IA, aparência e notificações do aplicativo.",
+      icon: "palette-outline",
+      sections: ["preferenciasIa", "aparencia", "notificacoes"],
     },
     seguranca: {
       title: "Segurança e privacidade",
       subtitle: "Sessões, 2FA, permissões, dados e proteção do dispositivo.",
+      icon: "shield-lock-outline",
+      sections: [
+        "contasConectadas",
+        "sessoes",
+        "twofa",
+        "protecaoDispositivo",
+        "verificacaoIdentidade",
+        "atividadeSeguranca",
+        "dadosConversas",
+        "permissoes",
+        "segurancaArquivos",
+        "privacidadeNotificacoes",
+        "excluirConta",
+      ],
     },
     sistemaSuporte: {
       title: "Sistema e suporte",
       subtitle: "Recursos avançados, manutenção do app e canais de ajuda.",
+      icon: "cellphone-cog",
+      sections: ["recursosAvancados", "sistema", "suporte"],
     },
   };
-  const settingsDrawerTitle = settingsDrawerInOverview ? "Configurações" : settingsDrawerPageMeta[settingsDrawerPage].title;
+  const settingsDrawerPageSections = settingsDrawerInOverview
+    ? []
+    : settingsDrawerPageMeta[settingsDrawerPage].sections.filter((item) => mostrarSecaoConfiguracao(item));
+  const settingsDrawerSectionMenuAtiva =
+    !settingsDrawerInOverview && settingsDrawerSection === "all" && settingsDrawerPageSections.length > 1;
+  const settingsDrawerCurrentSectionMeta =
+    !settingsDrawerInOverview && settingsDrawerSection !== "all"
+      ? settingsDrawerSectionMeta[settingsDrawerSection]
+      : null;
+  const settingsDrawerTitle = settingsDrawerInOverview
+    ? "Configurações"
+    : settingsDrawerCurrentSectionMeta
+      ? settingsDrawerCurrentSectionMeta.title
+      : settingsDrawerPageMeta[settingsDrawerPage].title;
   const settingsDrawerSubtitle = settingsDrawerInOverview
     ? "Ajuste o app e acesse as ações rápidas do inspetor em um só lugar."
-    : settingsDrawerPageMeta[settingsDrawerPage].subtitle;
+    : settingsDrawerCurrentSectionMeta
+      ? settingsDrawerCurrentSectionMeta.subtitle
+      : settingsDrawerPageMeta[settingsDrawerPage].subtitle;
+  const settingsDrawerMatchesSection = (page: Exclude<SettingsDrawerPage, "overview">, section: SettingsSectionKey) =>
+    settingsDrawerMatchesPage(page) &&
+    mostrarSecaoConfiguracao(section) &&
+    !settingsDrawerSectionMenuAtiva &&
+    (settingsDrawerSection === "all" || settingsDrawerSection === section);
   const notificacoesMesaLaudoAtual = notificacoes.filter(
     (item) => item.unread && item.targetThread === "mesa" && item.laudoId === laudoSelecionadoId,
   ).length;
@@ -6955,7 +7188,8 @@ export function InspectorMobileApp() {
         <SafeAreaView style={styles.safeArea}>
           <KeyboardAvoidingView
             style={styles.keyboard}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={keyboardAvoidingBehavior}
+            keyboardVerticalOffset={chatKeyboardVerticalOffset}
           >
             <View style={styles.chatLayout}>
               <View style={styles.chatHeader}>
@@ -6964,6 +7198,7 @@ export function InspectorMobileApp() {
                     hitSlop={12}
                     onPress={handleAbrirHistorico}
                     style={styles.cleanNavButton}
+                    testID="open-history-button"
                   >
                     <MaterialCommunityIcons name="history" size={22} color={colors.textPrimary} />
                   </Pressable>
@@ -6972,6 +7207,7 @@ export function InspectorMobileApp() {
                     hitSlop={12}
                     onPress={handleAbrirConfiguracoes}
                     style={styles.cleanNavButton}
+                    testID="open-settings-button"
                   >
                     <MaterialCommunityIcons name="cog-outline" size={22} color={colors.textPrimary} />
                     {(notificacoesNaoLidas || filaOfflineOrdenada.length) ? (
@@ -6987,12 +7223,13 @@ export function InspectorMobileApp() {
 
               </View>
 
-              <View style={styles.chatPanel}>
+              <View style={[styles.chatPanel, keyboardVisible ? styles.chatPanelKeyboardVisible : null]}>
                 <View style={styles.cleanTabShell}>
                   <View style={styles.threadTabs}>
                     <Pressable
                       onPress={() => setAbaAtiva("chat")}
                       style={[styles.threadTab, !vendoMesa ? styles.threadTabActive : null]}
+                      testID="chat-tab-button"
                     >
                       <MaterialCommunityIcons
                         name="message-processing-outline"
@@ -7006,6 +7243,7 @@ export function InspectorMobileApp() {
                     <Pressable
                       onPress={() => setAbaAtiva("mesa")}
                       style={[styles.threadTab, vendoMesa ? styles.threadTabActive : null]}
+                      testID="mesa-tab-button"
                     >
                       <MaterialCommunityIcons
                         name="clipboard-text-outline"
@@ -7185,7 +7423,7 @@ export function InspectorMobileApp() {
                     ) : (
                       <ScrollView
                         ref={scrollRef}
-                        contentContainerStyle={styles.threadContent}
+                        contentContainerStyle={[styles.threadContent, keyboardVisible ? styles.threadContentKeyboard : null]}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                       >
@@ -7314,7 +7552,7 @@ export function InspectorMobileApp() {
                   ) : (
                     <ScrollView
                       ref={scrollRef}
-                      contentContainerStyle={styles.threadContent}
+                      contentContainerStyle={[styles.threadContent, keyboardVisible ? styles.threadContentKeyboard : null]}
                       keyboardShouldPersistTaps="handled"
                       showsVerticalScrollIndicator={false}
                     >
@@ -7443,37 +7681,39 @@ export function InspectorMobileApp() {
                 </View>
 
                 {!vendoMesa || mesaTemMensagens ? (
-                  <View style={styles.composerCard}>
-                    <View style={styles.composerHeader}>
-                      <View style={styles.composerHeaderCopy}>
-                        <Text style={styles.composerEyebrow}>{composerEyebrowLabel}</Text>
-                        <Text style={styles.composerTitle}>{composerTitle}</Text>
-                        <Text style={styles.composerSubtitle}>{composerSubtitle}</Text>
-                      </View>
-                      <View
-                        style={[
-                          styles.composerStatusBadge,
-                          composerStatusTone === "accent"
-                            ? styles.composerStatusBadgeAccent
-                            : composerStatusTone === "success"
-                              ? styles.composerStatusBadgeSuccess
-                              : null,
-                        ]}
-                      >
-                        <Text
+                  <View style={[styles.composerCard, keyboardVisible ? styles.composerCardKeyboardVisible : null]}>
+                    {!keyboardVisible ? (
+                      <View style={styles.composerHeader}>
+                        <View style={styles.composerHeaderCopy}>
+                          <Text style={styles.composerEyebrow}>{composerEyebrowLabel}</Text>
+                          <Text style={styles.composerTitle}>{composerTitle}</Text>
+                          <Text style={styles.composerSubtitle}>{composerSubtitle}</Text>
+                        </View>
+                        <View
                           style={[
-                            styles.composerStatusBadgeText,
+                            styles.composerStatusBadge,
                             composerStatusTone === "accent"
-                              ? styles.composerStatusBadgeTextAccent
+                              ? styles.composerStatusBadgeAccent
                               : composerStatusTone === "success"
-                                ? styles.composerStatusBadgeTextSuccess
+                                ? styles.composerStatusBadgeSuccess
                                 : null,
                           ]}
                         >
-                          {composerStatusLabel}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.composerStatusBadgeText,
+                              composerStatusTone === "accent"
+                                ? styles.composerStatusBadgeTextAccent
+                                : composerStatusTone === "success"
+                                  ? styles.composerStatusBadgeTextSuccess
+                                  : null,
+                            ]}
+                          >
+                            {composerStatusLabel}
+                          </Text>
+                        </View>
                       </View>
-                    </View>
+                    ) : null}
                     {conversaAtiva?.permiteReabrir ? (
                       <Pressable onPress={handleReabrir} style={styles.cleanReopenAction}>
                         <MaterialCommunityIcons name="history" size={16} color={colors.accent} />
@@ -7511,6 +7751,7 @@ export function InspectorMobileApp() {
                             disabled={!podeAbrirAnexosMesa}
                             onPress={handleAbrirSeletorAnexo}
                             style={[styles.attachInsideButton, !podeAbrirAnexosMesa ? styles.attachButtonDisabled : null]}
+                            testID="mesa-attach-button"
                           >
                             <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
                           </Pressable>
@@ -7521,6 +7762,7 @@ export function InspectorMobileApp() {
                             placeholder={placeholderMesa}
                             placeholderTextColor={colors.textSecondary}
                             style={[styles.composerInput, dynamicComposerInputStyle, !podeUsarComposerMesa ? styles.composerInputDisabled : null]}
+                            testID="mesa-composer-input"
                             value={mensagemMesa}
                           />
 
@@ -7532,6 +7774,7 @@ export function InspectorMobileApp() {
                               { backgroundColor: accentColor },
                               !podeEnviarMesa ? styles.sendButtonDisabled : null,
                             ]}
+                            testID="mesa-send-button"
                           >
                             {enviandoMesa ? (
                               <ActivityIndicator color={colors.white} size="small" />
@@ -7573,6 +7816,7 @@ export function InspectorMobileApp() {
                             disabled={!podeAbrirAnexosChat}
                             onPress={handleAbrirSeletorAnexo}
                             style={[styles.attachInsideButton, !podeAbrirAnexosChat ? styles.attachButtonDisabled : null]}
+                            testID="chat-attach-button"
                           >
                             <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
                           </Pressable>
@@ -7583,6 +7827,7 @@ export function InspectorMobileApp() {
                             placeholder={placeholderComposer}
                             placeholderTextColor={colors.textSecondary}
                             style={[styles.composerInput, dynamicComposerInputStyle, !podeAcionarComposer ? styles.composerInputDisabled : null]}
+                            testID="chat-composer-input"
                             value={mensagem}
                           />
 
@@ -7594,6 +7839,7 @@ export function InspectorMobileApp() {
                               { backgroundColor: accentColor },
                               !podeEnviarComposer ? styles.sendButtonDisabled : null,
                             ]}
+                            testID="chat-send-button"
                           >
                             {enviandoMensagem ? (
                               <ActivityIndicator color={colors.white} size="small" />
@@ -7688,6 +7934,7 @@ export function InspectorMobileApp() {
                       styles.sidePanelDrawerLeft,
                       { transform: [{ translateX: historicoDrawerX }] },
                     ]}
+                    testID="history-drawer"
                   >
                     <View style={styles.sidePanelHeader}>
                       <View style={styles.sidePanelCopy}>
@@ -7703,6 +7950,7 @@ export function InspectorMobileApp() {
                       <Pressable
                         onPress={() => fecharHistorico({ limparBusca: true })}
                         style={styles.sidePanelCloseButton}
+                        testID="close-history-drawer-button"
                       >
                         <MaterialCommunityIcons name="chevron-left" size={22} color={colors.textPrimary} />
                       </Pressable>
@@ -7715,6 +7963,7 @@ export function InspectorMobileApp() {
                         placeholder="Buscar conversas..."
                         placeholderTextColor={colors.textSecondary}
                         style={styles.historySearchInput}
+                        testID="history-search-input"
                         value={buscaHistorico}
                       />
                     </View>
@@ -7745,6 +7994,7 @@ export function InspectorMobileApp() {
                             key={item.key}
                             onPress={() => setFiltroHistorico(item.key)}
                             style={[styles.historyFilterChip, ativo ? styles.historyFilterChipActive : null]}
+                            testID={`history-filter-${item.key}`}
                           >
                             <Text style={[styles.historyFilterChipText, ativo ? styles.historyFilterChipTextActive : null]}>
                               {item.label}
@@ -7766,7 +8016,7 @@ export function InspectorMobileApp() {
 
                     <ScrollView contentContainerStyle={styles.historySections}>
                       {historicoAgrupadoFinal.length ? (
-                        historicoAgrupadoFinal.map((section) => (
+                        historicoAgrupadoFinal.map((section, sectionIndex) => (
                           <View key={section.key} style={styles.historySection}>
                             <View style={styles.historySectionHeader}>
                               <Text style={styles.historySectionTitle}>{section.title}</Text>
@@ -7775,8 +8025,9 @@ export function InspectorMobileApp() {
                               </View>
                             </View>
                             <View style={styles.historySectionItems}>
-                              {section.items.map((item) => {
+                              {section.items.map((item, itemIndex) => {
                                 const ativo = item.id === laudoSelecionadoId;
+                                const isFirstHistoryItem = sectionIndex === 0 && itemIndex === 0;
                                 const templateLabel = formatarTipoTemplateLaudo(item.tipo_template);
                                 const modoLaudoLabel = item.permite_edicao
                                   ? "Editável"
@@ -7792,6 +8043,7 @@ export function InspectorMobileApp() {
                                         styles.historyItemPrimary,
                                         ativo ? styles.historyItemActive : null,
                                       ]}
+                                      testID={isFirstHistoryItem ? "history-first-item-button" : `history-item-${item.id}`}
                                     >
                                       <View style={[styles.historyItemIcon, ativo ? styles.historyItemIconActive : null]}>
                                         <Image source={TARIEL_APP_MARK} style={styles.historyItemBrandIcon} />
@@ -7934,6 +8186,7 @@ export function InspectorMobileApp() {
                                           styles.historyItemActionButton,
                                           item.pinado ? styles.historyItemActionButtonPinned : null,
                                         ]}
+                                        testID={isFirstHistoryItem ? "history-first-item-pin-button" : `history-item-pin-${item.id}`}
                                       >
                                         <MaterialCommunityIcons
                                           name={item.pinado ? "pin-off-outline" : "pin-outline"}
@@ -7945,6 +8198,7 @@ export function InspectorMobileApp() {
                                         accessibilityLabel="Remover conversa do histórico"
                                         onPress={() => handleExcluirConversaHistorico(item)}
                                         style={[styles.historyItemActionButton, styles.historyItemActionButtonDanger]}
+                                        testID={isFirstHistoryItem ? "history-first-item-delete-button" : `history-item-delete-${item.id}`}
                                       >
                                         <MaterialCommunityIcons name="trash-can-outline" size={18} color="#B85A4A" />
                                       </Pressable>
@@ -7974,6 +8228,7 @@ export function InspectorMobileApp() {
                       styles.sidePanelDrawerRight,
                       { transform: [{ translateX: configuracoesDrawerX }] },
                     ]}
+                    testID="settings-drawer"
                   >
                     <View style={styles.sidePanelHeader}>
                       <View style={styles.sidePanelCopy}>
@@ -7984,6 +8239,7 @@ export function InspectorMobileApp() {
                       <Pressable
                         onPress={settingsDrawerInOverview ? () => fecharConfiguracoes() : handleVoltarResumoConfiguracoes}
                         style={styles.sidePanelCloseButton}
+                        testID={settingsDrawerInOverview ? "close-settings-drawer-button" : "settings-drawer-back-button"}
                       >
                         <MaterialCommunityIcons
                           name={settingsDrawerInOverview ? "chevron-right" : "chevron-left"}
@@ -8029,6 +8285,7 @@ export function InspectorMobileApp() {
                             placeholder="Buscar conta, segurança, permissões..."
                             placeholderTextColor={colors.textSecondary}
                             style={styles.settingsSearchInput}
+                            testID="settings-search-input"
                             value={buscaConfiguracoes}
                           />
                           {buscaConfiguracoes ? (
@@ -8051,6 +8308,7 @@ export function InspectorMobileApp() {
                                 description="2FA, método extra de acesso, permissões críticas e sessões pedindo atenção."
                                 icon="flash-outline"
                                 onPress={() => handleAbrirPaginaConfiguracoes("prioridades")}
+                                testID="settings-overview-prioridades"
                                 title="Ações prioritárias"
                                 tone={temPrioridadesConfiguracao ? "danger" : "success"}
                               />
@@ -8061,6 +8319,7 @@ export function InspectorMobileApp() {
                                 description="Perfil, assinatura, email, senha e a conta principal do inspetor."
                                 icon="account-circle-outline"
                                 onPress={() => handleAbrirPaginaConfiguracoes("contaAcesso")}
+                                testID="settings-overview-conta-acesso"
                                 title="Conta e acesso"
                                 tone="accent"
                               />
@@ -8071,6 +8330,7 @@ export function InspectorMobileApp() {
                                 description="IA, aparência, densidade visual e comportamento das notificações."
                                 icon="palette-outline"
                                 onPress={() => handleAbrirPaginaConfiguracoes("experiencia")}
+                                testID="settings-overview-experiencia"
                                 title="Experiência do app"
                                 tone="muted"
                               />
@@ -8081,6 +8341,7 @@ export function InspectorMobileApp() {
                                 description="Contas conectadas, sessões, 2FA, permissões, dados e proteção do dispositivo."
                                 icon="shield-lock-outline"
                                 onPress={() => handleAbrirPaginaConfiguracoes("seguranca")}
+                                testID="settings-overview-seguranca"
                                 title="Segurança e privacidade"
                                 tone={sessoesSuspeitasTotal > 0 || !twoFactorEnabled ? "danger" : "success"}
                               />
@@ -8091,6 +8352,7 @@ export function InspectorMobileApp() {
                                 description="Recursos avançados, manutenção do app e canais de ajuda."
                                 icon="cellphone-cog"
                                 onPress={() => handleAbrirPaginaConfiguracoes("sistemaSuporte")}
+                                testID="settings-overview-sistema-suporte"
                                 title="Sistema e suporte"
                                 tone="muted"
                               />
@@ -8098,10 +8360,34 @@ export function InspectorMobileApp() {
                           </View>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("prioridades") && mostrarSecaoConfiguracao("prioridades") ? (
+                        {!settingsDrawerInOverview && settingsDrawerSectionMenuAtiva ? (
+                          <SettingsSection
+                            icon={settingsDrawerPageMeta[settingsDrawerPage].icon}
+                            subtitle="Escolha o bloco que você quer ajustar agora para evitar um scroll grande."
+                            title={settingsDrawerPageMeta[settingsDrawerPage].title}
+                          >
+                            {settingsDrawerPageSections.map((sectionKey) => {
+                              const meta = settingsDrawerSectionMeta[sectionKey];
+                              return (
+                                <SettingsPressRow
+                                  key={sectionKey}
+                                  description={meta.subtitle}
+                                  icon={meta.icon}
+                                  onPress={() => setSettingsDrawerSection(sectionKey)}
+                                  testID={`settings-section-link-${sectionKey}`}
+                                  title={meta.title}
+                                  value="Abrir"
+                                />
+                              );
+                            })}
+                          </SettingsSection>
+                        ) : null}
+
+                        {settingsDrawerMatchesSection("prioridades", "prioridades") ? (
                         <SettingsSection
                           icon="flash-outline"
                           subtitle="O que merece atenção primeiro nesta conta do inspetor."
+                          testID="settings-section-prioridades"
                           title="Ações prioritárias"
                         >
                           {temPrioridadesConfiguracao ? (
@@ -8111,6 +8397,7 @@ export function InspectorMobileApp() {
                                   description="Ative proteção extra antes de depender apenas do email e senha."
                                   icon="shield-star-outline"
                                   onPress={handleToggle2FA}
+                                  testID="settings-priority-enable-twofa-row"
                                   title="Ativar verificação em duas etapas"
                                   value="Recomendado"
                                 />
@@ -8162,16 +8449,17 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("contaAcesso") && mostrarGrupoContaAcesso ? (
+                        {settingsDrawerMatchesPage("contaAcesso") && !settingsDrawerSectionMenuAtiva && mostrarGrupoContaAcesso ? (
                           <SettingsGroupLabel
                             description="Perfil, acesso e sessões ligadas à sua conta."
                             title="Conta e acesso"
                           />
                         ) : null}
-                        {settingsDrawerMatchesPage("contaAcesso") && mostrarSecaoConfiguracao("conta") ? (
+                        {settingsDrawerMatchesSection("contaAcesso", "conta") ? (
                         <SettingsSection
                           icon="account-circle-outline"
                           subtitle="Informações da conta e assinatura do inspetor."
+                          testID="settings-section-conta"
                           title="Conta"
                         >
                           <View style={styles.settingsInfoGrid}>
@@ -8196,6 +8484,7 @@ export function InspectorMobileApp() {
                             description={perfilFotoHint}
                             icon="camera-plus-outline"
                             onPress={handleUploadFotoPerfil}
+                            testID="settings-account-photo-row"
                             title="Foto de perfil"
                             value={perfilFotoUri ? "Atualizada" : "Upload"}
                           />
@@ -8203,6 +8492,7 @@ export function InspectorMobileApp() {
                             icon="account-outline"
                             onChangeText={setPerfilNome}
                             placeholder="Nome completo"
+                            testID="settings-account-name-field"
                             title="Nome do usuário"
                             value={perfilNome}
                           />
@@ -8210,6 +8500,7 @@ export function InspectorMobileApp() {
                             icon="badge-account-outline"
                             onChangeText={setPerfilExibicao}
                             placeholder="Nome exibido no chat"
+                            testID="settings-account-display-name-field"
                             title="Nome de exibição"
                             value={perfilExibicao}
                           />
@@ -8217,6 +8508,7 @@ export function InspectorMobileApp() {
                             description="Confirmado por email"
                             icon="email-outline"
                             onPress={handleAlterarEmail}
+                            testID="settings-account-email-row"
                             title="Email"
                             value={contaEmailLabel}
                           />
@@ -8224,12 +8516,14 @@ export function InspectorMobileApp() {
                             description="Senha atual, nova senha e confirmação"
                             icon="lock-outline"
                             onPress={handleAlterarSenha}
+                            testID="settings-account-password-row"
                             title="Alterar senha"
                           />
                           <SettingsPressRow
                             description="Benefícios do plano e opções de upgrade"
                             icon="star-circle-outline"
                             onPress={handleGerenciarPlano}
+                            testID="settings-account-plan-row"
                             title="Plano / Assinatura"
                             value={planoAtual}
                           />
@@ -8243,6 +8537,7 @@ export function InspectorMobileApp() {
                             description="Cartão cadastrado e método de pagamento"
                             icon="credit-card-outline"
                             onPress={handleGerenciarPagamento}
+                            testID="settings-account-billing-row"
                             title="Gerenciar pagamento"
                             value={cartaoAtual}
                           />
@@ -8252,6 +8547,7 @@ export function InspectorMobileApp() {
                               fecharConfiguracoes();
                               void handleLogout();
                             }}
+                            testID="settings-account-logout-row"
                             title="Sair da conta"
                           />
                           <SettingsPressRow
@@ -8259,18 +8555,19 @@ export function InspectorMobileApp() {
                             danger
                             icon="delete-alert-outline"
                             onPress={handleExcluirConta}
+                            testID="settings-account-delete-row"
                             title="Excluir conta"
                           />
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("experiencia") && mostrarGrupoExperiencia ? (
+                        {settingsDrawerMatchesPage("experiencia") && !settingsDrawerSectionMenuAtiva && mostrarGrupoExperiencia ? (
                           <SettingsGroupLabel
                             description="Comportamento da IA, aparência e alertas do aplicativo."
                             title="Experiência do app"
                           />
                         ) : null}
-                        {settingsDrawerMatchesPage("experiencia") && mostrarSecaoConfiguracao("preferenciasIa") ? (
+                        {settingsDrawerMatchesSection("experiencia", "preferenciasIa") ? (
                         <SettingsSection
                           icon="robot-outline"
                           subtitle="Ajuste o comportamento da inteligência artificial nas conversas."
@@ -8333,7 +8630,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("experiencia") && mostrarSecaoConfiguracao("aparencia") ? (
+                        {settingsDrawerMatchesSection("experiencia", "aparencia") ? (
                         <SettingsSection
                           icon="palette-outline"
                           subtitle="Visual, densidade e comportamento da interface."
@@ -8377,7 +8674,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("experiencia") && mostrarSecaoConfiguracao("notificacoes") ? (
+                        {settingsDrawerMatchesSection("experiencia", "notificacoes") ? (
                         <SettingsSection
                           icon="bell-outline"
                           subtitle="Como o usuário recebe alertas e avisos do app."
@@ -8419,16 +8716,17 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarGrupoSeguranca ? (
+                        {settingsDrawerMatchesPage("seguranca") && !settingsDrawerSectionMenuAtiva && mostrarGrupoSeguranca ? (
                           <SettingsGroupLabel
                             description="Proteção da conta, privacidade e controle das conversas."
                             title="Segurança e privacidade"
                           />
                         ) : null}
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("contasConectadas") ? (
+                        {settingsDrawerMatchesSection("seguranca", "contasConectadas") ? (
                         <SettingsSection
                           icon="account-lock-outline"
                           subtitle="Vincule múltiplos provedores, veja o status de cada conta e proteja o último método de acesso."
+                          testID="settings-section-contas-conectadas"
                           title="Contas conectadas"
                         >
                           <View style={styles.securityStack}>
@@ -8457,6 +8755,7 @@ export function InspectorMobileApp() {
                                 key={provider.id}
                                 onToggle={handleToggleProviderConnection}
                                 provider={provider}
+                                testID={`settings-provider-${provider.id}`}
                               />
                             ))}
                             <Text style={styles.securityFootnote}>
@@ -8468,10 +8767,11 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("sessoes") ? (
+                        {settingsDrawerMatchesSection("seguranca", "sessoes") ? (
                         <SettingsSection
                           icon="devices"
                           subtitle="Visualize, invalide e acompanhe sessões ativas do usuário."
+                          testID="settings-section-sessoes"
                           title="Sessões e dispositivos"
                         >
                           <View style={styles.securityStack}>
@@ -8503,6 +8803,7 @@ export function InspectorMobileApp() {
                                 item={item}
                                 onClose={handleEncerrarSessao}
                                 onReview={handleRevisarSessao}
+                                testID={`settings-session-${item.id}`}
                               />
                             ))}
                             <SettingsPressRow
@@ -8510,6 +8811,7 @@ export function InspectorMobileApp() {
                               description="Encerra o token do dispositivo atual com confirmação."
                               icon="logout"
                               onPress={handleEncerrarSessaoAtual}
+                              testID="settings-session-current-close-row"
                               title="Encerrar esta sessão"
                             />
                             <SettingsPressRow
@@ -8517,6 +8819,7 @@ export function InspectorMobileApp() {
                               description="Remove somente sessões marcadas como suspeitas após a revisão."
                               icon="shield-alert-outline"
                               onPress={handleEncerrarSessoesSuspeitas}
+                              testID="settings-session-close-suspicious-row"
                               title="Encerrar sessões suspeitas"
                               value={sessoesSuspeitasTotal ? `${sessoesSuspeitasTotal} suspeita(s)` : "Nenhuma"}
                             />
@@ -8524,6 +8827,7 @@ export function InspectorMobileApp() {
                               danger
                               icon="logout-variant"
                               onPress={handleEncerrarOutrasSessoes}
+                              testID="settings-session-close-others-row"
                               title="Encerrar todas as outras"
                             />
                             <SettingsPressRow
@@ -8534,16 +8838,18 @@ export function InspectorMobileApp() {
                                 fecharConfiguracoes();
                                 void handleLogout();
                               }}
+                              testID="settings-session-total-logout-row"
                               title="Logout total"
                             />
                           </View>
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("twofa") ? (
+                        {settingsDrawerMatchesSection("seguranca", "twofa") ? (
                         <SettingsSection
                           icon="shield-star-outline"
                           subtitle="Ative 2FA, configure método e gere códigos de recuperação."
+                          testID="settings-section-twofa"
                           title="Verificação em duas etapas"
                         >
                           <View style={styles.settingsInfoGrid}>
@@ -8565,6 +8871,7 @@ export function InspectorMobileApp() {
                             description="Exige reautenticação antes de ativar ou desativar."
                             icon="shield-check-outline"
                             onValueChange={handleToggle2FA}
+                            testID="settings-twofa-toggle-row"
                             title="Verificação em duas etapas"
                             value={twoFactorEnabled}
                           />
@@ -8573,6 +8880,7 @@ export function InspectorMobileApp() {
                             icon="cellphone-key"
                             onChange={handleMudarMetodo2FA}
                             options={TWO_FACTOR_METHOD_OPTIONS}
+                            testID="settings-twofa-method-row"
                             title="Método"
                             value={twoFactorMethod}
                           />
@@ -8587,23 +8895,27 @@ export function InspectorMobileApp() {
                             icon="numeric"
                             onChangeText={setCodigo2FA}
                             placeholder="Digite o código de confirmação"
+                            testID="settings-twofa-code-field"
                             title="Código de confirmação"
                             value={codigo2FA}
                           />
                           <SettingsPressRow
                             icon="shield-check-outline"
                             onPress={handleConfirmarCodigo2FA}
+                            testID="settings-twofa-confirm-row"
                             title="Confirmar código"
                           />
                           <SettingsPressRow
                             icon="content-copy"
                             onPress={handleGerarCodigosRecuperacao}
+                            testID="settings-twofa-generate-recovery-row"
                             title="Gerar ou regenerar códigos"
                           />
                           <SettingsPressRow
                             description="Exporta os códigos em texto com confirmação de identidade."
                             icon="export-variant"
                             onPress={() => void handleCompartilharCodigosRecuperacao()}
+                            testID="settings-twofa-share-recovery-row"
                             title="Compartilhar códigos de recuperação"
                             value={codigosRecuperacao.length ? `${codigosRecuperacao.length} códigos` : "Indisponível"}
                           />
@@ -8625,7 +8937,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("protecaoDispositivo") ? (
+                        {settingsDrawerMatchesSection("seguranca", "protecaoDispositivo") ? (
                         <SettingsSection
                           icon="cellphone-lock"
                           subtitle="Proteja o acesso local ao aplicativo no dispositivo."
@@ -8661,7 +8973,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("verificacaoIdentidade") ? (
+                        {settingsDrawerMatchesSection("seguranca", "verificacaoIdentidade") ? (
                         <SettingsSection
                           icon="shield-account-variant-outline"
                           subtitle="Ações críticas exigem reconfirmação da identidade."
@@ -8686,7 +8998,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("atividadeSeguranca") ? (
+                        {settingsDrawerMatchesSection("seguranca", "atividadeSeguranca") ? (
                         <SettingsSection
                           icon="timeline-alert-outline"
                           subtitle="Acompanhe logins, conexões de provedores, exportações e eventos críticos."
@@ -8714,10 +9026,11 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("dadosConversas") ? (
+                        {settingsDrawerMatchesSection("seguranca", "dadosConversas") ? (
                         <SettingsSection
                           icon="forum-outline"
                           subtitle="Controle como conversas e dados da IA são armazenados."
+                          testID="settings-section-dados-conversas"
                           title="Dados e conversas"
                         >
                           <View style={styles.settingsInfoCard}>
@@ -8729,6 +9042,7 @@ export function InspectorMobileApp() {
                           <SettingsSwitchRow
                             icon="history"
                             onValueChange={setSalvarHistoricoConversas}
+                            testID="settings-data-history-toggle-row"
                             title="Salvar histórico de conversas"
                             value={salvarHistoricoConversas}
                           />
@@ -8736,6 +9050,7 @@ export function InspectorMobileApp() {
                             description="Consentimento para melhoria da IA."
                             icon="share-variant-outline"
                             onValueChange={setCompartilharMelhoriaIa}
+                            testID="settings-data-improve-toggle-row"
                             title="Permitir uso para melhoria da IA"
                             value={compartilharMelhoriaIa}
                           />
@@ -8743,6 +9058,7 @@ export function InspectorMobileApp() {
                             description="A exportação exige reautenticação."
                             icon="database-export-outline"
                             onPress={() => handleExportarDados("JSON")}
+                            testID="settings-data-export-row"
                             title="Exportar conversas"
                             value="JSON"
                           />
@@ -8811,7 +9127,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("permissoes") ? (
+                        {settingsDrawerMatchesSection("seguranca", "permissoes") ? (
                         <SettingsSection
                           icon="shield-key-outline"
                           subtitle="Status atual de acesso ao microfone, câmera, arquivos, notificações e biometria."
@@ -8880,7 +9196,7 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("segurancaArquivos") ? (
+                        {settingsDrawerMatchesSection("seguranca", "segurancaArquivos") ? (
                         <SettingsSection
                           icon="file-lock-outline"
                           subtitle="Uploads são tratados como área crítica com validação e armazenamento protegido."
@@ -8916,10 +9232,11 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("privacidadeNotificacoes") ? (
+                        {settingsDrawerMatchesSection("seguranca", "privacidadeNotificacoes") ? (
                         <SettingsSection
                           icon="bell-cog-outline"
                           subtitle="Defina o quanto aparece das mensagens nas notificações."
+                          testID="settings-section-privacidade-notificacoes"
                           title="Privacidade em notificações"
                         >
                           <View style={styles.settingsInfoCard}>
@@ -8930,6 +9247,7 @@ export function InspectorMobileApp() {
                             description="Mostra o conteúdo da conversa quando permitido."
                             icon="message-text-outline"
                             onValueChange={handleToggleMostrarConteudoNotificacao}
+                            testID="settings-notification-show-content-row"
                             title="Mostrar conteúdo da mensagem"
                             value={mostrarConteudoNotificacao}
                           />
@@ -8937,6 +9255,7 @@ export function InspectorMobileApp() {
                             description="Nunca exibe prévias na tela bloqueada."
                             icon="cellphone-lock"
                             onValueChange={handleToggleOcultarConteudoBloqueado}
+                            testID="settings-notification-hide-locked-row"
                             title="Ocultar conteúdo na tela bloqueada"
                             value={ocultarConteudoBloqueado}
                           />
@@ -8944,6 +9263,7 @@ export function InspectorMobileApp() {
                             description='Exibe apenas o aviso "Nova mensagem".'
                             icon="message-badge-outline"
                             onValueChange={handleToggleMostrarSomenteNovaMensagem}
+                            testID="settings-notification-show-generic-row"
                             title='Mostrar apenas "Nova mensagem"'
                             value={mostrarSomenteNovaMensagem}
                           />
@@ -8960,10 +9280,11 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("seguranca") && mostrarSecaoConfiguracao("excluirConta") ? (
+                        {settingsDrawerMatchesSection("seguranca", "excluirConta") ? (
                         <SettingsSection
                           icon="alert-outline"
                           subtitle="Área crítica para remoção permanente da conta."
+                          testID="settings-section-excluir-conta"
                           title="Excluir conta"
                         >
                           <View style={styles.settingsInfoCard}>
@@ -8984,6 +9305,7 @@ export function InspectorMobileApp() {
                             description="Faça um backup do perfil antes da exclusão definitiva."
                             icon="database-export-outline"
                             onPress={handleExportarAntesDeExcluirConta}
+                            testID="settings-delete-export-before-row"
                             title="Exportar dados antes de excluir"
                             value="JSON"
                           />
@@ -8991,6 +9313,7 @@ export function InspectorMobileApp() {
                             description="Ações destrutivas só seguem quando a verificação de identidade está válida."
                             icon="shield-refresh-outline"
                             onPress={handleReautenticacaoSensivel}
+                            testID="settings-delete-reauth-row"
                             title="Status da reautenticação"
                             value={reautenticacaoStatus}
                           />
@@ -8999,6 +9322,7 @@ export function InspectorMobileApp() {
                             danger
                             icon="delete-alert-outline"
                             onPress={handleExcluirConta}
+                            testID="settings-delete-account-row"
                             title="Excluir conta permanentemente"
                           />
                           <Text style={styles.securityFootnote}>
@@ -9007,27 +9331,30 @@ export function InspectorMobileApp() {
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("sistemaSuporte") && mostrarGrupoSistema ? (
+                        {settingsDrawerMatchesPage("sistemaSuporte") && !settingsDrawerSectionMenuAtiva && mostrarGrupoSistema ? (
                           <SettingsGroupLabel
                             description="Recursos extras, manutenção do app e canais de ajuda."
                             title="Sistema e suporte"
                           />
                         ) : null}
-                        {settingsDrawerMatchesPage("sistemaSuporte") && mostrarSecaoConfiguracao("recursosAvancados") ? (
+                        {settingsDrawerMatchesSection("sistemaSuporte", "recursosAvancados") ? (
                         <SettingsSection
                           icon="flask-outline"
                           subtitle="Ative recursos extras e integrações do app."
+                          testID="settings-section-recursos-avancados"
                           title="Recursos avançados"
                         >
                           <SettingsSwitchRow
                             icon="microphone-outline"
                             onValueChange={setEntradaPorVoz}
+                            testID="settings-advanced-voice-input-row"
                             title="Entrada por voz"
                             value={entradaPorVoz}
                           />
                           <SettingsSwitchRow
                             icon="speaker-wireless"
                             onValueChange={setRespostaPorVoz}
+                            testID="settings-advanced-voice-output-row"
                             title="Resposta por voz"
                             value={respostaPorVoz}
                           />
@@ -9035,50 +9362,58 @@ export function InspectorMobileApp() {
                             description="PDF, imagens e documentos no chat."
                             icon="paperclip"
                             onValueChange={setUploadArquivosAtivo}
+                            testID="settings-advanced-upload-row"
                             title="Upload de arquivos"
                             value={uploadArquivosAtivo}
                           />
                           <SettingsPressRow
                             icon="connection"
                             onPress={handleIntegracoesExternas}
+                            testID="settings-advanced-integrations-row"
                             title="Integrações"
                             value="Google Drive, Slack, Notion"
                           />
                           <SettingsPressRow
                             icon="puzzle-outline"
                             onPress={handlePluginsIa}
+                            testID="settings-advanced-plugins-row"
                             title="Plugins"
                           />
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("sistemaSuporte") && mostrarSecaoConfiguracao("sistema") ? (
+                        {settingsDrawerMatchesSection("sistemaSuporte", "sistema") ? (
                         <SettingsSection
                           icon="cellphone-cog"
                           subtitle="Idioma, região, bateria e informações técnicas do app."
+                          testID="settings-section-sistema"
                           title="Sistema"
                         >
                           <SettingsPressRow
                             icon="translate"
                             onPress={() => setIdiomaApp((value) => nextOptionValue(value, APP_LANGUAGE_OPTIONS))}
+                            testID="settings-system-language-row"
                             title="Idioma do aplicativo"
                             value={idiomaApp}
                           />
                           <SettingsPressRow
                             icon="map-marker-radius-outline"
                             onPress={() => setRegiaoApp((value) => nextOptionValue(value, REGION_OPTIONS))}
+                            testID="settings-system-region-row"
                             title="Região"
                             value={regiaoApp}
                           />
                           <SettingsSwitchRow
                             icon="signal-cellular-outline"
                             onValueChange={setEconomiaDados}
+                            testID="settings-system-data-saver-row"
                             title="Economia de dados"
                             value={economiaDados}
                           />
                           <SettingsPressRow
                             icon="battery-heart-variant"
                             onPress={() => setUsoBateria((value) => nextOptionValue(value, BATTERY_OPTIONS))}
+                            testID="settings-system-battery-row"
                             title="Uso de bateria"
                             value={usoBateria}
                           />
@@ -9091,6 +9426,7 @@ export function InspectorMobileApp() {
                           <SettingsPressRow
                             icon="refresh-circle"
                             onPress={handleVerificarAtualizacoes}
+                            testID="settings-system-check-updates-row"
                             title="Verificar atualizações"
                             value={ultimaVerificacaoAtualizacaoLabel}
                           />
@@ -9100,6 +9436,7 @@ export function InspectorMobileApp() {
                               fecharConfiguracoes();
                               handleAbrirCentralAtividade();
                             }}
+                            testID="settings-system-activity-center-row"
                             title="Central de atividade"
                           />
                           <SettingsPressRow
@@ -9108,6 +9445,7 @@ export function InspectorMobileApp() {
                               fecharConfiguracoes();
                               setFilaOfflineAberta(true);
                             }}
+                            testID="settings-system-offline-queue-row"
                             title="Fila offline"
                           />
                           <SettingsPressRow
@@ -9116,15 +9454,17 @@ export function InspectorMobileApp() {
                               fecharConfiguracoes();
                               void handleRefresh();
                             }}
+                            testID="settings-system-refresh-row"
                             title="Atualizar dados"
                           />
                         </SettingsSection>
                         ) : null}
 
-                        {settingsDrawerMatchesPage("sistemaSuporte") && mostrarSecaoConfiguracao("suporte") ? (
+                        {settingsDrawerMatchesSection("sistemaSuporte", "suporte") ? (
                         <SettingsSection
                           icon="lifebuoy"
                           subtitle="Ajuda, feedback e documentos do aplicativo."
+                          testID="settings-section-suporte"
                           title="Suporte"
                         >
                           <View style={styles.settingsInfoGrid}>
@@ -9150,18 +9490,21 @@ export function InspectorMobileApp() {
                           <SettingsPressRow
                             icon="book-open-page-variant-outline"
                             onPress={handleCentralAjuda}
+                            testID="settings-support-help-center-row"
                             title="Central de ajuda"
                             value={`${artigosAjudaFiltrados.length} guia(s)`}
                           />
                           <SettingsPressRow
                             icon="bug-outline"
                             onPress={handleReportarProblema}
+                            testID="settings-support-report-bug-row"
                             title="Reportar problema"
                             value={ticketsBugTotal ? `${ticketsBugTotal} na fila` : "Diagnóstico"}
                           />
                           <SettingsPressRow
                             icon="message-draw"
                             onPress={handleEnviarFeedback}
+                            testID="settings-support-send-feedback-row"
                             title="Enviar feedback"
                             value={ticketsFeedbackTotal ? `${ticketsFeedbackTotal} na fila` : "Sugestões"}
                           />
@@ -9170,17 +9513,20 @@ export function InspectorMobileApp() {
                             onPress={() => {
                               void handleExportarDiagnosticoApp();
                             }}
+                            testID="settings-support-export-diagnostic-row"
                             title="Exportar diagnóstico"
                             value="TXT"
                           />
                           <SettingsPressRow
                             icon="file-document-check-outline"
                             onPress={handleTermosUso}
+                            testID="settings-support-terms-row"
                             title="Termos de uso"
                           />
                           <SettingsPressRow
                             icon="scale-balance"
                             onPress={handleLicencas}
+                            testID="settings-support-licenses-row"
                             title="Licenças"
                           />
                           {filaSuporteLocal.length ? (
@@ -9654,9 +10000,13 @@ export function InspectorMobileApp() {
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.keyboard}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={keyboardAvoidingBehavior}
+          keyboardVerticalOffset={loginKeyboardVerticalOffset}
         >
-          <ScrollView contentContainerStyle={styles.loginScrollContent} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={[styles.loginScrollContent, keyboardVisible ? styles.loginScrollContentKeyboardVisible : null]}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.loginScreen}>
               <View style={styles.loginBrand}>
                 <BrandIntroMark animationsEnabled={animacoesAtivas} brandColor={accentColor} compact />
@@ -9686,6 +10036,7 @@ export function InspectorMobileApp() {
                         placeholderTextColor="#8EA0B3"
                         returnKeyType="next"
                         style={[styles.mobileFieldInput, { fontSize: 17 * fontScale }]}
+                        testID="login-email-input"
                         textContentType="emailAddress"
                         value={email}
                       />
@@ -9709,10 +10060,15 @@ export function InspectorMobileApp() {
                         returnKeyType="done"
                         secureTextEntry={!mostrarSenha}
                         style={[styles.mobileFieldInput, { fontSize: 17 * fontScale }]}
+                        testID="login-password-input"
                         textContentType="password"
                         value={senha}
                       />
-                      <Pressable onPress={() => setMostrarSenha((current) => !current)} style={styles.mobileFieldAction}>
+                      <Pressable
+                        onPress={() => setMostrarSenha((current) => !current)}
+                        style={styles.mobileFieldAction}
+                        testID="toggle-password-visibility-button"
+                      >
                         <MaterialCommunityIcons
                           name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
                           size={20}
@@ -9739,6 +10095,7 @@ export function InspectorMobileApp() {
                       { backgroundColor: accentColor, shadowColor: accentColor },
                       entrando && styles.primaryButtonDisabled,
                     ]}
+                    testID="login-submit-button"
                   >
                     {entrando ? <ActivityIndicator color={colors.white} /> : <Text style={styles.loginPrimaryButtonText}>Login</Text>}
                   </Pressable>
@@ -9751,13 +10108,21 @@ export function InspectorMobileApp() {
 
                   <View style={styles.loginSocialStack}>
                     <Text style={styles.loginSocialLabel}>Entrar com</Text>
-                    <Pressable onPress={() => handleLoginSocial("Google")} style={styles.loginSocialButton}>
+                    <Pressable
+                      onPress={() => handleLoginSocial("Google")}
+                      style={styles.loginSocialButton}
+                      testID="login-google-button"
+                    >
                       <View style={styles.loginSocialIconShell}>
                         <MaterialCommunityIcons name="google" size={18} color={colors.textPrimary} />
                       </View>
                       <Text style={styles.loginSocialButtonText}>Continuar com Google</Text>
                     </Pressable>
-                    <Pressable onPress={() => handleLoginSocial("Microsoft")} style={styles.loginSocialButton}>
+                    <Pressable
+                      onPress={() => handleLoginSocial("Microsoft")}
+                      style={styles.loginSocialButton}
+                      testID="login-microsoft-button"
+                    >
                       <View style={styles.loginSocialIconShell}>
                         <MaterialCommunityIcons name="microsoft-windows" size={18} color={colors.textPrimary} />
                       </View>
@@ -9844,6 +10209,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xxl,
+  },
+  loginScrollContentKeyboardVisible: {
+    justifyContent: "flex-start",
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
   },
   loginScreen: {
     gap: spacing.xl,
@@ -10487,6 +10857,10 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
+  },
+  chatPanelKeyboardVisible: {
+    paddingTop: spacing.xs,
+    gap: spacing.sm,
   },
   threadHeaderCard: {
     backgroundColor: colors.surfaceSoft,
@@ -11399,6 +11773,9 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.md,
   },
+  threadContentKeyboard: {
+    paddingBottom: spacing.lg,
+  },
   messageRow: {
     width: "100%",
   },
@@ -11639,6 +12016,11 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
+  },
+  composerCardKeyboardVisible: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
   },
   composerHeader: {
     flexDirection: "row",

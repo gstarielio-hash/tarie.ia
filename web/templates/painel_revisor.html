@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#171A20">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Mesa de Avaliação • Tariel.ia</title>
+
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+
+    <link rel="stylesheet" href="/static/css/revisor/painel_revisor.css?v={{ v_app }}">
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar-logo">
+            <span class="material-symbols-rounded" aria-hidden="true">inbox</span>
+            <span>Mesa de Avaliação</span>
+        </div>
+
+        <div class="topbar-usuario">
+            <a href="/revisao/templates-laudo" class="btn-link-topbar">
+                <span class="material-symbols-rounded" aria-hidden="true" style="font-size:18px;">library_books</span>
+                <span>Templates</span>
+            </a>
+            <span class="topbar-usuario-nome">{{ usuario.nome_completo }}</span>
+            <form action="/revisao/logout" method="POST" style="margin: 0;">
+                <input type="hidden" name="csrf_token" id="global-csrf" value="{{ csrf_token }}">
+                <button type="submit" class="btn-sair">
+                    <span class="material-symbols-rounded" aria-hidden="true" style="font-size:18px;">logout</span>
+                    <span>Sair</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <div class="layout-inbox">
+        <aside class="coluna-lista" aria-label="Lista de laudos">
+            <section id="container-whispers" class="whisper-box" {% if not whispers_pendentes %}hidden{% endif %} aria-live="polite">
+                <div class="lista-header whisper-header" style="border-bottom:none;">
+                    <span>Whispers (Chamados)</span>
+                    <div class="ping-bolinha" aria-hidden="true"></div>
+                </div>
+                <div id="lista-whispers">
+                    {% for whisper in whispers_pendentes %}
+                    <article class="item-lista whisper-item js-item-laudo" data-id="{{ whisper.laudo_id }}" data-whispers-nao-lidos="1"
+                        data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) }}" tabindex="0" role="button"
+                        aria-label="Abrir chamado urgente #{{ whisper.hash | e }}">
+                        <div class="item-topo">
+                            <span class="item-hash">#{{ whisper.hash | e }}</span>
+                            <span class="badge urgente">Urgente</span>
+                        </div>
+                        <div class="item-preview">{{ whisper.texto | default('', true) | truncate(60) }}</div>
+                        <div class="item-meta-rodape">
+                            <div class="item-indicadores">
+                                <span class="badge indicador-whisper js-indicador-whispers">1 whisper</span>
+                                <span class="badge indicador-pendencia js-indicador-pendencias"
+                                    {% if pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) <= 0 %}hidden{% endif %}>
+                                    {{ pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) }} pend.
+                                </span>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <form method="get" action="/revisao/painel" class="filtros-mesa" aria-label="Filtros da mesa avaliadora">
+                <label class="filtro-label" for="filtro-inspetor">Inspetor</label>
+                <div class="filtro-linha">
+                    <select id="filtro-inspetor" name="inspetor" class="filtro-select" onchange="this.form.submit()">
+                        <option value="">Todos os inspetores</option>
+                        {% for inspetor in inspetores_empresa %}
+                        <option value="{{ inspetor.id }}" {% if filtro_inspetor_id == inspetor.id %}selected{% endif %}>
+                            {{ inspetor.nome | e }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if filtro_inspetor_id or filtro_busca %}
+                    <a href="/revisao/painel" class="btn-limpar-filtro">Limpar</a>
+                    {% endif %}
+                </div>
+                <label class="filtro-label" for="filtro-busca">Busca rápida</label>
+                <div class="filtro-linha">
+                    <input id="filtro-busca" type="search" name="q" class="filtro-texto"
+                        placeholder="Hash, descrição, setor ou modalidade"
+                        value="{{ filtro_busca | default('', true) | e }}">
+                    <button type="submit" class="btn-buscar-filtro">Buscar</button>
+                </div>
+            </form>
+
+            <div class="lista-scroll" id="lista-laudos">
+                <div class="lista-header">Em Andamento em Campo ({{ laudos_em_andamento|length }})</div>
+
+                {% for laudo in laudos_em_andamento %}
+                <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
+                    data-whispers-nao-lidos="{{ laudo.whispers_nao_lidos or 0 }}"
+                    data-pendencias-abertas="{{ laudo.pendencias_abertas or 0 }}" tabindex="0"
+                    role="button" aria-label="Abrir laudo #{{ laudo.hash_curto }}">
+                    <div class="item-topo">
+                        <span class="item-hash">#{{ laudo.hash_curto | e }}</span>
+                        <span class="item-data">{{ laudo.atualizado_em.strftime('%d/%m %H:%M') if laudo.atualizado_em else '--/-- --:--' }}</span>
+                    </div>
+                    <div class="item-preview">{{ laudo.primeira_mensagem | default('Inspeção iniciada em campo', true) | truncate(60) }}
+                    </div>
+                    <div class="item-responsavel">{{ laudo.inspetor_nome | e }}</div>
+                    <div class="item-meta-rodape">
+                        <div class="item-indicadores">
+                            <span class="badge rascunho">Em Campo</span>
+                            <span class="badge indicador-whisper js-indicador-whispers"
+                                {% if (laudo.whispers_nao_lidos or 0) <= 0 %}hidden{% endif %}>
+                                {{ laudo.whispers_nao_lidos or 0 }} whisper{% if (laudo.whispers_nao_lidos or 0) != 1 %}s{% endif %}
+                            </span>
+                            <span class="badge indicador-pendencia js-indicador-pendencias"
+                                {% if (laudo.pendencias_abertas or 0) <= 0 %}hidden{% endif %}>
+                                {{ laudo.pendencias_abertas or 0 }} pend.
+                            </span>
+                        </div>
+                        <span class="sla-pill {{ laudo.tempo_em_campo_status | e }}">Em campo há {{ laudo.tempo_em_campo | e }}</span>
+                    </div>
+                </article>
+                {% endfor %}
+
+                <div class="lista-header" style="border-top:1px solid var(--borda);">Aguardando Avaliação ({{ laudos_pendentes|length }})</div>
+
+                {% for laudo in laudos_pendentes %}
+                <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
+                    data-whispers-nao-lidos="{{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }}"
+                    data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(laudo.id, 0) }}" tabindex="0"
+                    role="button" aria-label="Abrir laudo #{{ laudo.codigo_hash[-6:] }}">
+                    <div class="item-topo">
+                        <span class="item-hash">#{{ laudo.codigo_hash[-6:] }}</span>
+                        <span class="item-data">{{ (laudo.atualizado_em or laudo.criado_em).strftime('%d/%m %H:%M') if (laudo.atualizado_em or laudo.criado_em) else '--/-- --:--' }}</span>
+                    </div>
+                    <div class="item-preview">{{ laudo.primeira_mensagem | default('Sem descrição') | truncate(60) }}
+                    </div>
+                    <div class="item-meta-rodape">
+                        <div class="item-indicadores">
+                            <span class="badge aguardando">Aguardando Aval</span>
+                            <span class="badge indicador-whisper js-indicador-whispers"
+                                {% if whispers_nao_lidos_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
+                                {{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }} whisper{% if whispers_nao_lidos_por_laudo.get(laudo.id, 0) != 1 %}s{% endif %}
+                            </span>
+                            <span class="badge indicador-pendencia js-indicador-pendencias"
+                                {% if pendencias_abertas_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
+                                {{ pendencias_abertas_por_laudo.get(laudo.id, 0) }} pend.
+                            </span>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+
+                <div class="lista-header" style="border-top:1px solid var(--borda);">Histórico Recente</div>
+
+                {% for laudo in laudos_avaliados %}
+                <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
+                    data-whispers-nao-lidos="{{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }}"
+                    data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(laudo.id, 0) }}" tabindex="0"
+                    role="button" aria-label="Abrir laudo #{{ laudo.codigo_hash[-6:] }}">
+                    <div class="item-topo">
+                        <span class="item-hash">#{{ laudo.codigo_hash[-6:] }}</span>
+                        <span class="item-data">{{ (laudo.atualizado_em or laudo.criado_em).strftime('%d/%m') if (laudo.atualizado_em or laudo.criado_em) else '--/--' }}</span>
+                    </div>
+                    <div class="item-preview">{{ laudo.setor_industrial }}</div>
+                    <div class="item-meta-rodape">
+                        <div class="item-indicadores">
+                            {% if laudo.status_revisao == 'Aprovado' %}
+                            <span class="badge aprovado">Aprovado</span>
+                            {% else %}
+                            <span class="badge rejeitado">Devolvido</span>
+                            {% endif %}
+                            <span class="badge indicador-whisper js-indicador-whispers"
+                                {% if whispers_nao_lidos_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
+                                {{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }} whisper{% if whispers_nao_lidos_por_laudo.get(laudo.id, 0) != 1 %}s{% endif %}
+                            </span>
+                            <span class="badge indicador-pendencia js-indicador-pendencias"
+                                {% if pendencias_abertas_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
+                                {{ pendencias_abertas_por_laudo.get(laudo.id, 0) }} pend.
+                            </span>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </aside>
+
+        <main class="coluna-view" aria-label="Detalhes do laudo">
+            <section id="estado-vazio" class="estado-vazio">
+                <div class="estado-vazio-box">
+                    <span class="material-symbols-rounded" aria-hidden="true"
+                        style="font-size:64px; margin-bottom:16px; opacity:.5;">mark_email_unread</span>
+                    <h3 style="margin-bottom:8px;">Selecione um laudo à esquerda</h3>
+                    <p>O histórico de inspeção e o relatório aparecerão aqui.</p>
+                </div>
+            </section>
+
+            <section id="view-content" hidden aria-live="polite">
+                <div class="view-header">
+                    <div class="view-titulo">
+                        <h2 id="view-hash">Laudo #XYZ</h2>
+                        <span id="view-meta">Protocolo: ... | Iniciado em: ...</span>
+                    </div>
+                    <div class="view-acoes" id="view-acoes"></div>
+                </div>
+
+                <section id="mesa-operacao-painel" class="mesa-operacao-painel" hidden aria-live="polite">
+                    <div id="mesa-operacao-conteudo"></div>
+                </section>
+
+                <div class="view-timeline" id="view-timeline" role="log" aria-live="polite" aria-relevant="additions">
+                </div>
+
+                <div class="view-reply" id="box-resposta">
+                    <div id="ref-ativa-resposta" class="reply-ref-ativa" hidden>
+                        <div>
+                            <strong id="ref-ativa-titulo">Respondendo mensagem</strong>
+                            <p id="ref-ativa-texto"></p>
+                        </div>
+                        <button type="button" id="btn-limpar-ref-ativa" class="btn-limpar-ref" aria-label="Remover referência">×</button>
+                    </div>
+
+                    <div id="preview-resposta-anexo" class="reply-attachment-preview" hidden></div>
+
+                    <div class="view-reply-main">
+                    <button type="button" id="btn-anexo-resposta" class="btn-anexo-chat" aria-label="Anexar arquivo para o inspetor">
+                        <span class="material-symbols-rounded" aria-hidden="true">attach_file</span>
+                    </button>
+                    <input
+                        type="file"
+                        id="input-anexo-resposta"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        hidden
+                        aria-hidden="true"
+                        tabindex="-1"
+                    >
+                    <label for="input-resposta" class="sr-only">Mensagem para o inspetor</label>
+                    <textarea id="input-resposta" rows="2"
+                        placeholder="Escreva para o inspetor ou envie um anexo... (Enter envia)" aria-label="Mensagem para o inspetor"></textarea>
+                    <button class="btn-enviar-chat" id="btn-enviar-msg" type="button">
+                        <span class="material-symbols-rounded" aria-hidden="true">send</span>
+                        <span>Enviar</span>
+                    </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="modal-relatorio" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="titulo-modal-relatorio" aria-hidden="true">
+        <div class="modal-container" role="document">
+            <div class="modal-header">
+                <h2 id="titulo-modal-relatorio">
+                    <span class="material-symbols-rounded" aria-hidden="true">assignment</span>
+                    Relatório Estruturado IA
+                </h2>
+                <button class="btn-sair" id="btn-fechar-relatorio" type="button" aria-label="Fechar relatório"
+                    style="border:none;">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-conteudo"></div>
+        </div>
+    </div>
+
+    <div id="modal-pacote" class="modal-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="titulo-modal-pacote" aria-hidden="true">
+        <div class="modal-container" role="document">
+            <div class="modal-header">
+                <h2 id="titulo-modal-pacote">
+                    <span class="material-symbols-rounded" aria-hidden="true">dataset</span>
+                    Pacote Técnico da Mesa
+                </h2>
+                <button class="btn-sair" id="btn-fechar-pacote" type="button" aria-label="Fechar pacote"
+                    style="border:none;">
+                    <span class="material-symbols-rounded" aria-hidden="true">close</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-pacote-conteudo"></div>
+        </div>
+    </div>
+
+    <div id="dialog-motivo" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-dialog-motivo"
+        aria-describedby="texto-dialog-motivo" aria-hidden="true">
+        <div class="dialog-motivo" role="document">
+            <h3 id="titulo-dialog-motivo" class="dialog-titulo">
+                <span class="material-symbols-rounded" aria-hidden="true">cancel</span>
+                Devolver Laudo
+            </h3>
+            <p id="texto-dialog-motivo" class="dialog-texto">
+                Informe o motivo da devolução. O inspetor verá esta mensagem no campo.
+            </p>
+
+            <label for="input-motivo" class="sr-only">Motivo da devolução</label>
+            <textarea id="input-motivo" placeholder="Ex: Foto do quadro elétrico desfocada..." aria-label="Motivo da devolução"></textarea>
+
+            <div class="dialog-acoes">
+                <button class="btn btn-neutro" id="btn-cancelar-motivo" type="button">Cancelar</button>
+                <button class="btn btn-rejeitar" id="btn-confirmar-motivo" type="button"
+                    style="background:var(--cor-rejeitado); color:#fff;">
+                    Confirmar Devolução
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-flutuante" class="barra-status-flutuante" aria-live="polite" aria-atomic="true"></div>
+
+    <div
+        id="revisor-front-contract"
+        hidden
+        data-websocket-url="/revisao/ws/whispers"
+        data-pacote-url-template="/revisao/api/laudo/${state.laudoAtivoId}/pacote"
+        data-pacote-pdf-url-template="/revisao/api/laudo/${state.laudoAtivoId}/pacote/exportar-pdf"
+        data-marcar-whispers-url-template="/revisao/api/laudo/${alvo}/marcar-whispers-lidos"
+        data-pendencia-url-template="/revisao/api/laudo/${laudoId}/pendencias/${msgId}"
+        data-responder-anexo-url-template="/revisao/api/laudo/${state.laudoAtivoId}/responder-anexo"
+        data-pacote-json-hook="js-btn-pacote-json"
+        data-pacote-pdf-hook="js-btn-pacote-pdf"
+        data-pendencias-key="pendencias_resolvidas_recentes"
+        data-whispers-indicator-hook="js-indicador-whispers"
+        data-pendencias-indicator-hook="js-indicador-pendencias"
+        data-anexo-link-class="anexo-mensagem-link"
+    >
+        <button type="button" data-mesa-action="responder-item" hidden tabindex="-1"></button>
+        <button type="button" data-mesa-action="alternar-pendencia" hidden tabindex="-1"></button>
+    </div>
+
+    <script src="/static/js/revisor/revisor_painel_core.js?v={{ v_app }}" defer></script>
+    <script src="/static/js/revisor/revisor_painel_mesa.js?v={{ v_app }}" defer></script>
+    <script src="/static/js/revisor/revisor_painel_historico.js?v={{ v_app }}" defer></script>
+    <script src="/static/js/revisor/painel_revisor_page.js?v={{ v_app }}" defer></script>
+</body>
+
+</html>
+

@@ -10,6 +10,12 @@
     "android:preview": "node ./scripts/fix-gradle-wrapper.cjs && node ./scripts/run-android-preview.cjs",
     "android:preview:fresh": "expo prebuild --platform android --clean && node ./scripts/fix-gradle-wrapper.cjs && node ./scripts/run-android-preview.cjs",
     "ios": "expo run:ios",
+    "maestro:smoke": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1",
+    "maestro:login": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1 -Flow android/maestro/login-smoke.yaml",
+    "maestro:history": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1 -Flow android/maestro/history-smoke.yaml",
+    "maestro:settings": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1 -Flow android/maestro/settings-smoke.yaml",
+    "maestro:chat": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1 -Flow android/maestro/chat-smoke.yaml",
+    "maestro:suite": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_suite.ps1",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },

@@ -19,6 +19,12 @@ npm run android:prebuild
 npm run android:dev
 npm run android:preview
 npm run android:preview:fresh
+npm run maestro:smoke
+npm run maestro:login
+npm run maestro:history
+npm run maestro:settings
+npm run maestro:chat
+npm run maestro:suite
 npm run ios
 npm run web
 npm run typecheck
@@ -99,3 +105,36 @@ npm run android:preview:fresh
 O APK gerado e instalado usa a variante `release`, assina com a chave debug local e serve para validacao no emulador
 ou no Android real antes de configurar a assinatura final da Play Store. Ao final da instalacao,
 o script tambem abre automaticamente o `Tariel Inspetor` no dispositivo conectado.
+
+## Smoke tests com Maestro
+
+Para automatizar os fluxos principais do Android real:
+
+```powershell
+cd android
+npm run maestro:smoke
+```
+
+Fluxos disponíveis:
+
+- `npm run maestro:login`
+- `npm run maestro:history`
+- `npm run maestro:settings`
+- `npm run maestro:chat`
+- `npm run maestro:suite`
+
+O comando base:
+
+- sobe a API local do mobile, se ela ainda nao estiver ativa
+- configura `adb reverse tcp:8000 tcp:8000`
+- roda o fluxo escolhido dentro de [android/maestro](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro) no dispositivo USB conectado
+
+O runner PowerShell usado pelo npm fica em [run_mobile_maestro_smoke.ps1](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/run_mobile_maestro_smoke.ps1).
+Para encadear a suíte completa existe também [run_mobile_maestro_suite.ps1](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/run_mobile_maestro_suite.ps1).
+
+Cobertura atual:
+
+- [login-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/login-smoke.yaml): login, shell, histórico, configurações e envio básico no chat
+- [history-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/history-smoke.yaml): drawer de histórico, filtros e retomada de conversa
+- [settings-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/settings-smoke.yaml): overview da engrenagem, navegação por seções e páginas internas
+- [chat-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/chat-smoke.yaml): composer, envio e troca de abas do fluxo principal
