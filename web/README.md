@@ -97,6 +97,8 @@ Observações:
 O blueprint de produção fica na raiz do repositório em `../render.yaml`.
 Ele usa `rootDir: web`, então o serviço do Render executa build, migrations e `uvicorn`
 diretamente a partir desta pasta sem precisar de wrappers com `cd`.
+O mesmo blueprint também provisiona o Key Value `tarie-ia-realtime` e injeta `REDIS_URL`
+no serviço web para o realtime distribuído da mesa.
 
 ## Pipeline de validação
 

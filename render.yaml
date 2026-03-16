@@ -18,6 +18,13 @@ services:
         value: 3.14.3
       - key: AMBIENTE
         value: production
+      - key: REVISOR_REALTIME_BACKEND
+        value: redis
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: tarie-ia-realtime
+          property: connectionString
       - key: DATABASE_URL
         fromDatabase:
           name: tarie-ia-db
@@ -46,6 +53,13 @@ services:
         value: cracha_tariel_seguro
       - key: SEED_DEV_BOOTSTRAP
         value: "0"
+
+  - type: keyvalue
+    name: tarie-ia-realtime
+    region: oregon
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
 
 databases:
   - name: tarie-ia-db
