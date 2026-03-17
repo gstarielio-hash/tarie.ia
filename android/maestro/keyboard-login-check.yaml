@@ -1,0 +1,19 @@
+appId: com.tarielia.inspetor
+tags:
+  - keyboard
+  - login
+env:
+  LOGIN_PASSWORD: ${MAESTRO_LOGIN_PASSWORD}
+---
+- launchApp:
+    clearState: true
+
+- assertVisible:
+    id: login-email-input
+
+- tapOn:
+    id: login-password-input
+
+- inputText: ${LOGIN_PASSWORD}
+
+- takeScreenshot: login-keyboard-visible

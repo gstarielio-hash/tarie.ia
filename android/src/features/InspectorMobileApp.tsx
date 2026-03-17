@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
   Easing,
   Image,
   Keyboard,
@@ -22,7 +21,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -41,214 +39,95 @@ import {
   enviarMensagemChatMobile,
   loginInspectorMobile,
   logoutInspectorMobile,
+  obterUrlLoginSocialMobile,
+  obterUrlRecuperacaoSenhaMobile,
   pingApi,
   reabrirLaudoMobile,
   uploadDocumentoChatMobile,
 } from "../config/api";
-import { colors, radii, spacing } from "../theme/tokens";
+import {
+  listarEventosObservabilidade,
+  registrarEventoObservabilidade,
+  resumirEventosObservabilidade,
+} from "../config/observability";
+import {
+  AssistantCitationList,
+  AssistantMessageContent,
+} from "../components/AssistantRichMessage";
+import { colors, spacing } from "../theme/tokens";
 import type {
   ApiHealthStatus,
   MobileAttachment,
   MobileBootstrapResponse,
   MobileChatMessage,
+  MobileChatMode,
+  MobileChatSendResult,
   MobileEstadoLaudo,
   MobileLaudoCard,
   MobileLaudoMensagensResponse,
   MobileLaudoStatusResponse,
   MobileMesaMessage,
 } from "../types/mobile";
-
-const TOKEN_KEY = "tariel_inspetor_access_token";
-const EMAIL_KEY = "tariel_inspetor_email";
-const OFFLINE_QUEUE_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-offline-queue.json`;
-const NOTIFICATIONS_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-activity-feed.json`;
-const READ_CACHE_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-read-cache.json`;
-const APP_PREFERENCES_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-app-preferences.json`;
-const MAX_NOTIFICATIONS = 40;
-const TARIEL_APP_MARK = require("../../assets/icon.png");
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const SIDE_PANEL_WIDTH = Math.min(372, Math.max(304, SCREEN_WIDTH * 0.82));
-const HISTORY_PANEL_CLOSED_X = -SIDE_PANEL_WIDTH - 24;
-const SETTINGS_PANEL_CLOSED_X = SIDE_PANEL_WIDTH + 24;
-const PANEL_ANIMATION_DURATION = 220;
-const PANEL_EDGE_GESTURE_WIDTH = 28;
-const PANEL_OPEN_SWIPE_THRESHOLD = 34;
-const PANEL_CLOSE_SWIPE_THRESHOLD = 40;
-const PANEL_EDGE_GESTURE_TOP_OFFSET = 78;
-const APP_VERSION_LABEL = "1.0.0 preview";
-const APP_BUILD_CHANNEL = "Prévia do inspetor";
-
-const AI_MODEL_OPTIONS = ["rápido", "equilibrado", "avançado"] as const;
-const RESPONSE_STYLE_OPTIONS = ["curto", "padrão", "detalhado", "criativo"] as const;
-const RESPONSE_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol", "Auto detectar"] as const;
-const CONVERSATION_TONE_OPTIONS = ["profissional", "casual", "técnico", "amigável"] as const;
-const THEME_OPTIONS = ["claro", "escuro", "automático"] as const;
-const FONT_SIZE_OPTIONS = ["pequeno", "médio", "grande"] as const;
-const DENSITY_OPTIONS = ["compacta", "confortável"] as const;
-const ACCENT_OPTIONS = ["azul", "laranja", "roxo", "personalizado"] as const;
-const NOTIFICATION_SOUND_OPTIONS = ["Ping", "Sino curto", "Silencioso"] as const;
-const APP_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol"] as const;
-const REGION_OPTIONS = ["Brasil", "Estados Unidos", "Europa"] as const;
-const BATTERY_OPTIONS = ["Otimizado", "Desempenho", "Econômico"] as const;
-const PAYMENT_CARD_OPTIONS = ["Visa final 4242", "Mastercard final 1034", "Sem cartão"] as const;
-const PLAN_OPTIONS = ["Free", "Pro", "Enterprise"] as const;
-const TEMPERATURE_STEPS = [0, 0.2, 0.4, 0.6, 0.8, 1] as const;
-const LOCK_TIMEOUT_OPTIONS = ["imediatamente", "1 minuto", "5 minutos", "15 minutos", "nunca"] as const;
-const TWO_FACTOR_METHOD_OPTIONS = ["App autenticador", "Email"] as const;
-const SECURITY_EVENT_FILTERS = ["todos", "críticos", "acessos"] as const;
-const DATA_RETENTION_OPTIONS = ["30 dias", "90 dias", "1 ano", "Até excluir"] as const;
-const SETTINGS_DRAWER_FILTERS = [
-  { key: "todos", label: "Tudo" },
-  { key: "prioridades", label: "Agora" },
-  { key: "acesso", label: "Conta" },
-  { key: "experiencia", label: "App" },
-  { key: "seguranca", label: "Segurança" },
-  { key: "sistema", label: "Sistema" },
-] as const;
-const HISTORY_DRAWER_FILTERS = [
-  { key: "todos", label: "Tudo" },
-  { key: "fixadas", label: "Fixadas" },
-  { key: "recentes", label: "Recentes" },
-] as const;
-const HELP_CENTER_ARTICLES = [
-  {
-    id: "help-primeiros-passos",
-    title: "Primeiros passos no laudo",
-    category: "Operação",
-    summary: "Como abrir um registro limpo, conversar com a Tariel.ia e ganhar velocidade em campo.",
-    body:
-      "Comece descrevendo o local, o achado principal e o impacto observado. A Tariel.ia transforma isso em um registro técnico claro, sugere próximos passos e organiza o contexto do laudo para você continuar sem sobrecarregar a tela.",
-    estimatedRead: "2 min",
-  },
-  {
-    id: "help-mesa-avaliadora",
-    title: "Quando usar a aba Mesa",
-    category: "Mesa",
-    summary: "Entenda quando a mesa aparece e como responder de forma objetiva e útil.",
-    body:
-      "A aba Mesa é reservada para retornos da equipe avaliadora. Quando houver uma solicitação, responda de forma direta, com evidências e contexto. Se ainda não existir conversa da mesa, foque apenas no chat principal para não fragmentar a inspeção.",
-    estimatedRead: "3 min",
-  },
-  {
-    id: "help-fila-offline",
-    title: "Fila offline e retomada",
-    category: "Conectividade",
-    summary: "Saiba como o app guarda mensagens, anexos e respostas quando a internet falha.",
-    body:
-      "Sempre que a conexão cair, o app guarda localmente as mensagens e anexos permitidos. Quando a rede voltar, você pode sincronizar tudo pela fila offline ou retomar manualmente uma pendência para revisar o texto antes do reenvio.",
-    estimatedRead: "2 min",
-  },
-  {
-    id: "help-seguranca-conta",
-    title: "Segurança da conta do inspetor",
-    category: "Segurança",
-    summary: "Reautenticação, 2FA e permissões do dispositivo em linguagem simples.",
-    body:
-      "Use contas conectadas, verificação em duas etapas e proteção local do dispositivo para reduzir risco de acesso indevido. Ações críticas, como exportar dados ou excluir a conta, pedem confirmação extra para manter a operação segura.",
-    estimatedRead: "4 min",
-  },
-] as const;
-const UPDATE_CHANGELOG = [
-  {
-    id: "update-1",
-    title: "Branding Tariel no mobile",
-    summary: "Launcher, login e estados vazios agora usam a identidade TG com acentos mais sutis.",
-  },
-  {
-    id: "update-2",
-    title: "Drawer lateral de histórico e configurações",
-    summary: "Os painéis agora abrem sobre o chat, com gesto lateral e foco melhor na conversa.",
-  },
-  {
-    id: "update-3",
-    title: "Engrenagem em evolução",
-    summary: "Conta, segurança, permissões, privacidade e suporte ficaram mais vivos dentro do app.",
-  },
-] as const;
+import {
+  ACCENT_OPTIONS,
+  AI_MODEL_OPTIONS,
+  APP_BUILD_CHANNEL,
+  APP_LANGUAGE_OPTIONS,
+  APP_PREFERENCES_FILE,
+  APP_VERSION_LABEL,
+  BATTERY_OPTIONS,
+  CONVERSATION_TONE_OPTIONS,
+  DATA_RETENTION_OPTIONS,
+  DENSITY_OPTIONS,
+  EMAIL_KEY,
+  FONT_SIZE_OPTIONS,
+  HELP_CENTER_ARTICLES,
+  HISTORY_DRAWER_FILTERS,
+  HISTORY_PANEL_CLOSED_X,
+  LOCK_TIMEOUT_OPTIONS,
+  MAX_NOTIFICATIONS,
+  NOTIFICATIONS_FILE,
+  NOTIFICATION_SOUND_OPTIONS,
+  OFFLINE_QUEUE_FILE,
+  PANEL_ANIMATION_DURATION,
+  PANEL_CLOSE_SWIPE_THRESHOLD,
+  PANEL_EDGE_GESTURE_WIDTH,
+  PANEL_OPEN_SWIPE_THRESHOLD,
+  PAYMENT_CARD_OPTIONS,
+  PLAN_OPTIONS,
+  READ_CACHE_FILE,
+  REGION_OPTIONS,
+  RESPONSE_LANGUAGE_OPTIONS,
+  RESPONSE_STYLE_OPTIONS,
+  SCREEN_WIDTH,
+  SECURITY_EVENT_FILTERS,
+  SETTINGS_DRAWER_FILTERS,
+  SETTINGS_PANEL_CLOSED_X,
+  TARIEL_APP_MARK,
+  TEMPERATURE_STEPS,
+  THEME_OPTIONS,
+  TOKEN_KEY,
+  TWO_FACTOR_METHOD_OPTIONS,
+  UPDATE_CHANGELOG,
+} from "./InspectorMobileApp.constants";
+import { styles } from "./InspectorMobileApp.styles";
 
 function BrandIntroMark({
   compact = false,
   title,
-  animationsEnabled = true,
   brandColor = colors.accent,
 }: {
   compact?: boolean;
   title?: string;
-  animationsEnabled?: boolean;
   brandColor?: string;
 }) {
-  const fade = useRef(new Animated.Value(0)).current;
-  const lift = useRef(new Animated.Value(12)).current;
-  const pulse = useRef(new Animated.Value(0.98)).current;
-
-  useEffect(() => {
-    if (!animationsEnabled) {
-      fade.setValue(1);
-      lift.setValue(0);
-      pulse.setValue(1);
-      return;
-    }
-
-    const intro = Animated.parallel([
-      Animated.timing(fade, {
-        toValue: 1,
-        duration: 320,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(lift, {
-        toValue: 0,
-        duration: 320,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(pulse, {
-        toValue: 1,
-        duration: 360,
-        easing: Easing.out(Easing.back(1.2)),
-        useNativeDriver: true,
-      }),
-    ]);
-
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1.025,
-          duration: 1800,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    intro.start(() => loop.start());
-
-    return () => {
-      loop.stop();
-    };
-  }, [animationsEnabled, fade, lift, pulse]);
-
   return (
-    <Animated.View
-      style={[
-        compact ? styles.brandStageCompact : styles.threadEmptyBrandStage,
-        {
-          opacity: fade,
-          transform: [{ translateY: lift }, { scale: pulse }],
-        },
-      ]}
-    >
+    <View style={compact ? styles.brandStageCompact : styles.threadEmptyBrandStage}>
       <View style={compact ? styles.brandHaloCompact : styles.threadEmptyBrandHalo} />
       <Image source={TARIEL_APP_MARK} style={compact ? styles.brandMarkCompact : styles.threadEmptyBrandMark} />
       <Text style={[compact ? styles.brandLabelCompact : styles.threadEmptyBrand, { color: brandColor }]}>TARIEL.IA</Text>
       {title ? <Text style={styles.threadEmptyTitle}>{title}</Text> : null}
-    </Animated.View>
+    </View>
   );
 }
 
@@ -869,6 +748,7 @@ interface ChatState {
   permiteEdicao: boolean;
   permiteReabrir: boolean;
   laudoCard: MobileLaudoCard | null;
+  modo: MobileChatMode | string;
   mensagens: MobileChatMessage[];
 }
 
@@ -911,6 +791,11 @@ interface AttachmentPreviewState {
   uri: string;
 }
 
+interface MessageReferenceState {
+  id: number;
+  texto: string;
+}
+
 interface OfflinePendingMessage {
   id: string;
   channel: "chat" | "mesa";
@@ -919,6 +804,7 @@ interface OfflinePendingMessage {
   createdAt: string;
   title: string;
   attachment: ComposerAttachment | null;
+  referenceMessageId: number | null;
   attempts: number;
   lastAttemptAt: string;
   lastError: string;
@@ -1167,25 +1053,6 @@ function normalizarTextoBusca(value: string): string {
     .trim();
 }
 
-function criarRespostaPreviewTariel(texto: string, anexo: ComposerAttachment | null): MobileChatMessage {
-  const textoLimpo = texto.trim();
-  const respostaBase = anexo?.kind === "document"
-    ? "Documento recebido. Posso te ajudar a resumir, estruturar o relato tecnico ou transformar esse material em um laudo mais claro."
-    : anexo?.kind === "image"
-      ? "Imagem recebida. Posso te ajudar a descrever o registro, apontar detalhes importantes e montar uma narrativa objetiva para o laudo."
-      : textoLimpo
-        ? `Entendi. Vamos transformar isso em um registro tecnico claro: "${textoLimpo}". Posso te ajudar a descrever local, achado principal, impacto e proximo passo.`
-        : "Me diga o que voce esta vendo em campo e eu te ajudo a transformar isso em um registro tecnico claro.";
-
-  return {
-    id: Date.now() + 1,
-    papel: "assistente",
-    texto: respostaBase,
-    tipo: "assistant",
-    modo: "detalhado",
-  };
-}
-
 function startOfDay(date: Date): number {
   const clone = new Date(date);
   clone.setHours(0, 0, 0, 0);
@@ -1265,7 +1132,13 @@ function aplicarPreferenciasLaudos(
     }));
 }
 
-function atualizarResumoLaudoAtual<T extends { estado: MobileEstadoLaudo | string; permite_edicao: boolean; permite_reabrir: boolean; laudo_card: MobileLaudoCard | null }>(
+function atualizarResumoLaudoAtual<T extends {
+  estado: MobileEstadoLaudo | string;
+  permite_edicao: boolean;
+  permite_reabrir: boolean;
+  laudo_card: MobileLaudoCard | null;
+  modo?: MobileChatMode | string;
+}>(
   estadoAtual: ChatState | null,
   payload: T,
 ): ChatState | null {
@@ -1280,6 +1153,7 @@ function atualizarResumoLaudoAtual<T extends { estado: MobileEstadoLaudo | strin
     permiteEdicao: Boolean(payload.permite_edicao),
     permiteReabrir: Boolean(payload.permite_reabrir),
     laudoCard: payload.laudo_card || estadoAtual.laudoCard,
+    modo: normalizarModoChat(payload.modo, normalizarModoChat(estadoAtual.modo)),
   };
 }
 
@@ -1328,6 +1202,7 @@ async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
           createdAt: String(registro.createdAt || ""),
           title: String(registro.title || "").trim() || "Mensagem pendente",
           attachment: normalizarComposerAttachment(registro.attachment),
+          referenceMessageId: typeof registro.referenceMessageId === "number" ? registro.referenceMessageId : null,
           attempts: typeof registro.attempts === "number" ? Math.max(0, registro.attempts) : 0,
           lastAttemptAt: String(registro.lastAttemptAt || ""),
           lastError: String(registro.lastError || "").trim(),
@@ -1580,6 +1455,7 @@ function criarItemFilaOffline(params: {
   text: string;
   title: string;
   attachment?: ComposerAttachment | null;
+  referenceMessageId?: number | null;
 }): OfflinePendingMessage {
   return {
     id: `${params.channel}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
@@ -1589,6 +1465,7 @@ function criarItemFilaOffline(params: {
     createdAt: new Date().toISOString(),
     title: params.title.trim() || "Mensagem pendente",
     attachment: duplicarComposerAttachment(params.attachment || null),
+    referenceMessageId: Number(params.referenceMessageId || 0) || null,
     attempts: 0,
     lastAttemptAt: "",
     lastError: "",
@@ -1877,6 +1754,8 @@ function obterIntervaloMonitoramentoMs(
   return 25_000;
 }
 
+const MAX_LAUDOS_MONITORADOS_MESA = 6;
+
 function obterEscalaFonte(tamanho: (typeof FONT_SIZE_OPTIONS)[number]): number {
   if (tamanho === "pequeno") {
     return 0.94;
@@ -1912,9 +1791,81 @@ function montarHistoricoParaEnvio(
     }));
 }
 
+function normalizarModoChat(modo: unknown, fallback: MobileChatMode = "detalhado"): MobileChatMode {
+  const valor = String(modo || "").trim().toLowerCase();
+  if (valor === "curto") {
+    return "curto";
+  }
+  if (valor === "deep_research" || valor === "deepresearch") {
+    return "deep_research";
+  }
+  if (valor === "detalhado") {
+    return "detalhado";
+  }
+  return fallback;
+}
+
+function inferirSetorConversa(conversa: ChatState | null | undefined): string {
+  const tipoTemplate = String(conversa?.laudoCard?.tipo_template || "")
+    .trim()
+    .toLowerCase();
+
+  switch (tipoTemplate) {
+    case "rti":
+    case "nr10_rti":
+      return "rti";
+    case "nr12":
+    case "nr12_maquinas":
+    case "nr12maquinas":
+      return "nr12";
+    case "nr13":
+    case "nr13_caldeira":
+      return "nr13";
+    case "spda":
+    case "pie":
+    case "avcb":
+    case "loto":
+    case "nr10":
+    case "nr35":
+      return tipoTemplate;
+    case "cbmgo":
+      return "avcb";
+    default:
+      return "geral";
+  }
+}
+
+function extrairModoConversaDasMensagens(mensagens: MobileChatMessage[]): MobileChatMode {
+  for (let index = mensagens.length - 1; index >= 0; index -= 1) {
+    const mensagem = mensagens[index];
+    if (typeof mensagem?.modo === "string" && mensagem.modo.trim()) {
+      return normalizarModoChat(mensagem.modo);
+    }
+  }
+  return "detalhado";
+}
+
+function criarMensagemAssistenteServidor(resposta: MobileChatSendResult): MobileChatMessage | null {
+  const texto = resposta.assistantText.trim();
+  if (!texto) {
+    return null;
+  }
+
+  return {
+    id: Date.now() + 1,
+    papel: "assistente",
+    texto,
+    tipo: "assistant",
+    modo: normalizarModoChat(resposta.modo),
+    citacoes: resposta.citacoes.length ? resposta.citacoes : undefined,
+    confianca_ia: resposta.confiancaIa || undefined,
+  };
+}
+
 function normalizarConversa(
   payload: MobileLaudoStatusResponse | MobileLaudoMensagensResponse,
 ): ChatState {
+  const mensagens = "itens" in payload ? payload.itens : [];
   return {
     laudoId: payload.laudo_id ?? null,
     estado: payload.estado,
@@ -1922,7 +1873,8 @@ function normalizarConversa(
     permiteEdicao: Boolean(payload.permite_edicao),
     permiteReabrir: Boolean(payload.permite_reabrir),
     laudoCard: payload.laudo_card || null,
-    mensagens: "itens" in payload ? payload.itens : [],
+    modo: normalizarModoChat(payload.modo, extrairModoConversaDasMensagens(mensagens)),
+    mensagens,
   };
 }
 
@@ -1934,6 +1886,7 @@ function criarConversaNova(): ChatState {
     permiteEdicao: true,
     permiteReabrir: false,
     laudoCard: null,
+    modo: "detalhado",
     mensagens: [],
   };
 }
@@ -2126,6 +2079,29 @@ function resumoMensagemAtividade(texto: string, fallback: string): string {
   return valor.length > 120 ? `${valor.slice(0, 117)}...` : valor;
 }
 
+function obterResumoReferenciaMensagem(
+  referenciaId: number | null | undefined,
+  mensagensChat: MobileChatMessage[],
+  mensagensMesa: MobileMesaMessage[],
+): string {
+  const alvo = Number(referenciaId || 0) || null;
+  if (!alvo) {
+    return "";
+  }
+
+  const mensagemChat = mensagensChat.find((item) => Number(item.id || 0) === alvo);
+  if (mensagemChat?.texto?.trim()) {
+    return resumoMensagemAtividade(mensagemChat.texto, `Mensagem #${alvo}`);
+  }
+
+  const mensagemMesa = mensagensMesa.find((item) => Number(item.id || 0) === alvo);
+  if (mensagemMesa?.texto?.trim()) {
+    return resumoMensagemAtividade(mensagemMesa.texto, `Mensagem #${alvo}`);
+  }
+
+  return `Mensagem #${alvo}`;
+}
+
 function formatarTipoTemplateLaudo(value: string | null | undefined): string {
   const texto = String(value || "").trim();
   if (!texto) {
@@ -2197,6 +2173,31 @@ function criarNotificacaoMesa(
     unread: true,
     targetThread: "mesa",
   };
+}
+
+function selecionarLaudosParaMonitoramentoMesa(params: {
+  laudos: MobileLaudoCard[];
+  laudoAtivoId: number | null;
+}): number[] {
+  const ids: number[] = [];
+
+  if (params.laudoAtivoId) {
+    ids.push(params.laudoAtivoId);
+  }
+
+  for (const item of params.laudos) {
+    if (ids.length >= MAX_LAUDOS_MONITORADOS_MESA) {
+      break;
+    }
+    if (ids.includes(item.id)) {
+      continue;
+    }
+    if (item.status_card === "ajustes" || item.status_card === "aguardando") {
+      ids.push(item.id);
+    }
+  }
+
+  return ids;
 }
 
 function mapearStatusLaudoVisual(statusCard: string) {
@@ -2327,6 +2328,69 @@ function MessageAttachmentCard({
   );
 }
 
+interface MessageReferenceCardProps {
+  messageId: number;
+  preview: string;
+  onPress: () => void;
+  variant?: "incoming" | "outgoing";
+}
+
+function MessageReferenceCard({
+  messageId,
+  preview,
+  onPress,
+  variant = "incoming",
+}: MessageReferenceCardProps) {
+  const outgoing = variant === "outgoing";
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.messageReferenceCard,
+        outgoing ? styles.messageReferenceCardOutgoing : null,
+      ]}
+    >
+      <View
+        style={[
+          styles.messageReferenceIcon,
+          outgoing ? styles.messageReferenceIconOutgoing : null,
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="reply-outline"
+          size={14}
+          color={outgoing ? colors.white : colors.accent}
+        />
+      </View>
+      <View style={styles.messageReferenceCopy}>
+        <Text
+          style={[
+            styles.messageReferenceTitle,
+            outgoing ? styles.messageReferenceTitleOutgoing : null,
+          ]}
+        >
+          Referência #{messageId}
+        </Text>
+        <Text
+          numberOfLines={2}
+          style={[
+            styles.messageReferenceText,
+            outgoing ? styles.messageReferenceTextOutgoing : null,
+          ]}
+        >
+          {preview}
+        </Text>
+      </View>
+      <MaterialCommunityIcons
+        name="arrow-top-right"
+        size={16}
+        color={outgoing ? "rgba(255,255,255,0.78)" : colors.accent}
+      />
+    </Pressable>
+  );
+}
+
 function montarAnexoImagem(
   asset: ImagePicker.ImagePickerAsset,
   resumo: string,
@@ -2398,12 +2462,15 @@ export function InspectorMobileApp() {
   const [erroMesa, setErroMesa] = useState("");
   const [mensagemMesa, setMensagemMesa] = useState("");
   const [anexoMesaRascunho, setAnexoMesaRascunho] = useState<ComposerAttachment | null>(null);
+  const [mensagemMesaReferenciaAtiva, setMensagemMesaReferenciaAtiva] = useState<MessageReferenceState | null>(null);
   const [carregandoMesa, setCarregandoMesa] = useState(false);
   const [sincronizandoMesa, setSincronizandoMesa] = useState(false);
   const [enviandoMesa, setEnviandoMesa] = useState(false);
   const [laudoMesaCarregado, setLaudoMesaCarregado] = useState<number | null>(null);
   const [anexoAbrindoChave, setAnexoAbrindoChave] = useState("");
   const [previewAnexoImagem, setPreviewAnexoImagem] = useState<AttachmentPreviewState | null>(null);
+  const [mensagemChatDestacadaId, setMensagemChatDestacadaId] = useState<number | null>(null);
+  const [layoutMensagensChatVersao, setLayoutMensagensChatVersao] = useState(0);
   const [filaOffline, setFilaOffline] = useState<OfflinePendingMessage[]>([]);
   const [sincronizandoFilaOffline, setSincronizandoFilaOffline] = useState(false);
   const [sincronizandoItemFilaId, setSincronizandoItemFilaId] = useState("");
@@ -2564,6 +2631,8 @@ export function InspectorMobileApp() {
   const scrollRef = useRef<ScrollView | null>(null);
   const emailInputRef = useRef<TextInput | null>(null);
   const senhaInputRef = useRef<TextInput | null>(null);
+  const chatMessageOffsetsRef = useRef<Record<number, number>>({});
+  const chatHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusSnapshotRef = useRef<Record<number, string>>({});
   const mesaSnapshotRef = useRef<Record<number, Record<number, string>>>({});
   const pendingSensitiveActionRef = useRef<(() => void) | null>(null);
@@ -2576,6 +2645,51 @@ export function InspectorMobileApp() {
   const drawerOverlayOpacity = useRef(new Animated.Value(0)).current;
   const historicoAbertoRef = useRef(false);
   const configuracoesAbertaRef = useRef(false);
+
+  function limparReferenciaMesaAtiva() {
+    setMensagemMesaReferenciaAtiva(null);
+  }
+
+  function definirReferenciaMesaAtiva(mensagemAtual: MobileMesaMessage) {
+    const referenciaId = Number(mensagemAtual.id || 0) || null;
+    if (!referenciaId) {
+      limparReferenciaMesaAtiva();
+      return;
+    }
+
+    setMensagemMesaReferenciaAtiva({
+      id: referenciaId,
+      texto: resumoMensagemAtividade(mensagemAtual.texto, `Mensagem #${referenciaId}`),
+    });
+  }
+
+  function registrarLayoutMensagemChat(mensagemId: number | null, offsetY: number) {
+    const alvo = Number(mensagemId || 0) || null;
+    if (!alvo) {
+      return;
+    }
+
+    if (chatMessageOffsetsRef.current[alvo] === offsetY) {
+      return;
+    }
+
+    chatMessageOffsetsRef.current[alvo] = offsetY;
+    setLayoutMensagensChatVersao((estadoAtual) => estadoAtual + 1);
+  }
+
+  async function abrirReferenciaNoChat(referenciaId: number | null | undefined) {
+    const alvo = Number(referenciaId || 0) || null;
+    if (!alvo) {
+      return;
+    }
+
+    if (!conversa?.mensagens.some((item) => Number(item.id || 0) === alvo) && session && conversa?.laudoId) {
+      await abrirLaudoPorId(session.accessToken, conversa.laudoId);
+    }
+
+    setAbaAtiva("chat");
+    setMensagemChatDestacadaId(alvo);
+  }
 
   function aplicarPreferenciasLocais(preferencias: Record<string, unknown>) {
     if (typeof preferencias.perfilNome === "string") {
@@ -3057,9 +3171,13 @@ export function InspectorMobileApp() {
       setErroMesa("");
       setMensagemMesa("");
       setAnexoMesaRascunho(null);
+      setMensagemMesaReferenciaAtiva(null);
       setLaudoMesaCarregado(null);
       setAnexoAbrindoChave("");
       setPreviewAnexoImagem(null);
+      setMensagemChatDestacadaId(null);
+      setLayoutMensagensChatVersao(0);
+      chatMessageOffsetsRef.current = {};
       setUsandoCacheOffline(false);
       setCentralAtividadeAberta(false);
       setHistoricoAberto(false);
@@ -3076,6 +3194,51 @@ export function InspectorMobileApp() {
     void carregarConversaAtual(session.accessToken);
     void carregarListaLaudos(session.accessToken);
   }, [session]);
+
+  useEffect(() => {
+    chatMessageOffsetsRef.current = {};
+    setLayoutMensagensChatVersao(0);
+    setMensagemChatDestacadaId(null);
+    setMensagemMesaReferenciaAtiva(null);
+  }, [conversa?.laudoId]);
+
+  useEffect(() => {
+    if (abaAtiva !== "chat" || !mensagemChatDestacadaId) {
+      return;
+    }
+
+    const offsetY = chatMessageOffsetsRef.current[mensagemChatDestacadaId];
+    if (typeof offsetY !== "number") {
+      return;
+    }
+
+    const scrollTimeout = setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(offsetY - 112, 0),
+        animated: true,
+      });
+    }, 120);
+
+    if (chatHighlightTimeoutRef.current) {
+      clearTimeout(chatHighlightTimeoutRef.current);
+    }
+    chatHighlightTimeoutRef.current = setTimeout(() => {
+      setMensagemChatDestacadaId((estadoAtual) =>
+        estadoAtual === mensagemChatDestacadaId ? null : estadoAtual,
+      );
+      chatHighlightTimeoutRef.current = null;
+    }, 1800);
+
+    return () => clearTimeout(scrollTimeout);
+  }, [abaAtiva, conversa?.mensagens.length, layoutMensagensChatVersao, mensagemChatDestacadaId]);
+
+  useEffect(() => {
+    return () => {
+      if (chatHighlightTimeoutRef.current) {
+        clearTimeout(chatHighlightTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!session) {
@@ -3764,6 +3927,16 @@ export function InspectorMobileApp() {
         await carregarMesaAtual(session.accessToken, item.laudoId, true);
         setMensagemMesa(item.text);
         setAnexoMesaRascunho(duplicarComposerAttachment(item.attachment));
+        if (item.referenceMessageId) {
+          setMensagemMesaReferenciaAtiva({
+            id: item.referenceMessageId,
+            texto: obterResumoReferenciaMensagem(
+              item.referenceMessageId,
+              conversa?.mensagens || [],
+              mensagensMesa,
+            ),
+          });
+        }
       }
 
       removerItemFilaOffline(item.id);
@@ -3793,9 +3966,10 @@ export function InspectorMobileApp() {
           nome: item.attachment.kind === "document" ? item.attachment.nomeDocumento : item.attachment.label,
           mimeType: item.attachment.mimeType,
           texto: item.text,
+          referenciaMensagemId: item.referenceMessageId,
         });
       } else {
-        await enviarMensagemMesaMobile(accessToken, item.laudoId, item.text);
+        await enviarMensagemMesaMobile(accessToken, item.laudoId, item.text, item.referenceMessageId);
       }
       return laudoSequencial;
     }
@@ -3825,9 +3999,11 @@ export function InspectorMobileApp() {
     const resposta = await enviarMensagemChatMobile(accessToken, {
       mensagem: item.text,
       dadosImagem,
+      setor: conversa?.laudoId && conversa.laudoId === laudoIdAtual ? inferirSetorConversa(conversa) : "geral",
       textoDocumento,
       nomeDocumento,
       laudoId: laudoIdAtual,
+      modo: normalizarModoChat(conversa?.modo),
       historico:
         conversa?.laudoId && conversa.laudoId === laudoIdAtual
           ? montarHistoricoParaEnvio(conversa.mensagens)
@@ -3862,6 +4038,13 @@ export function InspectorMobileApp() {
       if ((item.channel === "mesa" || abaAtiva === "mesa") && laudoAtual) {
         await carregarMesaAtual(session.accessToken, laudoAtual, true);
       }
+      void registrarEventoObservabilidade({
+        kind: "offline_queue",
+        name: "offline_queue_item_sync",
+        ok: true,
+        count: 1,
+        detail: `${item.channel}_attempt_${proximaTentativa}`,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível reenviar essa pendência.";
       const proximaTentativaEm = new Date(Date.now() + calcularBackoffPendenciaOfflineMs(proximaTentativa)).toISOString();
@@ -3870,6 +4053,13 @@ export function InspectorMobileApp() {
         lastAttemptAt: tentativaEm,
         lastError: message,
         nextRetryAt: proximaTentativaEm,
+      });
+      void registrarEventoObservabilidade({
+        kind: "offline_queue",
+        name: "offline_queue_item_sync",
+        ok: false,
+        count: 1,
+        detail: message,
       });
       if (erroSugereModoOffline(error)) {
         setStatusApi("offline");
@@ -3898,6 +4088,8 @@ export function InspectorMobileApp() {
     let restante = [...filaOffline];
     let laudoSequencial: number | null = null;
     const referencia = Date.now();
+    let itensTentados = 0;
+    let itensSincronizados = 0;
 
     try {
       for (const item of [...restante]) {
@@ -3910,6 +4102,7 @@ export function InspectorMobileApp() {
         if (!pendenciaFilaProntaParaReenvio(item, referencia)) {
           continue;
         }
+        itensTentados += 1;
 
         const tentativaEm = new Date().toISOString();
         const proximaTentativa = item.attempts + 1;
@@ -3936,6 +4129,7 @@ export function InspectorMobileApp() {
 
         removerItemFilaOffline(item.id);
         restante = restante.filter((registro) => registro.id !== item.id);
+        itensSincronizados += 1;
       }
 
       await carregarListaLaudos(accessToken, true);
@@ -3944,10 +4138,24 @@ export function InspectorMobileApp() {
       if (abaAtiva === "mesa" && laudoAtual) {
         await carregarMesaAtual(accessToken, laudoAtual, true);
       }
+      void registrarEventoObservabilidade({
+        kind: "offline_queue",
+        name: "offline_queue_sync",
+        ok: true,
+        count: itensSincronizados,
+        detail: `${itensSincronizados}/${itensTentados}`,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível sincronizar a fila local.";
       setErroConversa(message);
       setErroMesa(message);
+      void registrarEventoObservabilidade({
+        kind: "offline_queue",
+        name: "offline_queue_sync",
+        ok: false,
+        count: itensSincronizados,
+        detail: message,
+      });
       if (erroSugereModoOffline(error)) {
         setStatusApi("offline");
       }
@@ -3962,6 +4170,13 @@ export function InspectorMobileApp() {
     }
 
     if (!notificacoesPermitidas || !notificaPush) {
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_dispatch_blocked",
+        ok: false,
+        count: novas.length,
+        detail: !notificacoesPermitidas ? "permission_denied" : "push_disabled",
+      });
       return;
     }
 
@@ -3969,6 +4184,13 @@ export function InspectorMobileApp() {
       ? novas
       : novas.filter((item) => item.kind === "status");
     if (!novasFiltradas.length) {
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_dispatch_filtered",
+        ok: true,
+        count: novas.length,
+        detail: "responses_disabled",
+      });
       return;
     }
 
@@ -3997,6 +4219,13 @@ export function InspectorMobileApp() {
       return Array.from(mapa.values())
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, MAX_NOTIFICATIONS);
+    });
+    void registrarEventoObservabilidade({
+      kind: "push",
+      name: "push_dispatch",
+      ok: true,
+      count: novasNormalizadas.length,
+      detail: mostrarSomenteNovaMensagem ? "preview_hidden" : "preview_visible",
     });
   }
 
@@ -4772,6 +5001,8 @@ export function InspectorMobileApp() {
   }
 
   async function handleExportarDiagnosticoApp() {
+    const eventosObservabilidade = await listarEventosObservabilidade(80);
+    const resumoObservabilidade = resumirEventosObservabilidade(eventosObservabilidade);
     const payload = [
       "Tariel Inspetor - Diagnóstico local",
       `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
@@ -4782,6 +5013,11 @@ export function InspectorMobileApp() {
       `Sessão atual: ${sessaoAtual?.title || "Dispositivo atual"}`,
       `Fila offline: ${filaOffline.length} item(ns)`,
       `Fila de suporte: ${filaSuporteLocal.length} item(ns)`,
+      `Observabilidade: ${resumoObservabilidade.total} evento(s) / ${resumoObservabilidade.failures} falha(s)`,
+      `Observabilidade (último evento): ${resumoObservabilidade.latestAt ? formatarHorarioAtividade(resumoObservabilidade.latestAt) : "nenhum"}`,
+      `Observabilidade (latência média): ${resumoObservabilidade.averageDurationMs} ms`,
+      `Observabilidade (por tipo): api=${resumoObservabilidade.byKind.api}, fila=${resumoObservabilidade.byKind.offline_queue}, atividade=${resumoObservabilidade.byKind.activity_monitor}, push=${resumoObservabilidade.byKind.push}`,
+      `Observabilidade (falhas por tipo): api=${resumoObservabilidade.failuresByKind.api}, fila=${resumoObservabilidade.failuresByKind.offline_queue}, atividade=${resumoObservabilidade.failuresByKind.activity_monitor}, push=${resumoObservabilidade.failuresByKind.push}`,
       `Última verificação de atualização: ${ultimaVerificacaoAtualizacao ? formatarHorarioAtividade(ultimaVerificacaoAtualizacao) : "nunca"}`,
       `Status da atualização: ${statusAtualizacaoApp}`,
       `Permissões: ${[microfonePermitido ? "microfone" : "", cameraPermitida ? "câmera" : "", arquivosPermitidos ? "arquivos" : "", notificacoesPermitidas ? "notificações" : "", biometriaPermitida ? "biometria" : ""].filter(Boolean).join(", ") || "nenhuma ativa"}`,
@@ -5201,6 +5437,51 @@ export function InspectorMobileApp() {
     });
   }
 
+  function handleToggleNotificaPush(value: boolean) {
+    if (!value) {
+      setNotificaPush(false);
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_toggle",
+        ok: true,
+        detail: "disabled",
+      });
+      return;
+    }
+
+    if (notificacoesPermitidas) {
+      setNotificaPush(true);
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_toggle",
+        ok: true,
+        detail: "enabled",
+      });
+      return;
+    }
+
+    setNotificaPush(false);
+    void registrarEventoObservabilidade({
+      kind: "push",
+      name: "push_toggle",
+      ok: false,
+      detail: "permission_denied",
+    });
+    Alert.alert(
+      "Permissão necessária",
+      "Ative as notificações do sistema para habilitar alertas push no app.",
+      [
+        { text: "Agora não", style: "cancel" },
+        {
+          text: "Abrir ajustes",
+          onPress: () => {
+            void Linking.openSettings();
+          },
+        },
+      ],
+    );
+  }
+
   function handleToggleMostrarConteudoNotificacao(value: boolean) {
     setMostrarConteudoNotificacao(value);
     if (value) {
@@ -5418,18 +5699,47 @@ export function InspectorMobileApp() {
     await handleSelecionarLaudo(card);
   }
 
+  async function tentarAbrirUrlExterna(url: string): Promise<boolean> {
+    const target = String(url || "").trim();
+    if (!target) {
+      return false;
+    }
+    try {
+      const supported = await Linking.canOpenURL(target);
+      if (!supported) {
+        return false;
+      }
+      await Linking.openURL(target);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function handleEsqueciSenha() {
-    Alert.alert(
-      "Recuperação em preparação",
-      "Por enquanto, a redefinição de senha do app deve ser feita com o administrador da sua empresa.",
-    );
+    const url = obterUrlRecuperacaoSenhaMobile(email);
+    void (async () => {
+      const abriu = await tentarAbrirUrlExterna(url);
+      if (!abriu) {
+        Alert.alert(
+          "Recuperação de senha",
+          "Não foi possível abrir o fluxo agora. Tente novamente em instantes ou contate o administrador da sua empresa.",
+        );
+      }
+    })();
   }
 
   function handleLoginSocial(provider: "Google" | "Microsoft") {
-    Alert.alert(
-      `${provider} em breve`,
-      `A entrada com ${provider} ainda não está disponível nesta conta. Continue com email e senha enquanto essa opção é habilitada.`,
-    );
+    const url = obterUrlLoginSocialMobile(provider);
+    void (async () => {
+      const abriu = await tentarAbrirUrlExterna(url);
+      if (!abriu) {
+        Alert.alert(
+          `${provider} indisponível`,
+          `Não foi possível abrir o login com ${provider} agora. Use email e senha enquanto o acesso externo é normalizado.`,
+        );
+      }
+    })();
   }
 
   const historyEdgePanResponder = useRef(
@@ -5499,6 +5809,7 @@ export function InspectorMobileApp() {
     setMensagemMesa("");
     setAnexoRascunho(null);
     setAnexoMesaRascunho(null);
+    limparReferenciaMesaAtiva();
     setCarregandoConversa(true);
 
     try {
@@ -5564,6 +5875,7 @@ export function InspectorMobileApp() {
     }
 
     setMonitorandoAtividade(true);
+    const monitoramentoIniciadoEm = Date.now();
 
     try {
       const payloadLaudos = await carregarLaudosMobile(accessToken);
@@ -5591,63 +5903,115 @@ export function InspectorMobileApp() {
       setErroLaudos("");
 
       const laudoMonitorado = conversa?.laudoId ?? null;
-      if (laudoMonitorado) {
-        const mesaPayload = await carregarMensagensMesaMobile(accessToken, laudoMonitorado);
-        const snapshotMesaAnterior = mesaSnapshotRef.current[laudoMonitorado] || {};
-        const snapshotMesaNovo: Record<number, string> = {};
-        const tituloLaudo = conversa?.laudoCard?.titulo || `Laudo #${laudoMonitorado}`;
-        const mesaPossuiaSnapshot = Object.keys(snapshotMesaAnterior).length > 0;
+      const laudosMonitoradosMesa = selecionarLaudosParaMonitoramentoMesa({
+        laudos: proximosLaudos,
+        laudoAtivoId: laudoMonitorado,
+      });
+      if (laudosMonitoradosMesa.length) {
+        const resultadosMesa = await Promise.allSettled(
+          laudosMonitoradosMesa.map(async (laudoId) => ({
+            laudoId,
+            payload: await carregarMensagensMesaMobile(accessToken, laudoId),
+          })),
+        );
+        const cacheMesaAtualizado: Record<string, MobileMesaMessage[]> = {};
+        const titulosLaudos = new Map(proximosLaudos.map((item) => [item.id, item.titulo]));
 
-        for (const item of mesaPayload.itens || []) {
-          const assinatura = assinaturaMensagemMesa(item);
-          snapshotMesaNovo[item.id] = assinatura;
-          const assinaturaAntiga = snapshotMesaAnterior[item.id];
-
-          if (!mesaPossuiaSnapshot) {
+        for (const resultado of resultadosMesa) {
+          if (resultado.status !== "fulfilled") {
             continue;
           }
 
-          if (!assinaturaAntiga) {
-            const veioDaMesa = item.remetente_id !== session?.bootstrap.usuario.id;
-            if (veioDaMesa) {
-              novasNotificacoes.push(criarNotificacaoMesa("mesa_nova", item, tituloLaudo));
+          const { laudoId, payload } = resultado.value;
+          const itensMesa = payload.itens || [];
+          const snapshotMesaAnterior = mesaSnapshotRef.current[laudoId] || {};
+          const snapshotMesaNovo: Record<number, string> = {};
+          const tituloLaudo =
+            titulosLaudos.get(laudoId) ||
+            (laudoMonitorado === laudoId ? conversa?.laudoCard?.titulo || "" : "") ||
+            `Laudo #${laudoId}`;
+          const mesaPossuiaSnapshot = Object.keys(snapshotMesaAnterior).length > 0;
+
+          for (const item of itensMesa) {
+            const assinatura = assinaturaMensagemMesa(item);
+            snapshotMesaNovo[item.id] = assinatura;
+            const assinaturaAntiga = snapshotMesaAnterior[item.id];
+
+            if (!mesaPossuiaSnapshot) {
+              continue;
             }
-            continue;
+
+            if (!assinaturaAntiga) {
+              const veioDaMesa = item.remetente_id !== session?.bootstrap.usuario.id;
+              if (veioDaMesa) {
+                novasNotificacoes.push(criarNotificacaoMesa("mesa_nova", item, tituloLaudo));
+              }
+              continue;
+            }
+
+            const estavaResolvida = assinaturaAntiga.split("|")[1] || "";
+            const estaResolvida = item.resolvida_em || "";
+            if (!estavaResolvida && estaResolvida) {
+              novasNotificacoes.push(criarNotificacaoMesa("mesa_resolvida", item, tituloLaudo));
+            } else if (estavaResolvida && !estaResolvida) {
+              novasNotificacoes.push(criarNotificacaoMesa("mesa_reaberta", item, tituloLaudo));
+            }
           }
 
-          const estavaResolvida = assinaturaAntiga.split("|")[1] || "";
-          const estaResolvida = item.resolvida_em || "";
-          if (!estavaResolvida && estaResolvida) {
-            novasNotificacoes.push(criarNotificacaoMesa("mesa_resolvida", item, tituloLaudo));
-          } else if (estavaResolvida && !estaResolvida) {
-            novasNotificacoes.push(criarNotificacaoMesa("mesa_reaberta", item, tituloLaudo));
+          mesaSnapshotRef.current[laudoId] = snapshotMesaNovo;
+          cacheMesaAtualizado[chaveCacheLaudo(laudoId)] = itensMesa;
+
+          if (laudoMonitorado === laudoId) {
+            setMensagensMesa(itensMesa);
+            setLaudoMesaCarregado(laudoId);
+            setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, payload));
           }
         }
 
-        mesaSnapshotRef.current[laudoMonitorado] = snapshotMesaNovo;
-        setMensagensMesa(mesaPayload.itens || []);
-        setLaudoMesaCarregado(laudoMonitorado);
-        setCacheLeitura((estadoAtual) => ({
-          ...estadoAtual,
-          mesaPorLaudo: {
-            ...estadoAtual.mesaPorLaudo,
-            [chaveCacheLaudo(laudoMonitorado)]: mesaPayload.itens || [],
-          },
-          updatedAt: new Date().toISOString(),
-        }));
-        setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, mesaPayload));
+        if (Object.keys(cacheMesaAtualizado).length) {
+          setCacheLeitura((estadoAtual) => ({
+            ...estadoAtual,
+            mesaPorLaudo: {
+              ...estadoAtual.mesaPorLaudo,
+              ...cacheMesaAtualizado,
+            },
+            updatedAt: new Date().toISOString(),
+          }));
+        }
       }
 
       registrarNotificacoes(novasNotificacoes);
       setStatusApi("online");
+      void registrarEventoObservabilidade({
+        kind: "activity_monitor",
+        name: "activity_cycle",
+        ok: true,
+        durationMs: Date.now() - monitoramentoIniciadoEm,
+        count: novasNotificacoes.length,
+        detail: `laudos_${proximosLaudos.length}`,
+      });
     } catch (error) {
       if (erroSugereModoOffline(error)) {
         setStatusApi("offline");
+        void registrarEventoObservabilidade({
+          kind: "activity_monitor",
+          name: "activity_cycle",
+          ok: false,
+          durationMs: Date.now() - monitoramentoIniciadoEm,
+          detail: "offline",
+        });
         return;
       }
 
       const message = error instanceof Error ? error.message : "Não foi possível monitorar a atividade do inspetor.";
       setErroConversa((estadoAtual) => estadoAtual || message);
+      void registrarEventoObservabilidade({
+        kind: "activity_monitor",
+        name: "activity_cycle",
+        ok: false,
+        durationMs: Date.now() - monitoramentoIniciadoEm,
+        detail: message,
+      });
     } finally {
       setMonitorandoAtividade(false);
     }
@@ -5862,25 +6226,24 @@ export function InspectorMobileApp() {
     if ((!texto && !anexoAtual) || !session) {
       return;
     }
-    const previewLocalAtivo = Boolean(
-      !conversa?.laudoId || (conversa && !conversa.permiteEdicao && !conversa.mensagens.length),
-    );
 
-    if (conversa && !conversa.permiteEdicao && !previewLocalAtivo) {
+    if (conversa && !conversa.permiteEdicao) {
       return;
     }
 
     const textoExibicao = texto || textoFallbackAnexo(anexoAtual);
+    const snapshotConversa = conversa;
+    const modoAtivo = normalizarModoChat(snapshotConversa?.modo);
+    const setorAtivo = inferirSetorConversa(snapshotConversa);
 
     const mensagemOtimista: MobileChatMessage = {
       id: Date.now(),
       papel: "usuario",
       texto: textoExibicao,
       tipo: "user",
-      modo: "detalhado",
+      modo: modoAtivo,
       anexos: anexoAtual ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }] : undefined,
     };
-    const snapshotConversa = conversa;
 
     setMensagem("");
     setAnexoRascunho(null);
@@ -5893,26 +6256,11 @@ export function InspectorMobileApp() {
       permiteEdicao: estadoAtual?.permiteEdicao ?? true,
       permiteReabrir: estadoAtual?.permiteReabrir ?? false,
       laudoCard: estadoAtual?.laudoCard || null,
+      modo: normalizarModoChat(estadoAtual?.modo, modoAtivo),
       mensagens: [...(estadoAtual?.mensagens || []), mensagemOtimista],
     }));
 
     try {
-      if (previewLocalAtivo) {
-        await new Promise((resolve) => setTimeout(resolve, 420));
-        const respostaPreview = criarRespostaPreviewTariel(textoExibicao, anexoAtual);
-        setConversa((estadoAtual) => ({
-          ...(estadoAtual || criarConversaNova()),
-          laudoId: null,
-          estado: "sem_relatorio",
-          statusCard: "aberto",
-          permiteEdicao: true,
-          permiteReabrir: false,
-          laudoCard: null,
-          mensagens: [...(estadoAtual?.mensagens || []), respostaPreview],
-        }));
-        return;
-      }
-
       let dadosImagem = "";
       let textoDocumento = "";
       let nomeDocumento = "";
@@ -5934,13 +6282,29 @@ export function InspectorMobileApp() {
         }
       }
 
-      await enviarMensagemChatMobile(session.accessToken, {
+      const respostaChat = await enviarMensagemChatMobile(session.accessToken, {
         mensagem: texto,
         dadosImagem,
+        setor: setorAtivo,
         textoDocumento,
         nomeDocumento,
         laudoId: snapshotConversa?.laudoId ?? null,
+        modo: modoAtivo,
         historico: montarHistoricoParaEnvio([...(snapshotConversa?.mensagens || []), mensagemOtimista]),
+      });
+      const mensagemAssistenteServidor = criarMensagemAssistenteServidor(respostaChat);
+      setConversa((estadoAtual) => {
+        const base = estadoAtual || criarConversaNova();
+        return {
+          ...base,
+          laudoId: respostaChat.laudoId ?? base.laudoId,
+          statusCard: respostaChat.laudoCard?.status_card || base.statusCard,
+          laudoCard: respostaChat.laudoCard || base.laudoCard,
+          modo: normalizarModoChat(respostaChat.modo, normalizarModoChat(base.modo)),
+          mensagens: mensagemAssistenteServidor
+            ? [...base.mensagens, mensagemAssistenteServidor]
+            : base.mensagens,
+        };
       });
       await carregarConversaAtual(session.accessToken, true);
       await carregarListaLaudos(session.accessToken, true);
@@ -5951,16 +6315,24 @@ export function InspectorMobileApp() {
 
       setConversa(snapshotConversa);
       if (podeEnfileirar) {
+        const itemFila = criarItemFilaOffline({
+          channel: "chat",
+          laudoId: snapshotConversa?.laudoId ?? null,
+          text: texto,
+          title: snapshotConversa?.laudoCard?.titulo || "Nova inspeção",
+          attachment: anexoAtual,
+        });
         setFilaOffline((estadoAtual) => [
           ...estadoAtual,
-          criarItemFilaOffline({
-            channel: "chat",
-            laudoId: snapshotConversa?.laudoId ?? null,
-            text: texto,
-            title: snapshotConversa?.laudoCard?.titulo || "Nova inspeção",
-            attachment: anexoAtual,
-          }),
+          itemFila,
         ]);
+        void registrarEventoObservabilidade({
+          kind: "offline_queue",
+          name: "offline_queue_enqueue",
+          ok: true,
+          count: 1,
+          detail: "chat",
+        });
         setErroConversa("Sem conexão estável. O envio foi guardado na fila local.");
         setStatusApi("offline");
       } else {
@@ -5976,6 +6348,7 @@ export function InspectorMobileApp() {
   async function handleEnviarMensagemMesa() {
     const texto = mensagemMesa.trim();
     const anexoAtual = anexoMesaRascunho;
+    const referenciaMensagemId = Number(mensagemMesaReferenciaAtiva?.id || 0) || null;
     if ((!texto && !anexoAtual) || !session || !conversa?.laudoId || !conversa.permiteEdicao) {
       return;
     }
@@ -5992,6 +6365,7 @@ export function InspectorMobileApp() {
       resolvida_em: "",
       resolvida_em_label: "",
       resolvida_por_nome: "",
+      referencia_mensagem_id: referenciaMensagemId || undefined,
       anexos: anexoAtual ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }] : undefined,
     };
     const snapshotMesa = mensagensMesa;
@@ -6009,13 +6383,15 @@ export function InspectorMobileApp() {
             nome: anexoAtual.kind === "document" ? anexoAtual.nomeDocumento : anexoAtual.label,
             mimeType: anexoAtual.mimeType,
             texto,
+            referenciaMensagemId,
           })
-        : await enviarMensagemMesaMobile(session.accessToken, conversa.laudoId, texto);
+        : await enviarMensagemMesaMobile(session.accessToken, conversa.laudoId, texto, referenciaMensagemId);
       setMensagensMesa((estadoAtual) => {
         const semOtimista = estadoAtual.filter((item) => item.id !== mensagemOtimista.id);
         return [...semOtimista, resposta.mensagem];
       });
       setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, resposta));
+      limparReferenciaMesaAtiva();
       setLaudoMesaCarregado(conversa.laudoId);
       await carregarListaLaudos(session.accessToken, true);
     } catch (error) {
@@ -6024,16 +6400,25 @@ export function InspectorMobileApp() {
 
       setMensagensMesa(snapshotMesa);
       if (podeEnfileirar) {
+        const itemFila = criarItemFilaOffline({
+          channel: "mesa",
+          laudoId: conversa.laudoId,
+          text: texto,
+          title: conversa.laudoCard?.titulo || `Laudo #${conversa.laudoId}`,
+          attachment: anexoAtual,
+          referenceMessageId: referenciaMensagemId,
+        });
         setFilaOffline((estadoAtual) => [
           ...estadoAtual,
-          criarItemFilaOffline({
-            channel: "mesa",
-            laudoId: conversa.laudoId,
-            text: texto,
-            title: conversa.laudoCard?.titulo || `Laudo #${conversa.laudoId}`,
-            attachment: anexoAtual,
-          }),
+          itemFila,
         ]);
+        void registrarEventoObservabilidade({
+          kind: "offline_queue",
+          name: "offline_queue_enqueue",
+          ok: true,
+          count: 1,
+          detail: "mesa",
+        });
         setErroMesa("Sem conexão estável. O envio para a mesa ficou guardado na fila local.");
         setStatusApi("offline");
       } else {
@@ -6628,37 +7013,6 @@ export function InspectorMobileApp() {
       : filtroHistorico === "recentes"
         ? "Assim que novas inspeções forem abertas, elas aparecem nesta faixa."
         : "Inicie um novo laudo para o histórico começar a aparecer aqui.";
-  const composerEyebrowLabel = vendoMesa ? "mesa" : "chat";
-  const composerTitle = vendoMesa ? "Responder para a mesa" : "Registrar inspeção";
-  const composerSubtitle = vendoMesa
-    ? mesaTemMensagens
-      ? "Mantenha aqui só os retornos técnicos e as evidências pedidas pela avaliação."
-      : "A mesa aparece quando houver retorno técnico do laudo ativo."
-    : conversaAtiva?.laudoId
-      ? "Descreva local, impacto e próximo passo sem perder o ritmo em campo."
-      : "A primeira mensagem já cria o laudo e organiza a conversa com a Tariel.";
-  const composerStatusLabel = vendoMesa
-    ? !mesaDisponivel
-      ? "Aguardando laudo"
-      : mesaTemMensagens
-        ? conversaAtiva?.permiteEdicao
-          ? "Pronto para responder"
-          : "Modo leitura"
-        : "Aguardando retorno"
-    : conversaAtiva?.permiteReabrir
-      ? "Modo leitura"
-      : anexoRascunho || anexoMesaRascunho
-        ? "Anexo preparado"
-        : "Pronto para enviar";
-  const composerStatusTone = vendoMesa
-    ? mesaTemMensagens && conversaAtiva?.permiteEdicao
-      ? ("accent" as const)
-      : ("muted" as const)
-    : anexoRascunho || anexoMesaRascunho
-      ? ("accent" as const)
-      : conversaAtiva?.permiteReabrir
-        ? ("muted" as const)
-        : ("success" as const);
   const tipoTemplateAtivoLabel = formatarTipoTemplateLaudo(conversaAtiva?.laudoCard?.tipo_template);
   const resumoMetodosConta =
     provedoresConectadosTotal > 0
@@ -6843,9 +7197,20 @@ export function InspectorMobileApp() {
   const settingsDrawerShowingSearchResults = settingsDrawerInOverview && Boolean(buscaConfiguracoesNormalizada);
   const settingsDrawerShowingOverviewCards = settingsDrawerInOverview && !settingsDrawerShowingSearchResults;
   const keyboardVisible = keyboardHeight > 0;
-  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : "height";
+  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : undefined;
   const loginKeyboardVerticalOffset = Platform.OS === "ios" ? 18 : 0;
   const chatKeyboardVerticalOffset = Platform.OS === "ios" ? 8 : 0;
+  const loginKeyboardBottomPadding =
+    Platform.OS === "android" && keyboardVisible
+      ? Math.max(spacing.xxl, keyboardHeight + spacing.xl)
+      : keyboardVisible
+        ? spacing.xl
+        : spacing.xxl;
+  const composerKeyboardBottomOffset =
+    Platform.OS === "android" && keyboardVisible
+      ? Math.max(spacing.sm, keyboardHeight + spacing.xs)
+      : 0;
+  const threadKeyboardPaddingBottom = keyboardVisible ? Math.max(220, keyboardHeight + 72) : spacing.md;
   const settingsDrawerMatchesPage = (page: Exclude<SettingsDrawerPage, "overview">) =>
     settingsDrawerPage === page || settingsDrawerShowingSearchResults;
   const settingsDrawerSectionMeta: Record<
@@ -7268,7 +7633,7 @@ export function InspectorMobileApp() {
 
                 {!!erroConversa && <Text style={styles.errorText}>{erroConversa}</Text>}
 
-                <View style={styles.threadBody}>
+                <View style={[styles.threadBody, keyboardVisible ? styles.threadBodyKeyboardVisible : null]}>
                   {mostrarContextoThread ? (
                     <View style={styles.threadHeaderCard}>
                       <View style={styles.threadHeaderTop}>
@@ -7418,12 +7783,16 @@ export function InspectorMobileApp() {
                       </View>
                     ) : !mesaDisponivel ? (
                       <View style={styles.threadEmptyState}>
-                        <BrandIntroMark animationsEnabled={animacoesAtivas} brandColor={accentColor} title="Mesa liberada após o primeiro laudo" />
+                        <BrandIntroMark brandColor={accentColor} />
                       </View>
                     ) : (
                       <ScrollView
                         ref={scrollRef}
-                        contentContainerStyle={[styles.threadContent, keyboardVisible ? styles.threadContentKeyboard : null]}
+                        contentContainerStyle={[
+                          styles.threadContent,
+                          keyboardVisible ? styles.threadContentKeyboard : null,
+                          keyboardVisible ? { paddingBottom: threadKeyboardPaddingBottom } : null,
+                        ]}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                       >
@@ -7432,6 +7801,12 @@ export function InspectorMobileApp() {
                             const mensagemEhUsuario = item.tipo === "humano_insp";
                             const mensagemEhMesa = item.tipo === "humano_eng";
                             const nomeAutor = mensagemEhUsuario ? nomeUsuarioExibicao : "Mesa";
+                            const referenciaId = Number(item.referencia_mensagem_id || 0) || null;
+                            const referenciaPreview = obterResumoReferenciaMensagem(
+                              referenciaId,
+                              mensagensVisiveis,
+                              mensagensMesa,
+                            );
 
                             return (
                               <View
@@ -7452,6 +7827,14 @@ export function InspectorMobileApp() {
                                     <Text style={[styles.messageAuthor, styles.messageAuthorOutgoing]}>
                                       {nomeAutor}
                                     </Text>
+                                    {referenciaId ? (
+                                      <MessageReferenceCard
+                                        messageId={referenciaId}
+                                        onPress={() => void abrirReferenciaNoChat(referenciaId)}
+                                        preview={referenciaPreview}
+                                        variant="outgoing"
+                                      />
+                                    ) : null}
                                     <Text style={[styles.messageText, styles.messageTextOutgoing, dynamicMessageTextStyle]}>
                                       {item.texto}
                                     </Text>
@@ -7507,6 +7890,13 @@ export function InspectorMobileApp() {
                                           </Text>
                                         </View>
                                       </View>
+                                      {referenciaId ? (
+                                        <MessageReferenceCard
+                                          messageId={referenciaId}
+                                          onPress={() => void abrirReferenciaNoChat(referenciaId)}
+                                          preview={referenciaPreview}
+                                        />
+                                      ) : null}
                                       <Text style={[styles.messageText, dynamicMessageTextStyle]}>{item.texto}</Text>
                                       {item.anexos?.length ? (
                                         <View style={styles.messageAttachments}>
@@ -7523,6 +7913,17 @@ export function InspectorMobileApp() {
                                           })}
                                         </View>
                                       ) : null}
+                                      {conversaAtiva?.permiteEdicao ? (
+                                        <View style={styles.messageActionRow}>
+                                          <Pressable
+                                            onPress={() => definirReferenciaMesaAtiva(item)}
+                                            style={styles.messageActionButton}
+                                          >
+                                            <MaterialCommunityIcons name="reply-outline" size={15} color={colors.accent} />
+                                            <Text style={styles.messageActionText}>Responder nesta mensagem</Text>
+                                          </Pressable>
+                                        </View>
+                                      ) : null}
                                       <Text style={styles.messageMeta}>
                                         {item.data}
                                         {item.resolvida_em_label ? ` • resolvida em ${item.resolvida_em_label}` : ""}
@@ -7535,7 +7936,7 @@ export function InspectorMobileApp() {
                           })
                         ) : (
                           <View style={styles.threadEmptyState}>
-                            <BrandIntroMark animationsEnabled={animacoesAtivas} brandColor={accentColor} title="Aguardando retorno da mesa" />
+                            <BrandIntroMark brandColor={accentColor} />
                           </View>
                         )}
                       </ScrollView>
@@ -7547,27 +7948,42 @@ export function InspectorMobileApp() {
                     </View>
                   ) : conversaVazia ? (
                     <View style={styles.threadEmptyState}>
-                      <BrandIntroMark animationsEnabled={animacoesAtivas} brandColor={accentColor} title="Como posso ajudar você hoje?" />
+                      <BrandIntroMark brandColor={accentColor} />
                     </View>
                   ) : (
                     <ScrollView
                       ref={scrollRef}
-                      contentContainerStyle={[styles.threadContent, keyboardVisible ? styles.threadContentKeyboard : null]}
+                      contentContainerStyle={[
+                        styles.threadContent,
+                        keyboardVisible ? styles.threadContentKeyboard : null,
+                        keyboardVisible ? { paddingBottom: threadKeyboardPaddingBottom } : null,
+                      ]}
                       keyboardShouldPersistTaps="handled"
                       showsVerticalScrollIndicator={false}
                     >
                       {mensagensVisiveis.map((item, index) => {
                         const mensagemEhUsuario = item.papel === "usuario";
                         const mensagemEhEngenharia = item.papel === "engenheiro";
+                        const mensagemEhAssistente = item.papel === "assistente";
                         const nomeAutor = mensagemEhUsuario
                           ? nomeUsuarioExibicao
                           : mensagemEhEngenharia
                             ? "Mesa"
                             : "Tariel.ia";
+                        const referenciaId = Number(item.referencia_mensagem_id || 0) || null;
+                        const referenciaPreview = obterResumoReferenciaMensagem(
+                          referenciaId,
+                          mensagensVisiveis,
+                          mensagensMesa,
+                        );
+                        const mensagemDestacada = Boolean(item.id && item.id === mensagemChatDestacadaId);
 
                         return (
                           <View
                             key={`${item.id ?? "placeholder"}-${index}`}
+                            onLayout={(event) =>
+                              registrarLayoutMensagemChat(item.id, event.nativeEvent.layout.y)
+                            }
                             style={[
                               styles.messageRow,
                               mensagemEhUsuario ? styles.messageRowOutgoing : styles.messageRowIncoming,
@@ -7578,11 +7994,20 @@ export function InspectorMobileApp() {
                                 style={[
                                   styles.messageBubble,
                                   styles.messageBubbleOutgoing,
+                                  mensagemDestacada ? styles.messageBubbleReferenced : null,
                                 ]}
                               >
                                     <Text style={[styles.messageAuthor, styles.messageAuthorOutgoing]}>
                                       {nomeAutor}
                                     </Text>
+                                    {referenciaId ? (
+                                      <MessageReferenceCard
+                                        messageId={referenciaId}
+                                        onPress={() => void abrirReferenciaNoChat(referenciaId)}
+                                        preview={referenciaPreview}
+                                        variant="outgoing"
+                                      />
+                                    ) : null}
                                     <Text style={[styles.messageText, styles.messageTextOutgoing, dynamicMessageTextStyle]}>
                                       {item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
                                     </Text>
@@ -7625,6 +8050,7 @@ export function InspectorMobileApp() {
                                       styles.messageBubble,
                                       styles.messageBubbleIncomingShell,
                                       mensagemEhEngenharia ? styles.messageBubbleEngineering : styles.messageBubbleIncoming,
+                                      mensagemDestacada ? styles.messageBubbleReferenced : null,
                                       dynamicMessageBubbleStyle,
                                     ]}
                                   >
@@ -7638,9 +8064,23 @@ export function InspectorMobileApp() {
                                           </View>
                                         ) : null}
                                       </View>
-                                      <Text style={[styles.messageText, dynamicMessageTextStyle]}>
-                                        {item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
-                                      </Text>
+                                      {referenciaId ? (
+                                        <MessageReferenceCard
+                                          messageId={referenciaId}
+                                          onPress={() => void abrirReferenciaNoChat(referenciaId)}
+                                          preview={referenciaPreview}
+                                        />
+                                      ) : null}
+                                      {mensagemEhAssistente ? (
+                                        <AssistantMessageContent
+                                          text={item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
+                                          textStyle={[styles.messageText, dynamicMessageTextStyle]}
+                                        />
+                                      ) : (
+                                        <Text style={[styles.messageText, dynamicMessageTextStyle]}>
+                                          {item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
+                                        </Text>
+                                      )}
                                   {item.anexos?.length ? (
                                     <View style={styles.messageAttachments}>
                                       {item.anexos.map((anexo, anexoIndex) => {
@@ -7652,11 +8092,13 @@ export function InspectorMobileApp() {
                                             onPress={handleAbrirAnexo}
                                             opening={anexoAbrindoChave === chaveAnexo(anexo, `${item.id ?? "msg"}-anexo-${anexoIndex}`)}
                                           />
-                                        );
-                                      })}
-                                    </View>
+                                      );
+                                    })}
+                                  </View>
                                   ) : null}
-                                  {item.citacoes?.length ? (
+                                  {mensagemEhAssistente ? (
+                                    <AssistantCitationList citations={item.citacoes} />
+                                  ) : item.citacoes?.length ? (
                                     <Text style={styles.messageMeta}>
                                       {item.citacoes.length} referência{item.citacoes.length > 1 ? "s" : ""} anexada
                                     </Text>
@@ -7681,39 +8123,13 @@ export function InspectorMobileApp() {
                 </View>
 
                 {!vendoMesa || mesaTemMensagens ? (
-                  <View style={[styles.composerCard, keyboardVisible ? styles.composerCardKeyboardVisible : null]}>
-                    {!keyboardVisible ? (
-                      <View style={styles.composerHeader}>
-                        <View style={styles.composerHeaderCopy}>
-                          <Text style={styles.composerEyebrow}>{composerEyebrowLabel}</Text>
-                          <Text style={styles.composerTitle}>{composerTitle}</Text>
-                          <Text style={styles.composerSubtitle}>{composerSubtitle}</Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.composerStatusBadge,
-                            composerStatusTone === "accent"
-                              ? styles.composerStatusBadgeAccent
-                              : composerStatusTone === "success"
-                                ? styles.composerStatusBadgeSuccess
-                                : null,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.composerStatusBadgeText,
-                              composerStatusTone === "accent"
-                                ? styles.composerStatusBadgeTextAccent
-                                : composerStatusTone === "success"
-                                  ? styles.composerStatusBadgeTextSuccess
-                                  : null,
-                            ]}
-                          >
-                            {composerStatusLabel}
-                          </Text>
-                        </View>
-                      </View>
-                    ) : null}
+                  <View
+                    style={[
+                      styles.composerCard,
+                      keyboardVisible ? styles.composerCardKeyboardVisible : null,
+                      keyboardVisible ? { bottom: composerKeyboardBottomOffset } : null,
+                    ]}
+                  >
                     {conversaAtiva?.permiteReabrir ? (
                       <Pressable onPress={handleReabrir} style={styles.cleanReopenAction}>
                         <MaterialCommunityIcons name="history" size={16} color={colors.accent} />
@@ -7724,6 +8140,22 @@ export function InspectorMobileApp() {
                     {vendoMesa ? (
                       <>
                         {!!erroMesa && <Text style={styles.errorText}>{erroMesa}</Text>}
+
+                        {mensagemMesaReferenciaAtiva ? (
+                          <View style={styles.composerReferenceCard}>
+                            <View style={styles.composerReferenceCopy}>
+                              <Text style={styles.composerReferenceTitle}>
+                                Respondendo #{mensagemMesaReferenciaAtiva.id}
+                              </Text>
+                              <Text style={styles.composerReferenceText}>
+                                {mensagemMesaReferenciaAtiva.texto}
+                              </Text>
+                            </View>
+                            <Pressable onPress={limparReferenciaMesaAtiva} style={styles.composerReferenceRemove}>
+                              <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                            </Pressable>
+                          </View>
+                        ) : null}
 
                         {anexoMesaRascunho ? (
                           <View style={styles.attachmentDraftCard}>
@@ -8688,7 +9120,7 @@ export function InspectorMobileApp() {
                           />
                           <SettingsSwitchRow
                             icon="bell-badge-outline"
-                            onValueChange={setNotificaPush}
+                            onValueChange={handleToggleNotificaPush}
                             title="Notificações push"
                             value={notificaPush}
                           />
@@ -10004,12 +10436,16 @@ export function InspectorMobileApp() {
           keyboardVerticalOffset={loginKeyboardVerticalOffset}
         >
           <ScrollView
-            contentContainerStyle={[styles.loginScrollContent, keyboardVisible ? styles.loginScrollContentKeyboardVisible : null]}
+            contentContainerStyle={[
+              styles.loginScrollContent,
+              keyboardVisible ? styles.loginScrollContentKeyboardVisible : null,
+              { paddingBottom: loginKeyboardBottomPadding },
+            ]}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.loginScreen}>
               <View style={styles.loginBrand}>
-                <BrandIntroMark animationsEnabled={animacoesAtivas} brandColor={accentColor} compact />
+                <BrandIntroMark brandColor={accentColor} compact />
               </View>
 
               <View style={styles.loginCard}>
@@ -10145,3722 +10581,3 @@ export function InspectorMobileApp() {
   );
 }
 
-const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
-  launchOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 40,
-  },
-  launchOverlayGradient: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  launchOverlayInner: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  launchOverlayHalo: {
-    position: "absolute",
-    width: 156,
-    height: 156,
-    borderRadius: 78,
-    backgroundColor: "rgba(244,123,32,0.08)",
-  },
-  launchOverlayMark: {
-    width: 108,
-    height: 108,
-    borderRadius: 32,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
-  },
-  launchOverlayBrand: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: 3,
-    textTransform: "uppercase",
-  },
-  launchOverlaySubtitle: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-  },
-  safeArea: {
-    flex: 1,
-  },
-  keyboard: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  loginScrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xxl,
-  },
-  loginScrollContentKeyboardVisible: {
-    justifyContent: "flex-start",
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xl,
-  },
-  loginScreen: {
-    gap: spacing.xl,
-  },
-  loginBrand: {
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingBottom: spacing.sm,
-  },
-  brandStageCompact: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-  },
-  brandHaloCompact: {
-    position: "absolute",
-    top: -10,
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    backgroundColor: "rgba(244,123,32,0.06)",
-  },
-  brandMarkCompact: {
-    width: 92,
-    height: 92,
-    borderRadius: 28,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.14,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
-  },
-  brandLabelCompact: {
-    color: colors.textSecondary,
-    fontSize: 16,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 2.4,
-  },
-  loginCard: {
-    backgroundColor: "#FFFDFC",
-    borderRadius: 32,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xxl,
-    gap: spacing.lg,
-    borderWidth: 1,
-    borderColor: "rgba(231,216,200,0.96)",
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 8,
-  },
-  loginFields: {
-    gap: spacing.md,
-  },
-  mobileField: {
-    minHeight: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: "#FFFCF8",
-    paddingHorizontal: spacing.md,
-  },
-  mobileFieldInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 17,
-    paddingVertical: 16,
-  },
-  mobileFieldAction: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loginForgotRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  loginMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  loginRememberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  loginCheckbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#CAD6E2",
-    backgroundColor: colors.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loginCheckboxActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  loginRememberText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-  },
-  loginForgotLink: {
-    color: colors.ink600,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  loginPrimaryButton: {
-    minHeight: 58,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: colors.accent,
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
-  },
-  loginPrimaryButtonText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  loginDividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  loginDividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E5ECF3",
-  },
-  loginDividerText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  loginSocialStack: {
-    gap: spacing.sm,
-  },
-  loginSocialLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    textAlign: "center",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  loginSocialButton: {
-    minHeight: 50,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: "#FFFDFC",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  loginSocialIconShell: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSoft,
-  },
-  loginSocialButtonText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  loginFooterText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-  },
-  heroCard: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: radii.lg,
-    padding: spacing.xl,
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  brandRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.md,
-  },
-  brandEyebrow: {
-    color: colors.accentSoft,
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-  },
-  brandTitle: {
-    color: colors.white,
-    fontSize: 28,
-    fontWeight: "800",
-    marginTop: 4,
-  },
-  heroTitle: {
-    color: colors.white,
-    fontSize: 28,
-    fontWeight: "800",
-    lineHeight: 34,
-  },
-  heroDescription: {
-    color: "rgba(238,243,247,0.8)",
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  heroTags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  heroTag: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  heroTagLabel: {
-    color: colors.white,
-    fontWeight: "700",
-  },
-  serverCard: {
-    marginTop: spacing.sm,
-    backgroundColor: "rgba(9,16,25,0.35)",
-    borderRadius: radii.md,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  serverLabel: {
-    color: colors.accentSoft,
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-    fontWeight: "700",
-  },
-  serverValue: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    alignSelf: "flex-start",
-    marginTop: spacing.sm,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  secondaryButtonText: {
-    color: colors.white,
-    fontWeight: "700",
-  },
-  formCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.lg,
-    padding: spacing.xl,
-    gap: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
-  },
-  loadingState: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.xxl,
-  },
-  loadingText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  dashboardState: {
-    gap: spacing.md,
-  },
-  formEyebrow: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-  },
-  formTitle: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  formDescription: {
-    color: colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  inputGroup: {
-    gap: spacing.xs,
-  },
-  label: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  input: {
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  passwordWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: colors.white,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  passwordToggle: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-  },
-  switchRow: {
-    marginTop: spacing.xs,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  switchLabel: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  switchHint: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    marginTop: 4,
-    maxWidth: 240,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  primaryButton: {
-    marginTop: spacing.sm,
-    borderRadius: radii.md,
-    backgroundColor: colors.accent,
-    minHeight: 54,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryButtonDisabled: {
-    opacity: 0.75,
-  },
-  primaryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  footerHint: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  chatLayout: {
-    flex: 1,
-  },
-  chatHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  cleanHeaderTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  cleanHeaderSpacer: {
-    flex: 1,
-  },
-  cleanNavButton: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFBF6",
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    position: "relative",
-  },
-  cleanHeaderCopy: {
-    flex: 1,
-    alignItems: "center",
-    gap: 2,
-  },
-  cleanHeaderEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
-  },
-  cleanHeaderTitle: {
-    color: colors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  cleanHeaderSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    textAlign: "center",
-    maxWidth: 220,
-  },
-  cleanHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  cleanNavBadge: {
-    position: "absolute",
-    top: -3,
-    right: -2,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cleanNavBadgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-  cleanHeaderStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  cleanReopenAction: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFF8F1",
-    borderWidth: 1,
-    borderColor: "#F1D7C0",
-  },
-  cleanReopenActionText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  cleanHeaderChipRail: {
-    gap: spacing.xs,
-    paddingRight: spacing.sm,
-  },
-  cleanHeaderChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 9,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  cleanHeaderChipAccent: {
-    backgroundColor: "#FFF3E7",
-    borderColor: "#FFD6B2",
-  },
-  cleanHeaderChipText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
-    maxWidth: 220,
-  },
-  cleanHeaderChipTextAccent: {
-    color: colors.accent,
-  },
-  chatHeaderTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  chatHeaderIdentity: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    flex: 1,
-  },
-  userBadge: {
-    width: 46,
-    height: 46,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(244,123,32,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  userBadgeText: {
-    color: colors.accentSoft,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  chatHeaderCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  chatEyebrow: {
-    color: colors.accentSoft,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  chatTitle: {
-    color: colors.white,
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  chatSubtitle: {
-    color: "rgba(238,243,247,0.74)",
-    fontSize: 13,
-  },
-  chatHeaderActions: {
-    alignItems: "flex-end",
-    gap: spacing.sm,
-  },
-  chatHeaderActionRail: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: radii.pill,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  chatHeaderMetaRail: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  chatHeaderMetaChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  chatHeaderMetaText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "700",
-    maxWidth: 180,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
-  },
-  iconButtonBadge: {
-    position: "absolute",
-    top: -3,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconButtonBadgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-  chatPanel: {
-    flex: 1,
-    backgroundColor: "transparent",
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.md,
-  },
-  chatPanelKeyboardVisible: {
-    paddingTop: spacing.xs,
-    gap: spacing.sm,
-  },
-  threadHeaderCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    borderTopColor: "#F0B98B",
-    borderTopWidth: 1.5,
-    gap: spacing.sm,
-  },
-  threadHeaderTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: spacing.md,
-  },
-  threadHeaderCopy: {
-    flex: 1,
-  },
-  threadSpotlightBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  threadSpotlightBadgeAccent: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  threadSpotlightBadgeSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  threadSpotlightText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  threadSpotlightTextAccent: {
-    color: colors.accent,
-  },
-  threadSpotlightTextSuccess: {
-    color: colors.success,
-  },
-  threadEyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  threadTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
-    marginTop: 2,
-  },
-  threadDescription: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  threadContextChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  threadContextChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  threadContextChipAccent: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  threadContextChipSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  threadContextChipDanger: {
-    backgroundColor: "#FDEEEE",
-    borderColor: "#F6CACA",
-  },
-  threadContextChipText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    maxWidth: 220,
-  },
-  threadContextChipTextAccent: {
-    color: colors.accent,
-  },
-  threadContextChipTextSuccess: {
-    color: colors.success,
-  },
-  threadContextChipTextDanger: {
-    color: colors.danger,
-  },
-  threadInsightGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  threadInsightCard: {
-    width: "48%",
-    minWidth: 148,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-    padding: spacing.sm,
-    borderRadius: radii.md,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  threadInsightCardAccent: {
-    backgroundColor: "#FFF8F1",
-    borderColor: "#FFD6B2",
-  },
-  threadInsightCardSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  threadInsightCardDanger: {
-    backgroundColor: "#FDEEEE",
-    borderColor: "#F6CACA",
-  },
-  threadInsightIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSoft,
-  },
-  threadInsightIconAccent: {
-    backgroundColor: "#FFF1E4",
-  },
-  threadInsightIconSuccess: {
-    backgroundColor: "#DDF5E8",
-  },
-  threadInsightIconDanger: {
-    backgroundColor: "#FCE1E1",
-  },
-  threadInsightCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  threadInsightLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  threadInsightValue: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  threadInsightDetail: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  threadTabs: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  cleanTabShell: {
-    borderRadius: 20,
-    backgroundColor: "#FFF6EE",
-    padding: 6,
-    borderWidth: 1,
-    borderColor: "#E9D7C4",
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  threadTabsShell: {
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    padding: 6,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  threadTab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    backgroundColor: "#FFFDFC",
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: "#E9D9C8",
-    paddingVertical: 10,
-    paddingHorizontal: spacing.md,
-  },
-  threadTabActive: {
-    backgroundColor: colors.ink800,
-    borderColor: colors.ink800,
-  },
-  threadTabText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  threadTabTextActive: {
-    color: colors.white,
-  },
-  threadTabBadge: {
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFF1E4",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  threadTabBadgeActive: {
-    backgroundColor: "rgba(255,255,255,0.16)",
-  },
-  threadTabBadgeText: {
-    color: colors.accent,
-    fontSize: 10,
-    fontWeight: "800",
-  },
-  threadTabBadgeTextActive: {
-    color: colors.white,
-  },
-  threadMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  threadMetaText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    flex: 1,
-  },
-  laudosSection: {
-    gap: spacing.sm,
-  },
-  laudosSectionCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  laudosSectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  laudosSectionEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  laudosSectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  laudosRail: {
-    gap: spacing.sm,
-    paddingRight: spacing.sm,
-  },
-  laudoChip: {
-    width: 196,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  laudoChipTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  laudoChipEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-  },
-  laudoChipEyebrowActive: {
-    color: colors.accentSoft,
-  },
-  laudoChipActive: {
-    backgroundColor: colors.ink800,
-    borderColor: colors.ink800,
-  },
-  laudoChipTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  laudoChipTitleActive: {
-    color: colors.white,
-  },
-  laudoChipPreview: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    minHeight: 36,
-  },
-  laudoChipPreviewActive: {
-    color: "rgba(255,255,255,0.82)",
-  },
-  laudoChipMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  laudoChipMetaActive: {
-    color: "rgba(255,255,255,0.66)",
-  },
-  laudoChipStatus: {
-    alignSelf: "flex-start",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    marginTop: spacing.xs,
-  },
-  laudoChipStatusText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  activityStrip: {
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: colors.white,
-    padding: spacing.md,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  activityStripIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(244,123,32,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activityStripCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  activityStripTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  activityStripBody: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  activityStripTime: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  offlineReadBanner: {
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-    backgroundColor: "#FFF7EE",
-    padding: spacing.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  offlineReadBannerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  offlineReadBannerCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  offlineReadBannerTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  offlineReadBannerText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  offlineQueueCard: {
-    gap: spacing.sm,
-    backgroundColor: "#FFF8F1",
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-    padding: spacing.md,
-  },
-  offlineQueueHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  offlineQueueActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  offlineQueueCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  offlineQueueTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  offlineQueueDescription: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  offlineQueueSummaryChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  offlineQueueSummaryChip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  offlineQueueSummaryChipAccent: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  offlineQueueSummaryChipDanger: {
-    backgroundColor: "#FDEAEA",
-    borderColor: "#F6CACA",
-  },
-  offlineQueueSummaryChipText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  offlineQueueSummaryChipTextAccent: {
-    color: colors.accent,
-  },
-  offlineQueueSummaryChipTextDanger: {
-    color: colors.danger,
-  },
-  offlineQueueSyncButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-  },
-  offlineQueueOpenButton: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-  },
-  offlineQueueSyncButtonDisabled: {
-    opacity: 0.55,
-  },
-  offlineQueueItems: {
-    gap: spacing.xs,
-  },
-  offlineQueueItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: "#FFE7CF",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-  },
-  offlineQueueItemContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  offlineQueueItemBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E4",
-  },
-  offlineQueueItemCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  offlineQueueItemTitle: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  offlineQueueItemText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  offlineQueueItemMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  offlineQueueItemRemove: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSoft,
-  },
-  offlineQueueFooter: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  offlineModalToolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
-    backgroundColor: "#FFF8F1",
-    borderWidth: 1,
-    borderColor: "#FFE2C4",
-  },
-  offlineModalToolbarText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  offlineModalSyncButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-  },
-  offlineModalSyncButtonDisabled: {
-    opacity: 0.55,
-  },
-  offlineModalSyncText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  offlineModalSyncTextDisabled: {
-    color: colors.textSecondary,
-  },
-  offlineModalFilters: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  offlineModalFilterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  offlineModalFilterChipActive: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  offlineModalFilterText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  offlineModalFilterTextActive: {
-    color: colors.accent,
-  },
-  offlineModalFilterCount: {
-    minWidth: 24,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  offlineModalFilterCountActive: {
-    backgroundColor: colors.accent,
-  },
-  offlineModalFilterCountText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  offlineModalFilterCountTextActive: {
-    color: colors.white,
-  },
-  offlineModalItem: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  offlineModalItemTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  offlineModalItemBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E4",
-  },
-  offlineModalItemCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  offlineModalItemHeading: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  offlineModalItemTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  offlineModalItemTime: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  offlineModalItemText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  offlineModalItemHint: {
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  offlineModalItemStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    flexWrap: "wrap",
-  },
-  offlineModalItemStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFF1E4",
-  },
-  offlineModalItemStatusBadgeError: {
-    backgroundColor: "#FDEAEA",
-  },
-  offlineModalItemStatusBadgeText: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  offlineModalItemStatusBadgeTextError: {
-    color: colors.danger,
-  },
-  offlineModalItemStatusText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  offlineModalItemActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: spacing.xs,
-    flexWrap: "wrap",
-  },
-  offlineModalActionGhost: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-  },
-  offlineModalActionGhostDisabled: {
-    opacity: 0.55,
-  },
-  offlineModalActionGhostText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  offlineModalActionGhostTextDisabled: {
-    color: colors.textSecondary,
-  },
-  offlineModalActionPrimary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
-    backgroundColor: colors.accent,
-  },
-  offlineModalActionPrimaryText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  offlineModalActionSecondary: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSoft,
-  },
-  offlineModalActionSecondaryText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  laudoStatusBadge: {
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-  },
-  laudoStatusText: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  reopenButton: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    backgroundColor: "#FFF5ED",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-  },
-  reopenButtonText: {
-    color: colors.accent,
-    fontWeight: "700",
-  },
-  threadBody: {
-    flex: 1,
-    minHeight: 280,
-    backgroundColor: "#FFFCF7",
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#EADAC8",
-    borderTopColor: "#F0B98B",
-    borderTopWidth: 1.5,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  threadEmptyState: {
-    minHeight: 260,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  threadEmptyBrandStage: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.md,
-  },
-  threadEmptyBrandHalo: {
-    position: "absolute",
-    top: -12,
-    width: 122,
-    height: 122,
-    borderRadius: 61,
-    backgroundColor: "rgba(244,123,32,0.08)",
-  },
-  threadEmptyBrandMark: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6,
-  },
-  threadEmptyBrand: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1.4,
-    marginTop: -2,
-  },
-  threadEmptyTitle: {
-    color: colors.textPrimary,
-    fontSize: 23,
-    fontWeight: "800",
-    textAlign: "center",
-    lineHeight: 31,
-    maxWidth: 300,
-  },
-  threadEmptyText: {
-    color: colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 23,
-    textAlign: "center",
-    maxWidth: 300,
-  },
-  threadEmptySuggestionRail: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  threadEmptySuggestion: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: "#FFD9BC",
-    backgroundColor: "#FFF8F1",
-  },
-  threadEmptySuggestionText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  threadContent: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.md,
-    gap: spacing.md,
-  },
-  threadContentKeyboard: {
-    paddingBottom: spacing.lg,
-  },
-  messageRow: {
-    width: "100%",
-  },
-  messageRowIncoming: {
-    alignItems: "flex-start",
-  },
-  messageRowOutgoing: {
-    alignItems: "flex-end",
-  },
-  messageIncomingCluster: {
-    maxWidth: "92%",
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
-  },
-  messageAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    marginBottom: 6,
-  },
-  messageAvatarTariel: {
-    backgroundColor: "#EEF5FB",
-    borderColor: "#D9E6F2",
-  },
-  messageAvatarBrand: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    marginBottom: 6,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-  messageAvatarEngineering: {
-    backgroundColor: "#FFF4E8",
-    borderColor: "#EEC8A7",
-  },
-  messageAvatarMesa: {
-    backgroundColor: "#FFF4E8",
-    borderColor: "#EEC8A7",
-  },
-  messageBubble: {
-    maxWidth: "84%",
-    borderRadius: 24,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    gap: 8,
-  },
-  messageBubbleIncomingShell: {
-    flexShrink: 1,
-    maxWidth: "100%",
-  },
-  messageBubbleIncoming: {
-    backgroundColor: "#FFF9F3",
-    borderWidth: 1,
-    borderColor: "#EEDFD0",
-    borderTopWidth: 1.5,
-    borderTopColor: "#F5CAA0",
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 10,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
-  },
-  messageBubbleOutgoing: {
-    backgroundColor: "#182536",
-    borderWidth: 1,
-    borderColor: "#2B3950",
-    borderTopWidth: 1.5,
-    borderTopColor: "rgba(255,180,120,0.6)",
-    borderTopRightRadius: 18,
-    borderBottomRightRadius: 10,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
-  },
-  messageBubbleEngineering: {
-    backgroundColor: "#FFF2E6",
-    borderWidth: 1,
-    borderColor: "#F0C9A4",
-    borderLeftWidth: 3,
-    borderLeftColor: "#F3B67A",
-    borderTopLeftRadius: 18,
-    borderBottomLeftRadius: 10,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
-  },
-  messageAuthor: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  messageAuthorOutgoing: {
-    color: colors.accentSoft,
-  },
-  messageHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  messageStatusBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-  },
-  messageStatusBadgeAccent: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  messageStatusBadgeSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  messageStatusBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  messageStatusBadgeTextAccent: {
-    color: colors.accent,
-  },
-  messageStatusBadgeTextSuccess: {
-    color: colors.success,
-  },
-  messageText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 24,
-  },
-  messageTextOutgoing: {
-    color: colors.white,
-  },
-  messageMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  messageMetaOutgoing: {
-    color: "rgba(255,255,255,0.74)",
-    alignSelf: "flex-end",
-  },
-  messageAttachments: {
-    gap: spacing.xs,
-  },
-  messageAttachmentCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    backgroundColor: "#FFF7EF",
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#EEDCC9",
-    padding: spacing.sm,
-  },
-  messageAttachmentCardDisabled: {
-    opacity: 0.7,
-  },
-  messageAttachmentIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFE8D2",
-  },
-  messageAttachmentImagePreview: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
-    backgroundColor: "#E8EDF2",
-  },
-  messageAttachmentBody: {
-    flex: 1,
-    gap: 2,
-  },
-  messageAttachmentTitle: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  messageAttachmentCaption: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  messageAttachmentAction: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  typingRow: {
-    alignItems: "flex-start",
-  },
-  typingBubble: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    backgroundColor: "#FFFBF7",
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-  },
-  typingText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  composerCard: {
-    backgroundColor: "#FFFCF8",
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: "#EAD9C8",
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
-    gap: spacing.sm,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-  },
-  composerCardKeyboardVisible: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-    gap: spacing.xs,
-  },
-  composerHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  composerHeaderCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  composerEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  composerTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  composerSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  composerStatusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  composerStatusBadgeAccent: {
-    backgroundColor: "#FFF2E5",
-    borderColor: "#EEC8A7",
-  },
-  composerStatusBadgeSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  composerStatusBadgeText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  composerStatusBadgeTextAccent: {
-    color: colors.accent,
-  },
-  composerStatusBadgeTextSuccess: {
-    color: colors.success,
-  },
-  composerHint: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    paddingHorizontal: 2,
-  },
-  composerToolsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    flexWrap: "wrap",
-  },
-  composerToolsLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  composerToolsText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    flex: 1,
-    textAlign: "left",
-    minWidth: 180,
-  },
-  attachButton: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  attachButtonDisabled: {
-    opacity: 0.45,
-  },
-  attachmentDraftCard: {
-    backgroundColor: "#FFFCF8",
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-    padding: spacing.md,
-  },
-  attachmentDraftHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-  },
-  attachmentDraftIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFEEDF",
-  },
-  attachmentDraftPreview: {
-    width: 52,
-    height: 52,
-    borderRadius: radii.sm,
-    backgroundColor: "#E8EDF2",
-  },
-  attachmentDraftCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  attachmentDraftTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  attachmentDraftDescription: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  attachmentDraftRemove: {
-    width: 30,
-    height: 30,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surfaceSoft,
-  },
-  attachmentModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(9, 16, 25, 0.84)",
-    padding: spacing.lg,
-    justifyContent: "center",
-  },
-  activityModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(9,16,25,0.54)",
-    padding: spacing.md,
-    justifyContent: "flex-end",
-  },
-  activityModalCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-    maxHeight: "78%",
-  },
-  activityModalHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  activityModalCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  activityModalEyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  activityModalTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  activityModalDescription: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  activityModalClose: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  activityModalLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  activityModalLoadingText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  activityModalList: {
-    gap: spacing.sm,
-    paddingBottom: spacing.lg,
-  },
-  activityItem: {
-    borderRadius: radii.md,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    padding: spacing.md,
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  activityItemUnread: {
-    borderColor: "#EFC9A8",
-    backgroundColor: "#FFF8F1",
-  },
-  activityItemIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(244,123,32,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  activityItemBody: {
-    flex: 1,
-    gap: 4,
-  },
-  activityItemTop: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  activityItemTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  activityItemTime: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  activityItemText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  activityItemHint: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  activityEmptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.xxl,
-  },
-  activityEmptyTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  activityEmptyText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-  },
-  sidePanelLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 18,
-  },
-  sidePanelModalRoot: {
-    flex: 1,
-  },
-  sidePanelEdgeHitbox: {
-    position: "absolute",
-    top: PANEL_EDGE_GESTURE_TOP_OFFSET,
-    bottom: 0,
-    width: PANEL_EDGE_GESTURE_WIDTH,
-    zIndex: 2,
-  },
-  sidePanelEdgeHitboxLeft: {
-    left: 0,
-  },
-  sidePanelEdgeHitboxRight: {
-    right: 0,
-  },
-  sidePanelScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(9,16,25,0.14)",
-    zIndex: 3,
-  },
-  sidePanelScrimPressable: {
-    flex: 1,
-  },
-  sidePanelDrawer: {
-    position: "absolute",
-    top: spacing.md,
-    bottom: spacing.md,
-    width: SIDE_PANEL_WIDTH,
-    backgroundColor: "#FFFCF8",
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: "#E9D9C8",
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 12,
-    zIndex: 4,
-  },
-  sidePanelDrawerLeft: {
-    left: spacing.md,
-  },
-  sidePanelDrawerRight: {
-    right: spacing.md,
-  },
-  sidePanelHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  sidePanelCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  sidePanelTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  sidePanelDescription: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  sidePanelCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF7EE",
-    borderWidth: 1,
-    borderColor: "#EAD9C8",
-  },
-  sidePanelActionList: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  settingsDrawerContent: {
-    gap: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  settingsSummaryCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#E9D9C8",
-    backgroundColor: "#FFF8F0",
-    padding: spacing.lg,
-    gap: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 2,
-  },
-  settingsSummaryTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  settingsSummaryMark: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-  },
-  settingsSummaryCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  settingsSummaryEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  settingsSummaryName: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  settingsSummaryMeta: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  settingsSummaryChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  settingsOverviewGrid: {
-    gap: spacing.sm,
-  },
-  settingsOverviewCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.md,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#E7DDD1",
-    backgroundColor: "#FFFDFC",
-    padding: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
-  },
-  settingsOverviewCardAccent: {
-    backgroundColor: "#FFF8F0",
-    borderColor: "#EBD7C2",
-  },
-  settingsOverviewCardSuccess: {
-    backgroundColor: "#F6FCF8",
-    borderColor: "#CFE7D7",
-  },
-  settingsOverviewCardDanger: {
-    backgroundColor: "#FFF8F6",
-    borderColor: "#F0D1CA",
-  },
-  settingsOverviewIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    backgroundColor: "#F8F3ED",
-  },
-  settingsOverviewIconAccent: {
-    backgroundColor: "#FFF1E3",
-    borderColor: "#F3D8BC",
-  },
-  settingsOverviewIconSuccess: {
-    backgroundColor: "#EEF8F1",
-    borderColor: "#CCE3D2",
-  },
-  settingsOverviewIconDanger: {
-    backgroundColor: "#FFF1F0",
-    borderColor: "#F0CFC7",
-  },
-  settingsOverviewCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  settingsOverviewHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  settingsOverviewTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  settingsOverviewDescription: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsSearchShell: {
-    minHeight: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-    backgroundColor: "#FFF8F1",
-  },
-  settingsSearchInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    paddingVertical: 11,
-  },
-  settingsSearchClearButton: {
-    width: 28,
-    height: 28,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E4",
-  },
-  settingsFilterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  settingsFilterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFFDFC",
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-  },
-  settingsFilterChipActive: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  settingsFilterChipText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  settingsFilterChipTextActive: {
-    color: colors.accent,
-  },
-  settingsFilterCount: {
-    minWidth: 24,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  settingsFilterCountActive: {
-    backgroundColor: colors.accent,
-  },
-  settingsFilterCountText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  settingsFilterCountTextActive: {
-    color: colors.white,
-  },
-  settingsFilterSummary: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    paddingHorizontal: 4,
-  },
-  settingsSheetContent: {
-    gap: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  settingsFlowStack: {
-    gap: spacing.md,
-  },
-  settingsInlineHero: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#EAD9C7",
-    backgroundColor: "#FFF8F0",
-    padding: spacing.md,
-  },
-  settingsInlineHeroMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-  },
-  settingsInlineHeroCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  settingsInlineHeroTitle: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  settingsInlineHeroText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsInfoCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    backgroundColor: "#FFFDFC",
-    padding: spacing.md,
-    gap: 6,
-  },
-  settingsInfoTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  settingsInfoText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsInfoSubtle: {
-    color: colors.ink600,
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  settingsInfoGrid: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  settingsInfoGridItem: {
-    flex: 1,
-  },
-  settingsMiniList: {
-    gap: spacing.sm,
-  },
-  settingsMiniListItem: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    backgroundColor: "#FFFDFC",
-    padding: spacing.md,
-    gap: 4,
-  },
-  settingsMiniListTitle: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  settingsMiniListMeta: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsHelpArticleHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  settingsHelpArticleCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  settingsHelpArticleBody: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    lineHeight: 20,
-    paddingTop: spacing.xs,
-  },
-  settingsSheetNotice: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: spacing.sm,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#CAE7D5",
-    backgroundColor: "#EFFAF3",
-    padding: spacing.md,
-  },
-  settingsSheetNoticeText: {
-    flex: 1,
-    color: colors.success,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: "700",
-  },
-  settingsSheetFooter: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  settingsSheetGhostButton: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-    backgroundColor: "#FFFDFC",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsSheetGhostButtonText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  settingsSheetPrimaryButton: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: 16,
-    backgroundColor: colors.accent,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsSheetPrimaryButtonDisabled: {
-    opacity: 0.55,
-  },
-  settingsSheetPrimaryButtonText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  confirmSheetCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-    maxHeight: "68%",
-  },
-  confirmSheetIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1F1",
-    borderWidth: 1,
-    borderColor: "#F1CCCC",
-  },
-  confirmSheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
-  },
-  confirmSheetText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  confirmSheetHint: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  confirmSheetHintStrong: {
-    color: colors.danger,
-    fontWeight: "800",
-  },
-  confirmSheetDangerButton: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: 16,
-    backgroundColor: colors.danger,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  confirmSheetDangerButtonText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  settingsGroupLabel: {
-    gap: 4,
-    paddingHorizontal: 4,
-  },
-  settingsGroupEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
-  settingsGroupDescription: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsSection: {
-    gap: spacing.sm,
-  },
-  settingsSectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  settingsSectionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF3E6",
-    borderWidth: 1,
-    borderColor: "#F3D6B7",
-  },
-  settingsSectionCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  settingsSectionTitle: {
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  settingsSectionSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  settingsCard: {
-    backgroundColor: "#FFFDFC",
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    overflow: "hidden",
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 2,
-  },
-  settingsRow: {
-    minHeight: 72,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1E8DF",
-  },
-  settingsRowDanger: {
-    backgroundColor: "#FFF9F8",
-  },
-  settingsBlockRow: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1E8DF",
-  },
-  settingsBlockHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  settingsRowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF7EE",
-    borderWidth: 1,
-    borderColor: "#EEDCCB",
-  },
-  settingsRowIconDanger: {
-    backgroundColor: "#FFF0F0",
-    borderColor: "#F3C9C9",
-  },
-  settingsRowCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  settingsRowTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  settingsRowTitleDanger: {
-    color: colors.danger,
-  },
-  settingsRowDescription: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  settingsRowMeta: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    gap: 4,
-  },
-  settingsRowValue: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    textAlign: "right",
-    maxWidth: 96,
-  },
-  settingsSegmentedControl: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  settingsSegmentPill: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF7EE",
-    borderWidth: 1,
-    borderColor: "#EFDCC9",
-  },
-  settingsSegmentPillActive: {
-    backgroundColor: colors.ink800,
-    borderColor: colors.ink800,
-  },
-  settingsSegmentText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "capitalize",
-  },
-  settingsSegmentTextActive: {
-    color: colors.textInverse,
-  },
-  settingsScaleValue: {
-    color: colors.accent,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  settingsScaleTrack: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  settingsScaleStep: {
-    flex: 1,
-    height: 16,
-    borderRadius: radii.pill,
-    backgroundColor: "#EEE3D6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  settingsScaleStepActive: {
-    backgroundColor: "#FFD8B8",
-  },
-  settingsScaleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: "#CEB8A1",
-  },
-  settingsScaleDotActive: {
-    width: 10,
-    height: 10,
-    backgroundColor: colors.accent,
-  },
-  settingsScaleLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  settingsScaleLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  settingsFieldBlock: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1E8DF",
-  },
-  settingsFieldBlockNoDivider: {
-    gap: spacing.xs,
-  },
-  settingsFieldLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  settingsTextField: {
-    minHeight: 48,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    backgroundColor: "#FFF8F1",
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    fontSize: 15,
-  },
-  settingsTextArea: {
-    minHeight: 124,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E8DDD1",
-    backgroundColor: "#FFF8F1",
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontSize: 15,
-    textAlignVertical: "top",
-  },
-  settingsStatusPill: {
-    minHeight: 24,
-    paddingHorizontal: 10,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F4ECE2",
-    borderWidth: 1,
-    borderColor: "#E5D6C6",
-  },
-  settingsStatusPillSuccess: {
-    backgroundColor: "#E9F8EF",
-    borderColor: "#C8E7D3",
-  },
-  settingsStatusPillDanger: {
-    backgroundColor: "#FFF1F1",
-    borderColor: "#F0C7C7",
-  },
-  settingsStatusPillAccent: {
-    backgroundColor: "#FFF3E6",
-    borderColor: "#F5D5B6",
-  },
-  settingsStatusPillText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  settingsStatusPillTextSuccess: {
-    color: colors.success,
-  },
-  settingsStatusPillTextDanger: {
-    color: colors.danger,
-  },
-  settingsStatusPillTextAccent: {
-    color: colors.accent,
-  },
-  securityStack: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1E8DF",
-  },
-  securityIntroCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-    backgroundColor: "#FFF8F1",
-    padding: spacing.md,
-    gap: 6,
-  },
-  securityIntroTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  securityIntroText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  securityRecoveryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-    paddingTop: spacing.xs,
-  },
-  securityRecoveryCode: {
-    minWidth: 108,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-    backgroundColor: "#FFFDF9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  securityRecoveryCodeText: {
-    color: colors.textPrimary,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-  },
-  securityProviderCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-    backgroundColor: "#FFFCF8",
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  securityProviderMain: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    alignItems: "center",
-  },
-  securityProviderIconShell: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF6EE",
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-  },
-  securityProviderCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  securityProviderHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  securityProviderTitle: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  securityProviderMeta: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  securityProviderActionButton: {
-    alignSelf: "flex-start",
-    minHeight: 34,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.ink800,
-  },
-  securityProviderActionButtonDanger: {
-    backgroundColor: "#FFF3F2",
-    borderWidth: 1,
-    borderColor: "#F2D3CF",
-  },
-  securityProviderActionText: {
-    color: colors.textInverse,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  securityProviderActionTextDanger: {
-    color: colors.danger,
-  },
-  securitySessionCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-    backgroundColor: "#FFFCF8",
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  securitySessionTop: {
-    gap: spacing.xs,
-  },
-  securitySessionCopy: {
-    gap: 4,
-  },
-  securitySessionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  securitySessionTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  securitySessionMeta: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  securitySessionActionButton: {
-    alignSelf: "flex-start",
-    minHeight: 34,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF3E6",
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-  },
-  securitySessionActionButtonDisabled: {
-    backgroundColor: "#F4ECE2",
-  },
-  securitySessionActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  securitySessionReviewButton: {
-    backgroundColor: "#FFF6EE",
-    borderColor: "#E9DCCF",
-  },
-  securitySessionReviewButtonDanger: {
-    backgroundColor: "#FFF1F1",
-    borderColor: "#F0C7C7",
-  },
-  securitySessionActionText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  securitySessionReviewButtonText: {
-    color: colors.accent,
-  },
-  securitySessionReviewButtonTextDanger: {
-    color: colors.danger,
-  },
-  securityEventCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E9DCCF",
-    backgroundColor: "#FFFCF8",
-    padding: spacing.md,
-    gap: 6,
-  },
-  securityEventTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  securityEventTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  securityEventMeta: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  securityEventStatus: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  securityFootnote: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  historyModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(9,16,25,0.14)",
-    padding: spacing.md,
-    justifyContent: "flex-end",
-  },
-  historyModalCard: {
-    backgroundColor: "#FFFDF9",
-    borderRadius: 30,
-    padding: spacing.lg,
-    gap: spacing.md,
-    maxHeight: "82%",
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
-  },
-  historyModalHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  historyBrandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: 2,
-  },
-  historyBrandIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-  },
-  historyBrandEyebrow: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  historyModalCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  historyModalTitle: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  historyModalSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  historyModalClose: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF8F1",
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-  },
-  historySearchShell: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-    backgroundColor: "#FFF8F1",
-  },
-  historySearchInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 16,
-    paddingVertical: 12,
-  },
-  historySummaryCard: {
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: "#E8D8C9",
-    borderTopColor: "#F0B98B",
-    borderTopWidth: 1.5,
-    backgroundColor: "#FFF8F1",
-  },
-  historySummaryMetrics: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  historySummaryMetric: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 18,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#EADFD4",
-    gap: 2,
-  },
-  historySummaryMetricValue: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  historySummaryMetricLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-  },
-  historySummaryText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  historyFilterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  historyFilterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  historyFilterChipActive: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  historyFilterChipText: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  historyFilterChipTextActive: {
-    color: colors.accent,
-  },
-  historyFilterCount: {
-    minWidth: 24,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.white,
-  },
-  historyFilterCountActive: {
-    backgroundColor: colors.accent,
-  },
-  historyFilterCountText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  historyFilterCountTextActive: {
-    color: colors.white,
-  },
-  historySections: {
-    gap: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
-  historySection: {
-    gap: spacing.sm,
-  },
-  historySectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  historySectionTitle: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  historySectionCountBadge: {
-    minWidth: 26,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E4",
-    borderWidth: 1,
-    borderColor: "#FFD6B2",
-  },
-  historySectionCountText: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  historySectionItems: {
-    gap: spacing.sm,
-  },
-  historyItemShell: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: spacing.xs,
-  },
-  historyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-    backgroundColor: "#FFFDFB",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 2,
-  },
-  historyItemPrimary: {
-    flex: 1,
-  },
-  historyItemActive: {
-    backgroundColor: colors.ink800,
-    borderColor: colors.ink800,
-    shadowOpacity: 0.08,
-    elevation: 4,
-  },
-  historyItemActions: {
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  historyItemActionButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF4E8",
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.025,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
-  },
-  historyItemActionButtonPinned: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  historyItemActionButtonDanger: {
-    backgroundColor: "#FFF8F4",
-    borderColor: "#EBD5CA",
-  },
-  historyItemIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF8F1",
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-  },
-  historyItemIconActive: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  historyItemBrandIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-  },
-  historyItemCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  historyItemMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-    flexWrap: "wrap",
-  },
-  historyItemInfoTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFF7EF",
-    borderWidth: 1,
-    borderColor: "#E7DDD2",
-  },
-  historyItemInfoTagEditable: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  historyItemInfoTagActive: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderColor: "rgba(255,255,255,0.14)",
-  },
-  historyItemInfoTagText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  historyItemInfoTagTextEditable: {
-    color: colors.success,
-  },
-  historyItemInfoTagTextActive: {
-    color: colors.white,
-  },
-  historyItemHeading: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  historyItemTitle: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  historyItemTitleActive: {
-    color: colors.white,
-  },
-  historyItemTime: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  historyItemTimeActive: {
-    color: "rgba(255,255,255,0.72)",
-  },
-  historyItemPreview: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  historyItemPreviewActive: {
-    color: "rgba(255,255,255,0.84)",
-  },
-  historyItemStatus: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  historyItemStatusAccent: {
-    backgroundColor: "#FFF1E4",
-    borderColor: "#FFD6B2",
-  },
-  historyItemStatusSuccess: {
-    backgroundColor: "#EEF9F3",
-    borderColor: "#BCE8D0",
-  },
-  historyItemStatusDanger: {
-    backgroundColor: "#FDEEEE",
-    borderColor: "#F6CACA",
-  },
-  historyItemStatusActive: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  historyItemStatusText: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  historyItemStatusTextAccent: {
-    color: colors.accent,
-  },
-  historyItemStatusTextSuccess: {
-    color: colors.success,
-  },
-  historyItemStatusTextDanger: {
-    color: colors.danger,
-  },
-  historyItemStatusTextActive: {
-    color: colors.white,
-  },
-  historyItemPinnedTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    backgroundColor: "#FFF8F1",
-    borderWidth: 1,
-    borderColor: "#E9D9C8",
-  },
-  historyItemPinnedTagActive: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  historyItemPinnedTagText: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  historyItemPinnedTagTextActive: {
-    color: colors.white,
-  },
-  historyEmptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.xxl,
-  },
-  historyEmptyBrand: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-  },
-  historyEmptyTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  historyEmptyText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
-    textAlign: "center",
-  },
-  attachmentModalCard: {
-    backgroundColor: "#08111C",
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  attachmentModalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.sm,
-  },
-  attachmentModalTitle: {
-    flex: 1,
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  attachmentModalClose: {
-    width: 34,
-    height: 34,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
-  attachmentModalImage: {
-    width: "100%",
-    minHeight: 280,
-    maxHeight: 520,
-    borderRadius: radii.md,
-    backgroundColor: "#03070D",
-  },
-  composerRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: "#E9DACA",
-    backgroundColor: "#FFFDF9",
-    borderRadius: 24,
-    paddingLeft: spacing.md,
-    paddingRight: 6,
-    paddingVertical: 6,
-  },
-  attachInsideButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFF1E2",
-    borderWidth: 1,
-    borderColor: "#EFCBA8",
-    marginBottom: 2,
-  },
-  composerInput: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 160,
-    backgroundColor: "transparent",
-    borderRadius: 0,
-    borderWidth: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  composerInputDisabled: {
-    color: colors.textSecondary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.pill,
-    backgroundColor: "#F47B20",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: colors.accent,
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 9 },
-    elevation: 4,
-  },
-  sendButtonDisabled: {
-    opacity: 0.55,
-  },
-  metricsRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    gap: 6,
-  },
-  metricValue: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  metricLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  actionList: {
-    gap: spacing.sm,
-  },
-  actionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-  },
-  actionText: {
-    color: colors.textPrimary,
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-});

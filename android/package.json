@@ -9,6 +9,12 @@
     "android:prebuild": "expo prebuild --platform android --clean && node ./scripts/fix-gradle-wrapper.cjs",
     "android:preview": "node ./scripts/fix-gradle-wrapper.cjs && node ./scripts/run-android-preview.cjs",
     "android:preview:fresh": "expo prebuild --platform android --clean && node ./scripts/fix-gradle-wrapper.cjs && node ./scripts/run-android-preview.cjs",
+    "eas:build:android:preview": "npx eas build --platform android --profile preview",
+    "eas:build:android:production": "npx eas build --platform android --profile production",
+    "eas:build:ios:preview": "npx eas build --platform ios --profile preview",
+    "eas:build:ios:production": "npx eas build --platform ios --profile production",
+    "eas:submit:android:production": "npx eas submit --platform android --profile production",
+    "eas:submit:ios:production": "npx eas submit --platform ios --profile production",
     "ios": "expo run:ios",
     "maestro:smoke": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1",
     "maestro:login": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\run_mobile_maestro_smoke.ps1 -Flow android/maestro/login-smoke.yaml",
@@ -35,6 +41,12 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eas-cli": "^18.4.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
   "private": true

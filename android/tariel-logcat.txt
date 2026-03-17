@@ -1,0 +1,305 @@
+--------- beginning of main
+03-16 17:22:00.365  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:00.365  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:00.367  3232  4443 D NetdEventListenerService: DNS Requested by 176, 10374(com.openai.chatgpt), SUCCESS, 3038ms
+03-16 17:22:00.371  3232  4282 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+03-16 17:22:00.374  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-63, periodicAdvInt=0x0
+03-16 17:22:00.375  3232  6381 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 18661, isSameBssidAndFreq true
+03-16 17:22:00.376  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:22 syn=10, rto=0, cwnd=0
+03-16 17:22:00.376  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:23 syn=10, rto=0, cwnd=0
+03-16 17:22:00.377  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:24 syn=10, rto=0, cwnd=0
+03-16 17:22:00.377  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:25 syn=10, rto=0, cwnd=0
+03-16 17:22:00.377  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:26 syn=10, rto=0, cwnd=0
+03-16 17:22:00.377  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:27 syn=2, rto=0, cwnd=0
+03-16 17:22:00.379  3232  4391 E SemWifiLinkQualityMonitor: Too old or invalid TMI: currentTime=1773692520379 lastDateWindow=1773649587000
+03-16 17:22:00.380  3232  4391 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,57 (66) / 720 / -46.0 || 100.0 : 720,00 / 0.5 : 0,64 / 0.55 : 0,30 / G (G) || 572d473c5745: 0,331 / 24,184 / D || N V / 2 0 / N 2.0 / Y X 0 / 82034205 0 || 2026-03-16 05:26:27  / 2: 10 10 10 10 10 2 / 0: 0 0 0 0 0 0 / 0: 0 0 0 0 0 0
+03-16 17:22:00.410  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:00.410  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+--------- beginning of system
+03-16 17:22:00.485  3232  5124 D SGM:GameManager: identifyForegroundApp. com.tarielia.inspetor, mCurrentUserId: 0, callerUserId: 0
+03-16 17:22:00.486 19085 19118 I PolicyManager: [#CMH#] Is foreground game app: false
+03-16 17:22:00.515 19085 19118 I ControllerEventHandler: [#CMH#]  Check for starting Standalone FaceService for just shot ! 
+03-16 17:22:00.515 19085 19118 I ControllerEventHandler: [#CMH#] requestToRegisterInstantWorker: mIsPolicyIgnore :  false
+03-16 17:22:00.515 19085 19118 I ControllerUtils: [#CMH#] getFaceServiceUnProcessedMediaCount :E .. 
+03-16 17:22:00.524 19085 19118 I ControllerEventHandler: [#CMH#] pendingCount<=0, ignore processing ,with isPolicyIgnore : false
+03-16 17:22:00.561  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:00.671  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:00.671  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:00.671  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:00.671  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:00.682  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:5B:97, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-88, periodicAdvInt=0x0
+03-16 17:22:00.685  5314 12125 I NearbyDiscovery: (REDACTED) BloomFilterAdvManager: Detected bloom filter but too far away, ignoring. %sm, %s
+03-16 17:22:00.717  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:00.717  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:00.775  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:00.864  3232  5124 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:22:00.864  3232  5124 I ActivityManager: Changes in 90100 10 to 10, 128 to 0
+03-16 17:22:00.864  3232  5124 I ActivityManager: Changes in 10355 10 to 10, 128 to 0
+03-16 17:22:00.867  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:00.869  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:22:00.870  3232  3548 I ActivityManager: Changes in 90100 10 to 10, 0 to 128
+03-16 17:22:00.870  3232  3548 I ActivityManager: Changes in 10355 10 to 10, 0 to 128
+03-16 17:22:00.889  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:00.889  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:00.890  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:00.890  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:00.898  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-69, periodicAdvInt=0x0
+03-16 17:22:00.899  4797  6067 I ScanController: onScanResult to scannerId: 4- eventType=0x0, addressType=1, address=XX:XX:XX:XX:7F:CE, primaryPhy=1, secondaryPhy=1, advertisingSid=0x1, txPower=127, rssi=-63, periodicAdvInt=0x0
+03-16 17:22:00.937  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:00.937  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:01.087  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:01.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692521
+03-16 17:22:01.137  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:22:01.138  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 317 
+03-16 17:22:01.138  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561542
+03-16 17:22:01.138  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:22:01.138  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:22:01.138  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:22:01.138  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:22:01.138  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:22:01.277  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:01.531 25154 11221 I WindowsLink: (YpcSignatureChecker) isSignatureAllowed in
+03-16 17:22:01.531 25154 11221 I WindowsLink: (BaseContentProvider) call: method = UserInfo@isTwoPhoneModeEnabled / subMethod = isTwoPhoneModeEnabled
+03-16 17:22:01.531 25154 11221 I WindowsLink: (UserInfoContentProvider) isEnabled: 0 - isTwoPhoneMode: false
+03-16 17:22:01.532 25154 11221 I WindowsLink: (UserInfoContentProvider) isTwoPhoneModeEnabled: result = false
+03-16 17:22:01.532 25154 25736 I WindowsLink: (YpcSignatureChecker) isSignatureAllowed in
+03-16 17:22:01.532 25154 25736 I WindowsLink: (BaseContentProvider) call: method = UserInfo@isTwoPhoneModeEnabled / subMethod = isTwoPhoneModeEnabled
+03-16 17:22:01.532 25154 25736 I WindowsLink: (UserInfoContentProvider) isEnabled: 0 - isTwoPhoneMode: false
+03-16 17:22:01.532 25154 25736 I WindowsLink: (UserInfoContentProvider) isTwoPhoneModeEnabled: result = false
+03-16 17:22:01.562  1186  1186 D io_stats: !@   8,0 r 12205929 217476430 w 5170310 110885836 d 745024 183334036 f 120493 377021 iot 6548088 0 th 0 0 0 pt 0 inp 0 0 82035.392
+03-16 17:22:01.562  1186  1186 D io_stats: !@ Read_top(KB): ocessService0:0(15843) 1072 .openai.chatgpt(15604) 660 com.samsung.cmh(19085) 124
+03-16 17:22:01.563  1186  1186 D io_stats: !@ Write_top(KB): kworker/u16:1(485) 6716 f2fs_ckpt-254:6(5188) 304 .gms.persistent(5314) 40
+03-16 17:22:01.578 25154 11221 I WindowsLink: (YpcSignatureChecker) isSignatureAllowed in
+03-16 17:22:01.578 25154 25736 I WindowsLink: (YpcSignatureChecker) isSignatureAllowed in
+03-16 17:22:01.578 25154 11221 I WindowsLink: (BaseContentProvider) call: method = UserInfo@isTwoPhoneModeEnabled / subMethod = isTwoPhoneModeEnabled
+03-16 17:22:01.578 25154 25736 I WindowsLink: (BaseContentProvider) call: method = UserInfo@isTwoPhoneModeEnabled / subMethod = isTwoPhoneModeEnabled
+03-16 17:22:01.579 25154 11221 I WindowsLink: (UserInfoContentProvider) isEnabled: 0 - isTwoPhoneMode: false
+03-16 17:22:01.579 25154 25736 I WindowsLink: (UserInfoContentProvider) isEnabled: 0 - isTwoPhoneMode: false
+03-16 17:22:01.579 25154 25736 I WindowsLink: (UserInfoContentProvider) isTwoPhoneModeEnabled: result = false
+03-16 17:22:01.579 25154 11221 I WindowsLink: (UserInfoContentProvider) isTwoPhoneModeEnabled: result = false
+03-16 17:22:01.596  2061 14478 I sensors-hal: handle_sns_std_sensor_event:436, [SSC_LIGHT] P: 84(84),m:13,c:146,b:78,c0:35928,l:81,f(r):106,u(bl):105,j:58
+03-16 17:22:01.775  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:01.873  3232  5124 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:22:01.873  3232  5124 I ActivityManager: Changes in 90100 10 to 10, 128 to 0
+03-16 17:22:01.873  3232  5124 I ActivityManager: Changes in 10355 10 to 10, 128 to 0
+03-16 17:22:01.878  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:22:01.879  3232  3548 I ActivityManager: Changes in 90100 10 to 10, 0 to 128
+03-16 17:22:01.879  3232  3548 I ActivityManager: Changes in 10355 10 to 10, 0 to 128
+03-16 17:22:02.041  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:02.041  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:02.041  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:02.041  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:02.052  4797  6067 I ScanController: onScanResult to scannerId: 4- eventType=0x0, addressType=1, address=XX:XX:XX:XX:7F:CE, primaryPhy=1, secondaryPhy=1, advertisingSid=0x1, txPower=127, rssi=-65, periodicAdvInt=0x0
+03-16 17:22:02.089  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:02.089  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:02.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692522
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 317 
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561542
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:22:02.135  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:22:02.136  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:22:02.136  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:22:02.240  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:02.276  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:02.452  3232  4301 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+03-16 17:22:02.457  3232  4301 D InetDiagMessage: Destroyed 2 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+03-16 17:22:02.457  3232  4301 D InetDiagMessage: Destroyed live tcp sockets for uids={10374} in 8ms
+03-16 17:22:02.460  3232  4301 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET, states=14
+03-16 17:22:02.463  3232  4301 D InetDiagMessage: Destroyed 0 sockets, proto=IPPROTO_TCP, family=AF_INET6, states=14
+03-16 17:22:02.463  3232  4301 D InetDiagMessage: Destroyed live tcp sockets for uids={20374} in 6ms
+03-16 17:22:02.568  3232  3942 D SGM:GameManager: identifyForegroundApp. com.tarielia.inspetor, mCurrentUserId: 0, callerUserId: 0
+03-16 17:22:02.569 19085 19118 I PolicyManager: [#CMH#] Is foreground game app: false
+03-16 17:22:02.606 19085 19118 I ControllerEventHandler: [#CMH#]  Check for starting Standalone FaceService for just shot ! 
+03-16 17:22:02.606 19085 19118 I ControllerEventHandler: [#CMH#] requestToRegisterInstantWorker: mIsPolicyIgnore :  false
+03-16 17:22:02.606 19085 19118 I ControllerUtils: [#CMH#] getFaceServiceUnProcessedMediaCount :E .. 
+03-16 17:22:02.617 19085 19118 I ControllerEventHandler: [#CMH#] pendingCount<=0, ignore processing ,with isPolicyIgnore : false
+03-16 17:22:02.641  3232  4389 I SemWifiServiceDetector: NSD results: [1, 1, 1, 1, 1, 0, 2, -1, 0] Traff. type 1 Thr 5
+03-16 17:22:02.677  4485  4485 I wpa_supplicant: Heartbeat 8253
+03-16 17:22:02.715  2138   881 I QC2Comp : [hevcD_1107] Stats: Pending(3) i/p-done(3) Works: Q: 909/Done 907|Work-Rate: Q(0.0/s Avg=0.2/s) Done(0.000/s Avg=0.232/s)| Stream: 30.30fps 1.4Mbps
+03-16 17:22:02.715  2138   881 I QC2Comp : [hevcD_1107] Mem-usage:  [In-1D: 7 bufs 56.000 MB] [1D-2067: 17 bufs 0.266 MB] [2D-2068: 21 bufs 66.938 MB] | Total: 123.203 MB
+03-16 17:22:02.777  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:02.882  3232  3942 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:22:02.882  3232  3942 I ActivityManager: Changes in 90100 10 to 10, 128 to 0
+03-16 17:22:02.882  3232  3942 I ActivityManager: Changes in 10355 10 to 10, 128 to 0
+03-16 17:22:02.886  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:22:02.886  3232  3548 I ActivityManager: Changes in 90100 10 to 10, 0 to 128
+03-16 17:22:02.887  3232  3548 I ActivityManager: Changes in 10355 10 to 10, 0 to 128
+03-16 17:22:02.962  4513  5106 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+03-16 17:22:02.971  4752  4752 I EPDG -- SIM0 [SMARTCELLULAR]: onSignalStrengthsChanged: SignalStrength:{mCdma=Invalid,mGsm=Invalid,mWcdma=CellSignalStrengthWcdma: ss=-101 ber=2147483647 rscp=-101 ecno=-8 level=1,mTdscdma=Invalid,mLte=Invalid,mNr=Invalid,SignalBarInfo{ wcdmaLevel=2 },rat=3,primary=CellSignalStrengthWcdma}
+03-16 17:22:02.974  4752  6670 I EPDG -- SIM0 [SMARTCELLULAR]: lastWcdmaRssi: -101 currentWcdmaRssi: -101
+03-16 17:22:03.083  3232  5461 I NSLocationMonitor: getGPSUsingApps() called
+03-16 17:22:03.083  5408  5464 I NSLocationManager_FLP: getGPSUsingApps, No change
+03-16 17:22:03.099  3232  5461 D ActivityManager: FCA:FCA recordedFileRss = 116136, and changeinRss = 5440
+03-16 17:22:03.100  3232  5461 D FreecessController: FZ : com.openai.chatgpt(10374) [15604] reason: Bg [cached:O
+03-16 17:22:03.100  3232  5461 D FreecessHandler: freeze com.openai.chatgpt(10374) result : 0
+03-16 17:22:03.100  3232  5461 W LocationManagerService: onFreezeStateChanged, uid[10374]=true
+03-16 17:22:03.101  3232  5461 I PowerManagerService: [PWL] SetWakeLockEnableDisable uid = 10374 , disable= true
+03-16 17:22:03.101  3232  5461 I PowerManagerService: [PWL] can not change uid =  10374
+03-16 17:22:03.116  5314 32312 I NearbyMediums: Found Fast Ble Advertisements :
+03-16 17:22:03.116  5314 32312 I NearbyMediums: BleAdvertisement { version=2, socketVersion=2, isFast=true, serviceIdHash=null, data=[ 0x23 0x35 0x4f 0x30 0x45 0x11 0x32 0x04 0xf3 0xa1 0xfd 0x4a 0x9d 0x0a 0xbb 0xab 0xf0 0xeb 0x5f 0x0d 0x44 0x44 0xd0 ], deviceToken=[ 0x77 0x7a ], rxAdvertisement=[ 0xa0 0x17 0x92 0x78 0xee 0x4f 0x08 0x06 0x26 0x80 0xac 0xb1 0x27 0xce 0x11 0x6a 0x1d 0x0a 0x82 0xcc 0x8c 0x5d 0xb0 0x4e 0x68 0xcd 0x04 0xe7 0x3f 0x7f 0x78 0x1a 0x40 0x72 0x83 0x15 0x01 0x09 0x94 ] } : 5 times.
+03-16 17:22:03.116  5314 32312 I NearbyMediums: Total 5 fast advertisements from 1 unique advertisers.
+03-16 17:22:03.116  5314 32312 I NearbyMediums: Current Tracked Scanning Clients are : {NearbyConnections.EnvironmentMonitor, NearbySharing, NearbyConnections.TxAdvertisement}
+03-16 17:22:03.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692523
+03-16 17:22:03.141  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:22:03.141  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 317 
+03-16 17:22:03.142  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561542
+03-16 17:22:03.142  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:22:03.142  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:22:03.143  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:22:03.144  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:22:03.144  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:22:03.276  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:03.391  3232  4282 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+03-16 17:22:03.394  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:22 syn=10, rto=0, cwnd=0
+03-16 17:22:03.395  3232  6381 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 18662, isSameBssidAndFreq true
+03-16 17:22:03.395  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:23 syn=10, rto=0, cwnd=0
+03-16 17:22:03.396  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:24 syn=10, rto=0, cwnd=0
+03-16 17:22:03.396  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:25 syn=10, rto=0, cwnd=0
+03-16 17:22:03.396  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:26 syn=10, rto=0, cwnd=0
+03-16 17:22:03.396  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:27 syn=2, rto=0, cwnd=0
+03-16 17:22:03.397  3232  4391 E SemWifiLinkQualityMonitor: Too old or invalid TMI: currentTime=1773692523397 lastDateWindow=1773649587000
+03-16 17:22:03.399  3232  4391 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,01 (3232) / 720 / -45.0 || 100.0 : 720,00 / 0.5 : 0,99 / 0.55 : 0,30 / G (G) || 572d473c5745: 0,114 / 70,195 / D || N V / 2 0 / N 2.0 / Y X 0 / 82037224 0 || 2026-03-16 05:26:27  / 2: 10 10 10 10 10 2 / 0: 0 0 0 0 0 0 / 0: 0 0 0 0 0 0
+03-16 17:22:03.471  3232  5461 I NSLocationMonitor: getGPSUsingApps() called
+03-16 17:22:03.472  5408  5464 I NSLocationManager_FLP: getGPSUsingApps, No change
+03-16 17:22:03.485  3232  5461 D FreecessController: FZ : com.samsung.android.game.gamehome(10085) [8593] reason: Bg [cached:X
+03-16 17:22:03.486  3232  5461 D FreecessHandler: freeze com.samsung.android.game.gamehome(10085) result : 0
+03-16 17:22:03.486  3232  5461 W LocationManagerService: onFreezeStateChanged, uid[10085]=true
+03-16 17:22:03.486  3232  5461 I PowerManagerService: [PWL] SetWakeLockEnableDisable uid = 10085 , disable= true
+03-16 17:22:03.486  3232  5461 I PowerManagerService: [PWL] can not change uid =  10085
+03-16 17:22:03.563  1186  1186 D io_stats: !@   8,0 r 12205935 217476534 w 5170310 110885836 d 745024 183334036 f 120493 377021 iot 6548112 0 th 0 0 0 pt 0 inp 0 0 82037.393
+03-16 17:22:03.589  3232  5461 I NSLocationMonitor: getGPSUsingApps() called
+03-16 17:22:03.590  5408  5464 I NSLocationManager_FLP: getGPSUsingApps, No change
+03-16 17:22:03.598  3232  5461 D FreecessHandler: freeze com.instagram.android(10355) result : 33
+03-16 17:22:03.710  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:03.710  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:03.711  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:03.711  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:03.723  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-58, periodicAdvInt=0x0
+03-16 17:22:03.758  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:03.759  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:03.780  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:03.894  3232  6740 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:22:03.895  3232  6740 I ActivityManager: Changes in 90100 10 to 10, 128 to 0
+03-16 17:22:03.895  3232  6740 I ActivityManager: Changes in 10355 10 to 10, 128 to 0
+03-16 17:22:03.903  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:22:03.904  3232  3548 I ActivityManager: Changes in 90100 10 to 10, 0 to 128
+03-16 17:22:03.904  3232  3548 I ActivityManager: Changes in 10355 10 to 10, 0 to 128
+03-16 17:22:03.909  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:03.996  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:03.996  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:03.997  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:03.997  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:04.008  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-56, periodicAdvInt=0x0
+03-16 17:22:04.044  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:04.044  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:04.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692524
+03-16 17:22:04.137  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:22:04.138  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 317 
+03-16 17:22:04.138  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561542
+03-16 17:22:04.138  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:22:04.138  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:22:04.138  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:22:04.138  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:22:04.138  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:22:04.148  4513  5090 D PhoneInterfaceManager: setDataEnabledForReason() Reason=1 Pid=3232 App=system
+03-16 17:22:04.194  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:04.226  4513  5106 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+03-16 17:22:04.235  4752  4752 I EPDG -- SIM0 [SMARTCELLULAR]: onSignalStrengthsChanged: SignalStrength:{mCdma=Invalid,mGsm=Invalid,mWcdma=CellSignalStrengthWcdma: ss=-99 ber=2147483647 rscp=-100 ecno=-8 level=1,mTdscdma=Invalid,mLte=Invalid,mNr=Invalid,SignalBarInfo{ wcdmaLevel=2 },rat=3,primary=CellSignalStrengthWcdma}
+03-16 17:22:04.236  4752  6670 I EPDG -- SIM0 [SMARTCELLULAR]: lastWcdmaRssi: -101 currentWcdmaRssi: -99
+03-16 17:22:04.239  4752  6115 I EPDG -- SIM0 [ThrottleController]: isThrottleTimerRunning: apnType: ims. result: false
+03-16 17:22:04.239  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: isOngoingConnectionOverWifi? false, connected?false
+03-16 17:22:04.239  4752  6115 I EPDG -- SIM0 [EpdgHandoverHandler]:  mWifiRssiA :-74 mWifiRssiB:-85 mWifiRssiC:0 mWifiRssiRoveInWifiOnly:0 mWifiRssiRoveOutWifiOnly:0 mWifiRssiRoveInVoice:0 mLteRsrp1:-118 mLteRsrp2:0 mLteRsrp3:-110 mNrRsrp1:0 mNrRsrp2:0 mNrRsrp3:0
+03-16 17:22:04.239  4752  6115 I EPDG -- SIM0 [EpdgHandoverHandler]: TimerStatus :
+03-16 17:22:04.239  4752  6115 I EPDG -- SIM0 [EpdgImsListener]: getVoWifiSessionConnected: CALL: idle IPME: false result: false
+03-16 17:22:04.239  4752  6115 I EPDG -- : getNetworkTypeByApnType, apnType=ims, networkType=11
+03-16 17:22:04.241  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getIsAirplaneMode: returning: false
+03-16 17:22:04.242  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getIsAirplaneMode: returning: false
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: isW2LRecommended: ims,idle TELEPHONY in service (false)
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: [HO_OPTIMIZATION]isW2LRecommended: ims,idle result=false
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [EpdgHandoverHandler]: retryW2LHandoverIfRequired, skip, not recommended
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [ThrottleController]: isThrottleTimerRunning: apnType: ims. result: false
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: default,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: default,idle result=LTE
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: mms,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: mms,idle result=LTE
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: supl,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: supl,idle result=LTE
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: dun,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: dun,idle result=LTE
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: hipri,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: hipri,idle result=LTE
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: fota,idle only LTE is allowed RAT
+03-16 17:22:04.243  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: fota,idle result=LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [IfomTable]: checkIsRuleforApn: appStr is: idle apnType is: ims
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: ims,idle should go to LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: ims,idle result=LTE:IWLAN
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getIsAirplaneMode: returning: false
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgRatDeterminator]: isW2LRecommended, ims,LTE:IWLAN no svc
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: cbs,idle only LTE is allowed RAT
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: cbs,idle result=LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: ia,idle only LTE is allowed RAT
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: ia,idle result=LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [IfomTable]: checkIsRuleforApn: appStr is: idle apnType is: emergency
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: emergency,idle should go to LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: emergency,idle result=LTE:IWLAN
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getIsAirplaneMode: returning: false
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgRatDeterminator]: isW2LRecommended, emergency,LTE:IWLAN no svc
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: mcx,idle only LTE is allowed RAT
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: mcx,idle result=LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: xcap,idle only LTE is allowed RAT
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [PolicyMgr]: getApnRatPolicy: xcap,idle result=LTE
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getHandoverEnable: true
+03-16 17:22:04.244  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: getIsAirplaneMode: returning: false
+03-16 17:22:04.245  4752  6115 I EPDG -- : getSubIdFromSpecifier() : specifier null
+03-16 17:22:04.245  4752  6115 I EPDG -- : getSubIdFromSpecifier() : return : 6
+03-16 17:22:04.245  4752  6115 I EPDG -- : getNetworkForType, subIdFromSpecifier=6/6
+03-16 17:22:04.246  4752  6115 I EPDG -- : getSubIdFromSpecifier() : specifier null
+03-16 17:22:04.246  4752  6115 I EPDG -- : getSubIdFromSpecifier() : return : 6
+03-16 17:22:04.246  4752  6115 I EPDG -- : getNetworkForType, subIdFromSpecifier=6/6
+03-16 17:22:04.246  4752  6115 I EPDG -- : getSubIdFromSpecifier() : return : 6
+03-16 17:22:04.247  4752  6115 I EPDG -- : getNetworkForType, subIdFromSpecifier=6/6
+03-16 17:22:04.247  4752  6115 I EPDG -- : getNetworkForType, network=178
+03-16 17:22:04.247  4752  6115 I EPDG -- : getNetworkInfo, networkInfo=[type: MOBILE[IWLAN], state: CONNECTED/CONNECTED, reason: (unspecified), extra: ims, failover: false, available: true, roaming: false]
+03-16 17:22:04.247  4752  6115 I EPDG -- SIM0 [EpdgSubscription]: notifyQualifiedNetworksChange to telephony
+03-16 17:22:04.279  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:04.603 15381 15381 W SmApplication: onTrimMemory : 40
+03-16 17:22:04.603 15381 15381 I DC.AppIconCache: clear icon cache
+03-16 17:22:04.605  3232  3962 I ActivityManager: Changes in 10235 19 to 19, 128 to 0
+03-16 17:22:04.606 15533 15533 W SmApplication: onTrimMemory : 40
+03-16 17:22:04.606 15533 15533 I DC.AppIconCache: clear icon cache
+03-16 17:22:04.637  2061 14478 I sensors-hal: handle_sns_std_sensor_event:436, [SSC_LIGHT] P: 83(83),m:13,c:146,b:78,c0:36935,l:84,f(r):106,u(bl):105,j:60
+03-16 17:22:04.637  2061  6035 I sensors-hal: handle_sns_std_sensor_event:137, [SSC_LIGHT] A: 83(83),m:13,c:146,b:78,c0:36935,l:84,r:106,bl:105,j:60
+03-16 17:22:04.645 21646 21646 I DWBr    : onTrimMemory(40)
+03-16 17:22:04.645 21646 21646 E DWBg    : LocalPkgManager MemoryTrimmable
+03-16 17:22:04.645 21646 21646 E DWBn    : UsageDataManager MemoryTrimmable
+03-16 17:22:04.645 21646 21646 I DWBn    : Retrieve CLEAR_CACHED_DATA
+03-16 17:22:04.645 21646 21646 I DWBn    : No Request Data
+03-16 17:22:04.780  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:22:04.858  7419  7419 I SDHMS:LOAD: type: LoadsFreqs, value: 1:0:0:864000:864000:864000:1936511:2803200:614400:220:220:220
+03-16 17:22:04.909  3232  6740 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:22:04.910  3232  6740 I ActivityManager: Changes in 90100 10 to 10, 128 to 0
+03-16 17:22:04.910  3232  6740 I ActivityManager: Changes in 10355 10 to 10, 128 to 0
+03-16 17:22:04.915  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:22:04.916  3232  3548 I ActivityManager: Changes in 90100 10 to 10, 0 to 128
+03-16 17:22:04.916  3232  3548 I ActivityManager: Changes in 10355 10 to 10, 0 to 128
+03-16 17:22:05.054  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:22:05.054  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:22:05.054  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:22:05.054  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:22:05.065  4797  6067 I ScanController: onScanResult to scannerId: 4- eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:31, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-72, periodicAdvInt=0x0
+03-16 17:22:05.104  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:22:05.104  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:22:05.109  3232  3983 D ActivityManager: FCA:Reclamation for pid: 15604
+03-16 17:22:05.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692525
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 317 
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561542
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:22:05.136  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:22:05.136  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:22:05.136  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:22:05.254  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:22:05.280  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)

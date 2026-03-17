@@ -1,5 +1,8 @@
+import { Platform } from "react-native";
+
 import type {
   MobileBootstrapResponse,
+  MobileChatMode,
   MobileChatMessage,
   MobileChatSendResult,
   MobileDocumentUploadResponse,
@@ -10,14 +13,85 @@ import type {
   MobileMesaMensagensResponse,
   MobileMesaSendResponse,
 } from "../types/mobile";
+import { registrarEventoObservabilidade } from "./observability";
 
 const DEFAULT_API_BASE_URL = "https://tarie-ia.onrender.com";
 
-export const API_BASE_URL = String(
+function androidPareceEmulador(): boolean {
+  if (Platform.OS !== "android") {
+    return false;
+  }
+
+  const constants = (Platform.constants || {}) as Record<string, unknown>;
+  const fingerprint = String(constants.Fingerprint || "");
+  const model = String(constants.Model || "");
+  const brand = String(constants.Brand || "");
+  const manufacturer = String(constants.Manufacturer || "");
+  const product = String(constants.Product || "");
+  const hardware = String(constants.Hardware || "");
+  const device = String(constants.Device || "");
+  const joined = [
+    fingerprint,
+    model,
+    brand,
+    manufacturer,
+    product,
+    hardware,
+    device,
+  ].join(" ");
+
+  return /generic|sdk|emulator|simulator|goldfish|ranchu/i.test(joined);
+}
+
+function normalizarApiBaseUrl(rawValue: string): string {
+  const value = String(rawValue || DEFAULT_API_BASE_URL)
+    .trim()
+    .replace(/\/+$/, "");
+
+  if (Platform.OS !== "android" || !androidPareceEmulador()) {
+    return value;
+  }
+
+  // In Android emulators, localhost/127.0.0.1 points to the emulator itself.
+  return value.replace(/:\/\/(127\.0\.0\.1|localhost)(?=[:/]|$)/i, "://10.0.2.2");
+}
+
+export const API_BASE_URL = normalizarApiBaseUrl(
   process.env.EXPO_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL,
-)
-  .trim()
-  .replace(/\/+$/, "");
+);
+
+function basePublicaAuth(): string {
+  const rawBase =
+    process.env.EXPO_PUBLIC_AUTH_WEB_BASE_URL ||
+    process.env.EXPO_PUBLIC_API_BASE_URL ||
+    DEFAULT_API_BASE_URL;
+  return normalizarApiBaseUrl(String(rawBase || "").trim().replace(/\/+$/, ""));
+}
+
+function montarUrlAuth(rawValue: string | undefined, fallbackPath: string): string {
+  const configured = String(rawValue || "").trim();
+  if (configured) {
+    return configured;
+  }
+  return `${basePublicaAuth()}${fallbackPath}`;
+}
+
+export function obterUrlRecuperacaoSenhaMobile(email?: string): string {
+  const base = montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_FORGOT_PASSWORD_URL, "/app/login");
+  const emailLimpo = String(email || "").trim();
+  if (!emailLimpo) {
+    return base;
+  }
+  const separador = base.includes("?") ? "&" : "?";
+  return `${base}${separador}email=${encodeURIComponent(emailLimpo)}`;
+}
+
+export function obterUrlLoginSocialMobile(provider: "Google" | "Microsoft"): string {
+  if (provider === "Google") {
+    return montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_GOOGLE_URL, "/app/login?provider=google");
+  }
+  return montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_MICROSOFT_URL, "/app/login?provider=microsoft");
+}
 
 function inferirMimeType(nomeArquivo: string): string {
   const nome = String(nomeArquivo || "").trim().toLowerCase();
@@ -85,9 +159,85 @@ function extrairEventosSse(raw: string): Record<string, unknown>[] {
     });
 }
 
+function normalizarModoChat(modo: unknown): MobileChatMode {
+  const value = String(modo || "").trim().toLowerCase();
+  if (value === "curto") {
+    return "curto";
+  }
+  if (value === "deep_research" || value === "deepresearch") {
+    return "deep_research";
+  }
+  return "detalhado";
+}
+
+function extrairCitacoes(payload: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+  return payload.filter(
+    (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+}
+
+function extrairConfiancaIa(payload: unknown): Record<string, unknown> | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  return payload as Record<string, unknown>;
+}
+
+function normalizarPathObservabilidade(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return String(url || "").replace(/^https?:\/\/[^/]+/i, "");
+  }
+}
+
+async function fetchComObservabilidade(
+  metricName: string,
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const startedAt = Date.now();
+  const method = String(init?.method || "GET").toUpperCase();
+  const path = normalizarPathObservabilidade(url);
+
+  try {
+    const response = await fetch(url, init);
+    void registrarEventoObservabilidade({
+      kind: "api",
+      name: metricName,
+      ok: response.ok,
+      method,
+      path,
+      httpStatus: response.status,
+      durationMs: Date.now() - startedAt,
+      detail: response.ok ? "ok" : `http_${response.status}`,
+    });
+    return response;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "fetch_error";
+    void registrarEventoObservabilidade({
+      kind: "api",
+      name: metricName,
+      ok: false,
+      method,
+      path,
+      durationMs: Date.now() - startedAt,
+      detail,
+    });
+    throw error;
+  }
+}
+
 export async function pingApi(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetchComObservabilidade(
+      "health_check",
+      `${API_BASE_URL}/health`,
+    );
     return response.ok;
   } catch {
     return false;
@@ -99,7 +249,7 @@ export async function loginInspectorMobile(
   senha: string,
   lembrar: boolean,
 ): Promise<MobileLoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/mobile/auth/login`, {
+  const response = await fetchComObservabilidade("mobile_auth_login", `${API_BASE_URL}/app/api/mobile/auth/login`, {
     method: "POST",
     headers: construirHeaders(undefined, {
       "Content-Type": "application/json",
@@ -116,7 +266,7 @@ export async function loginInspectorMobile(
 }
 
 export async function carregarBootstrapMobile(accessToken: string): Promise<MobileBootstrapResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/mobile/bootstrap`, {
+  const response = await fetchComObservabilidade("mobile_bootstrap", `${API_BASE_URL}/app/api/mobile/bootstrap`, {
     method: "GET",
     headers: construirHeaders(accessToken),
   });
@@ -130,7 +280,7 @@ export async function carregarBootstrapMobile(accessToken: string): Promise<Mobi
 }
 
 export async function carregarLaudosMobile(accessToken: string): Promise<MobileLaudoListResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/mobile/laudos`, {
+  const response = await fetchComObservabilidade("mobile_laudos_list", `${API_BASE_URL}/app/api/mobile/laudos`, {
     method: "GET",
     headers: construirHeaders(accessToken),
   });
@@ -144,7 +294,7 @@ export async function carregarLaudosMobile(accessToken: string): Promise<MobileL
 }
 
 export async function carregarStatusLaudo(accessToken: string): Promise<MobileLaudoStatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/status`, {
+  const response = await fetchComObservabilidade("laudo_status", `${API_BASE_URL}/app/api/laudo/status`, {
     method: "GET",
     headers: construirHeaders(accessToken),
   });
@@ -161,10 +311,14 @@ export async function carregarMensagensLaudo(
   accessToken: string,
   laudoId: number,
 ): Promise<MobileLaudoMensagensResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mensagens`, {
+  const response = await fetchComObservabilidade(
+    "laudo_mensagens_list",
+    `${API_BASE_URL}/app/api/laudo/${laudoId}/mensagens`,
+    {
     method: "GET",
     headers: construirHeaders(accessToken),
-  });
+    },
+  );
 
   const payload = await lerJsonSeguro<MobileLaudoMensagensResponse | { detail?: string }>(response);
   if (!response.ok || !payload || !("itens" in payload)) {
@@ -179,13 +333,16 @@ export async function enviarMensagemChatMobile(
   payload: {
     mensagem: string;
     dadosImagem?: string;
+    setor?: string;
     textoDocumento?: string;
     nomeDocumento?: string;
     laudoId?: number | null;
+    modo?: MobileChatMode | string;
     historico?: Array<{ papel: "usuario" | "assistente"; texto: string }> | MobileChatMessage[];
   },
 ): Promise<MobileChatSendResult> {
-  const response = await fetch(`${API_BASE_URL}/app/api/chat`, {
+  const modo = normalizarModoChat(payload.modo);
+  const response = await fetchComObservabilidade("chat_send", `${API_BASE_URL}/app/api/chat`, {
     method: "POST",
     headers: construirHeaders(accessToken, {
       "Content-Type": "application/json",
@@ -193,10 +350,11 @@ export async function enviarMensagemChatMobile(
     body: JSON.stringify({
       mensagem: payload.mensagem,
       dados_imagem: payload.dadosImagem || "",
+      setor: (payload.setor || "geral").trim() || "geral",
       texto_documento: payload.textoDocumento || "",
       nome_documento: payload.nomeDocumento || "",
       laudo_id: payload.laudoId ?? undefined,
-      modo: "detalhado",
+      modo,
       historico: (payload.historico || []).map((item) => ({
         papel: item.papel,
         texto: item.texto,
@@ -219,6 +377,9 @@ export async function enviarMensagemChatMobile(
           ? (jsonPayload.laudo_card as MobileChatSendResult["laudoCard"])
           : null,
       assistantText: typeof jsonPayload.texto === "string" ? jsonPayload.texto : "",
+      modo: normalizarModoChat(jsonPayload.modo ?? modo),
+      citacoes: extrairCitacoes(jsonPayload.citacoes),
+      confiancaIa: extrairConfiancaIa(jsonPayload.confianca_ia),
       events: [jsonPayload],
     };
   }
@@ -229,6 +390,8 @@ export async function enviarMensagemChatMobile(
   let laudoId = payload.laudoId ?? null;
   let laudoCard: MobileChatSendResult["laudoCard"] = null;
   let assistantText = "";
+  let citacoes: Array<Record<string, unknown>> = [];
+  let confiancaIa: Record<string, unknown> | null = null;
 
   for (const event of events) {
     if (typeof event.laudo_id === "number") {
@@ -240,12 +403,21 @@ export async function enviarMensagemChatMobile(
     if (typeof event.texto === "string") {
       assistantText += event.texto;
     }
+    if (event.citacoes !== undefined) {
+      citacoes = extrairCitacoes(event.citacoes);
+    }
+    if (event.confianca_ia !== undefined) {
+      confiancaIa = extrairConfiancaIa(event.confianca_ia);
+    }
   }
 
   return {
     laudoId,
     laudoCard,
     assistantText: assistantText.trim(),
+    modo,
+    citacoes,
+    confiancaIa,
     events,
   };
 }
@@ -265,7 +437,7 @@ export async function uploadDocumentoChatMobile(
     type: payload.mimeType || inferirMimeType(payload.nome),
   } as unknown as Blob);
 
-  const response = await fetch(`${API_BASE_URL}/app/api/upload_doc`, {
+  const response = await fetchComObservabilidade("chat_upload_doc", `${API_BASE_URL}/app/api/upload_doc`, {
     method: "POST",
     headers: construirHeaders(accessToken),
     body: formData,
@@ -283,10 +455,14 @@ export async function carregarMensagensMesaMobile(
   accessToken: string,
   laudoId: number,
 ): Promise<MobileMesaMensagensResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagens`, {
+  const response = await fetchComObservabilidade(
+    "mesa_mensagens_list",
+    `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagens`,
+    {
     method: "GET",
     headers: construirHeaders(accessToken),
-  });
+    },
+  );
 
   const payload = await lerJsonSeguro<MobileMesaMensagensResponse | { detail?: string }>(response);
   if (!response.ok || !payload || !("itens" in payload)) {
@@ -300,14 +476,22 @@ export async function enviarMensagemMesaMobile(
   accessToken: string,
   laudoId: number,
   texto: string,
+  referenciaMensagemId?: number | null,
 ): Promise<MobileMesaSendResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagem`, {
+  const response = await fetchComObservabilidade(
+    "mesa_send_text",
+    `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagem`,
+    {
     method: "POST",
     headers: construirHeaders(accessToken, {
       "Content-Type": "application/json",
     }),
-    body: JSON.stringify({ texto }),
-  });
+    body: JSON.stringify({
+      texto,
+      referencia_mensagem_id: referenciaMensagemId ?? null,
+    }),
+    },
+  );
 
   const payload = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
   if (!response.ok || !payload || !("mensagem" in payload)) {
@@ -325,6 +509,7 @@ export async function enviarAnexoMesaMobile(
     nome: string;
     mimeType?: string;
     texto?: string;
+    referenciaMensagemId?: number | null;
   },
 ): Promise<MobileMesaSendResponse> {
   const formData = new FormData();
@@ -334,12 +519,19 @@ export async function enviarAnexoMesaMobile(
     type: payload.mimeType || inferirMimeType(payload.nome),
   } as unknown as Blob);
   formData.append("texto", payload.texto || "");
+  if (payload.referenciaMensagemId) {
+    formData.append("referencia_mensagem_id", String(payload.referenciaMensagemId));
+  }
 
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/anexo`, {
+  const response = await fetchComObservabilidade(
+    "mesa_send_attachment",
+    `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/anexo`,
+    {
     method: "POST",
     headers: construirHeaders(accessToken),
     body: formData,
-  });
+    },
+  );
 
   const corpo = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
   if (!response.ok || !corpo || !("mensagem" in corpo)) {
@@ -350,7 +542,7 @@ export async function enviarAnexoMesaMobile(
 }
 
 export async function reabrirLaudoMobile(accessToken: string, laudoId: number): Promise<MobileLaudoStatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/app/api/laudo/${laudoId}/reabrir`, {
+  const response = await fetchComObservabilidade("laudo_reabrir", `${API_BASE_URL}/app/api/laudo/${laudoId}/reabrir`, {
     method: "POST",
     headers: construirHeaders(accessToken),
   });
@@ -364,7 +556,7 @@ export async function reabrirLaudoMobile(accessToken: string, laudoId: number): 
 }
 
 export async function logoutInspectorMobile(accessToken: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/app/api/mobile/auth/logout`, {
+  const response = await fetchComObservabilidade("mobile_auth_logout", `${API_BASE_URL}/app/api/mobile/auth/logout`, {
     method: "POST",
     headers: construirHeaders(accessToken),
   });

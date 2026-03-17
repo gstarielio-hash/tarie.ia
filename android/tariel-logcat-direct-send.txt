@@ -1,0 +1,227 @@
+--------- beginning of main
+03-16 17:24:46.136  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 320 
+03-16 17:24:46.136  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561544
+03-16 17:24:46.136  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:24:46.136  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:24:46.136  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:24:46.136  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:24:46.136  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:24:46.149  2856  2979 I BaseThreadPoolExecutor: [#CMH#] Task com.samsung.cmh.core.task.MediaContentSyncTask@fc31e18 is submitted
+03-16 17:24:46.149  3232  3260 D SyncManager: userId - 0 auto - true
+03-16 17:24:46.190  2856  5176 I MediaContentSyncTask: [#CMH#] No of Row (SEC MP :  2464, Max Id : 2147512284) (CMH : 2464, Max Id : 2147512284) - Time :17
+03-16 17:24:46.218  2856  5176 I MediaContentSyncTask: [#CMH#] MP time stamp :  1773692681131, CMH time stamp : 1773692681131
+03-16 17:24:46.218  2856  5176 I MediaContentSyncTask: [#CMH#] Update ITEM :  0
+03-16 17:24:46.221  2856  5176 I BaseThreadPoolExecutor: [#CMH#] afterExecute FutureTask
+03-16 17:24:46.221  2856  5176 I ControllerEventHandler: [#CMH#] Alive Privacy Ignored Policy Called:  false
+03-16 17:24:46.473  3232  4282 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:22 syn=10, rto=0, cwnd=0
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:23 syn=10, rto=0, cwnd=0
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:24 syn=10, rto=0, cwnd=0
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:25 syn=10, rto=0, cwnd=0
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:26 syn=10, rto=0, cwnd=0
+03-16 17:24:46.479  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:27 syn=2, rto=0, cwnd=0
+03-16 17:24:46.480  3232  6381 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 18716, isSameBssidAndFreq true
+03-16 17:24:46.480  3232  4391 E SemWifiLinkQualityMonitor: Too old or invalid TMI: currentTime=1773692686480 lastDateWindow=1773649587000
+03-16 17:24:46.481  3232  4391 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,24 (36) / 864 / -44.0 || 100.0 : 864,00 / 0.5 : 0,81 / 0.55 : 0,30 / G (G) || 572d473c5745: 0,112 / 71,354 / D || N V / 2 0 / N 2.0 / Y X 0 / 82200309 0 || 2026-03-16 05:26:27  / 2: 10 10 10 10 10 2 / 0: 0 0 0 0 0 0 / 0: 0 0 0 0 0 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): Output of /proc/2549/stat/ : 2549 (shsusrd0) S 1 2549 0 0 -1 1077936384 46425 0 2277 0 683 2524 0 0 20 0 11 0 2961 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 0 0 0 17 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): utime 683 stime 2524 cpu_time_last 3207
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): user time = 683 | system time = 2524 | total = 3207 | cpu_time_delta = 0, clk_tck 100
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): time_cur 1773692686 time_last 1773692676
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): shsusrd is using 0 pct of CPU - time_delta 10
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage(): shsusrd usage 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): time_delta for combined : 10 time_cur 1773692686 time_last_combined 1773692676
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2549/stat: 2549 (shsusrd0) S 1 2549 0 0 -1 1077936384 1190 0 10 0 0 1 0 0 20 0 11 0 2961 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 17 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2549 utime 0 stime 1 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2564/stat: 2564 (shsusrd12) S 1 2549 0 0 -1 4194368 42176 0 1060 0 104 401 0 0 20 0 11 0 2964 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2564 utime 104 stime 401 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2565/stat: 2565 (shsusrd2) S 1 2549 0 0 -1 4194368 220 0 199 0 0 4 0 0 20 0 11 0 2964 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2565 utime 0 stime 4 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2566/stat: 2566 (shsusrd13) S 1 2549 0 0 -1 1077936192 26 0 84 0 2 13 0 0 20 0 11 0 2964 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 2 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2566 utime 2 stime 13 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2567/stat: 2567 (shsusrd42) R 1 2549 0 0 -1 4194368 52 0 82 0 547 1996 0 0 20 0 11 0 2964 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 0 0 0 -1 2 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2567 utime 547 stime 1996 time_delta 10 clk_tck 100, usage 200
+03-16 17:24:46.484  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2568/stat: 2568 (shsusrd4) S 1 2549 0 0 -1 4194368 1 0 0 0 0 1 0 0 20 0 11 0 2965 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.484  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2568 utime 0 stime 1 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/2569/stat: 2569 (shsusrd14) S 1 2549 0 0 -1 4194368 232 0 371 0 0 10 0 0 20 0 11 0 2965 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.485  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 2569 utime 0 stime 10 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/6970/stat: 6970 (shsusrd14) S 1 2549 0 0 -1 4194368 0 0 7 0 0 2 0 0 20 0 11 0 5211 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 0 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.485  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 6970 utime 0 stime 2 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/6973/stat: 6973 (shsusrd7) S 1 2549 0 0 -1 4194368 6 0 11 0 0 1 0 0 20 0 11 0 5211 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 5 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.485  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 6973 utime 0 stime 1 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/6983/stat: 6983 (shsusrd5) S 1 2549 0 0 -1 4194368 2 0 19 0 1 1 0 0 20 0 11 0 5212 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 2 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.485  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 6983 utime 1 stime 1 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Output of /proc/2549/task/7213/stat: 7213 (HwBinder:2549_1) S 1 2549 0 0 -1 1077936192 5 0 0 0 0 0 0 0 20 0 11 0 5307 2521440256 751 18446744073709551615 368428646400 368428904856 549144584656 0 0 0 0 0 1073794810 1 0 0 -1 7 0 0 0 0 0 368428927936 368428928872 369056915456 549144586317 549144586360 549144586360 549144592349 0
+03-16 17:24:46.485  2549  2567 I shsusrd : 
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): tid 7213 utime 0 stime 0 time_delta 10 clk_tck 100, usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Combined CPU usage: total_utime 654 total_stime 2430 total_cpu_time_seconds 0.00, clk_tck 100
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Combined shsusrd usage 0
+03-16 17:24:46.485  2549  2567 I shsusrd : shsusr_check_cpu_usage_combined(): Combined shsusrd usage FINAL 0
+03-16 17:24:46.512  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+--------- beginning of system
+03-16 17:24:46.644  7419  7419 I SDHMS:LOAD: type: LoadsFreqs, value: 2:0:0:1063679:3360000:864000:1712256:2803200:614400:220:220:220
+03-16 17:24:46.716  2061 14478 I sensors-hal: handle_sns_std_sensor_event:436, [SSC_LIGHT] P: 76(76),m:13,c:295,b:78,c0:41862,l:78,f(r):106,u(bl):105,j:69
+03-16 17:24:47.015  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:47.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692687
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 320 
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561544
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:24:47.139  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:24:47.139  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:24:47.139  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:24:47.516  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:47.553  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:24:47.553  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:24:47.554  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:24:47.554  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:24:47.564  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-70, periodicAdvInt=0x0
+03-16 17:24:47.590  3232  5659 I ActivityManager: Changes in 90101 17 to 17, 128 to 0
+03-16 17:24:47.591  3232  5659 I ActivityManager: Changes in 90100 11 to 15, 128 to 0
+03-16 17:24:47.591  3232  5659 I ActivityManager: Changes in 10355 11 to 15, 128 to 0
+03-16 17:24:47.598  3232  3548 I ActivityManager: Changes in 90101 17 to 17, 0 to 128
+03-16 17:24:47.598  3232  3548 I ActivityManager: Changes in 90100 15 to 11, 0 to 128
+03-16 17:24:47.598  3232  3548 I ActivityManager: Changes in 10355 15 to 11, 0 to 128
+03-16 17:24:47.603  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:24:47.603  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:24:47.661  1186  1186 D io_stats: !@   8,0 r 12286718 218544642 w 5182284 111148032 d 747474 183585224 f 120906 378158 iot 6570964 0 th 0 0 0 pt 0 inp 0 0 82201.491
+03-16 17:24:47.699  3232  4389 I SemWifiServiceDetector: NSD results: [0, 1, 1, 0, 1, 0, 2, -1, 0] Traff. type 1 Thr 0
+03-16 17:24:47.739  2138   881 I QC2Comp : [hevcD_1107] Stats: Pending(3) i/p-done(3) Works: Q: 909/Done 907|Work-Rate: Q(0.0/s Avg=0.2/s) Done(0.000/s Avg=0.222/s)| Stream: 30.30fps 1.4Mbps
+03-16 17:24:47.740  2138   881 I QC2Comp : [hevcD_1107] Mem-usage:  [In-1D: 7 bufs 56.000 MB] [1D-2067: 17 bufs 0.266 MB] [2D-2068: 21 bufs 66.938 MB] | Total: 123.203 MB
+03-16 17:24:47.753  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:24:47.805  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:24:47.805  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:24:47.806  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:24:47.806  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:24:47.815  4797  6067 I ScanController: onScanResult to scannerId: 3- eventType=0x1b, addressType=1, address=XX:XX:XX:XX:6F:AE, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-58, periodicAdvInt=0x0
+03-16 17:24:47.852  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:24:47.852  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:24:48.002  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:24:48.014  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:48.017  2061  4858 I sensors-hal: handle_sns_client_event:574, [0][2033] accel_sample [ 0.077,  5.547,  8.146] 83320443459000
+03-16 17:24:48.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692688
+03-16 17:24:48.137  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:24:48.137  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 320 
+03-16 17:24:48.137  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561544
+03-16 17:24:48.137  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:24:48.137  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:24:48.138  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:24:48.138  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:24:48.138  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:24:48.234  4513  5106 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+03-16 17:24:48.235  3232  4377 D SemCellularStateManager: onSignalStrengthsChanged: mCellularSignalLevel=1
+03-16 17:24:48.241  2047  2047 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:24:48.242  2047  2047 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:24:48.242  2047  2047 I vendor.qti.bluetooth@1.1-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+03-16 17:24:48.239  4542  4646 D MobileSignalTransitionManager: updateSignalTransition
+03-16 17:24:48.244  5108  5249 I HoneySpace.StatusIconTracker: invokeEvent() called with: event = Mobile(bundle=Bundle[mParcelledData.dataSize=256])
+03-16 17:24:48.243  4752  4752 I EPDG -- SIM0 [SMARTCELLULAR]: onSignalStrengthsChanged: SignalStrength:{mCdma=Invalid,mGsm=Invalid,mWcdma=CellSignalStrengthWcdma: ss=-99 ber=2147483647 rscp=-99 ecno=-7 level=1,mTdscdma=Invalid,mLte=Invalid,mNr=Invalid,SignalBarInfo{ wcdmaLevel=2 },rat=3,primary=CellSignalStrengthWcdma}
+03-16 17:24:48.244  4752  6670 I EPDG -- SIM0 [SMARTCELLULAR]: lastWcdmaRssi: -97 currentWcdmaRssi: -99
+03-16 17:24:48.247  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+03-16 17:24:48.247  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+03-16 17:24:48.247  2047  2047 D vendor.qti.bluetooth@1.1-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+03-16 17:24:48.304  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:48.420  3232  5461 I NSLocationMonitor: getGPSUsingApps() called
+03-16 17:24:48.420  5408  5464 I NSLocationManager_FLP: getGPSUsingApps, No change
+03-16 17:24:48.423  3232  5461 W Binder  : Outgoing transactions from this process must be FLAG_ONEWAY
+03-16 17:24:48.423  3232  5461 W Binder  : java.lang.Throwable
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.os.BinderProxy.transact(BinderProxy.java:566)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.bluetooth.IBluetoothGatt$Stub$Proxy.getAdvertisingSetUids(IBluetoothGatt.java:1678)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.bluetooth.BluetoothAdapter.getAdvertisingSetUids(BluetoothAdapter.java:8476)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.bluetooth.BluetoothAdapter.getHWUsingApps(BluetoothAdapter.java:1342)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at com.android.server.am.mars.filter.filter.BlueToothConnectedFilter.updateBTUsingPackages(qb/106575730 d2eaee3d3b37c3a5c06e7efd468f11c6d3b58f1dae441fc13d4b88c1ca8fb255:22)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at com.android.server.am.FreecessController.freeze(qb/106575730 d2eaee3d3b37c3a5c06e7efd468f11c6d3b58f1dae441fc13d4b88c1ca8fb255:117)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at com.android.server.am.FreecessHandler$MainHandler.handleLcdOnFreeze(qb/106575730 d2eaee3d3b37c3a5c06e7efd468f11c6d3b58f1dae441fc13d4b88c1ca8fb255:55)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at com.android.server.am.FreecessHandler$MainHandler.handleMessage(qb/106575730 d2eaee3d3b37c3a5c06e7efd468f11c6d3b58f1dae441fc13d4b88c1ca8fb255:793)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.os.Handler.dispatchMessage(Handler.java:110)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.os.Looper.loopOnce(Looper.java:273)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.os.Looper.loop(Looper.java:363)
+03-16 17:24:48.423  3232  5461 W Binder  : 	at android.os.HandlerThread.run(HandlerThread.java:85)
+03-16 17:24:48.427  3232  5461 D FreecessHandler: freeze com.instagram.android(10355) result : 33
+03-16 17:24:48.512  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:48.619  2061  6035 I sensors-hal: handle_sns_client_event:190, auto_rotation_debug_2 mode,255, type,1,0 acc,0.048,5.556,8.136, ar,0, ver,14, pedo,1,e,1,i,3
+03-16 17:24:48.620  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:24:48.620  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:24:48.667  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:24:48.743  3232 11382 I AfterimageCompensationService: AfcThread mLuminance : 108 , AfpcPeriodCount : 1780 , rotation : 0 , AOD : false
+03-16 17:24:48.743  3232 11382 I SurfaceComposerClient: captureDisplay:Display-4630947093241269891
+03-16 17:24:48.745  2213  2519 I SurfaceFlinger: Capture layer list: 	 com.tarielia.inspetor/com.tarielia.inspetor.MainActivity$_2498#20288(seamlessTransition:0)
+03-16 17:24:48.745  2213  2519 I SurfaceFlinger: Capture layer list: 	 StatusBar$_4542#110(seamlessTransition:0)
+03-16 17:24:48.745  2213  2519 I SurfaceFlinger: Capture layer list: 	 NavigationBar0$_4542#108(seamlessTransition:0)
+03-16 17:24:48.745  2213  2519 I CompositionEngine: [setDisplaySize] size=(1080, 2316)
+03-16 17:24:48.745  2213  2519 E HWComposer: getLuts: getLuts failed for display 4630947093241269891: UNSUPPORTED (8)
+03-16 17:24:48.746  2213  2308 D RenderEngine: [SEC_SF_EFFECTS] drawLayersInternal,1483, Rendering layer ScreenCaptureFillLayer at index 0
+03-16 17:24:48.746  2213  2308 D RenderEngine: [SEC_SF_EFFECTS] drawLayersInternal,1483, Rendering layer com.tarielia.inspetor/com.tarielia.inspetor.MainActivity$_2498#20288 at index 1
+03-16 17:24:48.746  2213  2308 D RenderEngine: [SEC_SF_EFFECTS] drawLayersInternal,1483, Rendering layer StatusBar$_4542#110 at index 2
+03-16 17:24:48.746  2213  2308 D RenderEngine: [SEC_SF_EFFECTS] drawLayersInternal,1483, Rendering layer NavigationBar0$_4542#108 at index 3
+03-16 17:24:48.755  3232 11382 D system_server: mAFPC_Read - w = 1080, h = 2316, s = 8, f = 4, s_size = 10079232, luminance = 108, count = 1780, captureOrientation = 0
+03-16 17:24:49.015  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:49.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692689
+03-16 17:24:49.137  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:24:49.137  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 320 
+03-16 17:24:49.138  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561544
+03-16 17:24:49.138  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:24:49.138  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:24:49.138  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:24:49.138  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:24:49.138  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:24:49.247  2047  6064 I vendor.qti.bluetooth@1.1-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+03-16 17:24:49.247  2047  6064 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:24:49.346  4513  5106 D SatelliteController: isInCarrierRoamingNbIotNtn: satellite is disabled
+03-16 17:24:49.350  4752  4752 I EPDG -- SIM0 [SMARTCELLULAR]: onSignalStrengthsChanged: SignalStrength:{mCdma=Invalid,mGsm=Invalid,mWcdma=CellSignalStrengthWcdma: ss=-99 ber=2147483647 rscp=-100 ecno=-8 level=1,mTdscdma=Invalid,mLte=Invalid,mNr=Invalid,SignalBarInfo{ wcdmaLevel=2 },rat=3,primary=CellSignalStrengthWcdma}
+03-16 17:24:49.351  4752  6670 I EPDG -- SIM0 [SMARTCELLULAR]: lastWcdmaRssi: -99 currentWcdmaRssi: -99
+03-16 17:24:49.398  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:24:49.493  3232  4282 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+03-16 17:24:49.495  3232  6381 D SemWifiUsabilityStatsMonitor: onWifiUsabilityStats - seqNum 18717, isSameBssidAndFreq true
+03-16 17:24:49.496  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:22 syn=10, rto=0, cwnd=0
+03-16 17:24:49.496  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:23 syn=10, rto=0, cwnd=0
+03-16 17:24:49.496  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:24 syn=10, rto=0, cwnd=0
+03-16 17:24:49.496  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:25 syn=10, rto=0, cwnd=0
+03-16 17:24:49.497  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:26 syn=10, rto=0, cwnd=0
+03-16 17:24:49.497  3232  4391 D SemWifiSwitchForIndividualAppsService: TMI window: 2026-03-16 05:26:27 syn=2, rto=0, cwnd=0
+03-16 17:24:49.498  3232  4391 E SemWifiLinkQualityMonitor: Too old or invalid TMI: currentTime=1773692689498 lastDateWindow=1773649587000
+03-16 17:24:49.498  3232  4391 I SemWifiLinkQualityMonitor: Link stat: 0 / 0 / 1,89 (34) / 720 / -44.0 || 100.0 : 720,00 / 0.5 : 0,53 / 0.55 : 0,30 / G (G) || 572d473c5745: 0,331 / 24,184 / D || N V / 2 0 / N 2.0 / Y X 0 / 82203325 0 || 2026-03-16 05:26:27  / 2: 10 10 10 10 10 2 / 0: 0 0 0 0 0 0 / 0: 0 0 0 0 0 0
+03-16 17:24:49.512  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:49.596  2061 14478 I sensors-hal: handle_sns_std_sensor_event:436, [SSC_LIGHT] P: 83(83),m:13,c:295,b:78,c0:44035,l:82,f(r):106,u(bl):105,j:58
+03-16 17:24:49.662  1186  1186 D io_stats: !@   8,0 r 12286720 218544650 w 5182397 111148996 d 747474 183585224 f 120909 378165 iot 6570984 0 th 0 0 0 pt 0 inp 0 0 82203.492
+03-16 17:24:49.662  1186  1186 D io_stats: !@ Read_top(KB): .gms.persistent(5314) 12 soft.appmanager(32001) 8 f2fs_ckpt-254:6(5188) 4
+03-16 17:24:49.663  1186  1186 D io_stats: !@ Write_top(KB): f2fs_ckpt-254:6(5188) 168 kworker/u16:7(17075) 120 init(1) 28
+03-16 17:24:50.015  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:50.030  2061  4858 I sensors-hal: handle_sns_client_event:574, [0][2140] accel_sample [ 0.026,  5.477,  8.168] 83322456481344
+03-16 17:24:50.133  2206  2218 E HeatmapThread: ECT Thread time in milliseconds: 1773692690
+03-16 17:24:50.136  2206  2218 D HeatmapThread: !@ batteryplugType : 2
+03-16 17:24:50.137  2206  2218 D HeatmapThread: !@ batteryLevel : 77  batteryTemperature : 320 
+03-16 17:24:50.137  2206  2218 D HeatmapThread: !@ Heatmap currtime: 29561544
+03-16 17:24:50.137  2206  2218 D HeatmapThread: !@ Heatmap prevtime: 29561536
+03-16 17:24:50.137  2206  2218 D HeatmapThread: !@ Heatmap plugstarttime: 29561470
+03-16 17:24:50.137  2206  2218 D HeatmapThread: !@ Heatmap prevv_dsoh_update_time: 29561530
+03-16 17:24:50.137  2206  2218 E HeatmapThread: !@ CAM New BSOH: 100
+03-16 17:24:50.137  2206  2218 E HeatmapThread: !@ CAM is Working
+03-16 17:24:50.510  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)
+03-16 17:24:50.555  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+03-16 17:24:50.556  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK ON
+03-16 17:24:50.556  2047  6059 D vendor.qti.bluetooth@1.1-wake_lock: Acquire wakelock is acquired 
+03-16 17:24:50.556  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+03-16 17:24:50.602  2140  2167 E BatteryDump: !@new_battery_dump : 3992,-295,475,550,77,319,312,376,319,0,340,361,0,Charging,NO_CHARGING,Normal,Good,USB,1,Normal,0,0,9281,0x0,0x20000,0x0,0,0,0000,0000,00000000,0,0,0,0,1126,4018,7632,990,0,
+03-16 17:24:50.602  2140  2140 I sehhealth-service: updateLrpSysfs: write: 341
+03-16 17:24:50.603  2047  6059 I vendor.qti.bluetooth@1.1-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+03-16 17:24:50.603  2047  6059 D vendor.qti.bluetooth@1.1-ibs_handler: SerialClockVote: vote for UART CLK OFF
+03-16 17:24:50.753  2047  5437 D vendor.qti.bluetooth@1.1-wake_lock: Release wakelock is released 
+03-16 17:24:50.965  3232  4167 D SGM:GameManager: identifyForegroundApp. com.tarielia.inspetor, mCurrentUserId: 0, callerUserId: 0
+03-16 17:24:50.965  2856  2974 I PolicyManager: [#CMH#] Is foreground game app: false
+03-16 17:24:50.992  2856  2974 I ControllerEventHandler: [#CMH#]  Check for starting Standalone FaceService for just shot ! 
+03-16 17:24:50.992  2856  2974 I ControllerEventHandler: [#CMH#] requestToRegisterInstantWorker: mIsPolicyIgnore :  false
+03-16 17:24:50.992  2856  2974 I ControllerUtils: [#CMH#] getFaceServiceUnProcessedMediaCount :E .. 
+03-16 17:24:50.996  2856  2974 I ControllerEventHandler: [#CMH#] pendingCount<=0, ignore processing ,with isPolicyIgnore : false
+03-16 17:24:51.012  2213  2455 I CompositionEngine: [setDisplaySize] size=(434, 42)

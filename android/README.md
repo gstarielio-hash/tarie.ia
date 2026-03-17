@@ -19,6 +19,12 @@ npm run android:prebuild
 npm run android:dev
 npm run android:preview
 npm run android:preview:fresh
+npm run eas:build:android:preview
+npm run eas:build:android:production
+npm run eas:build:ios:preview
+npm run eas:build:ios:production
+npm run eas:submit:android:production
+npm run eas:submit:ios:production
 npm run maestro:smoke
 npm run maestro:login
 npm run maestro:history
@@ -33,6 +39,10 @@ npm run typecheck
 ## Variáveis
 
 - `EXPO_PUBLIC_API_BASE_URL`: base da API FastAPI usada pelo app.
+- `EXPO_PUBLIC_AUTH_WEB_BASE_URL`: base web para fallback dos fluxos de auth externos.
+- `EXPO_PUBLIC_AUTH_FORGOT_PASSWORD_URL`: URL completa do fluxo de recuperação de senha.
+- `EXPO_PUBLIC_AUTH_GOOGLE_URL`: URL completa do login social Google.
+- `EXPO_PUBLIC_AUTH_MICROSOFT_URL`: URL completa do login social Microsoft.
 
 ## Escopo inicial
 
@@ -69,6 +79,19 @@ npm run typecheck
 3. sincronismo offline mais rico para status e reabertura
 4. escrita offline mais ampla para além do fluxo principal do chat
 5. retry/backoff e observabilidade mais fina da fila em campo
+
+## Build e Submit com EAS
+
+O projeto já possui o arquivo `eas.json` com perfis `development`, `preview` e `production`.
+
+Exemplos:
+
+```powershell
+cd android
+npm run eas:build:android:preview
+npm run eas:build:android:production
+npm run eas:submit:android:production
+```
 
 ## Rodando como app Android real
 

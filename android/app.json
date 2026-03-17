@@ -3,6 +3,9 @@
     "name": "Tariel Inspetor",
     "slug": "tariel-inspetor",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "scheme": "tarielinspetor",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,17 +17,18 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tarielia.inspetor"
+      "bundleIdentifier": "com.tarielia.inspetor",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.tarielia.inspetor",
-      "usesCleartextTraffic": true,
+      "versionCode": 1,
+      "usesCleartextTraffic": false,
       "adaptiveIcon": {
         "backgroundColor": "#00000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png"
       },
-      "usesCleartextTraffic": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {

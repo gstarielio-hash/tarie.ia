@@ -3065,6 +3065,74 @@ def test_api_chat_comando_rapido_enviar_mesa_sem_inspecao_ativa_retorna_400(ambi
     assert "só é permitida após iniciar uma nova inspeção" in resposta.json()["detail"]
 
 
+def test_api_chat_avisa_mesa_em_linguagem_natural_dispara_whisper(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta = client.post(
+        "/app/api/chat",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "mensagem": "Avise a mesa avaliadora que terminei a inspeção da NR10.",
+            "historico": [],
+            "laudo_id": laudo_id,
+        },
+    )
+
+    assert resposta.status_code == 200
+    assert "text/event-stream" in (resposta.headers.get("content-type", "").lower())
+    assert "terminei a inspeção da NR10" in resposta.text
+
+    with SessionLocal() as banco:
+        ultima = (
+            banco.query(MensagemLaudo)
+            .filter(MensagemLaudo.laudo_id == laudo_id)
+            .order_by(MensagemLaudo.id.desc())
+            .first()
+        )
+        assert ultima is not None
+        assert ultima.tipo == TipoMensagem.HUMANO_INSP.value
+        assert "terminei a inspeção da NR10" in ultima.conteudo
+
+
+def test_api_chat_avisa_mesa_sem_texto_util_retorna_400(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta = client.post(
+        "/app/api/chat",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "mensagem": "Avise a mesa avaliadora",
+            "historico": [],
+            "laudo_id": laudo_id,
+        },
+    )
+
+    assert resposta.status_code == 400
+    assert resposta.json()["detail"] == "Mensagem para a mesa está vazia."
+
+
 def test_canais_ia_e_mesa_ficam_isolados_no_historico(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]

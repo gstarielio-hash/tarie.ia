@@ -1,0 +1,37 @@
+appId: com.tarielia.inspetor
+tags:
+  - keyboard
+  - chat
+env:
+  LOGIN_EMAIL: ${MAESTRO_LOGIN_EMAIL}
+  LOGIN_PASSWORD: ${MAESTRO_LOGIN_PASSWORD}
+---
+- launchApp:
+    clearState: true
+
+- runFlow:
+    when:
+      visible:
+        id: login-email-input
+    commands:
+      - tapOn:
+          id: login-email-input
+      - inputText: ${LOGIN_EMAIL}
+      - tapOn:
+          id: login-password-input
+      - inputText: ${LOGIN_PASSWORD}
+      - hideKeyboard
+      - tapOn:
+          id: login-submit-button
+
+- extendedWaitUntil:
+    visible:
+      id: chat-composer-input
+    timeout: 20000
+
+- tapOn:
+    id: chat-composer-input
+
+- inputText: Conferindo teclado no chat
+
+- takeScreenshot: chat-keyboard-visible

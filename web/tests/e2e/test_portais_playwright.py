@@ -1786,3 +1786,84 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
     finally:
         contexto_inspetor.close()
         contexto_revisor.close()
+
+
+def test_e2e_revisor_exporta_pacote_tecnico_da_mesa(
+    browser: Browser,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    contexto_inspetor = browser.new_context(accept_downloads=True)
+    contexto_revisor = browser.new_context(accept_downloads=True)
+
+    try:
+        page_inspetor = contexto_inspetor.new_page()
+        _fazer_login(
+            page_inspetor,
+            base_url=live_server_url,
+            portal="app",
+            email=credenciais_seed["inspetor"]["email"],
+            senha=credenciais_seed["inspetor"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/app/?$",
+        )
+
+        laudo_id = _iniciar_inspecao_via_api(page_inspetor, tipo_template="padrao")
+        texto_inicial = f"Pacote tecnico mesa {uuid.uuid4().hex[:8]}"
+        envio_inspetor = _api_fetch(
+            page_inspetor,
+            path=f"/app/api/laudo/{laudo_id}/mesa/mensagem",
+            method="POST",
+            json_body={"texto": texto_inicial},
+        )
+        assert envio_inspetor["status"] == 201
+
+        page_revisor = contexto_revisor.new_page()
+        _fazer_login(
+            page_revisor,
+            base_url=live_server_url,
+            portal="revisao",
+            email=credenciais_seed["revisor"]["email"],
+            senha=credenciais_seed["revisor"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/revisao/painel/?$",
+        )
+
+        _abrir_laudo_no_revisor(page_revisor, laudo_id)
+
+        expect(page_revisor.locator(".js-btn-pacote-resumo")).to_be_visible(timeout=10000)
+        expect(page_revisor.locator(".js-btn-pacote-json")).to_be_visible(timeout=10000)
+        expect(page_revisor.locator(".js-btn-pacote-pdf")).to_be_visible(timeout=10000)
+
+        page_revisor.locator(".js-btn-pacote-resumo").click()
+        expect(page_revisor.locator("#modal-pacote")).to_be_visible(timeout=10000)
+        expect(page_revisor.locator("#modal-pacote-conteudo")).to_contain_text(
+            re.compile(r"Mensagens|Pend[êe]ncias Abertas|Whispers Recentes", re.IGNORECASE)
+        )
+        page_revisor.locator("#btn-fechar-pacote").click()
+        expect(page_revisor.locator("#modal-pacote")).to_be_hidden(timeout=10000)
+
+        with page_revisor.expect_download(timeout=10000) as download_info:
+            page_revisor.locator(".js-btn-pacote-json").click()
+        download = download_info.value
+        assert re.match(r"pacote_mesa_.+\.json$", download.suggested_filename), download.suggested_filename
+
+        caminho_download = download.path()
+        assert caminho_download, "Playwright não disponibilizou o arquivo JSON baixado."
+        with open(caminho_download, encoding="utf-8") as arquivo_json:
+            pacote = json.load(arquivo_json)
+
+        assert int(pacote["laudo_id"]) == laudo_id
+        assert isinstance(pacote.get("resumo_mensagens"), dict)
+        assert isinstance(pacote.get("pendencias_abertas"), list)
+        assert isinstance(pacote.get("whispers_recentes"), list)
+        assert int(pacote["resumo_mensagens"].get("total") or 0) >= 1
+
+        resposta_pdf = page_revisor.request.fetch(
+            urljoin(page_revisor.url, f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf"),
+            method="GET",
+        )
+        assert resposta_pdf.status == 200
+        assert "application/pdf" in resposta_pdf.headers.get("content-type", "").lower()
+        assert resposta_pdf.body().startswith(b"%PDF")
+    finally:
+        contexto_inspetor.close()
+        contexto_revisor.close()

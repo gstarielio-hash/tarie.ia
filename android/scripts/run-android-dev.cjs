@@ -1,4 +1,4 @@
-const { existsSync, writeFileSync } = require("fs");
+const { existsSync, readFileSync, writeFileSync } = require("fs");
 const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 const {
@@ -39,10 +39,36 @@ function findAndroidSdk() {
   return candidates.find((sdkPath) => existsSync(path.join(sdkPath, "platform-tools"))) || null;
 }
 
+function findNodeBinary() {
+  const candidates = [
+    process.execPath,
+    process.env.NODE_BINARY,
+    path.join(process.env.ProgramFiles || "C:\\Program Files", "nodejs", "node.exe"),
+    path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "nodejs", "node.exe"),
+  ].filter(Boolean);
+
+  return candidates.find((nodePath) => existsSync(nodePath)) || null;
+}
+
 function ensureLocalProperties(androidSdkPath) {
   const localPropertiesPath = path.join(process.cwd(), "android", "local.properties");
   const escapedSdkPath = androidSdkPath.replace(/\\/g, "\\\\");
   writeFileSync(localPropertiesPath, `sdk.dir=${escapedSdkPath}\n`, "utf8");
+}
+
+function lerApiBaseUrlDoEnv() {
+  const envPath = path.join(process.cwd(), ".env");
+  if (!existsSync(envPath)) {
+    return "";
+  }
+
+  const content = readFileSync(envPath, "utf8");
+  const match = content.match(/^\s*EXPO_PUBLIC_API_BASE_URL\s*=\s*(.+)\s*$/m);
+  if (!match) {
+    return "";
+  }
+
+  return match[1].trim().replace(/^['"]|['"]$/g, "");
 }
 
 const javaHome = findJavaHome();
@@ -61,15 +87,37 @@ if (!androidSdk) {
   process.exit(1);
 }
 
+const nodeBinary = findNodeBinary();
+if (!nodeBinary) {
+  console.error(
+    "Nao encontrei um Node valido. Instale o Node.js ou configure NODE_BINARY antes de rodar o app Android.",
+  );
+  process.exit(1);
+}
+
 ensureLocalProperties(androidSdk);
 fixAndroidLauncherIcon(process.cwd());
+
+const apiBaseUrl =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  lerApiBaseUrlDoEnv() ||
+  "https://tarie-ia.onrender.com";
+
+console.log(`Usando API mobile dev em ${apiBaseUrl}`);
 
 const env = {
   ...process.env,
   JAVA_HOME: javaHome,
   ANDROID_HOME: androidSdk,
   ANDROID_SDK_ROOT: androidSdk,
+  NODE_BINARY: nodeBinary,
+  EXPO_PUBLIC_API_BASE_URL: apiBaseUrl,
+  PATHEXT:
+    process.env.PATHEXT && process.env.PATHEXT.includes(".EXE")
+      ? process.env.PATHEXT
+      : ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
   PATH: [
+    path.dirname(nodeBinary),
     path.join(javaHome, "bin"),
     path.join(androidSdk, "platform-tools"),
     path.join(androidSdk, "emulator"),

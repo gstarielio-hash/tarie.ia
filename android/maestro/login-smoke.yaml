@@ -3,8 +3,8 @@ tags:
   - smoke
   - login
 env:
-  LOGIN_EMAIL: inspetor@tariel.ia
-  LOGIN_PASSWORD: Dev@123456
+  LOGIN_EMAIL: ${MAESTRO_LOGIN_EMAIL}
+  LOGIN_PASSWORD: ${MAESTRO_LOGIN_PASSWORD}
   TEST_MESSAGE: Teste Maestro
 ---
 - launchApp:
@@ -21,6 +21,7 @@ env:
       - tapOn:
           id: login-password-input
       - inputText: ${LOGIN_PASSWORD}
+      - takeScreenshot: login-keyboard-layout
       - hideKeyboard
       - tapOn:
           id: login-submit-button

@@ -73,9 +73,9 @@ if (-not (Test-HttpHealth)) {
 }
 
 Write-Host "Preparando dispositivo $DeviceId..." -ForegroundColor Cyan
-& $adb start-server | Out-Null
-& $adb -s $DeviceId wait-for-device | Out-Null
-& $adb -s $DeviceId reverse tcp:8000 tcp:8000 | Out-Null
+$null = & $adb start-server
+$null = & $adb -s $DeviceId wait-for-device
+$null = & $adb -s $DeviceId reverse tcp:8000 tcp:8000
 
 Write-Host "Rodando Maestro: $Flow" -ForegroundColor Cyan
 & $maestro test --device $DeviceId $flowPath

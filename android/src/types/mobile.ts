@@ -1,4 +1,5 @@
 export type ApiHealthStatus = "checking" | "online" | "offline";
+export type MobileChatMode = "curto" | "detalhado" | "deep_research";
 export type MobileEstadoLaudo =
   | "sem_relatorio"
   | "relatorio_ativo"
@@ -76,7 +77,7 @@ export interface MobileChatMessage {
   papel: "usuario" | "assistente" | "engenheiro";
   texto: string;
   tipo: string;
-  modo?: string;
+  modo?: MobileChatMode | string;
   is_whisper?: boolean;
   remetente_id?: number | null;
   referencia_mensagem_id?: number | null;
@@ -92,6 +93,7 @@ export interface MobileLaudoStatusResponse {
   permite_edicao: boolean;
   permite_reabrir: boolean;
   laudo_card: MobileLaudoCard | null;
+  modo?: MobileChatMode | string;
 }
 
 export interface MobileLaudoMensagensResponse extends MobileLaudoStatusResponse {
@@ -131,6 +133,9 @@ export interface MobileChatSendResult {
   laudoId: number | null;
   laudoCard: MobileLaudoCard | null;
   assistantText: string;
+  modo: MobileChatMode | string;
+  citacoes: Array<Record<string, unknown>>;
+  confiancaIa: Record<string, unknown> | null;
   events: Record<string, unknown>[];
 }
 
