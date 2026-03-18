@@ -9,7 +9,7 @@ def principal():
     aplicacao = QApplication(sys.argv)
 
     # Define o estilo 'Fusion' para garantir consistência visual em ambientes industriais (Windows/Linux)
-    aplicacao.setStyle('Fusion')
+    aplicacao.setStyle("Fusion")
 
     # --- CARREGAMENTO DE ESTILO (QSS) ---
     # Busca o caminho do arquivo de folhas de estilo na pasta de interface

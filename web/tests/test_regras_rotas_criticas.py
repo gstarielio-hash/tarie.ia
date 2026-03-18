@@ -84,9 +84,7 @@ def _docx_bytes_teste(texto: str = "Checklist operacional do admin-cliente.") ->
 
 
 def _imagem_png_bytes_teste() -> bytes:
-    return base64.b64decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII="
-    )
+    return base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=")
 
 
 def _salvar_pdf_temporario_teste(prefixo: str = "template") -> str:
@@ -429,7 +427,7 @@ def test_login_mobile_inspetor_retorna_token_e_bootstrap_funciona(ambiente_criti
     assert corpo_bootstrap["usuario"]["empresa_nome"] == "Empresa A"
 
     resposta_perfil = client.put(
-        "/app/api/perfil",
+        "/app/api/mobile/account/profile",
         headers=headers,
         json={
             "nome_completo": "Inspetor Mobile A",
@@ -438,7 +436,79 @@ def test_login_mobile_inspetor_retorna_token_e_bootstrap_funciona(ambiente_criti
         },
     )
     assert resposta_perfil.status_code == 200
-    assert resposta_perfil.json()["perfil"]["nome_completo"] == "Inspetor Mobile A"
+    assert resposta_perfil.json()["usuario"]["nome_completo"] == "Inspetor Mobile A"
+
+    resposta_suporte = client.post(
+        "/app/api/mobile/support/report",
+        headers=headers,
+        json={
+            "tipo": "bug",
+            "titulo": "Campo de teste",
+            "mensagem": "Fluxo mobile validado via teste automatizado.",
+            "email_retorno": "inspetor@empresa-a.test",
+            "contexto": "pytest",
+            "anexo_nome": "screenshot.png",
+        },
+    )
+    assert resposta_suporte.status_code == 200
+    assert resposta_suporte.json()["status"] == "Recebido"
+
+    resposta_senha = client.post(
+        "/app/api/mobile/account/password",
+        headers=headers,
+        json={
+            "senha_atual": SENHA_PADRAO,
+            "nova_senha": "NovaSenha!123",
+            "confirmar_senha": "NovaSenha!123",
+        },
+    )
+    assert resposta_senha.status_code == 200
+
+    resposta_settings_padrao = client.get("/app/api/mobile/account/settings", headers=headers)
+    assert resposta_settings_padrao.status_code == 200
+    assert resposta_settings_padrao.json()["settings"]["notificacoes"]["som_notificacao"] == "Ping"
+    assert resposta_settings_padrao.json()["settings"]["experiencia_ia"]["modelo_ia"] == "equilibrado"
+
+    resposta_settings_salva = client.put(
+        "/app/api/mobile/account/settings",
+        headers=headers,
+        json={
+            "notificacoes": {
+                "notifica_respostas": False,
+                "notifica_push": True,
+                "som_notificacao": "Sino curto",
+                "vibracao_ativa": False,
+                "emails_ativos": True,
+            },
+            "privacidade": {
+                "mostrar_conteudo_notificacao": False,
+                "ocultar_conteudo_bloqueado": True,
+                "mostrar_somente_nova_mensagem": True,
+                "salvar_historico_conversas": False,
+                "compartilhar_melhoria_ia": False,
+                "retencao_dados": "30 dias",
+            },
+            "permissoes": {
+                "microfone_permitido": True,
+                "camera_permitida": True,
+                "arquivos_permitidos": False,
+                "notificacoes_permitidas": True,
+                "biometria_permitida": True,
+            },
+            "experiencia_ia": {
+                "modelo_ia": "avançado",
+            },
+        },
+    )
+    assert resposta_settings_salva.status_code == 200
+    assert resposta_settings_salva.json()["settings"]["privacidade"]["retencao_dados"] == "30 dias"
+    assert resposta_settings_salva.json()["settings"]["experiencia_ia"]["modelo_ia"] == "avançado"
+
+    resposta_settings_lida = client.get("/app/api/mobile/account/settings", headers=headers)
+    assert resposta_settings_lida.status_code == 200
+    assert resposta_settings_lida.json()["settings"]["notificacoes"]["som_notificacao"] == "Sino curto"
+    assert resposta_settings_lida.json()["settings"]["permissoes"]["arquivos_permitidos"] is False
+    assert resposta_settings_lida.json()["settings"]["experiencia_ia"]["modelo_ia"] == "avançado"
 
     resposta_logout = client.post("/app/api/mobile/auth/logout", headers=headers)
     assert resposta_logout.status_code == 200
@@ -748,9 +818,7 @@ def test_admin_cliente_mesa_reescreve_urls_de_anexo_para_o_proprio_portal(ambien
         )
         assert resposta_pacote.status_code == 200
         pacote = resposta_pacote.json()
-        assert pacote["pendencias_abertas"][0]["anexos"][0]["url"] == (
-            f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}"
-        )
+        assert pacote["pendencias_abertas"][0]["anexos"][0]["url"] == (f"/cliente/api/mesa/laudos/{laudo_id}/anexos/{anexo_id}")
 
         download = client.get(anexo_payload["url"])
         assert download.status_code == 200
@@ -819,11 +887,7 @@ def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) 
     assert "usuario_criado" in acoes
     assert all(item["portal"] == "cliente" for item in itens)
     assert any(item["ator_usuario_id"] == ids["admin_cliente_a"] for item in itens)
-    assert any(
-        item["alvo_usuario_id"] == usuario_novo_id
-        for item in itens
-        if item["acao"] == "usuario_criado"
-    )
+    assert any(item["alvo_usuario_id"] == usuario_novo_id for item in itens if item["acao"] == "usuario_criado")
     registro_plano = next(item for item in itens if item["acao"] == "plano_alterado")
     assert registro_plano["payload"]["plano_anterior"] == "Ilimitado"
     assert registro_plano["payload"]["plano_novo"] == "Intermediario"
@@ -839,9 +903,7 @@ def test_admin_cliente_registra_auditoria_de_plano_e_usuarios(ambiente_critico) 
     with SessionLocal() as banco:
         registros = list(
             banco.scalars(
-                select(RegistroAuditoriaEmpresa)
-                .where(RegistroAuditoriaEmpresa.empresa_id == ids["empresa_a"])
-                .order_by(RegistroAuditoriaEmpresa.id.desc())
+                select(RegistroAuditoriaEmpresa).where(RegistroAuditoriaEmpresa.empresa_id == ids["empresa_a"]).order_by(RegistroAuditoriaEmpresa.id.desc())
             ).all()
         )
         assert registros
@@ -1430,9 +1492,7 @@ def test_revisor_upload_asset_template_editor_rico(ambiente_critico) -> None:
     assert asset["id"]
     assert asset["src"].startswith("asset://")
 
-    resposta_baixar_asset = client.get(
-        f"/revisao/api/templates-laudo/editor/{template_id}/assets/{asset['id']}"
-    )
+    resposta_baixar_asset = client.get(f"/revisao/api/templates-laudo/editor/{template_id}/assets/{asset['id']}")
     assert resposta_baixar_asset.status_code == 200
     assert "image/png" in (resposta_baixar_asset.headers.get("content-type", "").lower())
 
@@ -2140,16 +2200,8 @@ def test_multiplos_laudos_abertos_aceitam_mensagens_em_paralelo(ambiente_critico
         assert laudo_b_db is not None
         assert laudo_a_db.status_revisao == StatusRevisao.RASCUNHO.value
         assert laudo_b_db.status_revisao == StatusRevisao.RASCUNHO.value
-        assert (
-            banco.query(MensagemLaudo)
-            .filter(MensagemLaudo.laudo_id == laudo_a)
-            .count()
-        ) >= 4
-        assert (
-            banco.query(MensagemLaudo)
-            .filter(MensagemLaudo.laudo_id == laudo_b)
-            .count()
-        ) >= 2
+        assert (banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_a).count()) >= 4
+        assert (banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_b).count()) >= 2
 
 
 def test_inspetor_atualiza_perfil_chat_com_sucesso(ambiente_critico) -> None:
@@ -3009,12 +3061,7 @@ def test_api_chat_comando_rapido_enviar_mesa_gera_whisper(ambiente_critico) -> N
     assert "humano_insp" in resposta.text
 
     with SessionLocal() as banco:
-        ultima = (
-            banco.query(MensagemLaudo)
-            .filter(MensagemLaudo.laudo_id == laudo_id)
-            .order_by(MensagemLaudo.id.desc())
-            .first()
-        )
+        ultima = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id).order_by(MensagemLaudo.id.desc()).first()
         assert ultima is not None
         assert ultima.tipo == TipoMensagem.HUMANO_INSP.value
         assert "Validar extintores" in ultima.conteudo
@@ -3094,12 +3141,7 @@ def test_api_chat_avisa_mesa_em_linguagem_natural_dispara_whisper(ambiente_criti
     assert "terminei a inspeção da NR10" in resposta.text
 
     with SessionLocal() as banco:
-        ultima = (
-            banco.query(MensagemLaudo)
-            .filter(MensagemLaudo.laudo_id == laudo_id)
-            .order_by(MensagemLaudo.id.desc())
-            .first()
-        )
+        ultima = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id).order_by(MensagemLaudo.id.desc()).first()
         assert ultima is not None
         assert ultima.tipo == TipoMensagem.HUMANO_INSP.value
         assert "terminei a inspeção da NR10" in ultima.conteudo
@@ -3235,12 +3277,7 @@ def test_inspetor_envia_mensagem_mesa_com_referencia_valida(ambiente_critico) ->
     assert "Ajuste realizado em campo" in corpo["mensagem"]["texto"]
 
     with SessionLocal() as banco:
-        ultima = (
-            banco.query(MensagemLaudo)
-            .filter(MensagemLaudo.laudo_id == laudo_id)
-            .order_by(MensagemLaudo.id.desc())
-            .first()
-        )
+        ultima = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id).order_by(MensagemLaudo.id.desc()).first()
         assert ultima is not None
         assert ultima.tipo == TipoMensagem.HUMANO_INSP.value
         assert ultima.conteudo.startswith(f"[REF_MSG_ID:{referencia_id}]")
@@ -3689,11 +3726,7 @@ def test_jornada_e2e_chat_ia_e_mesa_comunicacao_bilateral(ambiente_critico) -> N
         resposta_mesa_inspetor = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
         assert resposta_mesa_inspetor.status_code == 200
         itens_mesa = resposta_mesa_inspetor.json()["itens"]
-        assert any(
-            item["tipo"] == TipoMensagem.HUMANO_ENG.value
-            and item.get("referencia_mensagem_id") == mensagem_inspetor_id
-            for item in itens_mesa
-        )
+        assert any(item["tipo"] == TipoMensagem.HUMANO_ENG.value and item.get("referencia_mensagem_id") == mensagem_inspetor_id for item in itens_mesa)
 
         resposta_chat_inspetor = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mensagens")
         assert resposta_chat_inspetor.status_code == 200
@@ -3860,12 +3893,7 @@ def test_api_chat_stream_emite_confianca_e_salva_revisao(ambiente_critico) -> No
         assert isinstance(laudo.confianca_ia_json, dict)
         assert laudo.confianca_ia_json.get("geral") in {"alta", "media", "baixa"}
 
-        revisoes = (
-            banco.query(LaudoRevisao)
-            .filter(LaudoRevisao.laudo_id == laudo_id)
-            .order_by(LaudoRevisao.numero_versao.asc())
-            .all()
-        )
+        revisoes = banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo_id).order_by(LaudoRevisao.numero_versao.asc()).all()
         assert len(revisoes) == 1
         assert revisoes[0].numero_versao == 1
         assert revisoes[0].confianca_geral in {"alta", "media", "baixa"}
@@ -4075,9 +4103,7 @@ def test_inspetor_pendencias_rejeita_parametro_extra_com_formato_padrao_422(ambi
             status_revisao=StatusRevisao.RASCUNHO.value,
         )
 
-    resposta = client.get(
-        f"/app/api/laudo/{laudo_id}/pendencias?x-schemathesis-unknown-property=42"
-    )
+    resposta = client.get(f"/app/api/laudo/{laudo_id}/pendencias?x-schemathesis-unknown-property=42")
 
     assert resposta.status_code == 422
     corpo = resposta.json()
@@ -4935,9 +4961,7 @@ def test_revisor_api_mensagens_e_completo_aceitam_cursor_nullish(ambiente_critic
     assert resposta_mensagens.status_code == 200
     assert resposta_mensagens.json()["laudo_id"] == laudo_id
 
-    resposta_completo = client.get(
-        f"/revisao/api/laudo/{laudo_id}/completo?incluir_historico=true&cursor=null"
-    )
+    resposta_completo = client.get(f"/revisao/api/laudo/{laudo_id}/completo?incluir_historico=true&cursor=null")
     assert resposta_completo.status_code == 200
     assert int(resposta_completo.json()["id"]) == laudo_id
 
@@ -5019,10 +5043,7 @@ def test_revisor_pode_resolver_e_reabrir_pendencia_da_mesa(ambiente_critico) -> 
         resposta_mesa_resolvida = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
 
     assert resposta_mesa_resolvida.status_code == 200
-    item_resolvido = next(
-        item for item in resposta_mesa_resolvida.json()["itens"]
-        if int(item["id"]) == mensagem_id
-    )
+    item_resolvido = next(item for item in resposta_mesa_resolvida.json()["itens"] if int(item["id"]) == mensagem_id)
     assert item_resolvido["lida"] is True
     assert item_resolvido["resolvida_por_nome"] == "Revisor A"
     assert item_resolvido["resolvida_em"]
@@ -5054,10 +5075,7 @@ def test_revisor_pode_resolver_e_reabrir_pendencia_da_mesa(ambiente_critico) -> 
         resposta_mesa_reaberta = client_inspetor.get(f"/app/api/laudo/{laudo_id}/mesa/mensagens")
 
     assert resposta_mesa_reaberta.status_code == 200
-    item_reaberto = next(
-        item for item in resposta_mesa_reaberta.json()["itens"]
-        if int(item["id"]) == mensagem_id
-    )
+    item_reaberto = next(item for item in resposta_mesa_reaberta.json()["itens"] if int(item["id"]) == mensagem_id)
     assert item_reaberto["lida"] is False
     assert item_reaberto["resolvida_por_nome"] == ""
     assert item_reaberto["resolvida_em"] == ""
@@ -5271,9 +5289,7 @@ def test_revisor_exportar_pacote_pdf_rejeita_parametro_extra_com_formato_padrao_
         )
 
     _login_revisor(client, "revisor@empresa-a.test")
-    resposta = client.get(
-        f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf?x-schemathesis-unknown-property=42"
-    )
+    resposta = client.get(f"/revisao/api/laudo/{laudo_id}/pacote/exportar-pdf?x-schemathesis-unknown-property=42")
 
     assert resposta.status_code == 422
     corpo = resposta.json()
@@ -5283,9 +5299,7 @@ def test_revisor_exportar_pacote_pdf_rejeita_parametro_extra_com_formato_padrao_
     assert corpo["detail"][0]["type"] == "extra_forbidden"
 
 
-def test_revisor_exportar_pacote_pdf_em_modo_schemathesis_retorna_placeholder_estavel(
-    ambiente_critico, monkeypatch
-) -> None:
+def test_revisor_exportar_pacote_pdf_em_modo_schemathesis_retorna_placeholder_estavel(ambiente_critico, monkeypatch) -> None:
     client = ambiente_critico["client"]
     SessionLocal = ambiente_critico["SessionLocal"]
     ids = ambiente_critico["ids"]

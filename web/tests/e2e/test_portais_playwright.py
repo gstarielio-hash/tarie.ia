@@ -17,9 +17,7 @@ pytestmark = pytest.mark.skipif(
     reason="Defina RUN_E2E=1 para executar os testes Playwright.",
 )
 
-PNG_1X1_TRANSPARENTE_B64 = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0X8AAAAASUVORK5CYII="
-)
+PNG_1X1_TRANSPARENTE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0X8AAAAASUVORK5CYII="
 
 
 def _fazer_login(
@@ -111,9 +109,7 @@ def _obter_laudo_ativo(page: Page, *, laudo_esperado: int | None = None) -> int:
     recarregamento_forcado = False
 
     while time.time() < prazo:
-        laudo_id = int(
-            page.evaluate("() => Number(window.TarielAPI?.obterLaudoAtualId?.() || 0)")
-        )
+        laudo_id = int(page.evaluate("() => Number(window.TarielAPI?.obterLaudoAtualId?.() || 0)"))
         if laudo_id > 0 and (laudo_esperado is None or laudo_id == laudo_esperado):
             return laudo_id
 
@@ -133,17 +129,11 @@ def _obter_laudo_ativo(page: Page, *, laudo_esperado: int | None = None) -> int:
                         laudo_status,
                     )
                     page.wait_for_timeout(220)
-                    laudo_front = int(
-                        page.evaluate("() => Number(window.TarielAPI?.obterLaudoAtualId?.() || 0)")
-                    )
+                    laudo_front = int(page.evaluate("() => Number(window.TarielAPI?.obterLaudoAtualId?.() || 0)"))
                     if laudo_front > 0 and (laudo_esperado is None or laudo_front == laudo_esperado):
                         return laudo_front
 
-                    if (
-                        not recarregamento_forcado
-                        and laudo_esperado
-                        and laudo_status == laudo_esperado
-                    ):
+                    if not recarregamento_forcado and laudo_esperado and laudo_status == laudo_esperado:
                         page.goto(
                             urljoin(page.url, f"/app/?laudo={laudo_esperado}"),
                             wait_until="domcontentloaded",
@@ -166,9 +156,7 @@ def _carregar_laudo_no_inspetor(page: Page, laudo_id: int) -> int:
     try:
         laudo_frente = _obter_laudo_ativo(page, laudo_esperado=laudo_id)
     except AssertionError:
-        front_tem_loader = bool(
-            page.evaluate("() => typeof window.TarielAPI?.carregarLaudo === 'function'")
-        )
+        front_tem_loader = bool(page.evaluate("() => typeof window.TarielAPI?.carregarLaudo === 'function'"))
         if front_tem_loader:
             page.evaluate(
                 """async (idLaudo) => {
@@ -323,9 +311,7 @@ def _provisionar_cliente_via_admin(
     page.locator('textarea[name="observacoes"]').fill(observacoes)
     page.locator('button[type="submit"]').click()
 
-    expect(page).to_have_url(
-        re.compile(rf"{re.escape(base_url)}/admin/clientes/\d+/?(?:\?.*)?$")
-    )
+    expect(page).to_have_url(re.compile(rf"{re.escape(base_url)}/admin/clientes/\d+/?(?:\?.*)?$"))
     return _extrair_senha_temporaria(page.locator("body").inner_text())
 
 
@@ -480,9 +466,7 @@ def test_e2e_home_com_laudo_ativo_retorna_para_tela_inicial_sem_deslogar(
     assert status_antes["body"]["laudo_id"] is None
 
     page.locator(".btn-home-cabecalho").click()
-    expect(page).to_have_url(
-        re.compile(rf"{re.escape(live_server_url)}/app/?(\?home=1)?$")
-    )
+    expect(page).to_have_url(re.compile(rf"{re.escape(live_server_url)}/app/?(\?home=1)?$"))
     expect(page.locator("#tela-boas-vindas")).to_be_visible()
     expect(page.locator("#btn-abrir-modal-novo")).to_be_visible()
 
@@ -494,9 +478,7 @@ def test_e2e_home_com_laudo_ativo_retorna_para_tela_inicial_sem_deslogar(
     assert status_depois["status"] == 200
 
     page.goto(f"{live_server_url}/app/", wait_until="domcontentloaded")
-    expect(page).to_have_url(
-        re.compile(rf"{re.escape(live_server_url)}/app/?(\?laudo=\d+)?$")
-    )
+    expect(page).to_have_url(re.compile(rf"{re.escape(live_server_url)}/app/?(\?laudo=\d+)?$"))
     assert "/app/login" not in page.url
 
 
@@ -566,10 +548,7 @@ def test_e2e_modo_foco_mobile_expoe_home_e_perfil_sem_cortes(
             }"""
         )
         assert bool(metricas["existe"]) is True
-        assert (
-            metricas["overflowY"] in {"visible", "clip"} or
-            int(metricas["scrollHeight"]) <= int(metricas["clientHeight"]) + 2
-        ), str(metricas)
+        assert metricas["overflowY"] in {"visible", "clip"} or int(metricas["scrollHeight"]) <= int(metricas["clientHeight"]) + 2, str(metricas)
 
         page.locator("#btn-shell-profile").click()
         expect(page.locator("#modal-perfil-chat")).to_be_visible()
@@ -639,14 +618,10 @@ def test_e2e_anexo_de_imagem_mantem_preview_unico(
         )
 
     _preparar_preview()
-    page.wait_for_function(
-        "() => document.querySelectorAll('#preview-anexo .preview-item').length === 1"
-    )
+    page.wait_for_function("() => document.querySelectorAll('#preview-anexo .preview-item').length === 1")
 
     _preparar_preview()
-    page.wait_for_function(
-        "() => document.querySelectorAll('#preview-anexo .preview-item').length === 1"
-    )
+    page.wait_for_function("() => document.querySelectorAll('#preview-anexo .preview-item').length === 1")
 
     page.locator("#preview-anexo .btn-remover-preview").click()
     expect(preview_item).to_have_count(0)
@@ -765,12 +740,7 @@ def test_e2e_isolamento_portal_inspetor_nao_acessa_revisao(
     page.goto(f"{live_server_url}/revisao/painel", wait_until="domcontentloaded")
     conteudo = page.content()
     assert "Mesa de Avaliação" not in conteudo
-    assert (
-        "/revisao/login" in page.url
-        or "/app/login" in page.url
-        or "Acesso restrito" in conteudo
-        or "Sessão expirada" in conteudo
-    )
+    assert "/revisao/login" in page.url or "/app/login" in page.url or "Acesso restrito" in conteudo or "Sessão expirada" in conteudo
 
 
 def test_e2e_isolamento_portais_revisor_e_admin(
@@ -848,12 +818,8 @@ def test_e2e_widget_mesa_envia_mensagem_via_ui_e_persiste(
     page.locator("#mesa-widget-enviar").click()
 
     expect(page.locator("#texto-status-mesa")).to_contain_text(re.compile(r"aguardando", re.IGNORECASE))
-    expect(page.locator("#mesa-widget-resumo-titulo")).to_contain_text(
-        re.compile(r"aguardando resposta da mesa", re.IGNORECASE)
-    )
-    expect(
-        page.locator("#mesa-widget-lista .mesa-widget-item .texto", has_text=texto).first
-    ).to_be_visible(timeout=10000)
+    expect(page.locator("#mesa-widget-resumo-titulo")).to_contain_text(re.compile(r"aguardando resposta da mesa", re.IGNORECASE))
+    expect(page.locator("#mesa-widget-lista .mesa-widget-item .texto", has_text=texto).first).to_be_visible(timeout=10000)
 
     historico_mesa = _api_fetch(
         page,
@@ -1065,9 +1031,7 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         page_admin.locator('textarea[name="observacoes"]').fill("Provisionamento automatizado E2E.")
         page_admin.locator('button[type="submit"]').click()
 
-        expect(page_admin).to_have_url(
-            re.compile(rf"{re.escape(live_server_url)}/admin/clientes/\d+/?(?:\?.*)?$")
-        )
+        expect(page_admin).to_have_url(re.compile(rf"{re.escape(live_server_url)}/admin/clientes/\d+/?(?:\?.*)?$"))
         senha_temporaria = _extrair_senha_temporaria(page_admin.locator("body").inner_text())
 
         page_cliente = contexto_cliente.new_page()
@@ -1126,9 +1090,7 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         expect(page_cliente.locator("#lista-usuarios")).to_contain_text(email_inspetor, timeout=10000)
         page_cliente.locator("#admin-onboarding-lista").get_by_role("button", name="Gerar nova senha").first.click()
         expect(page_cliente.locator("#feedback")).to_contain_text("Senha temporaria:", timeout=10000)
-        prioridade_primeiro_acesso = page_cliente.locator("#hero-prioridades .priority-item").filter(
-            has_text="Primeiro acesso pendente"
-        )
+        prioridade_primeiro_acesso = page_cliente.locator("#hero-prioridades .priority-item").filter(has_text="Primeiro acesso pendente")
         expect(prioridade_primeiro_acesso).to_be_visible(timeout=10000)
         prioridade_primeiro_acesso.get_by_role("button", name="Revisar equipe").click()
         expect(page_cliente.locator("#tab-admin")).to_have_attribute("aria-selected", "true")
@@ -1484,10 +1446,7 @@ def test_e2e_fluxo_bilateral_inspetor_e_revisor_no_canal_mesa(
         )
         assert mesa_inspetor["status"] == 200
         itens_mesa = mesa_inspetor["body"]["itens"]
-        assert any(
-            item["tipo"] == "humano_eng" and item.get("referencia_mensagem_id") == referencia_id
-            for item in itens_mesa
-        )
+        assert any(item["tipo"] == "humano_eng" and item.get("referencia_mensagem_id") == referencia_id for item in itens_mesa)
 
         chat_ia = _api_fetch(
             page_inspetor,
@@ -1544,20 +1503,14 @@ def test_e2e_revisor_ui_responde_e_inspetor_recebe(
 
         _abrir_laudo_no_revisor(page_revisor, laudo_id)
         expect(page_revisor.locator("#view-timeline")).to_contain_text(re.compile(r"teste UI", re.IGNORECASE))
-        expect(page_revisor.locator("#mesa-operacao-painel .mesa-operacao-tag")).to_contain_text(
-            re.compile(r"canal em triagem", re.IGNORECASE)
-        )
+        expect(page_revisor.locator("#mesa-operacao-painel .mesa-operacao-tag")).to_contain_text(re.compile(r"canal em triagem", re.IGNORECASE))
 
         texto_resposta = f"Retorno da mesa via UI {uuid.uuid4().hex[:8]}"
         page_revisor.locator("#input-resposta").fill(texto_resposta)
         page_revisor.locator("#btn-enviar-msg").click()
 
-        expect(
-            page_revisor.locator("#view-timeline .bolha.engenharia", has_text=texto_resposta).first
-        ).to_be_visible(timeout=10000)
-        expect(page_revisor.locator("#mesa-operacao-painel .mesa-operacao-tag")).to_contain_text(
-            re.compile(r"1 pend[êe]ncia aberta", re.IGNORECASE)
-        )
+        expect(page_revisor.locator("#view-timeline .bolha.engenharia", has_text=texto_resposta).first).to_be_visible(timeout=10000)
+        expect(page_revisor.locator("#mesa-operacao-painel .mesa-operacao-tag")).to_contain_text(re.compile(r"1 pend[êe]ncia aberta", re.IGNORECASE))
 
         historico_mesa = _api_fetch(
             page_inspetor,
@@ -1565,10 +1518,7 @@ def test_e2e_revisor_ui_responde_e_inspetor_recebe(
             method="GET",
         )
         assert historico_mesa["status"] == 200
-        assert any(
-            item["tipo"] == "humano_eng" and texto_resposta in item["texto"]
-            for item in historico_mesa["body"]["itens"]
-        )
+        assert any(item["tipo"] == "humano_eng" and texto_resposta in item["texto"] for item in historico_mesa["body"]["itens"])
     finally:
         contexto_inspetor.close()
         contexto_revisor.close()
@@ -1608,9 +1558,7 @@ def test_e2e_inspetor_anexa_arquivo_no_widget_mesa_e_revisor_visualiza(
         expect(page_inspetor.locator("#mesa-widget-preview-anexo")).to_contain_text("mesa-evidencia.png")
         page_inspetor.locator("#mesa-widget-enviar").click()
 
-        expect(
-            page_inspetor.locator("#mesa-widget-lista .anexo-mesa-link", has_text="mesa-evidencia.png").first
-        ).to_be_visible(timeout=10000)
+        expect(page_inspetor.locator("#mesa-widget-lista .anexo-mesa-link", has_text="mesa-evidencia.png").first).to_be_visible(timeout=10000)
 
         page_revisor = contexto_revisor.new_page()
         _fazer_login(
@@ -1623,9 +1571,7 @@ def test_e2e_inspetor_anexa_arquivo_no_widget_mesa_e_revisor_visualiza(
         )
 
         _abrir_laudo_no_revisor(page_revisor, laudo_id)
-        expect(
-            page_revisor.locator("#view-timeline .anexo-mensagem-link", has_text="mesa-evidencia.png").first
-        ).to_be_visible(timeout=10000)
+        expect(page_revisor.locator("#view-timeline .anexo-mensagem-link", has_text="mesa-evidencia.png").first).to_be_visible(timeout=10000)
     finally:
         contexto_inspetor.close()
         contexto_revisor.close()
@@ -1682,25 +1628,19 @@ def test_e2e_revisor_anexa_arquivo_e_inspetor_visualiza_no_widget_mesa(
         page_revisor.locator("#input-resposta").fill("Segue anexo complementar da mesa.")
         page_revisor.locator("#btn-enviar-msg").click()
 
-        expect(
-            page_revisor.locator("#view-timeline .anexo-mensagem-link", has_text="retorno-mesa.png").first
-        ).to_be_visible(timeout=10000)
+        expect(page_revisor.locator("#view-timeline .anexo-mensagem-link", has_text="retorno-mesa.png").first).to_be_visible(timeout=10000)
 
         _carregar_laudo_no_inspetor(page_inspetor, laudo_id)
         page_inspetor.locator("#btn-mesa-widget-toggle").click()
         expect(page_inspetor.locator("#painel-mesa-widget")).to_be_visible(timeout=10000)
-        expect(page_inspetor.locator("#mesa-widget-resumo-titulo")).to_contain_text(
-            re.compile(r"pend[êe]ncia aberta|mesa respondeu", re.IGNORECASE)
-        )
+        expect(page_inspetor.locator("#mesa-widget-resumo-titulo")).to_contain_text(re.compile(r"pend[êe]ncia aberta|mesa respondeu", re.IGNORECASE))
         expect(
             page_inspetor.locator(
                 "#mesa-widget-lista .mesa-widget-pill-operacao",
                 has_text=re.compile(r"pend[êe]ncia aberta", re.IGNORECASE),
             ).first
         ).to_be_visible(timeout=10000)
-        expect(
-            page_inspetor.locator("#mesa-widget-lista .anexo-mesa-link", has_text="retorno-mesa.png").first
-        ).to_be_visible(timeout=10000)
+        expect(page_inspetor.locator("#mesa-widget-lista .anexo-mesa-link", has_text="retorno-mesa.png").first).to_be_visible(timeout=10000)
     finally:
         contexto_inspetor.close()
         contexto_revisor.close()
@@ -1751,9 +1691,7 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
         expect(painel_operacao).to_be_visible(timeout=10000)
         expect(painel_operacao).to_contain_text(re.compile(r"opera[cç][aã]o da mesa", re.IGNORECASE))
         expect(painel_operacao).to_contain_text(re.compile(r"pend[êe]ncias abertas", re.IGNORECASE))
-        expect(painel_operacao.locator(".mesa-operacao-tag")).to_contain_text(
-            re.compile(r"canal em triagem", re.IGNORECASE)
-        )
+        expect(painel_operacao.locator(".mesa-operacao-tag")).to_contain_text(re.compile(r"canal em triagem", re.IGNORECASE))
 
         texto_resposta = f"Abrir pendencia via painel {uuid.uuid4().hex[:8]}"
         page_revisor.locator("#input-resposta").fill(texto_resposta)
@@ -1761,12 +1699,8 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
 
         item_pendencia = painel_operacao.locator(".mesa-operacao-item.aberta", has_text=texto_resposta).first
         expect(item_pendencia).to_be_visible(timeout=10000)
-        expect(painel_operacao.locator(".mesa-operacao-tag")).to_contain_text(
-            re.compile(r"1 pend[êe]ncia aberta", re.IGNORECASE)
-        )
-        expect(item_pendencia.locator('[data-mesa-action="alternar-pendencia"]')).to_contain_text(
-            re.compile(r"marcar resolvida", re.IGNORECASE)
-        )
+        expect(painel_operacao.locator(".mesa-operacao-tag")).to_contain_text(re.compile(r"1 pend[êe]ncia aberta", re.IGNORECASE))
+        expect(item_pendencia.locator('[data-mesa-action="alternar-pendencia"]')).to_contain_text(re.compile(r"marcar resolvida", re.IGNORECASE))
 
         item_pendencia.locator('[data-mesa-action="responder-item"]').click()
         expect(page_revisor.locator("#ref-ativa-resposta")).to_be_visible(timeout=10000)
@@ -1776,9 +1710,7 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
         item_resolvido = painel_operacao.locator(".mesa-operacao-item.resolvida", has_text=texto_resposta).first
         expect(item_resolvido).to_be_visible(timeout=10000)
         expect(item_resolvido).to_contain_text(re.compile(r"resolvida por", re.IGNORECASE))
-        expect(item_resolvido.locator('[data-mesa-action="alternar-pendencia"]')).to_contain_text(
-            re.compile(r"reabrir", re.IGNORECASE)
-        )
+        expect(item_resolvido.locator('[data-mesa-action="alternar-pendencia"]')).to_contain_text(re.compile(r"reabrir", re.IGNORECASE))
 
         item_resolvido.locator('[data-mesa-action="alternar-pendencia"]').click()
         item_reaberto = painel_operacao.locator(".mesa-operacao-item.aberta", has_text=texto_resposta).first
@@ -1835,9 +1767,7 @@ def test_e2e_revisor_exporta_pacote_tecnico_da_mesa(
 
         page_revisor.locator(".js-btn-pacote-resumo").click()
         expect(page_revisor.locator("#modal-pacote")).to_be_visible(timeout=10000)
-        expect(page_revisor.locator("#modal-pacote-conteudo")).to_contain_text(
-            re.compile(r"Mensagens|Pend[êe]ncias Abertas|Whispers Recentes", re.IGNORECASE)
-        )
+        expect(page_revisor.locator("#modal-pacote-conteudo")).to_contain_text(re.compile(r"Mensagens|Pend[êe]ncias Abertas|Whispers Recentes", re.IGNORECASE))
         page_revisor.locator("#btn-fechar-pacote").click()
         expect(page_revisor.locator("#modal-pacote")).to_be_hidden(timeout=10000)
 

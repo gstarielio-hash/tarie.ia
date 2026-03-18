@@ -29,27 +29,41 @@ from nucleo.gerador_laudos import GeradorLaudos
 logger = logging.getLogger(__name__)
 
 roteador_inspetor = APIRouter()
-templates         = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="templates")
 
-ia        = ClienteIA()
+ia = ClienteIA()
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemini_stream")
 
 _PREFIXO_METADATA = "__METADATA__:"
 
 # Setores permitidos — allowlist para evitar injeção de prompt via campo setor
-_SETORES_PERMITIDOS = frozenset({
-    "geral", "eletrica", "mecanica", "caldeiraria", "spda",
-    "loto", "nr10", "nr12", "nr13", "nr35", "avcb", "pie", "rti",
-})
+_SETORES_PERMITIDOS = frozenset(
+    {
+        "geral",
+        "eletrica",
+        "mecanica",
+        "caldeiraria",
+        "spda",
+        "loto",
+        "nr10",
+        "nr12",
+        "nr13",
+        "nr35",
+        "avcb",
+        "pie",
+        "rti",
+    }
+)
 
 # Limites de entrada
-_LIMITE_MSG_CHARS  = 8_000
-_LIMITE_HISTORICO  = 20
+_LIMITE_MSG_CHARS = 8_000
+_LIMITE_HISTORICO = 20
 _LIMITE_IMG_BASE64 = 7_000_000
-_LIMITE_PDF_BYTES  = 1 * 1024 * 1024
+_LIMITE_PDF_BYTES = 1 * 1024 * 1024
 
 
 # ── Helpers de contexto ────────────────────────────────────────────────────────
+
 
 def _contexto_base(request: Request) -> dict:
     """
@@ -61,13 +75,14 @@ def _contexto_base(request: Request) -> dict:
         request.session["csrf_token"] = secrets.token_urlsafe(32)
 
     return {
-        "request":    request,
+        "request": request,
         "csrf_token": request.session["csrf_token"],
-        "csp_nonce":  getattr(request.state, "csp_nonce", ""),
+        "csp_nonce": getattr(request.state, "csp_nonce", ""),
     }
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
+
 
 class MensagemHistorico(BaseModel):
     # FIX: Literal restringe papéis válidos — evita manipulação do histórico
@@ -76,10 +91,10 @@ class MensagemHistorico(BaseModel):
 
 
 class DadosChat(BaseModel):
-    mensagem:     str = Field(default="", max_length=_LIMITE_MSG_CHARS)
+    mensagem: str = Field(default="", max_length=_LIMITE_MSG_CHARS)
     dados_imagem: str = Field(default="", max_length=_LIMITE_IMG_BASE64)
-    setor:        str = Field(default="geral", max_length=50)
-    historico:    List[MensagemHistorico] = Field(default=[], max_length=_LIMITE_HISTORICO)
+    setor: str = Field(default="geral", max_length=50)
+    historico: List[MensagemHistorico] = Field(default=[], max_length=_LIMITE_HISTORICO)
 
     # FIX: setor validado contra allowlist — bloqueia injeção de prompt
     @field_validator("setor")
@@ -87,9 +102,7 @@ class DadosChat(BaseModel):
     def validar_setor(cls, v: str) -> str:
         v = v.lower().strip()
         if v not in _SETORES_PERMITIDOS:
-            raise ValueError(
-                f"Setor inválido: '{v}'. Valores aceitos: {sorted(_SETORES_PERMITIDOS)}"
-            )
+            raise ValueError(f"Setor inválido: '{v}'. Valores aceitos: {sorted(_SETORES_PERMITIDOS)}")
         return v
 
     # FIX: imagem deve ser um data URI válido
@@ -103,10 +116,11 @@ class DadosChat(BaseModel):
 
 # ── Página principal ───────────────────────────────────────────────────────────
 
+
 @roteador_inspetor.get("/", response_class=HTMLResponse)
 async def pagina_inicial(
     request: Request,
-    banco:   Session           = Depends(obter_banco),
+    banco: Session = Depends(obter_banco),
     usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     """
@@ -123,28 +137,26 @@ async def pagina_inicial(
         return RedirectResponse(url="/admin/login", status_code=303)
 
     # Busca os 10 laudos mais recentes da empresa para o histórico na sidebar
-    laudos_recentes = (
-        banco.query(Laudo)
-        .filter(Laudo.empresa_id == usuario.empresa_id)
-        .order_by(Laudo.criado_em.desc())
-        .limit(10)
-        .all()
-    )
+    laudos_recentes = banco.query(Laudo).filter(Laudo.empresa_id == usuario.empresa_id).order_by(Laudo.criado_em.desc()).limit(10).all()
 
-    return templates.TemplateResponse("index.html", {
-        **_contexto_base(request),
-        "usuario":         usuario,
-        "laudos_recentes": laudos_recentes,
-    })
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            **_contexto_base(request),
+            "usuario": usuario,
+            "laudos_recentes": laudos_recentes,
+        },
+    )
 
 
 # ── Chat com IA (SSE Streaming) ────────────────────────────────────────────────
 
+
 @roteador_inspetor.post("/api/chat")
 async def rota_chat(
-    dados:   DadosChat,
+    dados: DadosChat,
     usuario: Usuario = Depends(exigir_inspetor),
-    banco:   Session = Depends(obter_banco),
+    banco: Session = Depends(obter_banco),
 ):
     """
     Rota de API — mantém exigir_inspetor (retorna JSON 401 se não autenticado).
@@ -157,9 +169,9 @@ async def rota_chat(
         )
 
     headers = {
-        "Cache-Control":     "no-cache",
+        "Cache-Control": "no-cache",
         "X-Accel-Buffering": "no",
-        "Connection":        "keep-alive",
+        "Connection": "keep-alive",
     }
 
     async def gerador_async():
@@ -167,8 +179,8 @@ async def rota_chat(
         fila: asyncio.Queue[str | None] = asyncio.Queue()
 
         resposta_completa: List[str] = []
-        metadados_custo: dict        = {}
-        historico_dict               = [msg.model_dump() for msg in dados.historico]
+        metadados_custo: dict = {}
+        historico_dict = [msg.model_dump() for msg in dados.historico]
 
         def executar_stream():
             try:
@@ -184,9 +196,7 @@ async def rota_chat(
             except Exception as erro:
                 logger.error("Erro na thread de stream: %s", erro, exc_info=True)
                 asyncio.run_coroutine_threadsafe(
-                    fila.put(
-                        "\n\n**[Falha no Sistema]** Ocorreu um erro interno. Tente novamente."
-                    ),
+                    fila.put("\n\n**[Falha no Sistema]** Ocorreu um erro interno. Tente novamente."),
                     loop,
                 )
             finally:
@@ -200,9 +210,7 @@ async def rota_chat(
                 try:
                     pedaco = await asyncio.wait_for(fila.get(), timeout=90.0)
                 except asyncio.TimeoutError:
-                    yield (
-                        f"data: {json.dumps({'texto': chr(10)*2 + '**[Timeout]** A IA demorou mais que 90s.'})}\n\n"
-                    )
+                    yield (f"data: {json.dumps({'texto': chr(10) * 2 + '**[Timeout]** A IA demorou mais que 90s.'})}\n\n")
                     break
 
                 if pedaco is None:
@@ -210,7 +218,7 @@ async def rota_chat(
 
                 if pedaco.startswith(_PREFIXO_METADATA):
                     try:
-                        metadados_custo = json.loads(pedaco[len(_PREFIXO_METADATA):])
+                        metadados_custo = json.loads(pedaco[len(_PREFIXO_METADATA) :])
                     except Exception:
                         pass
                     continue
@@ -237,11 +245,11 @@ async def rota_chat(
 
 
 async def _salvar_laudo(
-    banco:       Session,
-    usuario:     Usuario,
-    setor:       str,
+    banco: Session,
+    usuario: Usuario,
+    setor: str,
     texto_final: str,
-    metadados:   Optional[dict],
+    metadados: Optional[dict],
 ) -> None:
     """
     Salva o laudo com custo real em BRL.
@@ -258,7 +266,8 @@ async def _salvar_laudo(
         if len(texto_final) > 4000:
             logger.warning(
                 "Resposta da IA truncada de %d para 4000 chars | empresa_id=%s",
-                len(texto_final), usuario.empresa_id,
+                len(texto_final),
+                usuario.empresa_id,
             )
 
         laudo = Laudo(
@@ -275,14 +284,16 @@ async def _salvar_laudo(
         if custo_reais > 0:
             empresa = usuario.empresa
             if empresa:
-                empresa.custo_gerado_reais    = (empresa.custo_gerado_reais    or 0.0) + custo_reais
-                empresa.mensagens_processadas = (empresa.mensagens_processadas or 0)   + 1
+                empresa.custo_gerado_reais = (empresa.custo_gerado_reais or 0.0) + custo_reais
+                empresa.mensagens_processadas = (empresa.mensagens_processadas or 0) + 1
 
         banco.commit()
 
         logger.info(
             "Laudo salvo | empresa_id=%s usuario_id=%s custo=R$%.4f",
-            usuario.empresa_id, usuario.id, custo_reais,
+            usuario.empresa_id,
+            usuario.id,
+            custo_reais,
         )
     except Exception as e:
         logger.error("Falha ao salvar laudo no banco: %s", e, exc_info=True)
@@ -290,6 +301,7 @@ async def _salvar_laudo(
 
 
 # ── Geração de PDF ─────────────────────────────────────────────────────────────
+
 
 @roteador_inspetor.post("/api/gerar_pdf")
 async def rota_pdf(
@@ -301,11 +313,11 @@ async def rota_pdf(
     if content_length and int(content_length) > _LIMITE_PDF_BYTES:
         raise HTTPException(status_code=413, detail="Payload muito grande. Limite: 1 MB.")
 
-    dados_json  = await request.json()
+    dados_json = await request.json()
     string_json = json.dumps(dados_json, ensure_ascii=False)
 
     nome_arquivo = f"Laudo_Tarielia_{uuid.uuid4().hex[:12]}.pdf"
-    caminho_pdf  = os.path.join(tempfile.gettempdir(), nome_arquivo)
+    caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo)
 
     try:
         GeradorLaudos.gerar_pdf_inspecao(string_json, caminho_pdf)
@@ -318,7 +330,9 @@ async def rota_pdf(
     except Exception as erro:
         logger.error(
             "Falha ao gerar PDF | usuario_id=%s erro=%s",
-            usuario.id, erro, exc_info=True,
+            usuario.id,
+            erro,
+            exc_info=True,
         )
         if os.path.exists(caminho_pdf):
             os.remove(caminho_pdf)

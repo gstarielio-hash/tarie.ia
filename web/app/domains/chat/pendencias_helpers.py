@@ -75,13 +75,7 @@ def listar_pendencias_mesa_laudo(
 
     total_filtrado = consulta_filtrada.count()
     deslocamento = (pagina_segura - 1) * tamanho_seguro
-    pendencias_filtradas = (
-        consulta_filtrada
-        .order_by(MensagemLaudo.criado_em.desc())
-        .offset(deslocamento)
-        .limit(tamanho_seguro)
-        .all()
-    )
+    pendencias_filtradas = consulta_filtrada.order_by(MensagemLaudo.criado_em.desc()).offset(deslocamento).limit(tamanho_seguro).all()
     return pendencias_filtradas, total, abertas_total, total_filtrado
 
 
@@ -90,11 +84,7 @@ def nome_resolvedor_pendencia(item: MensagemLaudo) -> str:
         return ""
 
     if item.resolvida_por:
-        return (
-            getattr(item.resolvida_por, "nome", None)
-            or getattr(item.resolvida_por, "nome_completo", None)
-            or f"Usuario #{item.resolvida_por_id}"
-        )
+        return getattr(item.resolvida_por, "nome", None) or getattr(item.resolvida_por, "nome_completo", None) or f"Usuario #{item.resolvida_por_id}"
 
     return f"Usuario #{item.resolvida_por_id}"
 
@@ -105,19 +95,11 @@ def serializar_pendencia_mesa(item: MensagemLaudo) -> dict[str, object]:
         "texto": texto_mensagem_mesa_visivel(item.conteudo or "", anexos=getattr(item, "anexos_mesa", None)),
         "lida": bool(item.lida),
         "data": item.criado_em.isoformat() if item.criado_em else "",
-        "data_label": (
-            item.criado_em.astimezone().strftime("%d/%m %H:%M")
-            if item.criado_em
-            else ""
-        ),
+        "data_label": (item.criado_em.astimezone().strftime("%d/%m %H:%M") if item.criado_em else ""),
         "resolvida_por_id": item.resolvida_por_id,
         "resolvida_por_nome": nome_resolvedor_pendencia(item),
         "resolvida_em": item.resolvida_em.isoformat() if item.resolvida_em else "",
-        "resolvida_em_label": (
-            item.resolvida_em.astimezone().strftime("%d/%m %H:%M")
-            if item.resolvida_em
-            else ""
-        ),
+        "resolvida_em_label": (item.resolvida_em.astimezone().strftime("%d/%m %H:%M") if item.resolvida_em else ""),
         "anexos": serializar_anexos_mesa(getattr(item, "anexos_mesa", None), portal="app"),
     }
 
@@ -162,11 +144,7 @@ def obter_assinatura_mesa_para_pdf(
         )
 
     engenheiro = revisor_remetente or revisor_resolvedor
-    nome_assinatura = (
-        getattr(engenheiro, "nome", None)
-        or getattr(engenheiro, "nome_completo", None)
-        or nome_padrao
-    )
+    nome_assinatura = getattr(engenheiro, "nome", None) or getattr(engenheiro, "nome_completo", None) or nome_padrao
     crea_assinatura = str(getattr(engenheiro, "crea", "") if engenheiro else "").strip()[:40] or crea_padrao
 
     return {

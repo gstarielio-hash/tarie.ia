@@ -5,6 +5,7 @@ from sqlalchemy import func, case
 from sqlalchemy.exc import IntegrityError
 
 from banco_dados import Empresa, Usuario, Laudo, NivelAcesso
+
 # FIX: removido gerar_hash_senha — duplicata de criar_hash_senha
 from seguranca import gerar_senha_fortificada, criar_hash_senha
 
@@ -12,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 # Fonte única de verdade para planos — usada em TODO o módulo
-_PLANOS_VALIDOS   = ("Piloto", "Pro", "Ilimitado")
+_PLANOS_VALIDOS = ("Piloto", "Pro", "Ilimitado")
 _PRIORIDADE_PLANO = {"Ilimitado": 1, "Pro": 2, "Piloto": 3}
-_LIMITE_PLANO     = {"Piloto": 20, "Pro": 999_999, "Ilimitado": 999_999}
+_LIMITE_PLANO = {"Piloto": 20, "Pro": 999_999, "Ilimitado": 999_999}
 
 
 # ── Onboarding ────────────────────────────────────────────────────────────────
@@ -59,11 +60,11 @@ def registrar_novo_cliente(
         db.rollback()
         raise ValueError("Falha ao reservar registro. Tente novamente.")
 
-    senha_plana  = gerar_senha_fortificada()
+    senha_plana = gerar_senha_fortificada()
     novo_usuario = Usuario(
         empresa_id=nova_empresa.id,
         nome_completo=f"Admin {nome}",
-        email=email_norm,                          # FIX: e-mail normalizado
+        email=email_norm,  # FIX: e-mail normalizado
         senha_hash=criar_hash_senha(senha_plana),  # FIX: função unificada
         nivel_acesso=int(NivelAcesso.INSPETOR),
     )
@@ -80,7 +81,10 @@ def registrar_novo_cliente(
         # FIX: logger com exc_info para rastrear falha de envio em produção
         logger.error(
             "Falha ao enviar e-mail de boas-vindas | empresa=%s email=%s erro=%s",
-            nome, email_norm, e, exc_info=True,
+            nome,
+            email_norm,
+            e,
+            exc_info=True,
         )
 
     return nova_empresa, senha_plana
@@ -90,39 +94,47 @@ def registrar_novo_cliente(
 
 
 def buscar_metricas_ia_painel(db: Session) -> dict:
-    qtd_clientes    = db.query(Empresa).count()
+    qtd_clientes = db.query(Empresa).count()
     total_inspecoes = db.query(Laudo).count()
-    faturamento_ia  = db.query(func.sum(Laudo.custo_api_reais)).scalar() or 0.0
+    faturamento_ia = db.query(func.sum(Laudo.custo_api_reais)).scalar() or 0.0
 
-    ranking = db.query(Empresa).order_by(
-        case(
-            (Empresa.plano_ativo == "Ilimitado", 1),
-            (Empresa.plano_ativo == "Pro", 2),
-            else_=3,
-        ),
-        Empresa.id.desc(),
-    ).all()
+    ranking = (
+        db.query(Empresa)
+        .order_by(
+            case(
+                (Empresa.plano_ativo == "Ilimitado", 1),
+                (Empresa.plano_ativo == "Pro", 2),
+                else_=3,
+            ),
+            Empresa.id.desc(),
+        )
+        .all()
+    )
 
     hoje = datetime.now(timezone.utc).date()
     labels, valores = [], []
     for i in range(6, -1, -1):
-        dia    = hoje - timedelta(days=i)
+        dia = hoje - timedelta(days=i)
         inicio = datetime(dia.year, dia.month, dia.day, tzinfo=timezone.utc)
-        fim    = inicio + timedelta(days=1)
-        qtd    = db.query(Laudo).filter(
-            Laudo.criado_em >= inicio,
-            Laudo.criado_em < fim,
-        ).count()
+        fim = inicio + timedelta(days=1)
+        qtd = (
+            db.query(Laudo)
+            .filter(
+                Laudo.criado_em >= inicio,
+                Laudo.criado_em < fim,
+            )
+            .count()
+        )
         labels.append(dia.strftime("%a %d/%m"))
         valores.append(qtd)
 
     return {
-        "qtd_clientes":     qtd_clientes,
-        "total_inspecoes":  total_inspecoes,
+        "qtd_clientes": qtd_clientes,
+        "total_inspecoes": total_inspecoes,
         "receita_ia_total": faturamento_ia,
-        "clientes":         ranking,
-        "labels_grafico":   labels,
-        "valores_grafico":  valores,
+        "clientes": ranking,
+        "labels_grafico": labels,
+        "valores_grafico": valores,
     }
 
 
@@ -154,38 +166,48 @@ def buscar_detalhe_cliente(db: Session, empresa_id: int) -> dict | None:
     if not empresa:
         return None
 
-    inspetores = db.query(Usuario).filter(
-        Usuario.empresa_id == empresa_id,
-        Usuario.nivel_acesso < 99,
-    ).all()
+    inspetores = (
+        db.query(Usuario)
+        .filter(
+            Usuario.empresa_id == empresa_id,
+            Usuario.nivel_acesso < 99,
+        )
+        .all()
+    )
 
-    laudos_recentes = db.query(Laudo).filter(
-        Laudo.empresa_id == empresa_id,
-    ).order_by(Laudo.data_criacao.desc()).limit(10).all()
+    laudos_recentes = (
+        db.query(Laudo)
+        .filter(
+            Laudo.empresa_id == empresa_id,
+        )
+        .order_by(Laudo.data_criacao.desc())
+        .limit(10)
+        .all()
+    )
 
     # FIX: query única para total e custo — evita round-trip duplo ao banco
-    stats = db.query(
-        func.count(Laudo.id).label("total"),
-        func.coalesce(func.sum(Laudo.custo_api_reais), 0.0).label("custo"),
-    ).filter(Laudo.empresa_id == empresa_id).one()
+    stats = (
+        db.query(
+            func.count(Laudo.id).label("total"),
+            func.coalesce(func.sum(Laudo.custo_api_reais), 0.0).label("custo"),
+        )
+        .filter(Laudo.empresa_id == empresa_id)
+        .one()
+    )
 
     limite = _LIMITE_PLANO.get(empresa.plano_ativo, 20)
 
     # FIX: (mensagens_processadas or 0) evita TypeError quando o campo é NULL no banco
-    uso_pct = (
-        min(100, int(((empresa.mensagens_processadas or 0) / limite) * 100))
-        if limite < 999_999
-        else None
-    )
+    uso_pct = min(100, int(((empresa.mensagens_processadas or 0) / limite) * 100)) if limite < 999_999 else None
 
     return {
-        "empresa":         empresa,
-        "inspetores":      inspetores,
+        "empresa": empresa,
+        "inspetores": inspetores,
         "laudos_recentes": laudos_recentes,
-        "limite_plano":    limite if limite < 999_999 else "Ilimitado",
-        "uso_percentual":  uso_pct,
-        "total_laudos":    stats.total,
-        "custo_total":     stats.custo,
+        "limite_plano": limite if limite < 999_999 else "Ilimitado",
+        "uso_percentual": uso_pct,
+        "total_laudos": stats.total,
+        "custo_total": stats.custo,
     }
 
 
@@ -227,10 +249,10 @@ def adicionar_inspetor(db: Session, empresa_id: int, nome: str, email: str) -> s
         raise ValueError("E-mail já cadastrado.")
 
     senha = gerar_senha_fortificada()
-    novo  = Usuario(
+    novo = Usuario(
         empresa_id=empresa_id,
         nome_completo=nome,
-        email=email_norm,                    # FIX: e-mail normalizado
+        email=email_norm,  # FIX: e-mail normalizado
         senha_hash=criar_hash_senha(senha),  # FIX: função unificada
         nivel_acesso=int(NivelAcesso.INSPETOR),
     )
@@ -251,11 +273,9 @@ def _disparar_email_boas_vindas(email: str, empresa: str, senha: str) -> None:
     # FIX: logger sem senha — apenas confirma que o envio foi tentado
     logger.info(
         "E-mail de boas-vindas disparado (stub) | empresa=%s email=%s",
-        empresa, email,
+        empresa,
+        email,
     )
     # TODO: implementar envio real. Exemplo com SendGrid:
     # sendgrid_client.send(to=email, subject="Bem-vindo à Tariel.ia", body=f"Senha: {senha}")
-    raise NotImplementedError(
-        "Serviço de e-mail não configurado. "
-        "Implemente _disparar_email_boas_vindas com SendGrid/SES/SMTP."
-    )
+    raise NotImplementedError("Serviço de e-mail não configurado. Implemente _disparar_email_boas_vindas com SendGrid/SES/SMTP.")

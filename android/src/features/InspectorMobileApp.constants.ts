@@ -108,3 +108,68 @@ export const UPDATE_CHANGELOG = [
     summary: "Conta, segurança, permissões, privacidade e suporte ficaram mais vivos dentro do app.",
   },
 ] as const;
+
+export const EXTERNAL_INTEGRATION_OPTIONS = [
+  {
+    id: "google_drive",
+    label: "Google Drive",
+    description: "Enviar evidências e anexos do laudo direto para pasta operacional.",
+    icon: "google",
+  },
+  {
+    id: "slack",
+    label: "Slack",
+    description: "Notificar equipe sobre retornos da mesa e pendências críticas.",
+    icon: "slack",
+  },
+  {
+    id: "notion",
+    label: "Notion",
+    description: "Sincronizar resumos técnicos do laudo para base de conhecimento.",
+    icon: "notebook-outline",
+  },
+] as const;
+
+export const TERMS_OF_USE_SECTIONS = [
+  {
+    id: "escopo",
+    title: "Escopo de uso",
+    body: "O aplicativo é destinado ao registro técnico de inspeções e apoio à comunicação com a mesa avaliadora.",
+  },
+  {
+    id: "responsabilidade",
+    title: "Responsabilidade do usuário",
+    body: "As evidências enviadas devem ser verdadeiras, completas e respeitar as políticas de segurança da organização.",
+  },
+  {
+    id: "dados",
+    title: "Tratamento de dados",
+    body: "Dados de sessão, histórico e segurança podem ser armazenados conforme as preferências locais e a política do sistema.",
+  },
+  {
+    id: "restricoes",
+    title: "Restrições",
+    body: "É proibido usar o app para conteúdo ilícito, tentativa de fraude, bypass de autenticação ou acesso não autorizado.",
+  },
+] as const;
+
+export const LICENSES_CATALOG = [
+  {
+    id: "react-native",
+    name: "React Native",
+    license: "MIT",
+    source: "https://github.com/facebook/react-native",
+  },
+  {
+    id: "expo",
+    name: "Expo SDK",
+    license: "MIT",
+    source: "https://github.com/expo/expo",
+  },
+  {
+    id: "mdi",
+    name: "Material Design Icons",
+    license: "Apache-2.0",
+    source: "https://github.com/Templarian/MaterialDesign",
+  },
+] as const;

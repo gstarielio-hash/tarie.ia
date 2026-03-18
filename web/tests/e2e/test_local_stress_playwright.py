@@ -273,9 +273,7 @@ def test_e2e_local_jornada_intensa_completa(
                         rota_sucesso_regex=rf"{re.escape(base_url)}/app/?$",
                     )
                 else:
-                    expect(page_inspetor).to_have_url(
-                        re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$")
-                    )
+                    expect(page_inspetor).to_have_url(re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$"))
                 metricas["home_checks"] += 1
 
             excluir = _api_fetch_retry(
@@ -377,10 +375,7 @@ def test_e2e_local_jornada_intensa_completa(
         )
         metricas["retries_api_total"] += int(historico_mesa.get("_tentativas", 1)) - 1
         assert historico_mesa["status"] == 200, historico_mesa
-        assert any(
-            item.get("tipo") == "humano_eng"
-            for item in historico_mesa["body"]["itens"]
-        )
+        assert any(item.get("tipo") == "humano_eng" for item in historico_mesa["body"]["itens"])
 
         historico_chat = _api_fetch_retry(
             page_inspetor,
@@ -389,10 +384,7 @@ def test_e2e_local_jornada_intensa_completa(
         )
         metricas["retries_api_total"] += int(historico_chat.get("_tentativas", 1)) - 1
         assert historico_chat["status"] == 200, historico_chat
-        assert all(
-            item.get("tipo") not in {"humano_insp", "humano_eng"}
-            for item in historico_chat["body"]["itens"]
-        )
+        assert all(item.get("tipo") not in {"humano_insp", "humano_eng"} for item in historico_chat["body"]["itens"])
 
         excluir_final = _api_fetch_retry(
             page_inspetor,
@@ -434,4 +426,3 @@ def test_e2e_local_jornada_intensa_completa(
         contexto_inspetor.close()
         contexto_revisor.close()
         contexto_admin.close()
-

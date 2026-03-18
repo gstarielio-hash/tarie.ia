@@ -4,16 +4,16 @@ Base mobile separada do produto para o app do inspetor, construída com React Na
 
 ## Rodar localmente
 
-```powershell
+```bash
 cd android
-copy .env.example .env
+cp .env.example .env
 npm install
 npm run start
 ```
 
 ## Comandos principais
 
-```powershell
+```bash
 npm run android
 npm run android:prebuild
 npm run android:dev
@@ -86,7 +86,7 @@ O projeto já possui o arquivo `eas.json` com perfis `development`, `preview` e 
 
 Exemplos:
 
-```powershell
+```bash
 cd android
 npm run eas:build:android:preview
 npm run eas:build:android:production
@@ -98,7 +98,7 @@ npm run eas:submit:android:production
 O fluxo acima com `npm run android` usa o Expo Go e é útil só para prototipar.
 Para trabalhar como app Android nativo de verdade:
 
-```powershell
+```bash
 cd android
 npm run android:prebuild
 npm run android:dev
@@ -113,14 +113,14 @@ Ele tambem corrige automaticamente o wrapper do Gradle para uma versao compative
 
 Para testar o app como ele vai se comportar fora do modo dev, com bundle embutido e sem depender de Metro:
 
-```powershell
+```bash
 cd android
 npm run android:preview
 ```
 
 Se voce quiser regenerar a pasta nativa antes:
 
-```powershell
+```bash
 cd android
 npm run android:preview:fresh
 ```
@@ -133,7 +133,7 @@ o script tambem abre automaticamente o `Tariel Inspetor` no dispositivo conectad
 
 Para automatizar os fluxos principais do Android real:
 
-```powershell
+```bash
 cd android
 npm run maestro:smoke
 ```
@@ -150,14 +150,14 @@ O comando base:
 
 - sobe a API local do mobile, se ela ainda nao estiver ativa
 - configura `adb reverse tcp:8000 tcp:8000`
-- roda o fluxo escolhido dentro de [android/maestro](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro) no dispositivo USB conectado
+- roda o fluxo escolhido dentro de [android/maestro](./maestro) no dispositivo conectado
 
-O runner PowerShell usado pelo npm fica em [run_mobile_maestro_smoke.ps1](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/run_mobile_maestro_smoke.ps1).
-Para encadear a suíte completa existe também [run_mobile_maestro_suite.ps1](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/run_mobile_maestro_suite.ps1).
+O runner cross-platform usado pelo npm fica em [run_mobile_maestro_smoke.cjs](../scripts/run_mobile_maestro_smoke.cjs).
+Para encadear a suíte completa existe também [run_mobile_maestro_suite.cjs](../scripts/run_mobile_maestro_suite.cjs).
 
 Cobertura atual:
 
-- [login-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/login-smoke.yaml): login, shell, histórico, configurações e envio básico no chat
-- [history-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/history-smoke.yaml): drawer de histórico, filtros e retomada de conversa
-- [settings-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/settings-smoke.yaml): overview da engrenagem, navegação por seções e páginas internas
-- [chat-smoke.yaml](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/android/maestro/chat-smoke.yaml): composer, envio e troca de abas do fluxo principal
+- [login-smoke.yaml](./maestro/login-smoke.yaml): login, shell, histórico, configurações e envio básico no chat
+- [history-smoke.yaml](./maestro/history-smoke.yaml): drawer de histórico, filtros e retomada de conversa
+- [settings-smoke.yaml](./maestro/settings-smoke.yaml): overview da engrenagem, navegação por seções e páginas internas
+- [chat-smoke.yaml](./maestro/chat-smoke.yaml): composer, envio e troca de abas do fluxo principal

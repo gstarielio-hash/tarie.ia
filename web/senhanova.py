@@ -17,7 +17,7 @@ if admin:
     nova_senha = "Admin@2026"
     admin.senha_hash = criar_hash_senha(nova_senha)
     banco.commit()
-    print(f"\n✅ Senha redefinida!")
+    print("\n✅ Senha redefinida!")
     print(f"   Email: {admin.email}")
     print(f"   Nova senha: {nova_senha}")
 else:

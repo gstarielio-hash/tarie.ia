@@ -297,16 +297,8 @@ def _descricao_delta_limite(rotulo: str, anterior: int | None, atual: int | None
 def _comparativo_plano_cliente(banco: Session, *, plano_atual: str, plano_destino: str) -> dict[str, Any]:
     atual = _limites_por_plano_cliente(banco, plano_atual)
     destino = _limites_por_plano_cliente(banco, plano_destino)
-    delta_usuarios = (
-        None
-        if atual["usuarios_max"] is None or destino["usuarios_max"] is None
-        else int(destino["usuarios_max"]) - int(atual["usuarios_max"])
-    )
-    delta_laudos = (
-        None
-        if atual["laudos_mes"] is None or destino["laudos_mes"] is None
-        else int(destino["laudos_mes"]) - int(atual["laudos_mes"])
-    )
+    delta_usuarios = None if atual["usuarios_max"] is None or destino["usuarios_max"] is None else int(destino["usuarios_max"]) - int(atual["usuarios_max"])
+    delta_laudos = None if atual["laudos_mes"] is None or destino["laudos_mes"] is None else int(destino["laudos_mes"]) - int(atual["laudos_mes"])
     impacto_itens = [
         _descricao_delta_limite("vagas", atual["usuarios_max"], destino["usuarios_max"]),
         _descricao_delta_limite("laudos/mes", atual["laudos_mes"], destino["laudos_mes"]),
@@ -369,8 +361,7 @@ def _avisos_operacionais_empresa(
                     "badge": "Novos acessos bloqueados",
                     "titulo": "A equipe ja estourou o teto do plano",
                     "detalhe": (
-                        f"A empresa usa mais acessos do que o plano suporta. "
-                        f"{usuarios_excedente} acima do contratado pedem ajuste imediato."
+                        f"A empresa usa mais acessos do que o plano suporta. {usuarios_excedente} acima do contratado pedem ajuste imediato."
                         if usuarios_excedente > 0
                         else "Nao sera possivel criar novos usuarios ate ampliar o plano ou reduzir a equipe ativa."
                     ),
@@ -444,9 +435,7 @@ def _avisos_operacionais_empresa(
                             f"A empresa ja usou {laudos_mes_atual} de {laudos_mes_limite}."
                         ),
                         "acao": (
-                            f"Planeje a subida para {plano_sugerido} antes do proximo pico."
-                            if plano_sugerido
-                            else "Monitore a fila antes do proximo pico."
+                            f"Planeje a subida para {plano_sugerido} antes do proximo pico." if plano_sugerido else "Monitore a fila antes do proximo pico."
                         ),
                     },
                     {
@@ -587,37 +576,49 @@ def _resumo_saude_empresa_cliente(
         tendencia_tone = capacidade_tone if capacidade_status != "estavel" else "aberto"
 
     janela_login = _agora_utc_cliente() - timedelta(days=14)
-    usuarios_ativos = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == int(empresa.id),
-            filtro_usuarios_gerenciaveis_cliente(),
-            Usuario.ativo.is_(True),
+    usuarios_ativos = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == int(empresa.id),
+                filtro_usuarios_gerenciaveis_cliente(),
+                Usuario.ativo.is_(True),
+            )
         )
-    ) or 0
-    usuarios_login_recente = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == int(empresa.id),
-            filtro_usuarios_gerenciaveis_cliente(),
-            Usuario.ativo.is_(True),
-            Usuario.ultimo_login.is_not(None),
-            Usuario.ultimo_login >= janela_login,
+        or 0
+    )
+    usuarios_login_recente = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == int(empresa.id),
+                filtro_usuarios_gerenciaveis_cliente(),
+                Usuario.ativo.is_(True),
+                Usuario.ultimo_login.is_not(None),
+                Usuario.ultimo_login >= janela_login,
+            )
         )
-    ) or 0
-    primeiros_acessos = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == int(empresa.id),
-            filtro_usuarios_gerenciaveis_cliente(),
-            Usuario.senha_temporaria_ativa.is_(True),
+        or 0
+    )
+    primeiros_acessos = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == int(empresa.id),
+                filtro_usuarios_gerenciaveis_cliente(),
+                Usuario.senha_temporaria_ativa.is_(True),
+            )
         )
-    ) or 0
-    eventos_comerciais = banco.scalar(
-        select(func.count(RegistroAuditoriaEmpresa.id)).where(
-            RegistroAuditoriaEmpresa.empresa_id == int(empresa.id),
-            RegistroAuditoriaEmpresa.portal == PORTAL_CLIENTE,
-            RegistroAuditoriaEmpresa.criado_em >= (_agora_utc_cliente() - timedelta(days=60)),
-            RegistroAuditoriaEmpresa.acao.in_(["plano_alterado", "plano_interesse_registrado"]),
+        or 0
+    )
+    eventos_comerciais = (
+        banco.scalar(
+            select(func.count(RegistroAuditoriaEmpresa.id)).where(
+                RegistroAuditoriaEmpresa.empresa_id == int(empresa.id),
+                RegistroAuditoriaEmpresa.portal == PORTAL_CLIENTE,
+                RegistroAuditoriaEmpresa.criado_em >= (_agora_utc_cliente() - timedelta(days=60)),
+                RegistroAuditoriaEmpresa.acao.in_(["plano_alterado", "plano_interesse_registrado"]),
+            )
         )
-    ) or 0
+        or 0
+    )
 
     if bool(empresa.status_bloqueio):
         saude_rotulo = "Operacao bloqueada"
@@ -634,7 +635,11 @@ def _resumo_saude_empresa_cliente(
     else:
         saude_rotulo = tendencia_rotulo
         saude_tone = tendencia_tone
-        saude_texto = "A empresa tem atividade consistente e sinais claros para planejar o proximo passo." if atual or usuarios_login_recente else "Ainda ha pouca movimentacao recente; acompanhe os primeiros usos e a ativacao do time."
+        saude_texto = (
+            "A empresa tem atividade consistente e sinais claros para planejar o proximo passo."
+            if atual or usuarios_login_recente
+            else "Ainda ha pouca movimentacao recente; acompanhe os primeiros usos e a ativacao do time."
+        )
 
     return {
         "status": saude_rotulo,
@@ -729,8 +734,7 @@ def _avaliar_capacidade_empresa(
         tone = "ajustes"
         badge = "Expandir plano agora"
         acao = (
-            f"O limite de {principal['label']} ja foi atingido. "
-            f"{principal['excedente']} acima do contratado exigem ajuste imediato do plano."
+            f"O limite de {principal['label']} ja foi atingido. {principal['excedente']} acima do contratado exigem ajuste imediato do plano."
             if int(principal["excedente"]) > 0
             else f"O limite de {principal['label']} chegou no teto. Ajuste o plano antes de travar a operacao."
         )
@@ -738,18 +742,12 @@ def _avaliar_capacidade_empresa(
         status_capacidade = "atencao"
         tone = "aguardando"
         badge = "Planejar upgrade"
-        acao = (
-            f"A empresa consumiu {percentual}% da capacidade de {principal['label']}. "
-            "Vale ajustar o plano antes do proximo pico operacional."
-        )
+        acao = f"A empresa consumiu {percentual}% da capacidade de {principal['label']}. Vale ajustar o plano antes do proximo pico operacional."
     elif percentual >= 70:
         status_capacidade = "monitorar"
         tone = "aberto"
         badge = "Monitorar capacidade"
-        acao = (
-            f"A capacidade de {principal['label']} entrou na faixa de atencao. "
-            "Monitore a evolucao da equipe e da fila para nao ser pego de surpresa."
-        )
+        acao = f"A capacidade de {principal['label']} entrou na faixa de atencao. Monitore a evolucao da equipe e da fila para nao ser pego de surpresa."
     else:
         status_capacidade = "estavel"
         tone = "aprovado"
@@ -758,10 +756,7 @@ def _avaliar_capacidade_empresa(
 
     motivo_upgrade = ""
     if proximo_plano and status_capacidade in {"critico", "atencao", "monitorar"}:
-        motivo_upgrade = (
-            f"O plano {proximo_plano} abre mais folga para {principal['label']} "
-            "sem interromper a operacao da empresa."
-        )
+        motivo_upgrade = f"O plano {proximo_plano} abre mais folga para {principal['label']} sem interromper a operacao da empresa."
 
     return {
         "usuarios_percentual": usuarios_pct,
@@ -915,11 +910,7 @@ def _serializar_usuario_cliente(usuario: Usuario) -> dict[str, Any]:
         "ativo": bool(usuario.ativo),
         "senha_temporaria_ativa": bool(getattr(usuario, "senha_temporaria_ativa", False)),
         "ultimo_login": usuario.ultimo_login.isoformat() if getattr(usuario, "ultimo_login", None) else "",
-        "ultimo_login_label": (
-            usuario.ultimo_login.astimezone().strftime("%d/%m/%Y %H:%M")
-            if getattr(usuario, "ultimo_login", None)
-            else "Nunca"
-        ),
+        "ultimo_login_label": (usuario.ultimo_login.astimezone().strftime("%d/%m/%Y %H:%M") if getattr(usuario, "ultimo_login", None) else "Nunca"),
     }
 
 
@@ -956,12 +947,9 @@ def _mapa_contagem_por_laudo(
     if not ids_validos:
         return {}
 
-    consulta = (
-        banco.query(MensagemLaudo.laudo_id, func.count(MensagemLaudo.id))
-        .filter(
-            MensagemLaudo.laudo_id.in_(ids_validos),
-            MensagemLaudo.tipo == tipo,
-        )
+    consulta = banco.query(MensagemLaudo.laudo_id, func.count(MensagemLaudo.id)).filter(
+        MensagemLaudo.laudo_id.in_(ids_validos),
+        MensagemLaudo.tipo == tipo,
     )
     if apenas_nao_lidas:
         consulta = consulta.filter(MensagemLaudo.lida.is_(False))
@@ -1041,24 +1029,33 @@ def _resumo_empresa_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
     )
     total_laudos = banco.scalar(select(func.count(Laudo.id)).where(Laudo.empresa_id == empresa.id)) or 0
     laudos_mes_atual = contar_laudos_mes(banco, int(empresa.id))
-    admins_cliente = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == empresa.id,
-            Usuario.nivel_acesso == int(NivelAcesso.ADMIN_CLIENTE),
+    admins_cliente = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == empresa.id,
+                Usuario.nivel_acesso == int(NivelAcesso.ADMIN_CLIENTE),
+            )
         )
-    ) or 0
-    inspetores = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == empresa.id,
-            Usuario.nivel_acesso == int(NivelAcesso.INSPETOR),
+        or 0
+    )
+    inspetores = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == empresa.id,
+                Usuario.nivel_acesso == int(NivelAcesso.INSPETOR),
+            )
         )
-    ) or 0
-    revisores = banco.scalar(
-        select(func.count(Usuario.id)).where(
-            Usuario.empresa_id == empresa.id,
-            Usuario.nivel_acesso == int(NivelAcesso.REVISOR),
+        or 0
+    )
+    revisores = (
+        banco.scalar(
+            select(func.count(Usuario.id)).where(
+                Usuario.empresa_id == empresa.id,
+                Usuario.nivel_acesso == int(NivelAcesso.REVISOR),
+            )
         )
-    ) or 0
+        or 0
+    )
     capacidade = _avaliar_capacidade_empresa(
         plano_atual=plano_atual,
         total_usuarios=int(total_usuarios),
@@ -1201,12 +1198,7 @@ def _bootstrap_cliente(banco: Session, usuario: Usuario) -> dict[str, Any]:
         "mesa": {
             "laudos": _listar_laudos_mesa_empresa(banco, usuario),
         },
-        "auditoria": {
-            "itens": [
-                serializar_registro_auditoria(item)
-                for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id))
-            ]
-        },
+        "auditoria": {"itens": [serializar_registro_auditoria(item) for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id))]},
     }
 
 
@@ -1480,10 +1472,7 @@ async def api_auditoria_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    itens = [
-        serializar_registro_auditoria(item)
-        for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id), limite=limite)
-    ]
+    itens = [serializar_registro_auditoria(item) for item in listar_auditoria_empresa(banco, empresa_id=int(usuario.empresa_id), limite=limite)]
     return JSONResponse({"itens": itens})
 
 
@@ -1795,7 +1784,7 @@ async def api_chat_criar_laudo_cliente(
             acao="chat_laudo_criado",
             resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} criado no chat.",
             detalhe=f"Template {str(tipo_template or 'padrao').strip() or 'padrao'} iniciado pelo admin-cliente.",
-            payload={"laudo_id": laudo_id, "tipo_template": str(tipo_template or 'padrao').strip() or 'padrao'},
+            payload={"laudo_id": laudo_id, "tipo_template": str(tipo_template or "padrao").strip() or "padrao"},
         )
     return resposta
 
@@ -2129,7 +2118,9 @@ async def api_mesa_pendencia_cliente(
         empresa_id=int(usuario.empresa_id),
         ator_usuario_id=int(usuario.id),
         acao="mesa_pendencia_atualizada",
-        resumo=f"Pendência de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} {'resolvida' if dados.lida else 'reaberta'}.",
+        resumo=(
+            f"Pendência de {_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} {'resolvida' if dados.lida else 'reaberta'}."
+        ),
         detalhe="A pendência foi atualizada pelo admin-cliente.",
         payload={"laudo_id": int(laudo_id), "mensagem_id": int(mensagem_id), "lida": bool(dados.lida)},
     )
@@ -2167,9 +2158,16 @@ async def api_mesa_avaliar_cliente(
         empresa_id=int(usuario.empresa_id),
         ator_usuario_id=int(usuario.id),
         acao="mesa_laudo_avaliado",
-        resumo=f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} {'aprovado' if acao_normalizada == 'aprovar' else 'devolvido'} pela mesa.",
-        detalhe=_resumir_texto_auditoria(str(payload.get('motivo') or dados.motivo or "Avaliação registrada pelo admin-cliente.")),
-        payload={"laudo_id": int(laudo_id), "acao": acao_normalizada or str(dados.acao or ""), "motivo": str(payload.get("motivo") or dados.motivo or "")},
+        resumo=(
+            f"{_titulo_laudo_cliente(banco, empresa_id=int(usuario.empresa_id), laudo_id=laudo_id)} "
+            f"{'aprovado' if acao_normalizada == 'aprovar' else 'devolvido'} pela mesa."
+        ),
+        detalhe=_resumir_texto_auditoria(str(payload.get("motivo") or dados.motivo or "Avaliação registrada pelo admin-cliente.")),
+        payload={
+            "laudo_id": int(laudo_id),
+            "acao": acao_normalizada or str(dados.acao or ""),
+            "motivo": str(payload.get("motivo") or dados.motivo or ""),
+        },
     )
     return resposta
 

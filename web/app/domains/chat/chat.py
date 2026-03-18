@@ -125,6 +125,7 @@ async def sse_notificacoes_inspetor(
     usuario: Usuario = Depends(exigir_inspetor),
 ):
     if os.getenv("SCHEMATHESIS_TEST_HINTS") == "1":
+
         async def gerador_hint():
             yield evento_sse({"tipo": "conectado", "usuario_id": usuario.id})
 
@@ -363,11 +364,7 @@ async def rota_chat(
     empresa_id_atual = usuario.empresa_id
     usuario_id_atual = usuario.id
     usuario_nome_atual = usuario_nome(usuario)
-    card_laudo_payload = (
-        serializar_card_laudo(banco, laudo)
-        if primeira_interacao_real and laudo_possui_historico_visivel(banco, laudo)
-        else None
-    )
+    card_laudo_payload = serializar_card_laudo(banco, laudo) if primeira_interacao_real and laudo_possui_historico_visivel(banco, laudo) else None
 
     if eh_whisper_para_mesa:
 
@@ -622,9 +619,7 @@ async def salvar_mensagem_ia(
                 )
 
                 if is_deep and citacoes:
-                    banco.query(CitacaoLaudo).filter(CitacaoLaudo.laudo_id == laudo_id).delete(
-                        synchronize_session=False
-                    )
+                    banco.query(CitacaoLaudo).filter(CitacaoLaudo.laudo_id == laudo_id).delete(synchronize_session=False)
 
                     for citacao in citacoes:
                         referencia = str(citacao.get("referencia", "") or "")[:300].strip()
@@ -678,18 +673,9 @@ async def obter_mensagens_laudo(
 ):
     laudo = obter_laudo_do_inspetor(banco, laudo_id, usuario)
     estado_contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
-    card_laudo = (
-        serializar_card_laudo(banco, laudo)
-        if laudo_possui_historico_visivel(banco, laudo)
-        else None
-    )
+    card_laudo = serializar_card_laudo(banco, laudo) if laudo_possui_historico_visivel(banco, laudo) else None
 
-    citacoes_laudo = (
-        banco.query(CitacaoLaudo)
-        .filter(CitacaoLaudo.laudo_id == laudo_id)
-        .order_by(CitacaoLaudo.ordem.asc())
-        .all()
-    )
+    citacoes_laudo = banco.query(CitacaoLaudo).filter(CitacaoLaudo.laudo_id == laudo_id).order_by(CitacaoLaudo.ordem.asc()).all()
 
     citacoes_list = [
         {
@@ -740,9 +726,7 @@ async def obter_mensagens_laudo(
                     "modo": laudo.modo_resposta or MODO_DETALHADO,
                     "tipo": TipoMensagem.IA.value,
                     "citacoes": citacoes_list,
-                    "confianca_ia": normalizar_payload_confianca_ia(
-                        getattr(laudo, "confianca_ia_json", None) or {}
-                    ),
+                    "confianca_ia": normalizar_payload_confianca_ia(getattr(laudo, "confianca_ia_json", None) or {}),
                 }
             )
 
@@ -861,8 +845,7 @@ async def rota_pdf(
                 )
             except Exception:
                 logger.warning(
-                    "Falha ao gerar PDF pelo template ativo. Aplicando fallback legacy. "
-                    "| empresa_id=%s | usuario_id=%s | laudo_id=%s | template_id=%s",
+                    "Falha ao gerar PDF pelo template ativo. Aplicando fallback legacy. | empresa_id=%s | usuario_id=%s | laudo_id=%s | template_id=%s",
                     usuario.empresa_id,
                     usuario.id,
                     laudo.id if laudo else None,

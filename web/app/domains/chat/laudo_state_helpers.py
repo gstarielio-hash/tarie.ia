@@ -19,12 +19,7 @@ CARD_STATUS_LABELS = {
 
 
 def laudo_tem_interacao(banco: Session, laudo_id: int) -> bool:
-    return (
-        banco.query(MensagemLaudo.id)
-        .filter(MensagemLaudo.laudo_id == laudo_id)
-        .first()
-        is not None
-    )
+    return banco.query(MensagemLaudo.id).filter(MensagemLaudo.laudo_id == laudo_id).first() is not None
 
 
 def laudo_possui_historico_visivel(banco: Session, laudo: Laudo) -> bool:
@@ -79,9 +74,7 @@ def laudo_permite_reabrir(banco: Session, laudo: Laudo) -> bool:
 def serializar_card_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]:
     status_card = obter_status_card_laudo(banco, laudo)
     preview = str(laudo.primeira_mensagem or "").strip()
-    titulo = str(laudo.setor_industrial or "").strip() or nome_template_humano(
-        str(laudo.tipo_template or "padrao")
-    )
+    titulo = str(laudo.setor_industrial or "").strip() or nome_template_humano(str(laudo.tipo_template or "padrao"))
 
     return {
         "id": int(laudo.id),

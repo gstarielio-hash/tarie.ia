@@ -207,15 +207,11 @@ def _rodar_ciclo_inspetor(
             rota_sucesso_regex=rf"{re.escape(base_url)}/app/?$",
         )
     else:
-        expect(page).to_have_url(
-            re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$")
-        )
+        expect(page).to_have_url(re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$"))
     metricas["home_checks"] += 1
 
     page.reload(wait_until="domcontentloaded")
-    expect(page).to_have_url(
-        re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$")
-    )
+    expect(page).to_have_url(re.compile(rf"{re.escape(base_url)}/app/(?:\?laudo=\d+)?$"))
     metricas["reload_checks"] += 1
 
     deletar = _api_fetch_retry(
@@ -226,6 +222,7 @@ def _rodar_ciclo_inspetor(
     metricas["retries_api_total"] += int(deletar.get("_tentativas", 1)) - 1
     assert deletar["status"] == 200, deletar
     metricas["laudos_excluidos"] += 1
+
 
 def test_e2e_local_parallel_jornada_multipla(
     browser: Browser,
@@ -391,10 +388,7 @@ def test_e2e_local_parallel_jornada_multipla(
         )
         metricas["retries_api_total"] += int(hist_chat.get("_tentativas", 1)) - 1
         assert hist_chat["status"] == 200, hist_chat
-        assert all(
-            item.get("tipo") not in {"humano_insp", "humano_eng"}
-            for item in hist_chat["body"]["itens"]
-        )
+        assert all(item.get("tipo") not in {"humano_insp", "humano_eng"} for item in hist_chat["body"]["itens"])
 
         deletar_final = _api_fetch_retry(
             page_a,
@@ -417,4 +411,3 @@ def test_e2e_local_parallel_jornada_multipla(
         ctx_b.close()
         ctx_revisor.close()
         ctx_admin.close()
-

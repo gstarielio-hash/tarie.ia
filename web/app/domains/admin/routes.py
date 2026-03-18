@@ -1088,9 +1088,7 @@ async def atualizar_crea_usuario_operacional(
             crea=crea_limpo,
         )
         mensagem = (
-            f"CREA atualizado para {usuario_atualizado.nome_completo}."
-            if usuario_atualizado.crea
-            else f"CREA removido de {usuario_atualizado.nome_completo}."
+            f"CREA atualizado para {usuario_atualizado.nome_completo}." if usuario_atualizado.crea else f"CREA removido de {usuario_atualizado.nome_completo}."
         )
         return _redirect_ok(f"{URL_CLIENTES}/{empresa_id}", mensagem)
 

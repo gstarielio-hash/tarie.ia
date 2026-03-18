@@ -64,9 +64,7 @@ MAPA_VERIFICACOES_CBMGO: dict[str, dict[str, str]] = {
 class ItemChecklist(BaseModel):
     """Estrutura base para qualquer item de checklist do laudo."""
 
-    condicao: CondicaoEnum = Field(
-        description="Selecione 'C' (Conforme), 'NC' (Não Conforme) ou 'N/A' (Não se Aplica) com base no relato."
-    )
+    condicao: CondicaoEnum = Field(description="Selecione 'C' (Conforme), 'NC' (Não Conforme) ou 'N/A' (Não se Aplica) com base no relato.")
     localizacao: Optional[str] = Field(
         default="",
         description="Localização do item avaliado (setor, ambiente, pavimento, equipamento).",
@@ -189,10 +187,6 @@ class RelatorioCBMGO(BaseModel):
     verificacao_documental: VerificacaoDocumental
     recomendacoes_gerais: RecomendacoesGerais
     coleta_assinaturas: ColetaAssinaturas = Field(default_factory=ColetaAssinaturas)
-    resumo_executivo: str = Field(
-        description=(
-            "Um parágrafo de resumo destacando principais achados, criticidades e orientação para validação de engenharia."
-        )
-    )
+    resumo_executivo: str = Field(description=("Um parágrafo de resumo destacando principais achados, criticidades e orientação para validação de engenharia."))
 
     model_config = ConfigDict(extra="ignore")

@@ -67,11 +67,7 @@ def _nome_resolvedor_pacote(msg: MensagemLaudo) -> str:
 
     resolvedor = getattr(msg, "resolvida_por", None)
     if resolvedor is not None:
-        return (
-            getattr(resolvedor, "nome", None)
-            or getattr(resolvedor, "nome_completo", None)
-            or f"Usuario #{msg.resolvida_por_id}"
-        )
+        return getattr(resolvedor, "nome", None) or getattr(resolvedor, "nome_completo", None) or f"Usuario #{msg.resolvida_por_id}"
 
     return f"Usuario #{msg.resolvida_por_id}"
 
@@ -177,11 +173,7 @@ def montar_pacote_mesa_laudo(
     pendencias_abertas = [msg for msg in mensagens_mesa if msg.resolvida_em is None]
     pendencias_resolvidas = [msg for msg in mensagens_mesa if msg.resolvida_em is not None]
     pendencias_resolvidas.sort(
-        key=lambda msg: (
-            _normalizar_data_utc(msg.resolvida_em)
-            or _normalizar_data_utc(msg.criado_em)
-            or agora_utc()
-        ),
+        key=lambda msg: (_normalizar_data_utc(msg.resolvida_em) or _normalizar_data_utc(msg.criado_em) or agora_utc()),
         reverse=True,
     )
 
@@ -189,11 +181,7 @@ def montar_pacote_mesa_laudo(
     whispers_recentes = list(reversed(whispers[-limite_whispers_seguro:]))
 
     revisoes = (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo.id)
-        .order_by(LaudoRevisao.numero_versao.desc())
-        .limit(limite_revisoes_seguro)
-        .all()
+        banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo.id).order_by(LaudoRevisao.numero_versao.desc()).limit(limite_revisoes_seguro).all()
     )
 
     ultima_interacao = None

@@ -19,12 +19,8 @@ depends_on = None
 
 def upgrade() -> None:
     with op.batch_alter_table("laudos", schema=None) as batch_op:
-        batch_op.add_column(
-            sa.Column("encerrado_pelo_inspetor_em", sa.DateTime(timezone=True), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column("reabertura_pendente_em", sa.DateTime(timezone=True), nullable=True)
-        )
+        batch_op.add_column(sa.Column("encerrado_pelo_inspetor_em", sa.DateTime(timezone=True), nullable=True))
+        batch_op.add_column(sa.Column("reabertura_pendente_em", sa.DateTime(timezone=True), nullable=True))
         batch_op.add_column(sa.Column("reaberto_em", sa.DateTime(timezone=True), nullable=True))
 
 

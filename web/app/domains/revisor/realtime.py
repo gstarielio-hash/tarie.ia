@@ -163,9 +163,7 @@ class RedisRevisorRealtimeTransport(RevisorRealtimeTransport):
         try:
             import redis.asyncio as redis  # type: ignore[import-not-found]
         except ModuleNotFoundError as exc:
-            raise RuntimeError(
-                "Backend realtime redis exige o pacote 'redis'. Instale a dependência antes de iniciar."
-            ) from exc
+            raise RuntimeError("Backend realtime redis exige o pacote 'redis'. Instale a dependência antes de iniciar.") from exc
 
         self._redis = redis.from_url(self._redis_url, decode_responses=True)
         self._pubsub = self._redis.pubsub()

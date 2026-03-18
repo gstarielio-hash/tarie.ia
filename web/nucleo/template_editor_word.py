@@ -358,11 +358,7 @@ def _render_nodes_html(
             continue
 
         if tipo == "table":
-            partes.append(
-                "<table><tbody>"
-                + _render_nodes_html(filhos, dados_formulario=dados_formulario, assets_map=assets_map)
-                + "</tbody></table>"
-            )
+            partes.append("<table><tbody>" + _render_nodes_html(filhos, dados_formulario=dados_formulario, assets_map=assets_map) + "</tbody></table>")
             continue
 
         if tipo == "tableRow":
@@ -393,9 +389,7 @@ def _render_nodes_html(
                 largura_style = ""
                 if isinstance(width, (int, float)) and 40 <= float(width) <= 1200:
                     largura_style = f' style="max-width:{int(width)}px;"'
-                partes.append(
-                    f'<p><img src="{html.escape(src_final, quote=True)}" alt="{alt}"{largura_style}></p>'
-                )
+                partes.append(f'<p><img src="{html.escape(src_final, quote=True)}" alt="{alt}"{largura_style}></p>')
             continue
 
         partes.append(_render_nodes_html(filhos, dados_formulario=dados_formulario, assets_map=assets_map))
@@ -432,11 +426,7 @@ def montar_html_documento_editor(
 
     watermark_html = ""
     if watermark_texto:
-        watermark_html = (
-            '<div class="tariel-watermark">'
-            + watermark_texto
-            + "</div>"
-        )
+        watermark_html = '<div class="tariel-watermark">' + watermark_texto + "</div>"
 
     html_doc = f"""
 <!doctype html>

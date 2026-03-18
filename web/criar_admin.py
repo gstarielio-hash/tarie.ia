@@ -1,6 +1,7 @@
 # criar_admin.py — rode com: python criar_admin.py
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 from banco_dados import SessaoLocal, Empresa, Usuario, NivelAcesso, PlanoEmpresa

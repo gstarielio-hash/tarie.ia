@@ -607,11 +607,7 @@ def gerar_exportacao_pacote_mesa_laudo_pdf(
     nome_arquivo_tmp = f"Pacote_Mesa_{laudo.id}_{uuid.uuid4().hex[:12]}.pdf"
     caminho_pdf = os.path.join(tempfile.gettempdir(), nome_arquivo_tmp)
 
-    nome_empresa = (
-        getattr(usuario.empresa, "nome_fantasia", None)
-        or getattr(usuario.empresa, "razao_social", None)
-        or f"Empresa #{usuario.empresa_id}"
-    )
+    nome_empresa = getattr(usuario.empresa, "nome_fantasia", None) or getattr(usuario.empresa, "razao_social", None) or f"Empresa #{usuario.empresa_id}"
 
     inspetor_nome = "Nao informado"
     if pacote.inspetor_id:

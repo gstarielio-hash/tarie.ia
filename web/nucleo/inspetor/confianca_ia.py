@@ -247,4 +247,3 @@ def _titulo_confianca_humano(nivel: str) -> str:
         CONFIANCA_BAIXA: "Baixa",
     }
     return mapa.get(str(nivel or "").strip().lower(), "Media")
-

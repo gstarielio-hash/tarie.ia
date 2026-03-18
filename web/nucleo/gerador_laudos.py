@@ -407,11 +407,7 @@ class GeradorLaudos:
             pdf.set_font("helvetica", "", 8)
             mapa_verificacao = MAPA_VERIFICACOES_CBMGO.get(chave_secao, {})
             chaves_ordenadas = [chave for chave in mapa_verificacao if chave in conteudo_secao]
-            chaves_ordenadas.extend(
-                chave
-                for chave in conteudo_secao.keys()
-                if chave not in mapa_verificacao
-            )
+            chaves_ordenadas.extend(chave for chave in conteudo_secao.keys() if chave not in mapa_verificacao)
 
             # Linhas da Tabela
             for key in chaves_ordenadas:
@@ -824,30 +820,21 @@ class GeradorLaudos:
         pdf.cell(
             0,
             6,
-            (
-                f"Template: {texto_seguro(tipo_template, 80)} | "
-                f"Setor: {texto_seguro(setor_industrial, 80)}"
-            ),
+            (f"Template: {texto_seguro(tipo_template, 80)} | Setor: {texto_seguro(setor_industrial, 80)}"),
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
         )
         pdf.cell(
             0,
             6,
-            (
-                f"Status revisao: {texto_seguro(status_revisao, 60)} | "
-                f"Conformidade: {texto_seguro(status_conformidade, 60)}"
-            ),
+            (f"Status revisao: {texto_seguro(status_revisao, 60)} | Conformidade: {texto_seguro(status_conformidade, 60)}"),
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
         )
         pdf.cell(
             0,
             6,
-            (
-                f"Ultima interacao: {texto_seguro(ultima_interacao, 40)} | "
-                f"Tempo em campo: {inteiro(tempo_em_campo_minutos)} min"
-            ),
+            (f"Ultima interacao: {texto_seguro(ultima_interacao, 40)} | Tempo em campo: {inteiro(tempo_em_campo_minutos)} min"),
             new_x=XPos.LMARGIN,
             new_y=YPos.NEXT,
         )
@@ -924,11 +911,7 @@ class GeradorLaudos:
                 pdf.set_text_color(0, 0, 0)
                 pdf.multi_cell(0, 6, texto)
                 if anexos:
-                    nomes_anexos = ", ".join(
-                        texto_seguro(anexo.get("nome"), 120)
-                        for anexo in anexos[:3]
-                        if anexo.get("nome")
-                    )
+                    nomes_anexos = ", ".join(texto_seguro(anexo.get("nome"), 120) for anexo in anexos[:3] if anexo.get("nome"))
                     if nomes_anexos:
                         pdf.set_text_color(80, 80, 80)
                         pdf.set_x(pdf.l_margin)
@@ -978,11 +961,7 @@ class GeradorLaudos:
                 anexos = whisper.get("anexos") or []
                 pdf.multi_cell(0, 5, f"[{criado}] {texto}")
                 if anexos:
-                    nomes_anexos = ", ".join(
-                        texto_seguro(anexo.get("nome"), 120)
-                        for anexo in anexos[:3]
-                        if anexo.get("nome")
-                    )
+                    nomes_anexos = ", ".join(texto_seguro(anexo.get("nome"), 120) for anexo in anexos[:3] if anexo.get("nome"))
                     if nomes_anexos:
                         pdf.set_text_color(80, 80, 80)
                         pdf.set_x(pdf.l_margin)

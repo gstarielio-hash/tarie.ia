@@ -159,9 +159,7 @@ async def atualizar_pendencia_laudo(
     resolvedor_nome = ""
     if mensagem.resolvida_por_id:
         resolvedor_nome = (
-            getattr(mensagem.resolvida_por, "nome", None)
-            or getattr(mensagem.resolvida_por, "nome_completo", None)
-            or f"Usuário #{mensagem.resolvida_por_id}"
+            getattr(mensagem.resolvida_por, "nome", None) or getattr(mensagem.resolvida_por, "nome_completo", None) or f"Usuário #{mensagem.resolvida_por_id}"
         )
 
     return resposta_json_ok(
@@ -201,11 +199,7 @@ async def exportar_pendencias_laudo_pdf(
 
     nome_empresa = ""
     if usuario.empresa:
-        nome_empresa = (
-            getattr(usuario.empresa, "nome_fantasia", None)
-            or getattr(usuario.empresa, "razao_social", None)
-            or ""
-        )
+        nome_empresa = getattr(usuario.empresa, "nome_fantasia", None) or getattr(usuario.empresa, "razao_social", None) or ""
     assinatura_mesa = obter_assinatura_mesa_para_pdf(
         banco,
         laudo_id=laudo_id,

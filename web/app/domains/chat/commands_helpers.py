@@ -112,12 +112,7 @@ def montar_resposta_comando_resumo(
         )
         .count()
     )
-    total_revisoes = (
-        banco.query(func.count(LaudoRevisao.id))
-        .filter(LaudoRevisao.laudo_id == laudo.id)
-        .scalar()
-        or 0
-    )
+    total_revisoes = banco.query(func.count(LaudoRevisao.id)).filter(LaudoRevisao.laudo_id == laudo.id).scalar() or 0
     ultima_revisao = _obter_ultima_revisao_laudo(banco, laudo.id)
     confianca = normalizar_payload_confianca_ia(getattr(laudo, "confianca_ia_json", None) or {})
     confianca_geral = _titulo_confianca_humano(confianca.get("geral", CONFIANCA_MEDIA))
@@ -144,10 +139,7 @@ def montar_resposta_comando_resumo(
             if revisao_anterior:
                 diff = _gerar_diff_revisoes(revisao_anterior.conteudo or "", ultima_revisao.conteudo or "")
                 resumo_diff = _resumo_diff_revisoes(diff)
-                linhas.append(
-                    "- Mudanças da última revisão: "
-                    f"**+{resumo_diff['linhas_adicionadas']} / -{resumo_diff['linhas_removidas']}**"
-                )
+                linhas.append(f"- Mudanças da última revisão: **+{resumo_diff['linhas_adicionadas']} / -{resumo_diff['linhas_removidas']}**")
 
     if gate.get("aprovado", False):
         linhas.append("- Gate de qualidade: **aprovado**")
@@ -194,12 +186,7 @@ def montar_resposta_comando_previa(
     confianca = normalizar_payload_confianca_ia(getattr(laudo, "confianca_ia_json", None) or {})
     confianca_geral = _titulo_confianca_humano(confianca.get("geral", CONFIANCA_MEDIA))
     ultima_revisao = _obter_ultima_revisao_laudo(banco, laudo.id)
-    total_revisoes = (
-        banco.query(func.count(LaudoRevisao.id))
-        .filter(LaudoRevisao.laudo_id == laudo.id)
-        .scalar()
-        or 0
-    )
+    total_revisoes = banco.query(func.count(LaudoRevisao.id)).filter(LaudoRevisao.laudo_id == laudo.id).scalar() or 0
 
     linhas = [
         "### Prévia Operacional do Laudo",
@@ -218,10 +205,7 @@ def montar_resposta_comando_previa(
     ]
 
     if total_revisoes:
-        linhas.append(
-            f"**Versão atual:** v{ultima_revisao.numero_versao if ultima_revisao else total_revisoes} "
-            f"({total_revisoes} revisão(ões))"
-        )
+        linhas.append(f"**Versão atual:** v{ultima_revisao.numero_versao if ultima_revisao else total_revisoes} ({total_revisoes} revisão(ões))")
 
     pontos_humanos = confianca.get("pontos_validacao_humana", []) or []
     if pontos_humanos:

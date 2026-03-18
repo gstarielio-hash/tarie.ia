@@ -48,4 +48,3 @@ def test_parser_finalizacao_aceita_formato_novo_e_legado() -> None:
     )
     assert ok_legado is True
     assert tipo_legado == "spda"
-

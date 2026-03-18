@@ -126,9 +126,7 @@ AMBIENTE: Final[str] = _settings.ambiente
 EM_PRODUCAO: Final[bool] = _settings.em_producao
 APP_VERSAO: Final[str] = _settings.app_versao
 PORTA_APP: Final[int] = _settings.porta
-HOST_BIND_APP: Final[str] = _normalizar_host(
-    _settings.host_bind
-) or ("0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
+HOST_BIND_APP: Final[str] = _normalizar_host(_settings.host_bind) or ("0.0.0.0" if not EM_PRODUCAO else "0.0.0.0")
 LOG_LEVEL_DEV_ROOT: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_ROOT", logging.INFO)
 LOG_LEVEL_DEV_TARIEL: Final[int] = _obter_nivel_log_env("LOG_LEVEL_DEV_TARIEL", logging.DEBUG)
 REDIS_URL: Final[str | None] = _settings.redis_url or None
@@ -304,16 +302,11 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
             if not isinstance(variantes, list):
                 continue
 
-            aceita_vazio = any(
-                isinstance(item, dict) and item.get("maxLength") == 0
-                for item in variantes
-            )
+            aceita_vazio = any(isinstance(item, dict) and item.get("maxLength") == 0 for item in variantes)
             if not aceita_vazio:
                 variantes.insert(0, {"type": "string", "maxLength": 0})
 
-    body_mesa_anexo = components.get(
-        "Body_enviar_mensagem_mesa_laudo_com_anexo_app_api_laudo__laudo_id__mesa_anexo_post"
-    )
+    body_mesa_anexo = components.get("Body_enviar_mensagem_mesa_laudo_com_anexo_app_api_laudo__laudo_id__mesa_anexo_post")
     if isinstance(body_mesa_anexo, dict):
         props = body_mesa_anexo.setdefault("properties", {})
         arquivo = props.get("arquivo")
@@ -322,9 +315,7 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
             arquivo["format"] = "binary"
             arquivo["minLength"] = 1
 
-    body_perfil_foto = components.get(
-        "Body_api_upload_foto_perfil_usuario_app_api_perfil_foto_post"
-    )
+    body_perfil_foto = components.get("Body_api_upload_foto_perfil_usuario_app_api_perfil_foto_post")
     if isinstance(body_perfil_foto, dict):
         props = body_perfil_foto.setdefault("properties", {})
         foto = props.get("foto")
@@ -367,9 +358,7 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
                 if isinstance(campo, dict):
                     campo["enum"] = valores
 
-    body_resposta_anexo_revisor = components.get(
-        "Body_responder_chat_campo_com_anexo_revisao_api_laudo__laudo_id__responder_anexo_post"
-    )
+    body_resposta_anexo_revisor = components.get("Body_responder_chat_campo_com_anexo_revisao_api_laudo__laudo_id__responder_anexo_post")
     if isinstance(body_resposta_anexo_revisor, dict):
         props = body_resposta_anexo_revisor.setdefault("properties", {})
         arquivo = props.get("arquivo")
@@ -390,9 +379,7 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
             arquivo["format"] = "binary"
             arquivo["minLength"] = 1
 
-    body_asset_template = components.get(
-        "Body_upload_asset_template_editor_laudo_revisao_api_templates_laudo_editor__template_id__assets_post"
-    )
+    body_asset_template = components.get("Body_upload_asset_template_editor_laudo_revisao_api_templates_laudo_editor__template_id__assets_post")
     if isinstance(body_asset_template, dict):
         props = body_asset_template.setdefault("properties", {})
         arquivo = props.get("arquivo")
@@ -401,9 +388,7 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
             arquivo["format"] = "binary"
             arquivo["minLength"] = 1
 
-    body_upload_template = components.get(
-        "Body_upload_template_laudo_revisao_api_templates_laudo_upload_post"
-    )
+    body_upload_template = components.get("Body_upload_template_laudo_revisao_api_templates_laudo_upload_post")
     if isinstance(body_upload_template, dict):
         props = body_upload_template.setdefault("properties", {})
         for nome_campo, tamanho_minimo in {"nome": 1, "codigo_template": 1}.items():
@@ -446,9 +431,10 @@ def _ajustar_openapi_contratos_inspetor(schema: dict) -> None:
                         schema_param["minimum"] = 1
                     if hints_schemathesis:
                         ids_fixos = ids_por_operacao.get((str(method).lower(), path), {})
-                        valores = ids_fixos.get(parametro.get("name"))
-                        if valores:
-                            schema_param["enum"] = valores
+                        if isinstance(ids_fixos, dict):
+                            valor_enum = ids_fixos.get(parametro.get("name"))
+                            if isinstance(valor_enum, list) and valor_enum:
+                                schema_param["enum"] = valor_enum
 
 
 def _limpar_openapi_para_rotas_de_api(schema: dict) -> None:

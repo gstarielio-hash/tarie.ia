@@ -6,6 +6,7 @@ const {
   limparBuildsProjetoAndroid,
 } = require("./cleanup-android-build-artifacts.cjs");
 const { fixAndroidLauncherIcon } = require("./fix-android-launcher-icon.cjs");
+const { fixLinuxNodeExecutables } = require("./fix-linux-node-executables.cjs");
 
 function binJavaExists(javaHome) {
   if (!javaHome) {
@@ -17,11 +18,17 @@ function binJavaExists(javaHome) {
 }
 
 function findJavaHome() {
+  const home = process.env.HOME || process.env.USERPROFILE || "";
   const candidates = [
     process.env.JAVA_HOME,
     process.env.ANDROID_STUDIO_JBR,
     "C:\\Program Files\\Android\\Android Studio\\jbr",
     path.join(process.env.LOCALAPPDATA || "", "Programs", "Android Studio", "jbr"),
+    home && path.join(home, "android-studio", "jbr"),
+    "/opt/android-studio/jbr",
+    "/usr/lib/jvm/default-java",
+    "/usr/lib/jvm/java-17-openjdk-amd64",
+    "/usr/lib/jvm/java-21-openjdk-amd64",
     "/Applications/Android Studio.app/Contents/jbr/Contents/Home",
     "/Applications/Android Studio.app/Contents/jbr",
   ].filter(Boolean);
@@ -30,10 +37,14 @@ function findJavaHome() {
 }
 
 function findAndroidSdk() {
+  const home = process.env.HOME || process.env.USERPROFILE || "";
   const candidates = [
     process.env.ANDROID_HOME,
     process.env.ANDROID_SDK_ROOT,
     path.join(process.env.LOCALAPPDATA || "", "Android", "Sdk"),
+    home && path.join(home, "Android", "Sdk"),
+    home && path.join(home, "Android", "sdk"),
+    home && path.join(home, ".android", "sdk"),
   ].filter(Boolean);
 
   return candidates.find((sdkPath) => existsSync(path.join(sdkPath, "platform-tools"))) || null;
@@ -52,8 +63,8 @@ function findNodeBinary() {
 
 function ensureLocalProperties(androidSdkPath) {
   const localPropertiesPath = path.join(process.cwd(), "android", "local.properties");
-  const escapedSdkPath = androidSdkPath.replace(/\\/g, "\\\\");
-  writeFileSync(localPropertiesPath, `sdk.dir=${escapedSdkPath}\n`, "utf8");
+  const sdkDir = process.platform === "win32" ? androidSdkPath.replace(/\\/g, "\\\\") : androidSdkPath;
+  writeFileSync(localPropertiesPath, `sdk.dir=${sdkDir}\n`, "utf8");
 }
 
 function lerApiBaseUrlDoEnv() {
@@ -97,6 +108,7 @@ if (!nodeBinary) {
 
 ensureLocalProperties(androidSdk);
 fixAndroidLauncherIcon(process.cwd());
+fixLinuxNodeExecutables(process.cwd());
 
 const apiBaseUrl =
   process.env.EXPO_PUBLIC_API_BASE_URL ||
@@ -112,10 +124,6 @@ const env = {
   ANDROID_SDK_ROOT: androidSdk,
   NODE_BINARY: nodeBinary,
   EXPO_PUBLIC_API_BASE_URL: apiBaseUrl,
-  PATHEXT:
-    process.env.PATHEXT && process.env.PATHEXT.includes(".EXE")
-      ? process.env.PATHEXT
-      : ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC",
   PATH: [
     path.dirname(nodeBinary),
     path.join(javaHome, "bin"),
@@ -124,6 +132,13 @@ const env = {
     process.env.PATH || "",
   ].join(path.delimiter),
 };
+
+if (process.platform === "win32") {
+  env.PATHEXT =
+    process.env.PATHEXT && process.env.PATHEXT.includes(".EXE")
+      ? process.env.PATHEXT
+      : ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC";
+}
 
 const androidCwd = path.join(process.cwd(), "android");
 const gradleStopCommand = process.platform === "win32" ? "cmd.exe" : "./gradlew";

@@ -173,9 +173,7 @@ def _nome_resolvedor_mensagem(mensagem: MensagemLaudo) -> str:
 
     if mensagem.resolvida_por is not None:
         return (
-            getattr(mensagem.resolvida_por, "nome", None)
-            or getattr(mensagem.resolvida_por, "nome_completo", None)
-            or f"Usuário #{mensagem.resolvida_por_id}"
+            getattr(mensagem.resolvida_por, "nome", None) or getattr(mensagem.resolvida_por, "nome_completo", None) or f"Usuário #{mensagem.resolvida_por_id}"
         )
 
     return f"Usuário #{mensagem.resolvida_por_id}"
@@ -201,11 +199,7 @@ def _contar_mensagens_nao_lidas_por_laudo(
         .group_by(MensagemLaudo.laudo_id)
         .all()
     )
-    return {
-        int(laudo_id): int(total or 0)
-        for laudo_id, total in linhas
-        if int(laudo_id or 0) > 0
-    }
+    return {int(laudo_id): int(total or 0) for laudo_id, total in linhas if int(laudo_id or 0) > 0}
 
 
 def _marcar_whispers_lidos_laudo(banco: Session, *, laudo_id: int) -> int:
@@ -245,9 +239,7 @@ def _serializar_mensagem(m: MensagemLaudo, com_data_longa: bool = False) -> dict
     payload: dict[str, Any] = {
         "id": m.id,
         "tipo": m.tipo,
-        "texto": texto_mensagem_mesa_visivel(m.conteudo, anexos=getattr(m, "anexos_mesa", None))
-        if m.is_whisper
-        else texto_limpo,
+        "texto": texto_mensagem_mesa_visivel(m.conteudo, anexos=getattr(m, "anexos_mesa", None)) if m.is_whisper else texto_limpo,
         "data": (m.criado_em.strftime("%d/%m/%Y %H:%M") if com_data_longa else m.criado_em.strftime("%d/%m %H:%M")),
         "is_whisper": m.is_whisper,
         "remetente_id": m.remetente_id,
@@ -277,10 +269,7 @@ def _listar_mensagens_laudo_paginadas(
     mensagens_pagina = list(reversed(mensagens_desc[:limite]))
 
     return {
-        "itens": [
-            _serializar_mensagem(m, com_data_longa=com_data_longa)
-            for m in mensagens_pagina
-        ],
+        "itens": [_serializar_mensagem(m, com_data_longa=com_data_longa) for m in mensagens_pagina],
         "tem_mais": tem_mais,
         "cursor_proximo": mensagens_pagina[0].id if tem_mais and mensagens_pagina else None,
     }

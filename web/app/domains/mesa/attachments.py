@@ -162,11 +162,7 @@ def serializar_anexos_mesa(
     *,
     portal: str | None = None,
 ) -> list[dict[str, Any]]:
-    return [
-        serializar_anexo_mesa(anexo, portal=portal)
-        for anexo in list(anexos or [])
-        if anexo is not None
-    ]
+    return [serializar_anexo_mesa(anexo, portal=portal) for anexo in list(anexos or []) if anexo is not None]
 
 
 __all__ = [

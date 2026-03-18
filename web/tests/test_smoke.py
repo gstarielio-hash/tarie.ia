@@ -226,9 +226,7 @@ def test_openapi_do_inspetor_endurece_request_bodies_criticos() -> None:
     assert {"type": "string", "maxLength": 0} in variantes_tipo
     assert {"type": "string", "maxLength": 0} in variantes_alias
 
-    body_mesa_anexo = schema["components"]["schemas"][
-        "Body_enviar_mensagem_mesa_laudo_com_anexo_app_api_laudo__laudo_id__mesa_anexo_post"
-    ]
+    body_mesa_anexo = schema["components"]["schemas"]["Body_enviar_mensagem_mesa_laudo_com_anexo_app_api_laudo__laudo_id__mesa_anexo_post"]
     assert body_mesa_anexo["properties"]["arquivo"]["minLength"] == 1
     assert body_mesa_anexo["properties"]["arquivo"]["format"] == "binary"
     assert "contentMediaType" not in body_mesa_anexo["properties"]["arquivo"]
@@ -300,8 +298,23 @@ def test_openapi_expoe_endpoints_mobile_do_inspetor() -> None:
     assert "/app/api/mobile/auth/login" in paths
     assert "/app/api/mobile/bootstrap" in paths
     assert "/app/api/mobile/laudos" in paths
+    assert "/app/api/mobile/account/profile" in paths
+    assert "/app/api/mobile/account/password" in paths
+    assert "/app/api/mobile/account/photo" in paths
+    assert "/app/api/mobile/account/settings" in paths
+    assert "/app/api/mobile/support/report" in paths
     assert "/app/api/mobile/auth/logout" in paths
     assert "requestBody" in paths["/app/api/mobile/auth/login"]["post"]
+    assert "requestBody" in paths["/app/api/mobile/account/profile"]["put"]
+    assert "requestBody" in paths["/app/api/mobile/account/password"]["post"]
+    assert "requestBody" in paths["/app/api/mobile/account/photo"]["post"]
+    assert "requestBody" in paths["/app/api/mobile/account/settings"]["put"]
+    assert "requestBody" in paths["/app/api/mobile/support/report"]["post"]
+
+    settings_body_ref = paths["/app/api/mobile/account/settings"]["put"]["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+    settings_body_name = settings_body_ref.rsplit("/", maxsplit=1)[-1]
+    settings_body_schema = schema["components"]["schemas"][settings_body_name]
+    assert "experiencia_ia" in settings_body_schema["properties"]
 
 
 def test_base_mobile_do_inspetor_foi_isolada_em_android() -> None:
@@ -320,10 +333,7 @@ def test_base_mobile_do_inspetor_foi_isolada_em_android() -> None:
     assert app_mobile["expo"]["slug"] == "tariel-inspetor"
     assert app_mobile["expo"]["android"]["package"] == "com.tarielia.inspetor"
     assert "expo-document-picker" in app_mobile["expo"]["plugins"]
-    assert any(
-        isinstance(item, list) and item[0] == "expo-image-picker"
-        for item in app_mobile["expo"]["plugins"]
-    )
+    assert any(isinstance(item, list) and item[0] == "expo-image-picker" for item in app_mobile["expo"]["plugins"])
     assert (android_raiz / "src" / "features" / "InspectorMobileApp.tsx").exists()
     assert "login mobile do inspetor via token bearer" in readme_mobile
     assert "home mobile mais estruturada, com cards rápidos de contexto para fluxo, conexão, laudos e fila local" in readme_mobile
@@ -356,9 +366,7 @@ def test_openapi_do_revisor_endurece_templates_laudo_para_schemathesis(monkeypat
     finally:
         main.app.openapi_schema = None
 
-    body_asset = schema["components"]["schemas"][
-        "Body_upload_asset_template_editor_laudo_revisao_api_templates_laudo_editor__template_id__assets_post"
-    ]
+    body_asset = schema["components"]["schemas"]["Body_upload_asset_template_editor_laudo_revisao_api_templates_laudo_editor__template_id__assets_post"]
     assert body_asset["properties"]["arquivo"]["minLength"] == 1
     assert body_asset["properties"]["arquivo"]["format"] == "binary"
     assert "contentMediaType" not in body_asset["properties"]["arquivo"]
@@ -413,8 +421,8 @@ def test_run_schemathesis_carrega_hooks_binarios() -> None:
     hooks = (raiz / "scripts" / "schemathesis_hooks.py").read_text(encoding="utf-8")
     common = (raiz / "scripts" / "test_common.ps1").read_text(encoding="utf-8")
 
-    assert 'SCHEMATHESIS_HOOKS' in script
-    assert 'scripts\\schemathesis_hooks.py' in script
+    assert "SCHEMATHESIS_HOOKS" in script
+    assert "scripts\\schemathesis_hooks.py" in script
     assert 'ValidateSet("publico", "inspetor", "revisor", "cliente", "admin")' in script
     assert 'ValidateSet("inspetor", "revisor", "cliente", "admin")' in common
     assert '@schemathesis.deserializer("application/pdf")' in hooks
@@ -431,7 +439,7 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
 
     assert 'action="/cliente/login"' in login_cliente
     assert "Portal Admin-Cliente" in login_cliente
-    assert '/static/css/shared/auth_shell.css?v={{ v_app }}' in login_cliente
+    assert "/static/css/shared/auth_shell.css?v={{ v_app }}" in login_cliente
     assert "/revisao/login" in login_cliente
 
     assert 'id="hero-prioridades"' in portal_cliente
@@ -473,8 +481,8 @@ def test_templates_cliente_explicitam_abas_e_formularios_principais() -> None:
     assert 'id="mesa-alertas-operacionais"' in portal_cliente
     assert 'id="chat-contexto"' in portal_cliente
     assert 'id="mesa-contexto"' in portal_cliente
-    assert '/static/css/cliente/portal.css?v={{ v_app }}' in portal_cliente
-    assert '/static/js/cliente/portal.js?v={{ v_app }}' in portal_cliente
+    assert "/static/css/cliente/portal.css?v={{ v_app }}" in portal_cliente
+    assert "/static/js/cliente/portal.js?v={{ v_app }}" in portal_cliente
     assert "plano_sugerido" in portal_js
     assert "usuario-capacidade-nota" in portal_js
     assert "admin-planos-historico" in portal_js
@@ -569,15 +577,15 @@ def test_portais_principais_referenciam_logo_horizontal_da_marca() -> None:
     clientes = (raiz / "templates" / "clientes.html").read_text(encoding="utf-8")
     detalhe = (raiz / "templates" / "cliente_detalhe.html").read_text(encoding="utf-8")
 
-    assert '/static/img/logo-horizontal-dark.png' in login_admin
-    assert '/static/img/logo-horizontal-dark.png' in login_cliente
-    assert '/static/img/logo-horizontal-dark.png' in login_app
-    assert '/static/img/logo-horizontal-dark.png' in login_revisor
-    assert '/static/img/logo-horizontal-dark.png' in trocar_senha
-    assert '/static/img/logo-horizontal-dark.png' in portal_cliente
-    assert '/static/img/logo-horizontal-dark.png' in dashboard
-    assert '/static/img/logo-horizontal-dark.png' in clientes
-    assert '/static/img/logo-horizontal-dark.png' in detalhe
+    assert "/static/img/logo-horizontal-dark.png" in login_admin
+    assert "/static/img/logo-horizontal-dark.png" in login_cliente
+    assert "/static/img/logo-horizontal-dark.png" in login_app
+    assert "/static/img/logo-horizontal-dark.png" in login_revisor
+    assert "/static/img/logo-horizontal-dark.png" in trocar_senha
+    assert "/static/img/logo-horizontal-dark.png" in portal_cliente
+    assert "/static/img/logo-horizontal-dark.png" in dashboard
+    assert "/static/img/logo-horizontal-dark.png" in clientes
+    assert "/static/img/logo-horizontal-dark.png" in detalhe
 
 
 def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None:

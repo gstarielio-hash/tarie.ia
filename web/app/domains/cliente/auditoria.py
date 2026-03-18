@@ -81,11 +81,7 @@ def serializar_registro_auditoria(registro: RegistroAuditoriaEmpresa) -> dict[st
         "detalhe": str(registro.detalhe or ""),
         "payload": registro.payload_json or {},
         "criado_em": criado_em.isoformat() if criado_em else "",
-        "criado_em_label": (
-            criado_em.astimezone().strftime("%d/%m/%Y %H:%M")
-            if criado_em
-            else "Agora"
-        ),
+        "criado_em_label": (criado_em.astimezone().strftime("%d/%m/%Y %H:%M") if criado_em else "Agora"),
         "ator_usuario_id": int(registro.ator_usuario_id) if registro.ator_usuario_id else None,
         "ator_nome": getattr(ator, "nome", None) or getattr(ator, "nome_completo", None) or "Sistema",
         "alvo_usuario_id": int(registro.alvo_usuario_id) if registro.alvo_usuario_id else None,

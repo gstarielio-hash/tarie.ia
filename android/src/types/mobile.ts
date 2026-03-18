@@ -26,6 +26,63 @@ export interface MobileLoginResponse {
   usuario: MobileUser;
 }
 
+export interface MobileAccountProfileResponse {
+  ok: boolean;
+  usuario: MobileUser;
+}
+
+export interface MobileAccountPasswordResponse {
+  ok: boolean;
+  message: string;
+}
+
+export interface MobileSupportReportResponse {
+  ok: boolean;
+  protocolo: string;
+  status: string;
+}
+
+export interface MobileCriticalNotificationsSettings {
+  notifica_respostas: boolean;
+  notifica_push: boolean;
+  som_notificacao: string;
+  vibracao_ativa: boolean;
+  emails_ativos: boolean;
+}
+
+export interface MobileCriticalPrivacySettings {
+  mostrar_conteudo_notificacao: boolean;
+  ocultar_conteudo_bloqueado: boolean;
+  mostrar_somente_nova_mensagem: boolean;
+  salvar_historico_conversas: boolean;
+  compartilhar_melhoria_ia: boolean;
+  retencao_dados: string;
+}
+
+export interface MobileCriticalPermissionsSettings {
+  microfone_permitido: boolean;
+  camera_permitida: boolean;
+  arquivos_permitidos: boolean;
+  notificacoes_permitidas: boolean;
+  biometria_permitida: boolean;
+}
+
+export interface MobileCriticalAiExperienceSettings {
+  modelo_ia: "rápido" | "equilibrado" | "avançado";
+}
+
+export interface MobileCriticalSettings {
+  notificacoes: MobileCriticalNotificationsSettings;
+  privacidade: MobileCriticalPrivacySettings;
+  permissoes: MobileCriticalPermissionsSettings;
+  experiencia_ia: MobileCriticalAiExperienceSettings;
+}
+
+export interface MobileCriticalSettingsResponse {
+  ok: boolean;
+  settings: MobileCriticalSettings;
+}
+
 export interface MobileBootstrapResponse {
   ok: boolean;
   app: {

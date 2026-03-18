@@ -135,12 +135,7 @@ async def api_iniciar_relatorio(
         except Exception:
             payload_json = {}
 
-        tipo_template_bruto = str(
-            payload_json.get("tipo_template")
-            or payload_json.get("tipotemplate")
-            or payload_json.get("template")
-            or ""
-        ).strip().lower()
+        tipo_template_bruto = str(payload_json.get("tipo_template") or payload_json.get("tipotemplate") or payload_json.get("template") or "").strip().lower()
 
     if not tipo_template_bruto:
         tipo_template_bruto = "padrao"
@@ -204,12 +199,7 @@ async def api_finalizar_relatorio(
 
     if laudo.tipo_template == "cbmgo" and not laudo.dados_formulario:
         try:
-            mensagens = (
-                banco.query(MensagemLaudo)
-                .filter(MensagemLaudo.laudo_id == laudo_id)
-                .order_by(MensagemLaudo.criado_em.asc())
-                .all()
-            )
+            mensagens = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo_id).order_by(MensagemLaudo.criado_em.asc()).all()
 
             historico = [
                 {
@@ -380,12 +370,7 @@ async def listar_revisoes_laudo(
 ):
     _ = obter_laudo_do_inspetor(banco, laudo_id, usuario)
 
-    revisoes = (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id)
-        .order_by(LaudoRevisao.numero_versao.asc(), LaudoRevisao.id.asc())
-        .all()
-    )
+    revisoes = banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo_id).order_by(LaudoRevisao.numero_versao.asc(), LaudoRevisao.id.asc()).all()
 
     ultima = revisoes[-1] if revisoes else None
     return resposta_json_ok(
@@ -408,10 +393,7 @@ async def obter_diff_revisoes_laudo(
     _ = obter_laudo_do_inspetor(banco, laudo_id, usuario)
 
     revisoes_desc = (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id)
-        .order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc())
-        .all()
+        banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo_id).order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc()).all()
     )
     if len(revisoes_desc) < 2:
         raise HTTPException(
@@ -499,6 +481,7 @@ async def rota_deletar_laudo(
     banco.commit()
 
     return resposta_json_ok({"ok": True})
+
 
 pinar_laudo = rota_pin_laudo
 excluir_laudo = rota_deletar_laudo

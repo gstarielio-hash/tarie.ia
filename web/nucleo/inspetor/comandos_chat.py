@@ -79,4 +79,3 @@ def analisar_comando_finalizacao(
         return True, normalizar_tipo_template(match_legado.group(1) or "padrao")
 
     return False, "padrao"
-

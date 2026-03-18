@@ -84,9 +84,7 @@ async def listar_mensagens_mesa_laudo(
             "estado": contexto["estado"],
             "permite_edicao": contexto["permite_edicao"],
             "permite_reabrir": contexto["permite_reabrir"],
-            "laudo_card": serializar_card_laudo(banco, laudo)
-            if laudo_possui_historico_visivel(banco, laudo)
-            else None,
+            "laudo_card": serializar_card_laudo(banco, laudo) if laudo_possui_historico_visivel(banco, laudo) else None,
         }
     )
 

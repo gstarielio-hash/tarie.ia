@@ -119,11 +119,7 @@ async def painel_revisor(
         referencia = item.criado_em or item.atualizado_em
         minutos_em_campo = _minutos_em_campo(referencia)
         tempo_label, tempo_status = _resumo_tempo_em_campo(referencia)
-        inspetor_nome = (
-            item.usuario.nome
-            if item.usuario is not None
-            else (f"Inspetor #{item.usuario_id}" if item.usuario_id else "Inspetor não identificado")
-        )
+        inspetor_nome = item.usuario.nome if item.usuario is not None else (f"Inspetor #{item.usuario_id}" if item.usuario_id else "Inspetor não identificado")
         atualizado_em = item.atualizado_em or item.criado_em
         laudos_em_andamento_payload.append(
             {

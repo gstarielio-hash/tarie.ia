@@ -52,4 +52,3 @@ def test_titulo_humano_da_confianca() -> None:
     assert _titulo_confianca_humano("media") == "Media"
     assert _titulo_confianca_humano("baixa") == "Baixa"
     assert _titulo_confianca_humano("desconhecido") == "Media"
-

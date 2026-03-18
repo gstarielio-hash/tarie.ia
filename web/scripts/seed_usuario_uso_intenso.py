@@ -57,11 +57,7 @@ USUARIOS_CARGA: Final[tuple[UsuarioCarga, ...]] = (
 
 
 def _garantir_empresa(banco) -> Empresa:
-    empresa = (
-        banco.query(Empresa)
-        .filter((Empresa.nome_fantasia == EMPRESA_NOME) | (Empresa.cnpj == EMPRESA_CNPJ))
-        .first()
-    )
+    empresa = banco.query(Empresa).filter((Empresa.nome_fantasia == EMPRESA_NOME) | (Empresa.cnpj == EMPRESA_CNPJ)).first()
     if empresa:
         empresa.nome_fantasia = EMPRESA_NOME
         empresa.cnpj = EMPRESA_CNPJ

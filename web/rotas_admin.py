@@ -33,23 +33,24 @@ from servicos_saas import (
     resetar_senha_inspetor,
 )
 
-logger      = logging.getLogger("tariel.admin")
+logger = logging.getLogger("tariel.admin")
 EM_PRODUCAO = os.getenv("AMBIENTE", "desenvolvimento").lower() == "producao"
 
 roteador_admin = APIRouter()
-templates      = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="templates")
 
 
 # ── Helpers de contexto ────────────────────────────────────────────────────────
+
 
 def _contexto_base(request: Request) -> dict:
     if "csrf_token" not in request.session:
         request.session["csrf_token"] = secrets.token_urlsafe(32)
 
     return {
-        "request":    request,
+        "request": request,
         "csrf_token": request.session["csrf_token"],
-        "csp_nonce":  getattr(request.state, "csp_nonce", ""),
+        "csp_nonce": getattr(request.state, "csp_nonce", ""),
     }
 
 
@@ -63,18 +64,15 @@ def _redirect_login() -> RedirectResponse:
 
 
 def _redirect_ok(url: str, msg: str) -> RedirectResponse:
-    return RedirectResponse(
-        url=f"{url}?sucesso={urllib.parse.quote(msg)}", status_code=303
-    )
+    return RedirectResponse(url=f"{url}?sucesso={urllib.parse.quote(msg)}", status_code=303)
 
 
 def _redirect_err(url: str, msg: str) -> RedirectResponse:
-    return RedirectResponse(
-        url=f"{url}?erro={urllib.parse.quote(msg)}", status_code=303
-    )
+    return RedirectResponse(url=f"{url}?erro={urllib.parse.quote(msg)}", status_code=303)
 
 
 # ── Login / Logout ─────────────────────────────────────────────────────────────
+
 
 @roteador_admin.get("/login", response_class=HTMLResponse)
 async def tela_login(request: Request):
@@ -87,15 +85,15 @@ async def tela_login(request: Request):
 
 @roteador_admin.post("/login")
 async def processar_login(
-    request:    Request,
+    request: Request,
     # FIX: Form(default="") em vez de Form(...) — evita RequestValidationError
     # quando os campos chegam vazios (JS bloqueado por CSP sem nonce, por exemplo).
     # A validação de obrigatoriedade é feita manualmente abaixo, retornando
     # o template com erro amigável em vez de JSON 422 bruto no browser.
-    email:      str     = Form(default=""),
-    senha:      str     = Form(default=""),
-    csrf_token: str     = Form(default=""),
-    banco:      Session = Depends(obter_banco),
+    email: str = Form(default=""),
+    senha: str = Form(default=""),
+    csrf_token: str = Form(default=""),
+    banco: Session = Depends(obter_banco),
 ):
     ctx = _contexto_base(request)
 
@@ -150,7 +148,9 @@ async def processar_login(
 
     logger.info(
         "Login bem-sucedido | usuario_id=%d empresa_id=%d ip=%s",
-        usuario.id, usuario.empresa_id, ip,
+        usuario.id,
+        usuario.empresa_id,
+        ip,
     )
 
     return RedirectResponse(url="/admin/painel", status_code=303)
@@ -158,7 +158,7 @@ async def processar_login(
 
 @roteador_admin.post("/logout")
 async def fazer_logout(
-    request:    Request,
+    request: Request,
     csrf_token: str = Form(default=""),
 ):
     if not _validar_csrf(request, csrf_token):
@@ -173,53 +173,61 @@ async def fazer_logout(
 
 # ── Painel ─────────────────────────────────────────────────────────────────────
 
+
 @roteador_admin.get("/painel", response_class=HTMLResponse)
 async def painel_faturamento(
     request: Request,
-    banco:   Session           = Depends(obter_banco),
+    banco: Session = Depends(obter_banco),
     usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
 
-    return templates.TemplateResponse("dashboard.html", {
-        **_contexto_base(request),
-        "dados":   buscar_metricas_ia_painel(banco),
-        "usuario": usuario,
-    })
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            **_contexto_base(request),
+            "dados": buscar_metricas_ia_painel(banco),
+            "usuario": usuario,
+        },
+    )
 
 
 # ── Novo Cliente (wizard) ──────────────────────────────────────────────────────
 
+
 @roteador_admin.get("/novo-cliente", response_class=HTMLResponse)
 async def pagina_novo_cliente(
     request: Request,
-    banco:   Session           = Depends(obter_banco),
+    banco: Session = Depends(obter_banco),
     usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
 
-    return templates.TemplateResponse("novo_cliente.html", {
-        **_contexto_base(request),
-        "usuario": usuario,
-    })
+    return templates.TemplateResponse(
+        "novo_cliente.html",
+        {
+            **_contexto_base(request),
+            "usuario": usuario,
+        },
+    )
 
 
 @roteador_admin.post("/novo-cliente")
 async def processar_novo_cliente(
-    request:          Request,
-    csrf_token:       str = Form(default=""),
-    nome:             str = Form(...),
-    cnpj:             str = Form(...),
-    segmento:         str = Form(""),
-    cidade_estado:    str = Form(""),
-    plano:            str = Form(...),
-    email:            str = Form(...),
+    request: Request,
+    csrf_token: str = Form(default=""),
+    nome: str = Form(...),
+    cnpj: str = Form(...),
+    segmento: str = Form(""),
+    cidade_estado: str = Form(""),
+    plano: str = Form(...),
+    email: str = Form(...),
     nome_responsavel: str = Form(""),
-    observacoes:      str = Form(""),
-    banco:            Session           = Depends(obter_banco),
-    usuario:          Optional[Usuario] = Depends(obter_usuario_html),
+    observacoes: str = Form(""),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -228,7 +236,11 @@ async def processar_novo_cliente(
 
     try:
         empresa, _ = registrar_novo_cliente(
-            banco, nome, cnpj, email, plano,
+            banco,
+            nome,
+            cnpj,
+            email,
+            plano,
             segmento=segmento,
             cidade_estado=cidade_estado,
             nome_responsavel=nome_responsavel,
@@ -247,14 +259,14 @@ async def processar_novo_cliente(
 
 @roteador_admin.post("/cadastrar-empresa")
 async def cadastrar_empresa(
-    request:    Request,
-    csrf_token: str     = Form(default=""),
-    nome:       str     = Form(...),
-    cnpj:       str     = Form(...),
-    email:      str     = Form(...),
-    plano:      str     = Form(...),
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    request: Request,
+    csrf_token: str = Form(default=""),
+    nome: str = Form(...),
+    cnpj: str = Form(...),
+    email: str = Form(...),
+    plano: str = Form(...),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -273,35 +285,39 @@ async def cadastrar_empresa(
 
 # ── Clientes SaaS ──────────────────────────────────────────────────────────────
 
+
 @roteador_admin.get("/clientes", response_class=HTMLResponse)
 async def lista_clientes(
     request: Request,
-    nome:    str     = "",
-    plano:   str     = "",
-    banco:   Session           = Depends(obter_banco),
+    nome: str = "",
+    plano: str = "",
+    banco: Session = Depends(obter_banco),
     usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
 
     clientes = buscar_todos_clientes(banco, filtro_nome=nome, filtro_plano=plano)
-    return templates.TemplateResponse("clientes.html", {
-        **_contexto_base(request),
-        "usuario":         usuario,
-        "clientes":        clientes,
-        "filtro_nome":     nome,
-        "filtro_plano":    plano,
-        "total_ativos":    sum(1 for c in clientes if not c.status_bloqueio),
-        "total_bloqueios": sum(1 for c in clientes if c.status_bloqueio),
-    })
+    return templates.TemplateResponse(
+        "clientes.html",
+        {
+            **_contexto_base(request),
+            "usuario": usuario,
+            "clientes": clientes,
+            "filtro_nome": nome,
+            "filtro_plano": plano,
+            "total_ativos": sum(1 for c in clientes if not c.status_bloqueio),
+            "total_bloqueios": sum(1 for c in clientes if c.status_bloqueio),
+        },
+    )
 
 
 @roteador_admin.get("/clientes/{empresa_id}", response_class=HTMLResponse)
 async def detalhe_cliente(
-    request:    Request,
+    request: Request,
     empresa_id: int,
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -310,20 +326,23 @@ async def detalhe_cliente(
     if not dados:
         return _redirect_err("/admin/clientes", "Empresa não encontrada.")
 
-    return templates.TemplateResponse("cliente_detalhe.html", {
-        **_contexto_base(request),
-        "usuario": usuario,
-        **dados,
-    })
+    return templates.TemplateResponse(
+        "cliente_detalhe.html",
+        {
+            **_contexto_base(request),
+            "usuario": usuario,
+            **dados,
+        },
+    )
 
 
 @roteador_admin.post("/clientes/{empresa_id}/bloquear")
 async def toggle_bloqueio(
-    request:    Request,
+    request: Request,
     empresa_id: int,
-    csrf_token: str     = Form(default=""),
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    csrf_token: str = Form(default=""),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -340,12 +359,12 @@ async def toggle_bloqueio(
 
 @roteador_admin.post("/clientes/{empresa_id}/trocar-plano")
 async def trocar_plano(
-    request:    Request,
+    request: Request,
     empresa_id: int,
-    csrf_token: str     = Form(default=""),
-    plano:      str     = Form(...),
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    csrf_token: str = Form(default=""),
+    plano: str = Form(...),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -361,12 +380,12 @@ async def trocar_plano(
 
 @roteador_admin.post("/clientes/{empresa_id}/resetar-senha/{usuario_id}")
 async def resetar_senha(
-    request:    Request,
+    request: Request,
     empresa_id: int,
     usuario_id: int,
-    csrf_token: str     = Form(default=""),
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    csrf_token: str = Form(default=""),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()
@@ -377,7 +396,8 @@ async def resetar_senha(
         resetar_senha_inspetor(banco, usuario_id)
         logger.info(
             "Senha redefinida | usuario_id=%d por admin_id=%d",
-            usuario_id, usuario.id,
+            usuario_id,
+            usuario.id,
         )
         return _redirect_ok(
             f"/admin/clientes/{empresa_id}",
@@ -389,13 +409,13 @@ async def resetar_senha(
 
 @roteador_admin.post("/clientes/{empresa_id}/adicionar-inspetor")
 async def novo_inspetor(
-    request:    Request,
+    request: Request,
     empresa_id: int,
-    csrf_token: str     = Form(default=""),
-    nome:       str     = Form(...),
-    email:      str     = Form(...),
-    banco:      Session           = Depends(obter_banco),
-    usuario:    Optional[Usuario] = Depends(obter_usuario_html),
+    csrf_token: str = Form(default=""),
+    nome: str = Form(...),
+    email: str = Form(...),
+    banco: Session = Depends(obter_banco),
+    usuario: Optional[Usuario] = Depends(obter_usuario_html),
 ):
     if not usuario:
         return _redirect_login()

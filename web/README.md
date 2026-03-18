@@ -32,22 +32,22 @@ Observação: os wrappers legados da raiz foram removidos. Use apenas os módulo
 
 1. Criar e ativar ambiente virtual:
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```bash
+python3 -m venv .venv-linux
+source .venv-linux/bin/activate
 ```
 
 2. Instalar dependências:
 
-```powershell
+```bash
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
 3. Configurar variáveis de ambiente:
 
-```powershell
-Copy-Item .env.example .env
+```bash
+cp .env.example .env
 ```
 
 Segurança: nunca versione `.env` nem credenciais JSON (`visao_wf.local.json`/equivalentes).
@@ -62,7 +62,7 @@ Segurança: nunca versione `.env` nem credenciais JSON (`visao_wf.local.json`/eq
 
 5. Bootstrap de seed dev (opcional e explícito):
 
-```powershell
+```bash
 # 1) Habilite temporariamente no .env
 SEED_DEV_BOOTSTRAP=1
 
@@ -80,7 +80,7 @@ Isso funciona bem em desenvolvimento e em instância única.
 
 Para preparar múltiplos workers/instâncias, habilite o backend distribuído:
 
-```powershell
+```bash
 REDIS_URL=redis://localhost:6379/0
 REVISOR_REALTIME_BACKEND=redis
 REVISOR_REALTIME_CHANNEL_PREFIX=tariel:revisor
@@ -104,8 +104,8 @@ no serviço web para o realtime distribuído da mesa.
 
 Execução completa recomendada (varredura recursiva com evidência por subpasta):
 
-```powershell
-.\validar_pipeline.ps1
+```bash
+./validar_pipeline.sh
 ```
 
 Esse script valida, nesta ordem:
@@ -122,7 +122,7 @@ Esse script valida, nesta ordem:
 
 Se quiser executar manualmente a parte Python:
 
-```powershell
+```bash
 python -m ruff format .
 python -m ruff check .
 python scripts/check_chat_architecture.py
@@ -152,22 +152,21 @@ Usuários seed usados nos E2E:
 
 Executar:
 
-```powershell
-$env:RUN_E2E="1"
-python -m pytest tests/e2e -q --browser chromium
+```bash
+RUN_E2E=1 python -m pytest tests/e2e -q --browser chromium
 ```
 
 Com trace/vídeo/screenshot em falha:
 
-```powershell
-.\tests\e2e\run_playwright.ps1
+```bash
+./tests/e2e/run_playwright.sh
 ```
 
 Por padrão os E2E ficam desativados (skip) quando `RUN_E2E` não é `1`.
 
 ## Bancada avançada de testes
 
-Ferramentas adicionais instaladas na `.venv`:
+Ferramentas adicionais instaladas na `.venv-linux` (ou `.venv`, se você preferir um único ambiente compartilhado):
 
 - `pytest-xdist`: execução paralela
 - `pytest-cov`: cobertura
@@ -179,23 +178,23 @@ Ferramentas adicionais instaladas na `.venv`:
 
 Scripts prontos:
 
-```powershell
+```bash
 # pytest em paralelo (mantém ordem estável por padrão)
-.\scripts\run_pytest_parallel.ps1 tests
+./scripts/run_pytest_parallel.sh tests
 
 # cobertura HTML/XML
-.\scripts\run_pytest_coverage.ps1 tests
+./scripts/run_pytest_coverage.sh tests
 
 # relatório HTML + JUnit + Allure results
-.\scripts\run_pytest_report.ps1 tests
+./scripts/run_pytest_report.sh tests
 
 # schema/property-based contra FastAPI local temporário
-.\scripts\run_schemathesis.ps1 -Portal inspetor
-.\scripts\run_schemathesis.ps1 -Portal revisor
-.\scripts\run_schemathesis.ps1 -Portal admin
+./scripts/run_schemathesis.sh --portal inspetor
+./scripts/run_schemathesis.sh --portal revisor
+./scripts/run_schemathesis.sh --portal admin
 
 # carga básica com login seed e relatório HTML/CSV
-.\scripts\run_locust.ps1 -Users 8 -SpawnRate 2 -RunTime 1m
+./scripts/run_locust.sh --users 8 --spawn-rate 2 --run-time 1m
 ```
 
 Saídas geradas:
@@ -205,13 +204,13 @@ Saídas geradas:
 - schemathesis: `.test-artifacts/schemathesis`
 - locust: `.test-artifacts/locust`
 
-Observação: `pytest-randomly` está instalado, mas os scripts de execução contínua desabilitam a randomização por padrão para evitar flake desnecessário no dia a dia. Se quiser forçar ordem aleatória, use `-RandomOrder` nos scripts de pytest.
+Observação: `pytest-randomly` está instalado, mas os scripts de execução contínua desabilitam a randomização por padrão para evitar flake desnecessário no dia a dia. Se quiser forçar ordem aleatória, use `--random-order` nos scripts de pytest.
 
 ## Migrações de banco (Alembic)
 
 Comandos principais:
 
-```powershell
+```bash
 # aplicar migrações até o head
 python -m alembic upgrade head
 
@@ -221,22 +220,22 @@ python -m alembic revision --autogenerate -m "descricao_da_mudanca"
 
 ## Start
 
-```powershell
+```bash
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Também disponível em:
 
-```powershell
-.\iniciar_sistema.bat
+```bash
+./iniciar_sistema.sh
 ```
 
 ## Preview online (URL pública temporária)
 
 Para testar no navegador fora do `localhost` (celular, cliente, time):
 
-```powershell
-.\scripts\start_online_preview.ps1
+```bash
+./scripts/start_online_preview.sh
 ```
 
 O script:
@@ -249,16 +248,18 @@ O script:
 Por padrão, ele usa um banco SQLite isolado em `.tmp_online/preview_online.db` (não mexe no banco principal).
 Se quiser forçar o banco do projeto:
 
-```powershell
-.\scripts\start_online_preview.ps1 -UseProjectDatabase
+```bash
+./scripts/start_online_preview.sh --use-project-database
 ```
 
 Para encerrar tudo:
 
-```powershell
-.\scripts\stop_online_preview.ps1
+```bash
+./scripts/stop_online_preview.sh
 ```
-`run_schemathesis.ps1` carrega automaticamente [schemathesis_hooks.py](C:/Users/gabri/Desktop/Tariel/Tariel%20Control/scripts/schemathesis_hooks.py) para desserializar respostas binárias (`PDF`, imagens e `octet-stream`) e evitar warnings desnecessários no contrato.
+`run_schemathesis.sh` carrega automaticamente [scripts/schemathesis_hooks.py](./scripts/schemathesis_hooks.py) para desserializar respostas binárias (`PDF`, imagens e `octet-stream`) e evitar warnings desnecessários no contrato.
+
+Observação: os wrappers PowerShell e `.bat` continuam disponíveis para quem ainda roda o workspace no Windows.
 
 ## Deploy inicial no Render
 

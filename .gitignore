@@ -1,4 +1,5 @@
 .venv/
+.venv-linux/
 venv/
 __pycache__/
 .pytest_cache/
@@ -42,5 +43,8 @@ review-*.png
 fotos/
 local-mobile-api.log
 local-mobile-api.error.log
+local-mobile-api.pid
 android/expo-mobile.log
 android/assets/*preview*.png
+scripts/*keyboard-layout.png
+web/static/uploads/

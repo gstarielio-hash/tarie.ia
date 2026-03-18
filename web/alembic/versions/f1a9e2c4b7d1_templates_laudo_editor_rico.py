@@ -38,11 +38,7 @@ def upgrade() -> None:
             "modo_editor IN ('legado_pdf', 'editor_rico')",
         )
 
-    op.execute(
-        "UPDATE templates_laudo "
-        "SET modo_editor = 'legado_pdf' "
-        "WHERE modo_editor IS NULL OR TRIM(modo_editor) = ''"
-    )
+    op.execute("UPDATE templates_laudo SET modo_editor = 'legado_pdf' WHERE modo_editor IS NULL OR TRIM(modo_editor) = ''")
 
     with op.batch_alter_table("templates_laudo", schema=None) as batch_op:
         batch_op.alter_column("modo_editor", server_default=None)
@@ -54,4 +50,3 @@ def downgrade() -> None:
         batch_op.drop_column("assets_json")
         batch_op.drop_column("documento_editor_json")
         batch_op.drop_column("modo_editor")
-

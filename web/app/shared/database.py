@@ -573,10 +573,7 @@ class Usuario(MixinAuditoria, Base):
     __tablename__ = "usuarios"
     __table_args__ = (
         CheckConstraint(
-            (
-                f"nivel_acesso IN ({int(NivelAcesso.INSPETOR)}, {int(NivelAcesso.REVISOR)}, "
-                f"{int(NivelAcesso.ADMIN_CLIENTE)}, {int(NivelAcesso.DIRETORIA)})"
-            ),
+            (f"nivel_acesso IN ({int(NivelAcesso.INSPETOR)}, {int(NivelAcesso.REVISOR)}, {int(NivelAcesso.ADMIN_CLIENTE)}, {int(NivelAcesso.DIRETORIA)})"),
             name="ck_usuario_nivel_acesso_valido",
         ),
         CheckConstraint(
@@ -618,6 +615,12 @@ class Usuario(MixinAuditoria, Base):
         "TemplateLaudo",
         foreign_keys="TemplateLaudo.criado_por_id",
         back_populates="criado_por",
+    )
+    preferencias_mobile = relationship(
+        "PreferenciaMobileUsuario",
+        uselist=False,
+        back_populates="usuario",
+        cascade="all, delete-orphan",
     )
 
     @validates("nivel_acesso")
@@ -676,6 +679,35 @@ class Usuario(MixinAuditoria, Base):
 
 
 # =========================================================
+# MODELO: PREFERENCIAMOBILEUSUARIO
+# =========================================================
+
+
+class PreferenciaMobileUsuario(MixinAuditoria, Base):
+    __tablename__ = "preferencias_mobile_usuarios"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", name="uq_preferencias_mobile_usuario"),
+        Index("ix_preferencias_mobile_usuario", "usuario_id"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    notificacoes_json = Column(JSON, nullable=False, default=dict)
+    privacidade_json = Column(JSON, nullable=False, default=dict)
+    permissoes_json = Column(JSON, nullable=False, default=dict)
+    experiencia_ia_json = Column(JSON, nullable=False, default=dict)
+
+    usuario = relationship("Usuario", back_populates="preferencias_mobile")
+
+    def __repr__(self) -> str:
+        return f"<PreferenciaMobileUsuario id={self.id} usuario_id={self.usuario_id}>"
+
+
+# =========================================================
 # MODELO: REGISTROAUDITORIAEMPRESA
 # =========================================================
 
@@ -718,10 +750,7 @@ class RegistroAuditoriaEmpresa(MixinAuditoria, Base):
     alvo_usuario = relationship("Usuario", foreign_keys=[alvo_usuario_id])
 
     def __repr__(self) -> str:
-        return (
-            f"<RegistroAuditoriaEmpresa id={self.id} empresa_id={self.empresa_id} "
-            f"acao={self.acao!r} portal={self.portal!r}>"
-        )
+        return f"<RegistroAuditoriaEmpresa id={self.id} empresa_id={self.empresa_id} acao={self.acao!r} portal={self.portal!r}>"
 
 
 # =========================================================
@@ -954,10 +983,7 @@ class TemplateLaudo(MixinAuditoria, Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<TemplateLaudo id={self.id} empresa_id={self.empresa_id} "
-            f"codigo={self.codigo_template!r} versao={self.versao} ativo={self.ativo}>"
-        )
+        return f"<TemplateLaudo id={self.id} empresa_id={self.empresa_id} codigo={self.codigo_template!r} versao={self.versao} ativo={self.ativo}>"
 
 
 # =========================================================
@@ -1026,10 +1052,7 @@ class LaudoRevisao(Base):
     laudo = relationship("Laudo", back_populates="revisoes")
 
     def __repr__(self) -> str:
-        return (
-            f"<LaudoRevisao id={self.id} laudo_id={self.laudo_id} "
-            f"versao={self.numero_versao} origem={self.origem!r}>"
-        )
+        return f"<LaudoRevisao id={self.id} laudo_id={self.laudo_id} versao={self.numero_versao} origem={self.origem!r}>"
 
 
 # =========================================================
@@ -1167,10 +1190,7 @@ class AnexoMesa(Base):
     enviado_por = relationship("Usuario", foreign_keys=[enviado_por_id])
 
     def __repr__(self) -> str:
-        return (
-            f"<AnexoMesa id={self.id} mensagem_id={self.mensagem_id} "
-            f"categoria={self.categoria!r}>"
-        )
+        return f"<AnexoMesa id={self.id} mensagem_id={self.mensagem_id} categoria={self.categoria!r}>"
 
 
 # =========================================================
@@ -1204,14 +1224,10 @@ def _aplicar_migracoes_versionadas() -> None:
         from alembic import command
         from alembic.config import Config as AlembicConfig
     except (ModuleNotFoundError, ImportError) as erro:
-        raise RuntimeError(
-            "Falha ao importar Alembic. Execute 'pip install -r requirements.txt' no .venv ativo."
-        ) from erro
+        raise RuntimeError("Falha ao importar Alembic. Execute 'pip install -r requirements.txt' no .venv ativo.") from erro
 
     if not _ALEMBIC_INI.exists() or not _ALEMBIC_DIR.exists():
-        raise RuntimeError(
-            "Estrutura do Alembic não encontrada. Esperado: alembic.ini e pasta alembic/."
-        )
+        raise RuntimeError("Estrutura do Alembic não encontrada. Esperado: alembic.ini e pasta alembic/.")
 
     config = AlembicConfig(str(_ALEMBIC_INI))
     config.set_main_option("script_location", _ALEMBIC_DIR.as_posix())
@@ -1232,9 +1248,7 @@ def _aplicar_migracoes_versionadas() -> None:
 
         config.attributes["connection"] = conn
         if schema_legado_pronto and (sem_versionamento or versao_vazia):
-            logger.warning(
-                "Schema legado detectado sem versionamento Alembic. Aplicando stamp no head."
-            )
+            logger.warning("Schema legado detectado sem versionamento Alembic. Aplicando stamp no head.")
             command.stamp(config, "head")
         else:
             command.upgrade(config, "head")
@@ -1249,9 +1263,7 @@ def inicializar_banco() -> None:
         if not _EM_PRODUCAO and _SEED_DEV_BOOTSTRAP:
             _seed_dev()
         elif not _EM_PRODUCAO:
-            logger.info(
-                "Seed DEV desabilitado (SEED_DEV_BOOTSTRAP=0). Nenhum usuário/senha de seed foi criado."
-            )
+            logger.info("Seed DEV desabilitado (SEED_DEV_BOOTSTRAP=0). Nenhum usuário/senha de seed foi criado.")
 
         with motor_banco.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -1364,9 +1376,7 @@ def _bootstrap_admin_inicial_producao() -> None:
     cnpj_empresa = re.sub(r"\D+", "", env_str("BOOTSTRAP_EMPRESA_CNPJ", "11111111111111"))
 
     if not email_admin or not senha_admin:
-        logger.info(
-            "Bootstrap inicial de produção ignorado: configure BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD para criar o primeiro acesso."
-        )
+        logger.info("Bootstrap inicial de produção ignorado: configure BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD para criar o primeiro acesso.")
         return
 
     if len(cnpj_empresa) != 14:

@@ -258,10 +258,7 @@ def _primeira_mensagem_qualificada(laudo: Laudo) -> bool:
     texto_lower = texto.lower()
     if texto_lower in {"nova conversa", "imagem enviada", "[imagem]"}:
         return False
-    if (
-        texto_lower.startswith("relatório ")
-        or texto_lower.startswith("relatorio ")
-    ) and "iniciado" in texto_lower:
+    if (texto_lower.startswith("relatório ") or texto_lower.startswith("relatorio ")) and "iniciado" in texto_lower:
         return False
 
     texto_util = re.sub(r"[\W_]+", "", texto, flags=re.UNICODE)
@@ -383,17 +380,8 @@ def avaliar_gate_qualidade_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]
         REGRAS_GATE_QUALIDADE_TEMPLATE["padrao"],
     )
 
-    mensagens = (
-        banco.query(MensagemLaudo)
-        .filter(MensagemLaudo.laudo_id == laudo.id)
-        .order_by(MensagemLaudo.criado_em.asc())
-        .all()
-    )
-    mensagens_usuario = [
-        item
-        for item in mensagens
-        if item.tipo in (TipoMensagem.USER.value, TipoMensagem.HUMANO_INSP.value)
-    ]
+    mensagens = banco.query(MensagemLaudo).filter(MensagemLaudo.laudo_id == laudo.id).order_by(MensagemLaudo.criado_em.asc()).all()
+    mensagens_usuario = [item for item in mensagens if item.tipo in (TipoMensagem.USER.value, TipoMensagem.HUMANO_INSP.value)]
     mensagens_ia = [item for item in mensagens if item.tipo == TipoMensagem.IA.value]
 
     qtd_textos = 0
@@ -506,9 +494,7 @@ def avaliar_gate_qualidade_laudo(banco: Session, laudo: Laudo) -> dict[str, Any]
     mensagem = (
         "Gate de qualidade aprovado. O laudo pode ser enviado para a mesa avaliadora."
         if aprovado
-        else (
-            f"Finalize bloqueado: faltam {len(faltantes)} item(ns) obrigatório(s) no checklist de qualidade."
-        )
+        else (f"Finalize bloqueado: faltam {len(faltantes)} item(ns) obrigatório(s) no checklist de qualidade.")
     )
 
     return {

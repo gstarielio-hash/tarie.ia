@@ -36,14 +36,96 @@ env:
     id: settings-drawer
 
 - assertVisible:
-    id: settings-overview-conta-acesso
+    id: settings-print-personalizacao-row
 
 - tapOn:
-    id: settings-overview-conta-acesso
+    id: settings-print-personalizacao-row
 
 - extendedWaitUntil:
     visible:
-      id: settings-section-conta
+      id: settings-section-link-preferenciasIa
+    timeout: 10000
+
+- tapOn:
+    id: settings-section-link-preferenciasIa
+
+- extendedWaitUntil:
+    visible:
+      id: settings-ai-model-row
+    timeout: 10000
+
+- tapOn:
+    id: settings-ai-model-row
+
+- extendedWaitUntil:
+    visible:
+      id: settings-sheet-modal
+    timeout: 10000
+
+- assertVisible:
+    id: settings-ai-model-option-avancado
+
+- tapOn:
+    id: settings-ai-model-option-avancado
+
+- extendedWaitUntil:
+    visible:
+      id: settings-ai-model-row
+    timeout: 10000
+
+- tapOn:
+    id: settings-drawer-back-button
+
+- runFlow:
+    when:
+      visible:
+        id: settings-section-link-preferenciasIa
+    commands:
+      - tapOn:
+          id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: settings-print-personalizacao-row
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: settings-print-seguranca-row
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: settings-print-seguranca-row
+
+- scrollUntilVisible:
+    element:
+      id: settings-section-link-twofa
+    direction: UP
+    timeout: 10000
+
+- tapOn:
+    id: settings-section-link-twofa
+
+- extendedWaitUntil:
+    visible:
+      id: settings-section-twofa
+    timeout: 10000
+
+- tapOn:
+    id: settings-twofa-method-row
+
+- runFlow:
+    when:
+      visible:
+        id: settings-drawer-back-button
+    commands:
+      - tapOn:
+          id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: settings-section-link-twofa
     timeout: 10000
 
 - tapOn:
@@ -51,21 +133,107 @@ env:
 
 - extendedWaitUntil:
     visible:
-      id: settings-overview-experiencia
+      id: settings-print-personalizacao-row
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: settings-print-aparencia-row
+    direction: DOWN
     timeout: 10000
 
 - tapOn:
-    id: settings-search-input
+    id: settings-print-aparencia-row
 
-- inputText: 2FA
+- extendedWaitUntil:
+    visible:
+      id: settings-section-link-aparencia
+    timeout: 10000
 
-- hideKeyboard
+- tapOn:
+    id: settings-section-link-aparencia
 
 - assertVisible:
-    id: settings-section-prioridades
+    text: "Aparência"
+
+- tapOn:
+    text: "Tema"
+
+- tapOn:
+    id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: settings-section-link-aparencia
+    timeout: 10000
+
+- tapOn:
+    id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: close-settings-drawer-button
+    timeout: 10000
+
+- scrollUntilVisible:
+    element:
+      id: settings-print-sobre-row
+    direction: DOWN
+    visibilityPercentage: 70
+    timeout: 10000
+
+- tapOn:
+    id: settings-print-sobre-row
+
+- extendedWaitUntil:
+    visible:
+      id: settings-section-link-suporte
+    timeout: 10000
+
+- tapOn:
+    id: settings-section-link-suporte
 
 - assertVisible:
-    id: settings-priority-enable-twofa-row
+    id: settings-section-suporte
+
+- scrollUntilVisible:
+    element:
+      id: settings-support-privacy-row
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: settings-support-privacy-row
+
+- assertVisible:
+    text: "Política de privacidade"
+
+- tapOn:
+    id: settings-sheet-close-button
+
+- runFlow:
+    when:
+      visible:
+        id: settings-sheet-modal
+    commands:
+      - tapOn:
+          id: settings-sheet-footer-close-button
+
+- tapOn:
+    id: settings-drawer-back-button
+
+- runFlow:
+    when:
+      visible:
+        id: settings-drawer-back-button
+    commands:
+      - tapOn:
+          id: settings-drawer-back-button
+
+- extendedWaitUntil:
+    visible:
+      id: close-settings-drawer-button
+    timeout: 8000
 
 - tapOn:
     id: close-settings-drawer-button

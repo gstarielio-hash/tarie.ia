@@ -17,12 +17,7 @@ def _agora_utc() -> datetime:
 
 def contar_laudos_mes(banco: Session, empresa_id: int) -> int:
     inicio_mes = _agora_utc().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    return (
-        banco.query(func.count(Laudo.id))
-        .filter(Laudo.empresa_id == empresa_id, Laudo.criado_em >= inicio_mes)
-        .scalar()
-        or 0
-    )
+    return banco.query(func.count(Laudo.id)).filter(Laudo.empresa_id == empresa_id, Laudo.criado_em >= inicio_mes).scalar() or 0
 
 
 def obter_limite_empresa(usuario: Usuario, banco: Session):

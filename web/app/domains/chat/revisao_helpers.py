@@ -12,20 +12,11 @@ from nucleo.inspetor.confianca_ia import _resumo_texto_curto, normalizar_payload
 
 
 def _obter_ultima_revisao_laudo(banco: Session, laudo_id: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id)
-        .order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc())
-        .first()
-    )
+    return banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo_id).order_by(LaudoRevisao.numero_versao.desc(), LaudoRevisao.id.desc()).first()
 
 
 def _obter_revisao_por_versao(banco: Session, laudo_id: int, versao: int) -> LaudoRevisao | None:
-    return (
-        banco.query(LaudoRevisao)
-        .filter(LaudoRevisao.laudo_id == laudo_id, LaudoRevisao.numero_versao == versao)
-        .first()
-    )
+    return banco.query(LaudoRevisao).filter(LaudoRevisao.laudo_id == laudo_id, LaudoRevisao.numero_versao == versao).first()
 
 
 def _registrar_revisao_laudo(

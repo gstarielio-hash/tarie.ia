@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import secrets
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 import uuid
 
 from fastapi import Depends, File, Form, HTTPException, Request, UploadFile
@@ -48,7 +48,14 @@ from app.domains.chat.session_helpers import (
     validar_csrf,
 )
 from app.domains.chat.normalization import normalizar_email
-from app.shared.database import Laudo, NivelAcesso, PlanoEmpresa, Usuario, obter_banco
+from app.shared.database import (
+    Laudo,
+    NivelAcesso,
+    PlanoEmpresa,
+    PreferenciaMobileUsuario,
+    Usuario,
+    obter_banco,
+)
 from app.shared.security import (
     PORTAL_INSPETOR,
     criar_hash_senha,
@@ -98,6 +105,103 @@ class DadosLoginMobileInspetor(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 
 
+class DadosAtualizarSenhaMobileInspetor(BaseModel):
+    senha_atual: str = Field(..., min_length=1, max_length=128)
+    nova_senha: str = Field(..., min_length=8, max_length=128)
+    confirmar_senha: str = Field(..., min_length=1, max_length=128)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosRelatoSuporteMobileInspetor(BaseModel):
+    tipo: Literal["bug", "feedback"] = "feedback"
+    titulo: str = Field(default="", max_length=120)
+    mensagem: str = Field(..., min_length=3, max_length=4000)
+    email_retorno: str = Field(default="", max_length=254)
+    contexto: str = Field(default="", max_length=500)
+    anexo_nome: str = Field(default="", max_length=180)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosNotificacoesCriticasMobile(BaseModel):
+    notifica_respostas: bool = True
+    notifica_push: bool = True
+    som_notificacao: str = Field(default="Ping", min_length=1, max_length=40)
+    vibracao_ativa: bool = True
+    emails_ativos: bool = False
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosPrivacidadeCriticasMobile(BaseModel):
+    mostrar_conteudo_notificacao: bool = False
+    ocultar_conteudo_bloqueado: bool = True
+    mostrar_somente_nova_mensagem: bool = True
+    salvar_historico_conversas: bool = True
+    compartilhar_melhoria_ia: bool = False
+    retencao_dados: str = Field(default="90 dias", min_length=1, max_length=40)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosPermissoesCriticasMobile(BaseModel):
+    microfone_permitido: bool = True
+    camera_permitida: bool = True
+    arquivos_permitidos: bool = True
+    notificacoes_permitidas: bool = True
+    biometria_permitida: bool = True
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosExperienciaIaCriticasMobile(BaseModel):
+    modelo_ia: str = Field(default="equilibrado", min_length=1, max_length=40)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
+
+
+class DadosConfiguracoesCriticasMobile(BaseModel):
+    notificacoes: DadosNotificacoesCriticasMobile = Field(default_factory=DadosNotificacoesCriticasMobile)
+    privacidade: DadosPrivacidadeCriticasMobile = Field(default_factory=DadosPrivacidadeCriticasMobile)
+    permissoes: DadosPermissoesCriticasMobile = Field(default_factory=DadosPermissoesCriticasMobile)
+    experiencia_ia: DadosExperienciaIaCriticasMobile = Field(default_factory=DadosExperienciaIaCriticasMobile)
+
+    model_config = ConfigDict(extra="ignore")
+
+
+SONS_NOTIFICACAO_PERMITIDOS = {"Ping", "Sino curto", "Silencioso"}
+RETENCAO_DADOS_PERMITIDA = {"30 dias", "90 dias", "1 ano", "Até excluir"}
+MODELOS_IA_PERMITIDOS = {"rápido", "equilibrado", "avançado"}
+CONFIGURACOES_CRITICAS_MOBILE_PADRAO: dict[str, dict[str, object]] = {
+    "notificacoes": {
+        "notifica_respostas": True,
+        "notifica_push": True,
+        "som_notificacao": "Ping",
+        "vibracao_ativa": True,
+        "emails_ativos": False,
+    },
+    "privacidade": {
+        "mostrar_conteudo_notificacao": False,
+        "ocultar_conteudo_bloqueado": True,
+        "mostrar_somente_nova_mensagem": True,
+        "salvar_historico_conversas": True,
+        "compartilhar_melhoria_ia": False,
+        "retencao_dados": "90 dias",
+    },
+    "permissoes": {
+        "microfone_permitido": True,
+        "camera_permitida": True,
+        "arquivos_permitidos": True,
+        "notificacoes_permitidas": True,
+        "biometria_permitida": True,
+    },
+    "experiencia_ia": {
+        "modelo_ia": "equilibrado",
+    },
+}
+
+
 def _normalizar_telefone(telefone: str) -> str:
     valor = str(telefone or "").strip()
     if not valor:
@@ -110,16 +214,141 @@ def _email_valido_basico(email: str) -> bool:
     return bool(re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email))
 
 
+def _registro(valor: object) -> dict[str, object]:
+    if isinstance(valor, dict):
+        return valor
+    return {}
+
+
+def _normalizar_bool(valor: object, padrao: bool) -> bool:
+    return valor if isinstance(valor, bool) else padrao
+
+
+def _normalizar_texto_opcao(valor: object, opcoes: set[str], padrao: str) -> str:
+    texto = str(valor or "").strip()
+    if texto in opcoes:
+        return texto
+    return padrao
+
+
+def _normalizar_configuracoes_criticas_mobile(payload: object) -> dict[str, dict[str, object]]:
+    base = _registro(payload)
+    notificacoes_raw = _registro(base.get("notificacoes"))
+    privacidade_raw = _registro(base.get("privacidade"))
+    permissoes_raw = _registro(base.get("permissoes"))
+    experiencia_ia_raw = _registro(base.get("experiencia_ia"))
+
+    notificacoes = {
+        "notifica_respostas": _normalizar_bool(
+            notificacoes_raw.get("notifica_respostas"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["notificacoes"]["notifica_respostas"]),
+        ),
+        "notifica_push": _normalizar_bool(
+            notificacoes_raw.get("notifica_push"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["notificacoes"]["notifica_push"]),
+        ),
+        "som_notificacao": _normalizar_texto_opcao(
+            notificacoes_raw.get("som_notificacao"),
+            SONS_NOTIFICACAO_PERMITIDOS,
+            str(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["notificacoes"]["som_notificacao"]),
+        ),
+        "vibracao_ativa": _normalizar_bool(
+            notificacoes_raw.get("vibracao_ativa"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["notificacoes"]["vibracao_ativa"]),
+        ),
+        "emails_ativos": _normalizar_bool(
+            notificacoes_raw.get("emails_ativos"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["notificacoes"]["emails_ativos"]),
+        ),
+    }
+
+    privacidade = {
+        "mostrar_conteudo_notificacao": _normalizar_bool(
+            privacidade_raw.get("mostrar_conteudo_notificacao"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["mostrar_conteudo_notificacao"]),
+        ),
+        "ocultar_conteudo_bloqueado": _normalizar_bool(
+            privacidade_raw.get("ocultar_conteudo_bloqueado"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["ocultar_conteudo_bloqueado"]),
+        ),
+        "mostrar_somente_nova_mensagem": _normalizar_bool(
+            privacidade_raw.get("mostrar_somente_nova_mensagem"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["mostrar_somente_nova_mensagem"]),
+        ),
+        "salvar_historico_conversas": _normalizar_bool(
+            privacidade_raw.get("salvar_historico_conversas"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["salvar_historico_conversas"]),
+        ),
+        "compartilhar_melhoria_ia": _normalizar_bool(
+            privacidade_raw.get("compartilhar_melhoria_ia"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["compartilhar_melhoria_ia"]),
+        ),
+        "retencao_dados": _normalizar_texto_opcao(
+            privacidade_raw.get("retencao_dados"),
+            RETENCAO_DADOS_PERMITIDA,
+            str(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["privacidade"]["retencao_dados"]),
+        ),
+    }
+
+    permissoes = {
+        "microfone_permitido": _normalizar_bool(
+            permissoes_raw.get("microfone_permitido"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["permissoes"]["microfone_permitido"]),
+        ),
+        "camera_permitida": _normalizar_bool(
+            permissoes_raw.get("camera_permitida"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["permissoes"]["camera_permitida"]),
+        ),
+        "arquivos_permitidos": _normalizar_bool(
+            permissoes_raw.get("arquivos_permitidos"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["permissoes"]["arquivos_permitidos"]),
+        ),
+        "notificacoes_permitidas": _normalizar_bool(
+            permissoes_raw.get("notificacoes_permitidas"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["permissoes"]["notificacoes_permitidas"]),
+        ),
+        "biometria_permitida": _normalizar_bool(
+            permissoes_raw.get("biometria_permitida"),
+            bool(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["permissoes"]["biometria_permitida"]),
+        ),
+    }
+
+    experiencia_ia = {
+        "modelo_ia": _normalizar_texto_opcao(
+            experiencia_ia_raw.get("modelo_ia"),
+            MODELOS_IA_PERMITIDOS,
+            str(CONFIGURACOES_CRITICAS_MOBILE_PADRAO["experiencia_ia"]["modelo_ia"]),
+        ),
+    }
+
+    return {
+        "notificacoes": notificacoes,
+        "privacidade": privacidade,
+        "permissoes": permissoes,
+        "experiencia_ia": experiencia_ia,
+    }
+
+
+def _serializar_preferencias_mobile_usuario(preferencia: PreferenciaMobileUsuario | None) -> dict[str, dict[str, object]]:
+    if not preferencia:
+        return _normalizar_configuracoes_criticas_mobile(CONFIGURACOES_CRITICAS_MOBILE_PADRAO)
+    return _normalizar_configuracoes_criticas_mobile(
+        {
+            "notificacoes": preferencia.notificacoes_json,
+            "privacidade": preferencia.privacidade_json,
+            "permissoes": preferencia.permissoes_json,
+            "experiencia_ia": preferencia.experiencia_ia_json,
+        }
+    )
+
+
 def _serializar_perfil_usuario(usuario: Usuario) -> dict[str, str]:
     return {
         "nome_completo": str(usuario.nome_completo or "").strip(),
         "email": str(usuario.email or "").strip(),
         "telefone": str(getattr(usuario, "telefone", "") or "").strip(),
         "foto_perfil_url": str(getattr(usuario, "foto_perfil_url", "") or "").strip(),
-        "empresa_nome": str(
-            getattr(getattr(usuario, "empresa", None), "nome_fantasia", "")
-            or "Sua empresa"
-        ).strip(),
+        "empresa_nome": str(getattr(getattr(usuario, "empresa", None), "nome_fantasia", "") or "Sua empresa").strip(),
     }
 
 
@@ -430,11 +659,7 @@ async def api_listar_laudos_mobile_inspetor(
         ).all()
     )
 
-    itens = [
-        serializar_card_laudo(banco, laudo)
-        for laudo in laudos
-        if laudo_possui_historico_visivel(banco, laudo) or laudo.status_revisao != "rascunho"
-    ]
+    itens = [serializar_card_laudo(banco, laudo) for laudo in laudos if laudo_possui_historico_visivel(banco, laudo) or laudo.status_revisao != "rascunho"]
 
     return JSONResponse(
         {
@@ -515,10 +740,7 @@ async def pagina_inicial(
 
     telefone_suporte = (getattr(configuracoes, "SUPORTE_WHATSAPP", "") if configuracoes else "") or PADRAO_SUPORTE_WHATSAPP
 
-    ambiente_atual = (
-        (getattr(configuracoes, "AMBIENTE", "") if configuracoes else "")
-        or _settings.ambiente
-    )
+    ambiente_atual = (getattr(configuracoes, "AMBIENTE", "") if configuracoes else "") or _settings.ambiente
 
     return templates.TemplateResponse(
         request,
@@ -582,6 +804,23 @@ async def api_atualizar_perfil_usuario(
 ):
     exigir_csrf(request)
 
+    _atualizar_perfil_usuario_em_banco(usuario=usuario, banco=banco, dados=dados)
+    _atualizar_nome_sessao_inspetor(request, usuario)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "perfil": _serializar_perfil_usuario(usuario),
+        }
+    )
+
+
+def _atualizar_perfil_usuario_em_banco(
+    *,
+    usuario: Usuario,
+    banco: Session,
+    dados: DadosAtualizarPerfilUsuario,
+) -> None:
     nome = str(dados.nome_completo or "").strip()
     email = normalizar_email(str(dados.email or ""))
     telefone = _normalizar_telefone(str(dados.telefone or ""))
@@ -607,24 +846,14 @@ async def api_atualizar_perfil_usuario(
 
     banco.commit()
     banco.refresh(usuario)
-    _atualizar_nome_sessao_inspetor(request, usuario)
-
-    return JSONResponse(
-        {
-            "ok": True,
-            "perfil": _serializar_perfil_usuario(usuario),
-        }
-    )
 
 
-async def api_upload_foto_perfil_usuario(
-    request: Request,
-    foto: UploadFile = File(...),
-    usuario: Usuario = Depends(exigir_inspetor),
-    banco: Session = Depends(obter_banco),
-):
-    exigir_csrf(request)
-
+async def _atualizar_foto_perfil_usuario_em_banco(
+    *,
+    usuario: Usuario,
+    banco: Session,
+    foto: UploadFile,
+) -> None:
     mime = str(foto.content_type or "").strip().lower()
     if mime not in MIME_FOTO_PERMITIDOS:
         raise HTTPException(status_code=415, detail="Formato inválido. Use PNG, JPG ou WebP.")
@@ -655,12 +884,173 @@ async def api_upload_foto_perfil_usuario(
     banco.commit()
     banco.refresh(usuario)
 
+
+async def api_atualizar_perfil_mobile_inspetor(
+    dados: DadosAtualizarPerfilUsuario,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    _atualizar_perfil_usuario_em_banco(usuario=usuario, banco=banco, dados=dados)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "usuario": _serializar_usuario_mobile(usuario),
+        }
+    )
+
+
+async def api_alterar_senha_mobile_inspetor(
+    dados: DadosAtualizarSenhaMobileInspetor,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    erro_validacao = _validar_nova_senha(
+        dados.senha_atual,
+        dados.nova_senha,
+        dados.confirmar_senha,
+    )
+    if erro_validacao:
+        if "temporária" in erro_validacao:
+            erro_validacao = "A nova senha deve ser diferente da senha atual."
+        raise HTTPException(status_code=400, detail=erro_validacao)
+
+    if not verificar_senha(dados.senha_atual, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha atual inválida.")
+
+    usuario.senha_hash = criar_hash_senha(dados.nova_senha)
+    usuario.senha_temporaria_ativa = False
+    banco.commit()
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "message": "Senha atualizada com sucesso.",
+        }
+    )
+
+
+async def api_upload_foto_perfil_mobile_usuario(
+    foto: UploadFile = File(...),
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    await _atualizar_foto_perfil_usuario_em_banco(
+        usuario=usuario,
+        banco=banco,
+        foto=foto,
+    )
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "usuario": _serializar_usuario_mobile(usuario),
+        }
+    )
+
+
+async def api_relato_suporte_mobile_inspetor(
+    payload: DadosRelatoSuporteMobileInspetor,
+    usuario: Usuario = Depends(exigir_inspetor),
+):
+    mensagem = str(payload.mensagem or "").strip()
+    if len(mensagem) < 3:
+        raise HTTPException(status_code=400, detail="Descreva a mensagem com pelo menos 3 caracteres.")
+
+    email_retorno = normalizar_email(payload.email_retorno)
+    if email_retorno and not _email_valido_basico(email_retorno):
+        raise HTTPException(status_code=400, detail="Informe um e-mail de retorno válido.")
+
+    protocolo = f"SUP-{uuid.uuid4().hex[:8].upper()}"
+    logger.info(
+        "Relato suporte mobile | protocolo=%s | tipo=%s | usuario_id=%s | email=%s | titulo=%s | contexto=%s | anexo=%s",
+        protocolo,
+        payload.tipo,
+        usuario.id,
+        email_retorno or usuario.email,
+        str(payload.titulo or "").strip(),
+        str(payload.contexto or "").strip(),
+        str(payload.anexo_nome or "").strip(),
+    )
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "protocolo": protocolo,
+            "status": "Recebido",
+        }
+    )
+
+
+async def api_obter_configuracoes_criticas_mobile_inspetor(
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    preferencia = banco.scalar(select(PreferenciaMobileUsuario).where(PreferenciaMobileUsuario.usuario_id == usuario.id))
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "settings": _serializar_preferencias_mobile_usuario(preferencia),
+        }
+    )
+
+
+async def api_salvar_configuracoes_criticas_mobile_inspetor(
+    payload: DadosConfiguracoesCriticasMobile,
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    configuracoes = _normalizar_configuracoes_criticas_mobile(payload.model_dump())
+    preferencia = banco.scalar(select(PreferenciaMobileUsuario).where(PreferenciaMobileUsuario.usuario_id == usuario.id))
+    if not preferencia:
+        preferencia = PreferenciaMobileUsuario(usuario_id=usuario.id)
+        banco.add(preferencia)
+
+    preferencia.notificacoes_json = configuracoes["notificacoes"]
+    preferencia.privacidade_json = configuracoes["privacidade"]
+    preferencia.permissoes_json = configuracoes["permissoes"]
+    preferencia.experiencia_ia_json = configuracoes["experiencia_ia"]
+    banco.commit()
+    banco.refresh(preferencia)
+
+    logger.info(
+        "Preferencias mobile criticas atualizadas | usuario_id=%s | notificacoes=%s | privacidade=%s | permissoes=%s | experiencia_ia=%s",
+        usuario.id,
+        preferencia.notificacoes_json,
+        preferencia.privacidade_json,
+        preferencia.permissoes_json,
+        preferencia.experiencia_ia_json,
+    )
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "settings": _serializar_preferencias_mobile_usuario(preferencia),
+        }
+    )
+
+
+async def api_upload_foto_perfil_usuario(
+    request: Request,
+    foto: UploadFile = File(...),
+    usuario: Usuario = Depends(exigir_inspetor),
+    banco: Session = Depends(obter_banco),
+):
+    exigir_csrf(request)
+    await _atualizar_foto_perfil_usuario_em_banco(
+        usuario=usuario,
+        banco=banco,
+        foto=foto,
+    )
+
     return JSONResponse(
         {
             "ok": True,
             "foto_perfil_url": usuario.foto_perfil_url,
         }
     )
+
 
 # Login / troca de senha
 roteador_auth.add_api_route(
@@ -744,6 +1134,55 @@ roteador_auth.add_api_route(
     methods=["GET"],
 )
 roteador_auth.add_api_route(
+    "/api/mobile/account/profile",
+    api_atualizar_perfil_mobile_inspetor,
+    methods=["PUT"],
+    responses={
+        400: {"description": "Dados de perfil inválidos."},
+        409: {"description": "E-mail já está em uso."},
+    },
+)
+roteador_auth.add_api_route(
+    "/api/mobile/account/password",
+    api_alterar_senha_mobile_inspetor,
+    methods=["POST"],
+    responses={
+        400: {"description": "Falha de validação da nova senha."},
+        401: {"description": "Senha atual inválida."},
+    },
+)
+roteador_auth.add_api_route(
+    "/api/mobile/account/photo",
+    api_upload_foto_perfil_mobile_usuario,
+    methods=["POST"],
+    responses={
+        400: {"description": "Arquivo de foto inválido ou vazio."},
+        413: {"description": "Arquivo excede o limite permitido."},
+        415: {"description": "Formato de imagem não suportado."},
+    },
+)
+roteador_auth.add_api_route(
+    "/api/mobile/support/report",
+    api_relato_suporte_mobile_inspetor,
+    methods=["POST"],
+    responses={
+        400: {"description": "Relato inválido."},
+    },
+)
+roteador_auth.add_api_route(
+    "/api/mobile/account/settings",
+    api_obter_configuracoes_criticas_mobile_inspetor,
+    methods=["GET"],
+)
+roteador_auth.add_api_route(
+    "/api/mobile/account/settings",
+    api_salvar_configuracoes_criticas_mobile_inspetor,
+    methods=["PUT"],
+    responses={
+        400: {"description": "Configurações inválidas."},
+    },
+)
+roteador_auth.add_api_route(
     "/api/mobile/auth/logout",
     api_logout_mobile_inspetor,
     methods=["POST"],
@@ -762,6 +1201,12 @@ __all__ = [
     "api_bootstrap_mobile_inspetor",
     "api_listar_laudos_mobile_inspetor",
     "api_logout_mobile_inspetor",
+    "api_atualizar_perfil_mobile_inspetor",
+    "api_alterar_senha_mobile_inspetor",
+    "api_upload_foto_perfil_mobile_usuario",
+    "api_relato_suporte_mobile_inspetor",
+    "api_obter_configuracoes_criticas_mobile_inspetor",
+    "api_salvar_configuracoes_criticas_mobile_inspetor",
     "api_obter_perfil_usuario",
     "api_atualizar_perfil_usuario",
     "api_upload_foto_perfil_usuario",

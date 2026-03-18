@@ -36,9 +36,7 @@ def serializar_historico_mensagem(
     item: dict[str, Any] = {
         "id": mensagem.id,
         "papel": papel,
-        "texto": texto_mensagem_mesa_visivel(mensagem.conteudo, anexos=getattr(mensagem, "anexos_mesa", None))
-        if mensagem.is_whisper
-        else texto_limpo,
+        "texto": texto_mensagem_mesa_visivel(mensagem.conteudo, anexos=getattr(mensagem, "anexos_mesa", None)) if mensagem.is_whisper else texto_limpo,
         "tipo": mensagem.tipo,
         "modo": modo_resposta or "detalhado",
         "is_whisper": mensagem.tipo

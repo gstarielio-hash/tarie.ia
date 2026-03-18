@@ -38,11 +38,12 @@ _SESSAO_TTL = timedelta(hours=8)
 # ── Whitelist server-side ─────────────────────────────────────────────────────
 # AVISO: in-memory → não persiste entre reinicializações e não funciona com
 # múltiplos workers Uvicorn. Em produção, substitua por Redis com TTL nativo.
-SESSOES_ATIVAS:    dict[str, int]      = {}
+SESSOES_ATIVAS: dict[str, int] = {}
 _SESSAO_EXPIRACAO: dict[str, datetime] = {}
 
 
 # ── Senhas ────────────────────────────────────────────────────────────────────
+
 
 def criar_hash_senha(senha_pura: str) -> str:
     """Gera hash bcrypt de uma senha."""
@@ -77,6 +78,7 @@ def gerar_senha_fortificada(comprimento: int = 14) -> str:
 
 # ── Sessões ───────────────────────────────────────────────────────────────────
 
+
 def criar_sessao(usuario_id: int) -> str:
     """
     Gera session_token e registra na whitelist server-side com TTL.
@@ -88,7 +90,7 @@ def criar_sessao(usuario_id: int) -> str:
         request.session["csrf_token"]    = secrets.token_urlsafe(32)
     """
     token = secrets.token_urlsafe(32)
-    SESSOES_ATIVAS[token]    = usuario_id
+    SESSOES_ATIVAS[token] = usuario_id
     _SESSAO_EXPIRACAO[token] = datetime.now(timezone.utc) + _SESSAO_TTL
     logger.info("Sessão criada | usuario_id=%s", usuario_id)
     return token
@@ -119,9 +121,7 @@ def token_esta_ativo(token: str) -> bool:
     """
     if token not in SESSOES_ATIVAS:
         return False
-    if datetime.now(timezone.utc) > _SESSAO_EXPIRACAO.get(
-        token, datetime.min.replace(tzinfo=timezone.utc)
-    ):
+    if datetime.now(timezone.utc) > _SESSAO_EXPIRACAO.get(token, datetime.min.replace(tzinfo=timezone.utc)):
         encerrar_sessao(token)
         return False
     return True
@@ -133,7 +133,7 @@ def limpar_sessoes_expiradas() -> int:
     Chamar periodicamente via APScheduler para evitar crescimento indefinido.
     Retorna o número de sessões removidas.
     """
-    agora     = datetime.now(timezone.utc)
+    agora = datetime.now(timezone.utc)
     expirados = [t for t, exp in _SESSAO_EXPIRACAO.items() if agora > exp]
     for token in expirados:
         encerrar_sessao(token)
@@ -143,6 +143,7 @@ def limpar_sessoes_expiradas() -> int:
 
 
 # ── Lógica central de autenticação (interna) ──────────────────────────────────
+
 
 def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
     """
@@ -169,13 +170,11 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
     usuario = banco.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         encerrar_sessao(token)
-        logger.warning(
-            "Token aponta para usuario_id=%s inexistente — sessão encerrada.", usuario_id
-        )
+        logger.warning("Token aponta para usuario_id=%s inexistente — sessão encerrada.", usuario_id)
         return None
 
     # Verifica bloqueio da conta ou da empresa — interrompe sessão ativa imediatamente
-    conta_bloqueada   = getattr(usuario, "status_bloqueio", False)
+    conta_bloqueada = getattr(usuario, "status_bloqueio", False)
     empresa_bloqueada = usuario.empresa and getattr(usuario.empresa, "status_bloqueio", False)
 
     if conta_bloqueada or empresa_bloqueada:
@@ -183,7 +182,8 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
         request.session.clear()
         logger.warning(
             "Acesso negado — conta/empresa bloqueada | usuario_id=%s empresa_id=%s",
-            usuario.id, usuario.empresa_id,
+            usuario.id,
+            usuario.empresa_id,
         )
         return None
 
@@ -191,6 +191,7 @@ def _resolver_usuario(request: Request, banco: Session) -> Optional[Usuario]:
 
 
 # ── Dependências públicas FastAPI ──────────────────────────────────────────────
+
 
 def obter_usuario_html(
     request: Request,
@@ -229,7 +230,8 @@ def exigir_inspetor(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     if usuario.nivel_acesso < int(NivelAcesso.INSPETOR):
         logger.warning(
             "Acesso negado — nível insuficiente | usuario_id=%s nivel=%s",
-            usuario.id, usuario.nivel_acesso,
+            usuario.id,
+            usuario.nivel_acesso,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -243,7 +245,8 @@ def exigir_diretoria(usuario: Usuario = Depends(obter_usuario_api)) -> Usuario:
     if usuario.nivel_acesso < int(NivelAcesso.DIRETORIA):
         logger.warning(
             "Acesso negado — nível abaixo de Diretoria | usuario_id=%s nivel=%s",
-            usuario.id, usuario.nivel_acesso,
+            usuario.id,
+            usuario.nivel_acesso,
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -12,10 +12,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from sqlalchemy import create_engine, select
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy import create_engine, select  # noqa: E402
+from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
-from app.shared.database import (
+from app.shared.database import (  # noqa: E402
     AnexoMesa,
     Laudo,
     LaudoRevisao,
@@ -25,8 +25,8 @@ from app.shared.database import (
     TipoMensagem,
     Usuario,
 )
-from app.domains.chat.core_helpers import agora_utc
-from nucleo.template_editor_word import (
+from app.domains.chat.core_helpers import agora_utc  # noqa: E402
+from nucleo.template_editor_word import (  # noqa: E402
     MODO_EDITOR_LEGADO,
     MODO_EDITOR_RICO,
     documento_editor_padrao,
@@ -35,9 +35,8 @@ from nucleo.template_editor_word import (
 )
 
 ASSET_TEMPLATE_ID = "seed-asset-logo"
-PNG_SEED_BYTES = base64.b64decode(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PY6RfwAAAABJRU5ErkJggg=="
-)
+PNG_SEED_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PY6RfwAAAABJRU5ErkJggg==")
+
 
 def _obter_usuario_por_email(banco: Session, email: str) -> Usuario:
     usuario = banco.scalar(select(Usuario).where(Usuario.email == email))
@@ -186,11 +185,7 @@ def _garantir_foto_seed(banco: Session, *, laudo: Laudo, inspetor: Usuario) -> N
 
 
 def _garantir_revisoes_seed(banco: Session, *, laudo: Laudo) -> None:
-    existentes = banco.scalars(
-        select(LaudoRevisao)
-        .where(LaudoRevisao.laudo_id == laudo.id)
-        .order_by(LaudoRevisao.numero_versao.asc())
-    ).all()
+    existentes = banco.scalars(select(LaudoRevisao).where(LaudoRevisao.laudo_id == laudo.id).order_by(LaudoRevisao.numero_versao.asc())).all()
 
     if len(existentes) >= 2:
         return
@@ -297,9 +292,7 @@ def _obter_ou_criar_template_seed(
     template.modo_editor = modo_editor
     template.arquivo_pdf_base = caminho_pdf_base
     template.mapeamento_campos_json = template.mapeamento_campos_json or {}
-    template.documento_editor_json = (
-        documento_editor_padrao() if modo_editor == MODO_EDITOR_RICO else None
-    )
+    template.documento_editor_json = documento_editor_padrao() if modo_editor == MODO_EDITOR_RICO else None
     template.assets_json = template.assets_json if isinstance(template.assets_json, list) else []
     template.estilo_json = estilo_editor_padrao() if modo_editor == MODO_EDITOR_RICO else None
     template.observacoes = "Template seed do Schemathesis."

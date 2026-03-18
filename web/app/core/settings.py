@@ -67,21 +67,15 @@ class Settings:
 def get_settings() -> Settings:
     ambiente = env_str("AMBIENTE", "").lower()
     if not ambiente:
-        raise RuntimeError(
-            "AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao)."
-        )
+        raise RuntimeError("AMBIENTE é obrigatório. Defina no .env (ex.: AMBIENTE=dev ou AMBIENTE=producao).")
 
     if ambiente not in (AMBIENTES_DEV | AMBIENTES_PROD):
-        raise RuntimeError(
-            "AMBIENTE inválido. Use: dev, development, local, producao, production ou prod."
-        )
+        raise RuntimeError("AMBIENTE inválido. Use: dev, development, local, producao, production ou prod.")
 
     em_producao = ambiente in AMBIENTES_PROD
     revisor_realtime_backend = env_str("REVISOR_REALTIME_BACKEND", "memory").lower()
     if revisor_realtime_backend not in {"memory", "redis"}:
-        raise RuntimeError(
-            "REVISOR_REALTIME_BACKEND inválido. Use: memory ou redis."
-        )
+        raise RuntimeError("REVISOR_REALTIME_BACKEND inválido. Use: memory ou redis.")
 
     return Settings(
         ambiente=ambiente,

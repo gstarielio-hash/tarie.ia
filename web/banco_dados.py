@@ -39,9 +39,9 @@ logger = logging.getLogger(__name__)
 
 # ── URL e configuração do banco ───────────────────────────────────────────────
 
-_DIR_BASE   = os.path.dirname(os.path.abspath(__file__))
+_DIR_BASE = os.path.dirname(os.path.abspath(__file__))
 _URL_PADRAO = f"sqlite:///{os.path.join(_DIR_BASE, 'tariel_admin.db')}"
-URL_BANCO   = os.getenv("DATABASE_URL", _URL_PADRAO)
+URL_BANCO = os.getenv("DATABASE_URL", _URL_PADRAO)
 
 _EH_SQLITE = URL_BANCO.startswith("sqlite")
 
@@ -57,9 +57,10 @@ def _criar_engine():
         kwargs["connect_args"] = {"check_same_thread": False}
         if os.getenv("ENV", "development") == "production":
             from sqlalchemy.pool import StaticPool
+
             kwargs["poolclass"] = StaticPool
     else:
-        kwargs["pool_size"]    = int(os.getenv("DB_POOL_SIZE",    "10"))
+        kwargs["pool_size"] = int(os.getenv("DB_POOL_SIZE", "10"))
         kwargs["max_overflow"] = int(os.getenv("DB_MAX_OVERFLOW", "20"))
         kwargs["pool_timeout"] = int(os.getenv("DB_POOL_TIMEOUT", "30"))
         kwargs["pool_recycle"] = int(os.getenv("DB_POOL_RECYCLE", "3600"))
@@ -67,6 +68,7 @@ def _criar_engine():
     engine = create_engine(URL_BANCO, **kwargs)
 
     if _EH_SQLITE:
+
         @event.listens_for(engine, "connect")
         def _configurar_sqlite(conn, _record):
             cursor = conn.cursor()
@@ -84,20 +86,21 @@ SessaoLocal = sessionmaker(autocommit=False, autoflush=False, bind=motor_banco)
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
 
+
 class NivelAcesso(enum.IntEnum):
-    INSPETOR  = 1
+    INSPETOR = 1
     DIRETORIA = 99
 
 
 class StatusLaudo(str, enum.Enum):
-    PENDENTE     = "Pendente"
-    CONFORME     = "Conforme"
+    PENDENTE = "Pendente"
+    CONFORME = "Conforme"
     NAO_CONFORME = "Nao Conforme"
 
 
 class PlanoEmpresa(str, enum.Enum):
-    PILOTO    = "Piloto"
-    PRO       = "Pro"
+    PILOTO = "Piloto"
+    PRO = "Pro"
     ILIMITADO = "Ilimitado"
 
 
@@ -106,6 +109,7 @@ def _valores_enum(cls: type) -> list[str]:
 
 
 # ── Mixin de auditoria ────────────────────────────────────────────────────────
+
 
 class MixinAuditoria:
     criado_em = Column(
@@ -124,11 +128,13 @@ class MixinAuditoria:
 
 # ── Base ──────────────────────────────────────────────────────────────────────
 
+
 class Base(DeclarativeBase):
     pass
 
 
 # ── Modelo: Empresa ───────────────────────────────────────────────────────────
+
 
 class Empresa(MixinAuditoria, Base):
     __tablename__ = "empresas"
@@ -151,24 +157,24 @@ class Empresa(MixinAuditoria, Base):
         ),
     )
 
-    id            = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     nome_fantasia = Column(String(200), nullable=False, index=True)
-    cnpj          = Column(String(18),  nullable=False, unique=True, index=True)
-    plano_ativo   = Column(
+    cnpj = Column(String(18), nullable=False, unique=True, index=True)
+    plano_ativo = Column(
         String(20),
         nullable=False,
         default=PlanoEmpresa.PILOTO.value,
     )
-    custo_gerado_reais    = Column(Numeric(12, 4), nullable=False, default=Decimal("0.0000"))
-    mensagens_processadas = Column(Integer,        nullable=False, default=0)
-    status_bloqueio       = Column(Boolean,        nullable=False, default=False)
-    bloqueado_em          = Column(DateTime(timezone=True), nullable=True)
-    motivo_bloqueio       = Column(String(300), nullable=True)
+    custo_gerado_reais = Column(Numeric(12, 4), nullable=False, default=Decimal("0.0000"))
+    mensagens_processadas = Column(Integer, nullable=False, default=0)
+    status_bloqueio = Column(Boolean, nullable=False, default=False)
+    bloqueado_em = Column(DateTime(timezone=True), nullable=True)
+    motivo_bloqueio = Column(String(300), nullable=True)
 
-    segmento         = Column(String(100), nullable=True)
-    cidade_estado    = Column(String(100), nullable=True)
+    segmento = Column(String(100), nullable=True)
+    cidade_estado = Column(String(100), nullable=True)
     nome_responsavel = Column(String(150), nullable=True)
-    observacoes      = Column(Text,        nullable=True)
+    observacoes = Column(Text, nullable=True)
 
     usuarios = relationship(
         "Usuario",
@@ -182,13 +188,11 @@ class Empresa(MixinAuditoria, Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<Empresa id={self.id} nome={self.nome_fantasia!r} "
-            f"plano={self.plano_ativo!r}>"
-        )
+        return f"<Empresa id={self.id} nome={self.nome_fantasia!r} plano={self.plano_ativo!r}>"
 
 
 # ── Modelo: Usuario ───────────────────────────────────────────────────────────
+
 
 class Usuario(MixinAuditoria, Base):
     __tablename__ = "usuarios"
@@ -204,7 +208,7 @@ class Usuario(MixinAuditoria, Base):
         Index("ix_usuario_empresa_email", "empresa_id", "email"),
     )
 
-    id         = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     empresa_id = Column(
         Integer,
         ForeignKey("empresas.id", ondelete="CASCADE"),
@@ -212,13 +216,13 @@ class Usuario(MixinAuditoria, Base):
         index=True,
     )
     nome_completo = Column(String(150), nullable=False)
-    email         = Column(String(254), nullable=False, unique=True, index=True)
-    senha_hash    = Column(String(256), nullable=False)
-    nivel_acesso  = Column(Integer,     nullable=False, default=int(NivelAcesso.INSPETOR))
-    ativo         = Column(Boolean,     nullable=False, default=True)
+    email = Column(String(254), nullable=False, unique=True, index=True)
+    senha_hash = Column(String(256), nullable=False)
+    nivel_acesso = Column(Integer, nullable=False, default=int(NivelAcesso.INSPETOR))
+    ativo = Column(Boolean, nullable=False, default=True)
 
     tentativas_login = Column(Integer, nullable=False, default=0)
-    bloqueado_ate    = Column(
+    bloqueado_ate = Column(
         DateTime(timezone=True),
         nullable=True,
         comment="Bloqueio temporário por excesso de tentativas",
@@ -235,13 +239,10 @@ class Usuario(MixinAuditoria, Base):
     )
 
     empresa = relationship("Empresa", back_populates="usuarios")
-    laudos  = relationship("Laudo",   back_populates="usuario")
+    laudos = relationship("Laudo", back_populates="usuario")
 
     def __repr__(self) -> str:
-        return (
-            f"<Usuario id={self.id} email={self.email!r} "
-            f"nivel={self.nivel_acesso} ativo={self.ativo}>"
-        )
+        return f"<Usuario id={self.id} email={self.email!r} nivel={self.nivel_acesso} ativo={self.ativo}>"
 
     def esta_bloqueado(self) -> bool:
         if self.bloqueado_ate is None:
@@ -250,12 +251,13 @@ class Usuario(MixinAuditoria, Base):
 
     def registrar_login_sucesso(self, ip: str | None = None) -> None:
         self.tentativas_login = 0
-        self.bloqueado_ate    = None
-        self.ultimo_login     = datetime.now(timezone.utc)
-        self.ultimo_login_ip  = (ip or "")[:45] or None
+        self.bloqueado_ate = None
+        self.ultimo_login = datetime.now(timezone.utc)
+        self.ultimo_login_ip = (ip or "")[:45] or None
 
     def incrementar_tentativa_falha(self, max_tentativas: int = 5) -> bool:
         from datetime import timedelta
+
         self.tentativas_login += 1
         if self.tentativas_login >= max_tentativas:
             self.bloqueado_ate = datetime.now(timezone.utc) + timedelta(minutes=15)
@@ -264,6 +266,7 @@ class Usuario(MixinAuditoria, Base):
 
 
 # ── Modelo: Laudo ─────────────────────────────────────────────────────────────
+
 
 class Laudo(MixinAuditoria, Base):
     __tablename__ = "laudos"
@@ -289,15 +292,15 @@ class Laudo(MixinAuditoria, Base):
         index=True,
     )
 
-    setor_industrial    = Column(String(100), nullable=False)
+    setor_industrial = Column(String(100), nullable=False)
     status_conformidade = Column(
         SAEnum(StatusLaudo, values_callable=_valores_enum),
         nullable=False,
         default=StatusLaudo.PENDENTE.value,
     )
-    parecer_ia       = Column(Text,           nullable=True)
-    codigo_hash      = Column(String(32),     nullable=False, unique=True, index=True)
-    custo_api_reais  = Column(Numeric(12, 4), nullable=False, default=Decimal("0.0000"))
+    parecer_ia = Column(Text, nullable=True)
+    codigo_hash = Column(String(32), nullable=False, unique=True, index=True)
+    custo_api_reais = Column(Numeric(12, 4), nullable=False, default=Decimal("0.0000"))
     nome_arquivo_pdf = Column(
         String(100),
         nullable=True,
@@ -308,13 +311,11 @@ class Laudo(MixinAuditoria, Base):
     usuario = relationship("Usuario", back_populates="laudos")
 
     def __repr__(self) -> str:
-        return (
-            f"<Laudo id={self.id} hash={self.codigo_hash!r} "
-            f"setor={self.setor_industrial!r} status={self.status_conformidade!r}>"
-        )
+        return f"<Laudo id={self.id} hash={self.codigo_hash!r} setor={self.setor_industrial!r} status={self.status_conformidade!r}>"
 
 
 # ── Dependency FastAPI ────────────────────────────────────────────────────────
+
 
 def obter_banco() -> Generator[Session, None, None]:
     """
@@ -341,6 +342,7 @@ def obter_banco() -> Generator[Session, None, None]:
 
 
 # ── Inicialização das tabelas ─────────────────────────────────────────────────
+
 
 def inicializar_banco() -> None:
     """

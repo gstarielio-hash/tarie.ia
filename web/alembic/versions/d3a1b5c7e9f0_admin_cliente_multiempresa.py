@@ -34,10 +34,7 @@ def upgrade() -> None:
         batch_op.drop_constraint("ck_usuario_nivel_acesso_valido", type_="check")
         batch_op.create_check_constraint(
             "ck_usuario_nivel_acesso_valido",
-            (
-                "nivel_acesso IN "
-                f"({_NIVEL_INSPETOR}, {_NIVEL_REVISOR}, {_NIVEL_ADMIN_CLIENTE}, {_NIVEL_DIRETORIA})"
-            ),
+            (f"nivel_acesso IN ({_NIVEL_INSPETOR}, {_NIVEL_REVISOR}, {_NIVEL_ADMIN_CLIENTE}, {_NIVEL_DIRETORIA})"),
         )
 
     bind = op.get_bind()
