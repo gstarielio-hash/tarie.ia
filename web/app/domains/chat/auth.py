@@ -70,6 +70,7 @@ from app.shared.security import (
     exigir_inspetor,
     usuario_tem_bloqueio_ativo,
     verificar_senha,
+    verificar_senha_com_upgrade,
 )
 
 roteador_auth = APIRouter()
@@ -509,9 +510,10 @@ async def processar_login_app(
     usuario = banco.scalar(select(Usuario).where(Usuario.email == email_normalizado))
 
     senha_valida = False
+    hash_atualizado: str | None = None
     if usuario:
         try:
-            senha_valida = verificar_senha(senha, usuario.senha_hash)
+            senha_valida, hash_atualizado = verificar_senha_com_upgrade(senha, usuario.senha_hash)
         except Exception:
             logger.warning("Falha ao verificar hash de senha | email=%s", email_normalizado)
 
@@ -554,6 +556,9 @@ async def processar_login_app(
         _iniciar_fluxo_troca_senha(request, usuario_id=usuario.id, lembrar=lembrar)
         return RedirectResponse(url="/app/trocar-senha", status_code=303)
 
+    if hash_atualizado:
+        usuario.senha_hash = hash_atualizado
+
     token = criar_sessao(usuario.id, lembrar=lembrar)
     definir_sessao_portal(
         request.session,
@@ -587,7 +592,11 @@ async def api_login_mobile_inspetor(
         raise HTTPException(status_code=400, detail="Preencha e-mail e senha.")
 
     usuario = banco.scalar(select(Usuario).where(Usuario.email == email_normalizado))
-    if not usuario or not verificar_senha(senha, usuario.senha_hash):
+    senha_valida = False
+    hash_atualizado: str | None = None
+    if usuario:
+        senha_valida, hash_atualizado = verificar_senha_com_upgrade(senha, usuario.senha_hash)
+    if not usuario or not senha_valida:
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
     if int(usuario.nivel_acesso) not in NIVEIS_PERMITIDOS_APP:
@@ -601,6 +610,9 @@ async def api_login_mobile_inspetor(
 
     if usuario_tem_bloqueio_ativo(usuario):
         raise HTTPException(status_code=403, detail="Usuário bloqueado no momento.")
+
+    if hash_atualizado:
+        usuario.senha_hash = hash_atualizado
 
     token = criar_sessao(
         usuario.id,

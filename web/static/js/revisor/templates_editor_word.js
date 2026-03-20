@@ -32,13 +32,23 @@
         btnPreview: q("btn-editor-preview"),
         btnPublish: q("btn-editor-publish"),
         statusEditorWord: q("status-editor-word"),
+        statusEditorCompare: q("status-editor-compare"),
         frameEditorPreview: q("frame-editor-preview"),
         editorSurface: q("editor-word-surface"),
         wordTabs: [...document.querySelectorAll(".word-tab[data-tab]")],
-        ribbonGroups: [...document.querySelectorAll(".ribbon-group[data-ribbon-tab]")],
+        inspectorPanels: [...document.querySelectorAll(".word-inspector-panel[data-panel]")],
         wordStage: q("word-stage"),
         btnToggleSide: q("btn-word-toggle-side"),
         saveIndicator: q("word-save-indicator"),
+        editorCompareSelect: q("editor-compare-template-select"),
+        btnCompare: q("btn-editor-compare"),
+        btnCompareClear: q("btn-editor-compare-clear"),
+        compareSummary: q("editor-compare-summary"),
+        compareSummaryChanged: q("editor-compare-summary-changed"),
+        compareSummaryAdded: q("editor-compare-summary-added"),
+        compareSummaryRemoved: q("editor-compare-summary-removed"),
+        compareSummaryUnchanged: q("editor-compare-summary-unchanged"),
+        compareBlocks: q("editor-compare-blocks"),
         pageHeaderGhost: q("page-header-ghost"),
         pageFooterGhost: q("page-footer-ghost"),
         pageWatermarkGhost: q("page-watermark-ghost"),
@@ -59,6 +69,8 @@
         btnRedo: q("btn-ed-redo"),
         btnPlaceholderJson: q("btn-ed-placeholder-json"),
         btnPlaceholderToken: q("btn-ed-placeholder-token"),
+        blockButtons: [...document.querySelectorAll(".js-insert-block")],
+        quickPlaceholderButtons: [...document.querySelectorAll(".js-insert-placeholder-quick")],
     };
     if (!els.editorSurface || !els.btnOpenEditorA4) return;
 
@@ -178,7 +190,63 @@
         },
     };
 
+    const BLOCKS = {
+        escopo_objetivo: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Escopo e Objetivo" }] },
+            { type: "paragraph", content: [{ type: "text", text: "Descreva as áreas avaliadas, limites da inspeção e objetivo técnico desta entrega." }] },
+        ],
+        quadro_conformidade: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Quadro de Conformidade" }] },
+            { type: "table", content: [
+                { type: "tableRow", content: [
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Item" }] }] },
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Critério / Norma" }] }] },
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Resultado" }] }] },
+                ]},
+                { type: "tableRow", content: [
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Ponto avaliado" }] }] },
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "NR / requisito" }] }] },
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Conforme / NC" }] }] },
+                ]},
+            ]},
+        ],
+        evidencias_fotograficas: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Evidências Fotográficas" }] },
+            { type: "paragraph", content: [{ type: "text", text: "Foto 1: descrição da evidência, local e relação com o item vistoriado." }] },
+            { type: "paragraph", content: [{ type: "text", text: "Foto 2: descrição da evidência, local e relação com o item vistoriado." }] },
+        ],
+        achados_recomendacoes: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Achados e Recomendações" }] },
+            { type: "bulletList", content: [
+                { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Achado técnico 1 com recomendação objetiva." }] }] },
+                { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Achado técnico 2 com impacto operacional." }] }] },
+            ]},
+        ],
+        plano_acao: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Plano de Ação" }] },
+            { type: "table", content: [
+                { type: "tableRow", content: [
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Ação" }] }] },
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Responsável" }] }] },
+                    { type: "tableHeader", content: [{ type: "paragraph", content: [{ type: "text", text: "Prazo" }] }] },
+                ]},
+                { type: "tableRow", content: [
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "Ação corretiva" }] }] },
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "placeholder", attrs: { mode: "token", key: "responsavel_acao", raw: "token:responsavel_acao" } }] }] },
+                    { type: "tableCell", content: [{ type: "paragraph", content: [{ type: "text", text: "dd/mm/aaaa" }] }] },
+                ]},
+            ]},
+        ],
+        assinatura_art: [
+            { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: "Assinatura Técnica" }] },
+            { type: "paragraph", content: [{ type: "text", text: "Engenheiro responsável: " }, { type: "placeholder", attrs: { mode: "token", key: "engenheiro_responsavel", raw: "token:engenheiro_responsavel" } }] },
+            { type: "paragraph", content: [{ type: "text", text: "CREA / ART: " }, { type: "placeholder", attrs: { mode: "token", key: "crea_art", raw: "token:crea_art" } }] },
+            { type: "paragraph", content: [{ type: "text", text: "Data de emissão: " }, { type: "placeholder", attrs: { mode: "json_path", key: "informacoes_gerais.data_inspecao", raw: "json_path:informacoes_gerais.data_inspecao" } }] },
+        ],
+    };
+
     const html = (v) => String(v || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    const htmlMultiline = (v) => html(v).replace(/\n/g, "<br>");
     const status = (el, msg = "", tipo = "") => {
         if (!el) return;
         el.textContent = msg;
@@ -201,6 +269,11 @@
     };
     const n = (v, d = 0) => Number.isFinite(Number(v)) ? Number(v) : d;
     const slug = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+    const gerarCodigoPadrao = () => {
+        const base = slug(els.editorNome?.value || "template_word_tariel") || "template_word_tariel";
+        const sufixo = new Date().toISOString().slice(0, 16).replace(/[-T:]/g, "");
+        return `${base}_${sufixo}`.slice(0, 80);
+    };
     const hora = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     const margens = () => ({
         top: Math.max(5, Math.min(40, Math.floor(n(els.editorMarginTop?.value, 18)))),
@@ -285,22 +358,29 @@
     };
 
     const defineTab = (tab) => {
-        const target = String(tab || "inicio");
+        const target = String(tab || "documento").trim().toLowerCase() || "documento";
         els.wordTabs.forEach((btn) => {
             const on = btn.dataset.tab === target;
             btn.classList.toggle("active", on);
             btn.setAttribute("aria-selected", on ? "true" : "false");
         });
-        els.ribbonGroups.forEach((g) => {
-            const tabs = String(g.dataset.ribbonTab || "").split(/\s+/).filter(Boolean);
-            g.hidden = !tabs.includes(target);
+        els.inspectorPanels.forEach((panel) => {
+            panel.hidden = panel.dataset.panel !== target;
         });
     };
 
+    const atualizarEstadoInspector = () => {
+        els.wordStage?.classList.toggle("is-side-hidden", state.painelLateralOculto);
+        if (els.btnToggleSide) els.btnToggleSide.textContent = state.painelLateralOculto ? "Mostrar inspector" : "Ocultar inspector";
+    };
     const toggleSide = () => {
         state.painelLateralOculto = !state.painelLateralOculto;
-        els.wordStage?.classList.toggle("is-side-hidden", state.painelLateralOculto);
-        if (els.btnToggleSide) els.btnToggleSide.textContent = state.painelLateralOculto ? "Mostrar painel lateral" : "Ocultar painel lateral";
+        atualizarEstadoInspector();
+    };
+    const mostrarInspector = () => {
+        if (!state.painelLateralOculto) return;
+        state.painelLateralOculto = false;
+        atualizarEstadoInspector();
     };
 
     const carregarDependenciasEditor = async () => {
@@ -349,6 +429,157 @@
             return `<option value="${Number(i.id)}" ${sel}>${html(i.nome)} • ${html(i.codigo_template)} v${Number(i.versao || 1)}</option>`;
         }).join("");
         if (els.editorTemplateSelect) els.editorTemplateSelect.innerHTML = `<option value="">Selecione...</option>${opts}`;
+        renderCompareSelect();
+    };
+
+    const templateAtual = () => state.templates.find((item) => Number(item.id) === Number(state.templateId)) || null;
+
+    const templatesComparaveis = () => {
+        const atual = templateAtual();
+        const codigo = String(atual?.codigo_template || "").trim();
+        if (!codigo) return [];
+        return state.templates
+            .filter((item) => String(item.codigo_template || "").trim() === codigo && Number(item.id) !== Number(state.templateId))
+            .sort((a, b) => Number(b.versao || 0) - Number(a.versao || 0));
+    };
+
+    const mensagemEstadoComparacao = () => {
+        if (!state.templateId) return "Abra um template Word para comparar versões.";
+        if (!templatesComparaveis().length) return "Nenhuma outra versão do mesmo código está disponível para comparação.";
+        return "Selecione outra versão do mesmo código para visualizar o diff por bloco.";
+    };
+
+    const renderEstadoVazioComparacao = (mensagem) => {
+        if (!els.compareBlocks) return;
+        els.compareBlocks.innerHTML = `<div class="word-compare-empty">${html(mensagem || mensagemEstadoComparacao())}</div>`;
+    };
+
+    const limparComparacaoEditor = ({ mensagemStatus = "", tipoStatus = "" } = {}) => {
+        if (els.compareSummary) els.compareSummary.hidden = true;
+        if (els.compareSummaryChanged) els.compareSummaryChanged.textContent = "0";
+        if (els.compareSummaryAdded) els.compareSummaryAdded.textContent = "0";
+        if (els.compareSummaryRemoved) els.compareSummaryRemoved.textContent = "0";
+        if (els.compareSummaryUnchanged) els.compareSummaryUnchanged.textContent = "0";
+        renderEstadoVazioComparacao();
+        status(els.statusEditorCompare, mensagemStatus, tipoStatus);
+    };
+
+    const renderCompareSelect = () => {
+        if (!els.editorCompareSelect) return;
+        const opcoes = templatesComparaveis();
+        const valorAnterior = String(els.editorCompareSelect.value || "");
+
+        if (!state.templateId) {
+            els.editorCompareSelect.disabled = true;
+            els.editorCompareSelect.innerHTML = '<option value="">Abra um template para comparar...</option>';
+            return;
+        }
+
+        if (!opcoes.length) {
+            els.editorCompareSelect.disabled = true;
+            els.editorCompareSelect.innerHTML = '<option value="">Nenhuma outra versão comparável</option>';
+            return;
+        }
+
+        els.editorCompareSelect.disabled = false;
+        els.editorCompareSelect.innerHTML = `<option value="">Selecione outra versão...</option>${opcoes.map((item) => {
+            const modo = item.is_editor_rico ? "Word" : "PDF";
+            return `<option value="${Number(item.id)}">${html(item.nome)} • v${Number(item.versao || 1)} • ${modo}</option>`;
+        }).join("")}`;
+
+        const valorPadrao = opcoes.some((item) => String(Number(item.id)) === valorAnterior) ? valorAnterior : String(Number(opcoes[0].id));
+        els.editorCompareSelect.value = valorPadrao;
+    };
+
+    const rotuloStatusBloco = (valor) => {
+        const blocoStatus = String(valor || "").trim().toLowerCase();
+        if (blocoStatus === "alterado") return "Alterado";
+        if (blocoStatus === "adicionado") return "Adicionado";
+        if (blocoStatus === "removido") return "Removido";
+        return "Sem mudança";
+    };
+
+    const renderCardBlocoComparacao = (tituloLado, bloco) => {
+        if (!bloco) {
+            return `
+                <article class="word-compare-card is-empty">
+                    <span class="word-compare-side">${html(tituloLado)}</span>
+                    <strong>Sem bloco correspondente</strong>
+                    <small>Este lado não possui um bloco equivalente nesta comparação.</small>
+                </article>
+            `;
+        }
+
+        const placeholders = Array.isArray(bloco.placeholders) ? bloco.placeholders.filter(Boolean) : [];
+        const texto = String(bloco.texto || "").trim();
+        return `
+            <article class="word-compare-card">
+                <div class="word-compare-card-top">
+                    <div class="word-compare-card-copy">
+                        <span class="word-compare-side">${html(tituloLado)}</span>
+                        <strong>${html(bloco.preview || bloco.tipo_label || "Bloco")}</strong>
+                        <small>${html(bloco.estrutura || "")}</small>
+                    </div>
+                    <span class="word-compare-block-kind">${html(bloco.tipo_label || "Bloco")}</span>
+                </div>
+                ${placeholders.length ? `<div class="word-compare-placeholder-list">${placeholders.map((item) => `<span class="word-compare-placeholder-chip">${html(item)}</span>`).join("")}</div>` : ""}
+                ${texto ? `<div class="word-compare-block-text">${htmlMultiline(texto)}</div>` : ""}
+            </article>
+        `;
+    };
+
+    const renderComparacaoEditor = (payload) => {
+        const resumoBlocos = payload?.resumo_blocos || {};
+        const diffBlocos = Array.isArray(payload?.diff_blocos) ? payload.diff_blocos : [];
+        const resumoLinhas = payload?.resumo || {};
+
+        if (els.compareSummary) els.compareSummary.hidden = false;
+        if (els.compareSummaryChanged) els.compareSummaryChanged.textContent = String(Number(resumoBlocos.alterados || 0));
+        if (els.compareSummaryAdded) els.compareSummaryAdded.textContent = String(Number(resumoBlocos.adicionados || 0));
+        if (els.compareSummaryRemoved) els.compareSummaryRemoved.textContent = String(Number(resumoBlocos.removidos || 0));
+        if (els.compareSummaryUnchanged) els.compareSummaryUnchanged.textContent = String(Number(resumoBlocos.inalterados || 0));
+
+        if (!diffBlocos.length) {
+            renderEstadoVazioComparacao("Nenhuma diferença estrutural relevante foi detectada entre as versões selecionadas.");
+        } else if (els.compareBlocks) {
+            els.compareBlocks.innerHTML = diffBlocos.map((item) => {
+                const blocoStatus = String(item.status || "inalterado").toLowerCase();
+                const meta = [];
+                if (Number(item.ordem_base || 0) > 0) meta.push(`Base #${Number(item.ordem_base)}`);
+                if (Number(item.ordem_comparado || 0) > 0) meta.push(`Comparado #${Number(item.ordem_comparado)}`);
+                const mudancas = Array.isArray(item.mudancas) ? item.mudancas.filter(Boolean) : [];
+                return `
+                    <article class="word-compare-row ${html(blocoStatus)}">
+                        <div class="word-compare-row-head">
+                            <span class="word-compare-status ${html(blocoStatus)}">${rotuloStatusBloco(blocoStatus)}</span>
+                            ${meta.length ? `<span class="word-compare-row-meta">${html(meta.join(" • "))}</span>` : ""}
+                        </div>
+                        ${mudancas.length ? `<div class="word-compare-reasons">${mudancas.map((mudanca) => `<span class="word-compare-reason-chip">${html(mudanca)}</span>`).join("")}</div>` : ""}
+                        <div class="word-compare-row-grid">
+                            ${renderCardBlocoComparacao("Versão base", item.base)}
+                            ${renderCardBlocoComparacao("Versão comparada", item.comparado)}
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        const mensagens = [];
+        if (Number(resumoLinhas.campos_alterados || 0) > 0) mensagens.push(`${Number(resumoLinhas.campos_alterados)} campo(s) auxiliares alterados`);
+        if (Number(resumoBlocos.ocultos || 0) > 0) mensagens.push(`${Number(resumoBlocos.ocultos)} bloco(s) adicionais ocultos`);
+        status(els.statusEditorCompare, mensagens.join(" • ") || "Comparação estrutural atualizada.", "ok");
+    };
+
+    const obterDiffTemplates = async (baseId, comparadoId) => {
+        const params = new URLSearchParams({
+            base_id: String(Number(baseId)),
+            comparado_id: String(Number(comparadoId)),
+        });
+        const res = await fetch(`/revisao/api/templates-laudo/diff?${params.toString()}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        });
+        if (!res.ok) throw new Error(await erroHttp(res));
+        return res.json();
     };
 
     const carregarTemplates = async () => {
@@ -377,6 +608,8 @@
             state.editor.commands.setContent(doc, false);
             updateToolbarState();
             if (els.editorTemplateSelect) els.editorTemplateSelect.value = String(state.templateId);
+            renderCompareSelect();
+            limparComparacaoEditor();
             status(els.statusEditorWord, "Template Word carregado.", "ok");
             statusSave("saved", `Aberto às ${hora()}`);
             els.cardEditorWord?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -421,7 +654,7 @@
         syncLayout();
         state.editor.commands.setContent(preset.doc || { type: "doc", content: [{ type: "paragraph", content: [] }] }, false);
         updateToolbarState();
-        defineTab("inicio");
+        defineTab("documento");
     };
 
     const aplicarPreset = async (presetId) => {
@@ -440,6 +673,15 @@
         status(els.statusEditorWord, `Modelo "${preset.nome}" aplicado.`, "ok");
         agendarAutosave();
         els.cardEditorWord?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    const inserirBloco = (blockId) => {
+        if (!state.editor) return;
+        const bloco = BLOCKS[String(blockId || "")];
+        if (!Array.isArray(bloco) || !bloco.length) return;
+        state.editor.chain().focus().insertContent(bloco).run();
+        status(els.statusEditorWord, "Bloco Tariel inserido.", "ok");
+        agendarAutosave();
     };
 
     const payloadSalvarEditor = () => {
@@ -472,6 +714,8 @@
 
     const gerarPreviewEditor = async () => {
         if (!state.templateId) { status(els.statusEditorWord, "Crie ou abra um template Word primeiro.", "err"); return; }
+        mostrarInspector();
+        defineTab("preview");
         await salvarEditor({ silencioso: true });
         let dados = {};
         try { dados = JSON.parse(String(els.editorPreviewDados?.value || "{}")); }
@@ -485,6 +729,7 @@
             state.blob = URL.createObjectURL(blob);
             if (els.frameEditorPreview) els.frameEditorPreview.src = state.blob;
             status(els.statusEditorWord, "Preview Word atualizado.", "ok");
+            els.frameEditorPreview?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         } catch (e) { status(els.statusEditorWord, `Erro no preview Word: ${e.message}`, "err"); }
     };
 
@@ -529,6 +774,43 @@
         if (!key) return;
         state.editor.chain().focus().insertContent({ type: "placeholder", attrs: { mode, key, raw: `${modo}:${key}` } }).run();
         agendarAutosave();
+    };
+
+    const inserirPlaceholderRapido = (modo, key) => {
+        if (!state.editor) return;
+        const chave = String(key || "").trim();
+        if (!chave) return;
+        state.editor.chain().focus().insertContent({ type: "placeholder", attrs: { mode, key: chave, raw: `${modo}:${chave}` } }).run();
+        status(els.statusEditorWord, "Campo rápido inserido.", "ok");
+        agendarAutosave();
+    };
+
+    const compararTemplateEditor = async () => {
+        if (!state.templateId) {
+            status(els.statusEditorCompare, "Abra um template Word antes de comparar versões.", "err");
+            return;
+        }
+        const comparadoId = Number(els.editorCompareSelect?.value || 0);
+        if (!comparadoId) {
+            status(els.statusEditorCompare, "Selecione outra versão do mesmo código para comparar.", "err");
+            return;
+        }
+        if (comparadoId === Number(state.templateId)) {
+            status(els.statusEditorCompare, "Selecione uma versão diferente da atualmente aberta.", "err");
+            return;
+        }
+
+        mostrarInspector();
+        defineTab("comparar");
+        await salvarEditor({ silencioso: true });
+        status(els.statusEditorCompare, "Comparando estrutura por bloco...");
+        try {
+            const payload = await obterDiffTemplates(state.templateId, comparadoId);
+            renderComparacaoEditor(payload);
+            els.compareBlocks?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (e) {
+            status(els.statusEditorCompare, `Erro ao comparar versões: ${e.message}`, "err");
+        }
     };
 
     const runCommand = (fn) => { if (!state.editor) return; fn(state.editor); updateToolbarState(); };
@@ -614,8 +896,10 @@
         if (els.editorCodigo && !String(els.editorCodigo.value || "").trim()) els.editorCodigo.value = gerarCodigoPadrao();
 
         syncLayout();
-        defineTab("inicio");
+        defineTab("documento");
+        atualizarEstadoInspector();
         statusSave("", "Sem alterações");
+        limparComparacaoEditor();
 
         await carregarDependenciasEditor();
         bindToolbar();
@@ -630,8 +914,19 @@
         els.btnPublish?.addEventListener("click", publicarTemplateEditor);
         els.btnUploadImage?.addEventListener("click", uploadInserirImagem);
         els.btnToggleSide?.addEventListener("click", toggleSide);
+        els.btnCompare?.addEventListener("click", compararTemplateEditor);
+        els.btnCompareClear?.addEventListener("click", () => {
+            if (els.editorCompareSelect) els.editorCompareSelect.value = "";
+            limparComparacaoEditor();
+        });
         els.presetButtons.forEach((btn) => {
             btn.addEventListener("click", () => aplicarPreset(btn.dataset.preset));
+        });
+        els.blockButtons.forEach((btn) => {
+            btn.addEventListener("click", () => inserirBloco(btn.dataset.block));
+        });
+        els.quickPlaceholderButtons.forEach((btn) => {
+            btn.addEventListener("click", () => inserirPlaceholderRapido(btn.dataset.mode, btn.dataset.key));
         });
         [els.editorNome, els.editorCodigo, els.editorVersao, els.editorObs].forEach((i) => i?.addEventListener("input", () => agendarAutosave()));
         document.addEventListener("click", (ev) => {

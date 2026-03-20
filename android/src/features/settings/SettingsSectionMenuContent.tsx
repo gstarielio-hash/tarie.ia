@@ -25,7 +25,7 @@ export function SettingsSectionMenuContent({
     <SettingsSection
       icon={SETTINGS_DRAWER_PAGE_META[settingsDrawerPage].icon}
       subtitle="Subconfigurações padronizadas para editar por categoria, sem rolagem longa."
-      title={`${SETTINGS_DRAWER_PAGE_META[settingsDrawerPage].title} • Subconfigurações`}
+      title="Seções"
     >
       {settingsDrawerPageSections.map((sectionKey) => {
         const meta = SETTINGS_DRAWER_SECTION_META[sectionKey];
@@ -37,7 +37,6 @@ export function SettingsSectionMenuContent({
             onPress={() => onAbrirSecaoConfiguracoes(sectionKey)}
             testID={`settings-section-link-${sectionKey}`}
             title={meta.title}
-            value="Abrir"
           />
         );
       })}

@@ -3,35 +3,13 @@ import * as ImagePicker from "expo-image-picker";
 import { Alert } from "react-native";
 
 import { uploadDocumentoChatMobile } from "../../config/api";
-
-type ActiveThread = "chat" | "mesa";
-
-type ComposerAttachment =
-  | {
-      kind: "image";
-      label: string;
-      resumo: string;
-      dadosImagem: string;
-      previewUri: string;
-      fileUri: string;
-      mimeType: string;
-    }
-  | {
-      kind: "document";
-      label: string;
-      resumo: string;
-      textoDocumento: string;
-      nomeDocumento: string;
-      chars: number;
-      truncado: boolean;
-      fileUri: string;
-      mimeType: string;
-    };
+import type { ActiveThread, ComposerAttachment } from "./types";
 
 interface AttachmentDraftBaseParams {
   abaAtiva: ActiveThread;
   preparandoAnexo: boolean;
   uploadArquivosAtivo: boolean;
+  imageQuality: number;
   onSetAnexoMesaRascunho: (value: ComposerAttachment | null) => void;
   onSetAnexoRascunho: (value: ComposerAttachment | null) => void;
   onSetErroConversa: (value: string) => void;
@@ -50,6 +28,7 @@ interface CaptureImageAttachmentDraftFlowParams extends AttachmentDraftBaseParam
 
 interface SelectDocumentAttachmentDraftFlowParams extends AttachmentDraftBaseParams {
   arquivosPermitidos: boolean;
+  autoUploadDocuments: boolean;
   erroSugereModoOffline: (erro: unknown) => boolean;
   montarAnexoDocumentoLocal: (
     asset: DocumentPicker.DocumentPickerAsset,
@@ -78,6 +57,7 @@ export async function selecionarImagemRascunhoFlow({
   abaAtiva,
   preparandoAnexo,
   uploadArquivosAtivo,
+  imageQuality,
   arquivosPermitidos,
   montarAnexoImagem,
   onSetAnexoMesaRascunho,
@@ -103,7 +83,7 @@ export async function selecionarImagemRascunhoFlow({
       mediaTypes: ["images"],
       allowsEditing: false,
       base64: true,
-      quality: 0.72,
+      quality: imageQuality,
     });
 
     if (resultado.canceled || !resultado.assets?.length) {
@@ -130,6 +110,7 @@ export async function capturarImagemRascunhoFlow({
   abaAtiva,
   preparandoAnexo,
   uploadArquivosAtivo,
+  imageQuality,
   cameraPermitida,
   montarAnexoImagem,
   onSetAnexoMesaRascunho,
@@ -155,7 +136,7 @@ export async function capturarImagemRascunhoFlow({
       mediaTypes: ["images"],
       allowsEditing: false,
       base64: true,
-      quality: 0.72,
+      quality: imageQuality,
     });
 
     if (resultado.canceled || !resultado.assets?.length) {
@@ -182,7 +163,9 @@ export async function selecionarDocumentoRascunhoFlow({
   abaAtiva,
   preparandoAnexo,
   uploadArquivosAtivo,
+  imageQuality: _imageQuality,
   arquivosPermitidos,
+  autoUploadDocuments,
   sessionAccessToken,
   statusApi,
   erroSugereModoOffline,
@@ -222,6 +205,15 @@ export async function selecionarDocumentoRascunhoFlow({
     }
 
     try {
+      if (!autoUploadDocuments) {
+        onSetAnexoRascunho(
+          montarAnexoDocumentoLocal(
+            asset,
+            "Documento mantido no rascunho. A conversão acontecerá só no envio.",
+          ),
+        );
+        return;
+      }
       const documento = await uploadDocumentoChatMobile(sessionAccessToken, {
         uri: asset.uri,
         nome: asset.name,

@@ -17,6 +17,7 @@ env:
       - tapOn:
           id: login-email-input
       - inputText: ${LOGIN_EMAIL}
+      - hideKeyboard
       - tapOn:
           id: login-password-input
       - inputText: ${LOGIN_PASSWORD}
@@ -33,5 +34,14 @@ env:
     id: chat-composer-input
 
 - inputText: Conferindo teclado no chat
+
+- assertVisible:
+    id: chat-composer-input
+
+- assertVisible:
+    id: chat-attach-button
+
+- assertVisible:
+    id: chat-send-button
 
 - takeScreenshot: chat-keyboard-visible

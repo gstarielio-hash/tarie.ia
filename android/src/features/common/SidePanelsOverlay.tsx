@@ -12,6 +12,7 @@ import { styles } from "../InspectorMobileApp.styles";
 interface SidePanelsOverlayProps {
   anyPanelOpen: boolean;
   historyOpen: boolean;
+  keyboardVisible: boolean;
   settingsOpen: boolean;
   drawerOverlayOpacity: Animated.Value;
   onClosePanels: () => void;
@@ -24,6 +25,7 @@ interface SidePanelsOverlayProps {
 export function SidePanelsOverlay({
   anyPanelOpen,
   historyOpen,
+  keyboardVisible,
   settingsOpen,
   drawerOverlayOpacity,
   onClosePanels,
@@ -35,7 +37,7 @@ export function SidePanelsOverlay({
   return (
     <>
       <View pointerEvents="box-none" style={styles.sidePanelLayer}>
-        {!anyPanelOpen ? (
+        {!anyPanelOpen && !keyboardVisible ? (
           <>
             <View
               {...historyEdgePanHandlers}

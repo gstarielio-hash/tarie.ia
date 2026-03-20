@@ -1,32 +1,20 @@
-import { Text, View } from "react-native";
-
-import { styles } from "../InspectorMobileApp.styles";
-import { SettingsPressRow, SettingsSection, SettingsTextField } from "./SettingsPrimitives";
+import { SettingsPressRow, SettingsSection } from "./SettingsPrimitives";
 
 interface SettingsAccountSectionContentProps {
   perfilNomeCompleto: string;
   perfilExibicaoLabel: string;
   provedorPrimario: string;
   contaEmailLabel: string;
-  resumoMetodosConta: string;
-  planoAtual: string;
-  reautenticacaoStatus: string;
+  contaTelefoneLabel: string;
+  workspaceAtual: string;
+  resumoConta: string;
   perfilFotoHint: string;
   perfilFotoUri: string;
-  perfilNome: string;
-  perfilExibicao: string;
-  cartaoAtual: string;
-  onSetPerfilNome: (value: string) => void;
-  onSetPerfilExibicao: (value: string) => void;
+  onEditarPerfil: () => void;
   onUploadFotoPerfil: () => void;
   onAlterarEmail: () => void;
   onAlterarSenha: () => void;
-  onGerenciarPlano: () => void;
-  onHistoricoPagamentos: () => void;
-  onGerenciarPagamento: () => void;
-  onFecharConfiguracoes: () => void;
-  onLogout: () => void | Promise<void>;
-  onExcluirConta: () => void;
+  onSolicitarLogout: () => void;
 }
 
 export function SettingsAccountSectionContent({
@@ -34,51 +22,24 @@ export function SettingsAccountSectionContent({
   perfilExibicaoLabel,
   provedorPrimario,
   contaEmailLabel,
-  resumoMetodosConta,
-  planoAtual,
-  reautenticacaoStatus,
+  contaTelefoneLabel,
+  workspaceAtual,
+  resumoConta,
   perfilFotoHint,
   perfilFotoUri,
-  perfilNome,
-  perfilExibicao,
-  cartaoAtual,
-  onSetPerfilNome,
-  onSetPerfilExibicao,
+  onEditarPerfil,
   onUploadFotoPerfil,
   onAlterarEmail,
   onAlterarSenha,
-  onGerenciarPlano,
-  onHistoricoPagamentos,
-  onGerenciarPagamento,
-  onFecharConfiguracoes,
-  onLogout,
-  onExcluirConta,
+  onSolicitarLogout,
 }: SettingsAccountSectionContentProps) {
   return (
     <SettingsSection
       icon="account-circle-outline"
-      subtitle="Informações da conta e assinatura do inspetor."
+      subtitle="Perfil autenticado, email, telefone e senha do inspetor."
       testID="settings-section-conta"
       title="Conta"
     >
-      <View style={styles.settingsInfoGrid}>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Identidade</Text>
-          <Text style={styles.settingsInfoText}>{perfilNomeCompleto}</Text>
-          <Text style={styles.settingsInfoSubtle}>{perfilExibicaoLabel} no chat</Text>
-        </View>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Acesso principal</Text>
-          <Text style={styles.settingsInfoText}>{provedorPrimario}</Text>
-          <Text style={styles.settingsInfoSubtle}>{contaEmailLabel}</Text>
-        </View>
-      </View>
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Resumo da conta</Text>
-        <Text style={styles.settingsInfoText}>
-          {resumoMetodosConta} • {planoAtual} • {reautenticacaoStatus}
-        </Text>
-      </View>
       <SettingsPressRow
         description={perfilFotoHint}
         icon="camera-plus-outline"
@@ -87,29 +48,58 @@ export function SettingsAccountSectionContent({
         title="Foto de perfil"
         value={perfilFotoUri ? "Atualizada" : "Upload"}
       />
-      <SettingsTextField
+      <SettingsPressRow
+        description="Edite nome completo, nome de exibição e telefone em um único fluxo."
         icon="account-outline"
-        onChangeText={onSetPerfilNome}
-        placeholder="Nome completo"
+        onPress={onEditarPerfil}
         testID="settings-account-name-field"
         title="Nome do usuário"
-        value={perfilNome}
-      />
-      <SettingsTextField
-        icon="badge-account-outline"
-        onChangeText={onSetPerfilExibicao}
-        placeholder="Nome exibido no chat"
-        testID="settings-account-display-name-field"
-        title="Nome de exibição"
-        value={perfilExibicao}
+        value={perfilNomeCompleto || "Não informado"}
       />
       <SettingsPressRow
-        description="Confirmado por email"
+        description="Nome exibido no chat, histórico e demais áreas do app."
+        icon="badge-account-outline"
+        onPress={onEditarPerfil}
+        testID="settings-account-display-name-field"
+        title="Nome de exibição"
+        value={perfilExibicaoLabel || "Não informado"}
+      />
+      <SettingsPressRow
+        description="Email principal usado no acesso e no retorno de suporte."
         icon="email-outline"
         onPress={onAlterarEmail}
         testID="settings-account-email-row"
-        title="Email"
+        title="E-mail"
         value={contaEmailLabel}
+      />
+      <SettingsPressRow
+        description="Número sincronizado com o perfil autenticado da conta."
+        icon="phone-outline"
+        onPress={onEditarPerfil}
+        testID="settings-account-phone-row"
+        title="Telefone"
+        value={contaTelefoneLabel}
+      />
+      <SettingsPressRow
+        description="Método principal disponível hoje para autenticar neste app."
+        icon="shield-account-outline"
+        testID="settings-account-primary-access-row"
+        title="Acesso principal"
+        value={provedorPrimario}
+      />
+      <SettingsPressRow
+        description={resumoConta}
+        icon="briefcase-outline"
+        testID="settings-account-workspace-row"
+        title="Espaço de trabalho"
+        value={workspaceAtual}
+      />
+      <SettingsPressRow
+        description="Resumo do vínculo corporativo usado por esta sessão."
+        icon="card-account-details-outline"
+        testID="settings-account-summary-row"
+        title="Resumo da conta"
+        value={resumoConta}
       />
       <SettingsPressRow
         description="Senha atual, nova senha e confirmação"
@@ -119,43 +109,11 @@ export function SettingsAccountSectionContent({
         title="Alterar senha"
       />
       <SettingsPressRow
-        description="Benefícios do plano e opções de upgrade"
-        icon="star-circle-outline"
-        onPress={onGerenciarPlano}
-        testID="settings-account-plan-row"
-        title="Plano / Assinatura"
-        value={planoAtual}
-      />
-      <SettingsPressRow
-        description="Cobranças e faturas anteriores"
-        icon="receipt-text-outline"
-        onPress={onHistoricoPagamentos}
-        title="Histórico de pagamentos"
-      />
-      <SettingsPressRow
-        description="Cartão cadastrado e método de pagamento"
-        icon="credit-card-outline"
-        onPress={onGerenciarPagamento}
-        testID="settings-account-billing-row"
-        title="Gerenciar pagamento"
-        value={cartaoAtual}
-      />
-      <SettingsPressRow
+        danger
         icon="logout-variant"
-        onPress={() => {
-          onFecharConfiguracoes();
-          void onLogout();
-        }}
+        onPress={onSolicitarLogout}
         testID="settings-account-logout-row"
         title="Sair da conta"
-      />
-      <SettingsPressRow
-        description="Exclusão permanente com confirmação dupla"
-        danger
-        icon="delete-alert-outline"
-        onPress={onExcluirConta}
-        testID="settings-account-delete-row"
-        title="Excluir conta"
       />
     </SettingsSection>
   );

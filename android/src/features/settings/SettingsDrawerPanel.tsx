@@ -10,8 +10,8 @@ import {
   SettingsExperienceNotificationsSection,
 } from "./SettingsExperienceSections";
 import { SettingsOverviewContent } from "./SettingsOverviewContent";
-import { SettingsGroupLabel } from "./SettingsPrimitives";
 import { SettingsPriorityActionsContent } from "./SettingsPriorityActionsContent";
+import { SettingsSectionLayoutProvider } from "./SettingsPrimitives";
 import { SettingsSectionMenuContent } from "./SettingsSectionMenuContent";
 import {
   SettingsSecurityConnectedAccountsSection,
@@ -121,6 +121,7 @@ export function SettingsDrawerPanel({
   systemSectionProps,
   supportSectionProps,
 }: SettingsDrawerPanelProps) {
+  const hideInnerSectionHeaders = !settingsDrawerInOverview && !settingsDrawerSectionMenuAtiva;
   return (
     <Animated.View
       {...settingsDrawerPanHandlers}
@@ -145,128 +146,102 @@ export function SettingsDrawerPanel({
         contentContainerStyle={styles.settingsDrawerContent}
         showsVerticalScrollIndicator={false}
       >
-        {settingsDrawerInOverview ? <SettingsOverviewContent {...overviewContentProps} /> : null}
+        <SettingsSectionLayoutProvider hideHeader={hideInnerSectionHeaders}>
+          {settingsDrawerInOverview ? <SettingsOverviewContent {...overviewContentProps} /> : null}
 
-        {!settingsDrawerInOverview && settingsDrawerSectionMenuAtiva ? (
-          <SettingsSectionMenuContent
-            {...sectionMenuContentProps}
-            settingsDrawerPage={settingsDrawerPage}
-            settingsDrawerPageSections={[...settingsDrawerPageSections]}
-          />
-        ) : null}
+          {!settingsDrawerInOverview && settingsDrawerSectionMenuAtiva ? (
+            <SettingsSectionMenuContent
+              {...sectionMenuContentProps}
+              settingsDrawerPage={settingsDrawerPage}
+              settingsDrawerPageSections={[...settingsDrawerPageSections]}
+            />
+          ) : null}
 
-        {settingsDrawerMatchesSection("prioridades", "prioridades") ? (
-          <SettingsPriorityActionsContent {...priorityActionsContentProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("prioridades", "prioridades") ? (
+            <SettingsPriorityActionsContent {...priorityActionsContentProps} />
+          ) : null}
 
-        {settingsDrawerMatchesPage("contaAcesso") && !settingsDrawerSectionMenuAtiva && mostrarGrupoContaAcesso ? (
-          <SettingsGroupLabel
-            description="Perfil, acesso e sessões ligadas à sua conta."
-            title="Conta e acesso"
-          />
-        ) : null}
+          {settingsDrawerMatchesSection("contaAcesso", "conta") ? (
+            <SettingsAccountSectionContent {...accountSectionContentProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("contaAcesso", "conta") ? (
-          <SettingsAccountSectionContent {...accountSectionContentProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("experiencia", "preferenciasIa") ? (
+            <SettingsExperienceAiSection {...experienceAiSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesPage("experiencia") && !settingsDrawerSectionMenuAtiva && mostrarGrupoExperiencia ? (
-          <SettingsGroupLabel
-            description="Comportamento da IA, aparência e alertas do aplicativo."
-            title="Experiência do app"
-          />
-        ) : null}
+          {settingsDrawerMatchesSection("experiencia", "aparencia") ? (
+            <SettingsExperienceAppearanceSection {...experienceAppearanceSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("experiencia", "preferenciasIa") ? (
-          <SettingsExperienceAiSection {...experienceAiSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("experiencia", "notificacoes") ? (
+            <SettingsExperienceNotificationsSection {...experienceNotificationsSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("experiencia", "aparencia") ? (
-          <SettingsExperienceAppearanceSection {...experienceAppearanceSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "contasConectadas") ? (
+            <SettingsSecurityConnectedAccountsSection {...securityConnectedAccountsSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("experiencia", "notificacoes") ? (
-          <SettingsExperienceNotificationsSection {...experienceNotificationsSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "sessoes") ? (
+            <SettingsSecuritySessionsSection {...securitySessionsSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesPage("seguranca") && !settingsDrawerSectionMenuAtiva && mostrarGrupoSeguranca ? (
-          <SettingsGroupLabel
-            description="Proteção da conta, privacidade e controle das conversas."
-            title="Segurança e privacidade"
-          />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "twofa") ? (
+            <SettingsSecurityTwoFactorSection {...securityTwoFactorSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "contasConectadas") ? (
-          <SettingsSecurityConnectedAccountsSection {...securityConnectedAccountsSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "protecaoDispositivo") ? (
+            <SettingsSecurityDeviceProtectionSection {...securityDeviceProtectionSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "sessoes") ? (
-          <SettingsSecuritySessionsSection {...securitySessionsSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "verificacaoIdentidade") ? (
+            <SettingsSecurityIdentityVerificationSection {...securityIdentityVerificationSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "twofa") ? (
-          <SettingsSecurityTwoFactorSection {...securityTwoFactorSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "atividadeSeguranca") ? (
+            <SettingsSecurityActivitySection {...securityActivitySectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "protecaoDispositivo") ? (
-          <SettingsSecurityDeviceProtectionSection {...securityDeviceProtectionSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "dadosConversas") ? (
+            <SettingsSecurityDataConversationsSection {...securityDataConversationsSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "verificacaoIdentidade") ? (
-          <SettingsSecurityIdentityVerificationSection {...securityIdentityVerificationSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "permissoes") ? (
+            <SettingsSecurityPermissionsSection {...securityPermissionsSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "atividadeSeguranca") ? (
-          <SettingsSecurityActivitySection {...securityActivitySectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "segurancaArquivos") ? (
+            <SettingsSecurityFileUploadSection {...securityFileUploadSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "dadosConversas") ? (
-          <SettingsSecurityDataConversationsSection {...securityDataConversationsSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "privacidadeNotificacoes") ? (
+            <SettingsSecurityNotificationPrivacySection {...securityNotificationPrivacySectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "permissoes") ? (
-          <SettingsSecurityPermissionsSection {...securityPermissionsSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("seguranca", "excluirConta") ? (
+            <SettingsSecurityDeleteAccountSection {...securityDeleteAccountSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "segurancaArquivos") ? (
-          <SettingsSecurityFileUploadSection {...securityFileUploadSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("sistemaSuporte", "recursosAvancados") ? (
+            <SettingsAdvancedResourcesSection {...advancedResourcesSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "privacidadeNotificacoes") ? (
-          <SettingsSecurityNotificationPrivacySection {...securityNotificationPrivacySectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("sistemaSuporte", "sistema") ? (
+            <SettingsSystemSection {...systemSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesSection("seguranca", "excluirConta") ? (
-          <SettingsSecurityDeleteAccountSection {...securityDeleteAccountSectionProps} />
-        ) : null}
+          {settingsDrawerMatchesSection("sistemaSuporte", "suporte") ? (
+            <SettingsSupportSection {...supportSectionProps} />
+          ) : null}
 
-        {settingsDrawerMatchesPage("sistemaSuporte") && !settingsDrawerSectionMenuAtiva && mostrarGrupoSistema ? (
-          <SettingsGroupLabel
-            description="Recursos extras, manutenção do app e canais de ajuda."
-            title="Sistema e suporte"
-          />
-        ) : null}
-
-        {settingsDrawerMatchesSection("sistemaSuporte", "recursosAvancados") ? (
-          <SettingsAdvancedResourcesSection {...advancedResourcesSectionProps} />
-        ) : null}
-
-        {settingsDrawerMatchesSection("sistemaSuporte", "sistema") ? (
-          <SettingsSystemSection {...systemSectionProps} />
-        ) : null}
-
-        {settingsDrawerMatchesSection("sistemaSuporte", "suporte") ? (
-          <SettingsSupportSection {...supportSectionProps} />
-        ) : null}
-
-        {!totalSecoesConfiguracaoVisiveis ? (
-          <View style={styles.settingsInfoCard}>
-            <Text style={styles.settingsInfoTitle}>Nenhuma seção encontrada</Text>
-            <Text style={styles.settingsInfoText}>
-              Ajuste a busca ou troque o filtro para localizar o bloco certo mais rápido.
-            </Text>
-          </View>
-        ) : null}
+          {!totalSecoesConfiguracaoVisiveis ? (
+            <View style={styles.settingsInfoCard}>
+              <Text style={styles.settingsInfoTitle}>Nenhuma seção encontrada</Text>
+              <Text style={styles.settingsInfoText}>
+                Ajuste a busca ou troque o filtro para localizar o bloco certo mais rápido.
+              </Text>
+            </View>
+          ) : null}
+        </SettingsSectionLayoutProvider>
       </ScrollView>
     </Animated.View>
   );

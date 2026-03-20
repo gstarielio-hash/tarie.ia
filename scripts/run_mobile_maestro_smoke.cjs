@@ -9,6 +9,8 @@ const { spawn, spawnSync } = require("child_process");
 const DEFAULT_FLOW = "android/maestro/login-smoke.yaml";
 const DEFAULT_HEALTH_TIMEOUT_SECONDS = 45;
 const HEALTH_URL = "http://127.0.0.1:8000/health";
+const DEFAULT_MAESTRO_LOGIN_EMAIL = "inspetor@tariel.ia";
+const DEFAULT_MAESTRO_LOGIN_PASSWORD = "Dev@123456";
 
 function printHelp() {
   console.log(`
@@ -25,6 +27,10 @@ Exemplos:
   node scripts/run_mobile_maestro_smoke.cjs
   node scripts/run_mobile_maestro_smoke.cjs --device emulator-5554
   node scripts/run_mobile_maestro_smoke.cjs --flow android/maestro/settings-smoke.yaml
+
+Credenciais padrao do smoke:
+  MAESTRO_LOGIN_EMAIL=${DEFAULT_MAESTRO_LOGIN_EMAIL}
+  MAESTRO_LOGIN_PASSWORD=${DEFAULT_MAESTRO_LOGIN_PASSWORD}
 `);
 }
 
@@ -292,7 +298,9 @@ function startMobileApiInBackground(repoRoot) {
       cwd: webRoot,
       env: {
         ...process.env,
+        AMBIENTE: process.env.AMBIENTE || "dev",
         SEED_DEV_BOOTSTRAP: "1",
+        SEED_DEV_SENHA_PADRAO: process.env.SEED_DEV_SENHA_PADRAO || DEFAULT_MAESTRO_LOGIN_PASSWORD,
       },
       stdio: ["ignore", outFd, errFd],
       detached: process.platform !== "win32",
@@ -302,6 +310,14 @@ function startMobileApiInBackground(repoRoot) {
   );
 
   child.unref();
+}
+
+function buildMaestroEnv() {
+  return {
+    ...process.env,
+    MAESTRO_LOGIN_EMAIL: process.env.MAESTRO_LOGIN_EMAIL || DEFAULT_MAESTRO_LOGIN_EMAIL,
+    MAESTRO_LOGIN_PASSWORD: process.env.MAESTRO_LOGIN_PASSWORD || DEFAULT_MAESTRO_LOGIN_PASSWORD,
+  };
 }
 
 function resolveFlowPath(repoRoot, flow) {
@@ -343,6 +359,7 @@ async function main() {
   const flowPath = resolveFlowPath(repoRoot, options.flow);
   const adbBinary = findAdbBinary();
   const maestro = findMaestroRunner();
+  const maestroEnv = buildMaestroEnv();
   const deviceId = resolveDeviceId(adbBinary, options.deviceId);
 
   if (!(await testHttpHealth())) {
@@ -364,7 +381,9 @@ async function main() {
   runCommand(adbBinary, ["-s", deviceId, "reverse", "tcp:8000", "tcp:8000"]);
 
   console.log(`Rodando Maestro: ${options.flow}`);
-  runCommand(maestro.command, [...maestro.prefixArgs, "test", "--device", deviceId, flowPath]);
+  runCommand(maestro.command, [...maestro.prefixArgs, "test", "--device", deviceId, flowPath], {
+    env: maestroEnv,
+  });
 }
 
 main().catch((error) => {

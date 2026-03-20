@@ -1,5 +1,31 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { Dimensions } from "react-native";
+export {
+  ACCENT_OPTIONS,
+  AI_MODEL_OPTIONS,
+  APP_LANGUAGE_OPTIONS,
+  BATTERY_OPTIONS,
+  CONVERSATION_TONE_OPTIONS,
+  DATA_RETENTION_OPTIONS,
+  DENSITY_OPTIONS,
+  FONT_SIZE_OPTIONS,
+  LOCK_TIMEOUT_OPTIONS,
+  MEDIA_COMPRESSION_OPTIONS,
+  NOTIFICATION_SOUND_OPTIONS,
+  REGION_OPTIONS,
+  RESPONSE_LANGUAGE_OPTIONS,
+  RESPONSE_STYLE_OPTIONS,
+  SPEECH_LANGUAGE_OPTIONS,
+  THEME_OPTIONS,
+} from "../settings/schema/options";
+
+const appConfig = require("../../app.json");
+const expoConfig = appConfig?.expo || {};
+const appVersion = String(expoConfig.version || "1.0.0");
+const appBuild =
+  typeof expoConfig.android?.versionCode === "number"
+    ? String(expoConfig.android.versionCode)
+    : String(expoConfig.ios?.buildNumber || "1");
 
 export const TOKEN_KEY = "tariel_inspetor_access_token";
 export const EMAIL_KEY = "tariel_inspetor_email";
@@ -7,6 +33,7 @@ export const OFFLINE_QUEUE_FILE = `${FileSystem.documentDirectory || FileSystem.
 export const NOTIFICATIONS_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-activity-feed.json`;
 export const READ_CACHE_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-read-cache.json`;
 export const APP_PREFERENCES_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-app-preferences.json`;
+export const HISTORY_UI_STATE_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-history-ui-state.json`;
 export const MAX_NOTIFICATIONS = 40;
 export const TARIEL_APP_MARK = require("../../assets/icon.png");
 export const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -18,28 +45,15 @@ export const PANEL_EDGE_GESTURE_WIDTH = 28;
 export const PANEL_OPEN_SWIPE_THRESHOLD = 34;
 export const PANEL_CLOSE_SWIPE_THRESHOLD = 40;
 export const PANEL_EDGE_GESTURE_TOP_OFFSET = 78;
-export const APP_VERSION_LABEL = "1.0.0 preview";
+export const APP_VERSION_LABEL = appVersion;
+export const APP_BUILD_LABEL = `build ${appBuild}`;
 export const APP_BUILD_CHANNEL = "Prévia do inspetor";
 
-export const AI_MODEL_OPTIONS = ["rápido", "equilibrado", "avançado"] as const;
-export const RESPONSE_STYLE_OPTIONS = ["curto", "padrão", "detalhado", "criativo"] as const;
-export const RESPONSE_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol", "Auto detectar"] as const;
-export const CONVERSATION_TONE_OPTIONS = ["profissional", "casual", "técnico", "amigável"] as const;
-export const THEME_OPTIONS = ["claro", "escuro", "automático"] as const;
-export const FONT_SIZE_OPTIONS = ["pequeno", "médio", "grande"] as const;
-export const DENSITY_OPTIONS = ["compacta", "confortável"] as const;
-export const ACCENT_OPTIONS = ["azul", "laranja", "roxo", "personalizado"] as const;
-export const NOTIFICATION_SOUND_OPTIONS = ["Ping", "Sino curto", "Silencioso"] as const;
-export const APP_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol"] as const;
-export const REGION_OPTIONS = ["Brasil", "Estados Unidos", "Europa"] as const;
-export const BATTERY_OPTIONS = ["Otimizado", "Desempenho", "Econômico"] as const;
 export const PAYMENT_CARD_OPTIONS = ["Visa final 4242", "Mastercard final 1034", "Sem cartão"] as const;
 export const PLAN_OPTIONS = ["Free", "Pro", "Enterprise"] as const;
 export const TEMPERATURE_STEPS = [0, 0.2, 0.4, 0.6, 0.8, 1] as const;
-export const LOCK_TIMEOUT_OPTIONS = ["imediatamente", "1 minuto", "5 minutos", "15 minutos", "nunca"] as const;
 export const TWO_FACTOR_METHOD_OPTIONS = ["App autenticador", "Email"] as const;
 export const SECURITY_EVENT_FILTERS = ["todos", "críticos", "acessos"] as const;
-export const DATA_RETENTION_OPTIONS = ["30 dias", "90 dias", "1 ano", "Até excluir"] as const;
 export const SETTINGS_DRAWER_FILTERS = [
   { key: "todos", label: "Tudo" },
   { key: "prioridades", label: "Agora" },

@@ -16,6 +16,9 @@ jobs:
   stress:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: web
     env:
       DATABASE_URL: sqlite:///${{ github.workspace }}/.tmp_e2e_stress.sqlite3
       E2E_LOCAL_DATABASE_URL: sqlite:///${{ github.workspace }}/.tmp_e2e_stress.sqlite3
@@ -34,6 +37,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip"
+          cache-dependency-path: web/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -48,7 +52,7 @@ jobs:
 
       - name: Run local stress E2E (sequential)
         run: |
-          python -m pytest -q tests/e2e/test_local_stress_playwright.py \
+          PYTHONPATH=. python -m pytest -q tests/e2e/test_local_stress_playwright.py \
             --browser chromium \
             --tracing retain-on-failure \
             --video retain-on-failure \
@@ -58,7 +62,7 @@ jobs:
 
       - name: Run local stress E2E (parallel)
         run: |
-          python -m pytest -q tests/e2e/test_local_parallel_stress_playwright.py \
+          PYTHONPATH=. python -m pytest -q tests/e2e/test_local_parallel_stress_playwright.py \
             --browser chromium \
             --tracing retain-on-failure \
             --video retain-on-failure \
@@ -71,5 +75,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-stress-results
-          path: test-results
+          path: web/test-results
           if-no-files-found: ignore

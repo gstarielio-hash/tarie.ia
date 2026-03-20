@@ -35,6 +35,7 @@
         renderActionButtons,
         carregarHistoricoMensagens,
         atualizarPendenciaMesaOperacional,
+        renderizarPainelAprendizadosVisuais,
         openModal,
         closeModal,
         trapFocus,
@@ -132,16 +133,22 @@ const inicializarWebSocket = () => {
             const dados = await res.json();
             state.jsonEstruturadoAtivo = dados.dados_formulario || null;
             state.pacoteMesaAtivo = null;
+            state.aprendizadosVisuais = Array.isArray(dados.aprendizados_visuais) ? [...dados.aprendizados_visuais] : [];
             state.historicoMensagens = [];
             state.historicoCursorProximo = null;
             state.historicoTemMais = false;
             state.carregandoHistoricoAntigo = false;
             limparAnexoResposta();
+            const aprendizadosPendentes = state.aprendizadosVisuais.filter(
+                (item) => String(item?.status || "") === "rascunho_inspetor"
+            ).length;
 
             els.viewHash.textContent = `Inspeção #${dados.hash}`;
             els.viewMeta.textContent = `Protocolo: ${String(dados.tipo_template || "").toUpperCase()} | Criado: ${dados.criado_em}`;
 
             renderActionButtons(dados);
+            atualizarIndicadoresListaLaudo(id, { aprendizadosPendentes });
+            renderizarPainelAprendizadosVisuais(state.aprendizadosVisuais);
             await Promise.all([
                 carregarHistoricoMensagens({ appendAntigas: false }),
                 carregarPainelMesaOperacional({ forcar: true })

@@ -254,6 +254,58 @@ class StatusRevisao(_EnumTexto):
         raise ValueError(f"Status de revisão inválido: {valor!r}")
 
 
+class StatusAprendizadoIa(_EnumTexto):
+    RASCUNHO_INSPETOR = "rascunho_inspetor"
+    VALIDADO_MESA = "validado_mesa"
+    REJEITADO_MESA = "rejeitado_mesa"
+
+    @classmethod
+    def normalizar(cls, valor: Any) -> str:
+        chave = _normalizar_texto_chave(valor)
+        mapa = {
+            "rascunho": cls.RASCUNHO_INSPETOR.value,
+            "rascunho_inspetor": cls.RASCUNHO_INSPETOR.value,
+            "validado": cls.VALIDADO_MESA.value,
+            "validado_mesa": cls.VALIDADO_MESA.value,
+            "aprovado_mesa": cls.VALIDADO_MESA.value,
+            "rejeitado": cls.REJEITADO_MESA.value,
+            "rejeitado_mesa": cls.REJEITADO_MESA.value,
+        }
+        if chave in mapa:
+            return mapa[chave]
+        if valor in cls.valores():
+            return str(valor)
+        raise ValueError(f"Status de aprendizado IA inválido: {valor!r}")
+
+
+class VereditoAprendizadoIa(_EnumTexto):
+    CONFORME = "conforme"
+    NAO_CONFORME = "nao_conforme"
+    AJUSTE = "ajuste"
+    DUVIDA = "duvida"
+
+    @classmethod
+    def normalizar(cls, valor: Any) -> str:
+        chave = _normalizar_texto_chave(valor)
+        mapa = {
+            "conforme": cls.CONFORME.value,
+            "correto": cls.CONFORME.value,
+            "ok": cls.CONFORME.value,
+            "nao_conforme": cls.NAO_CONFORME.value,
+            "incorreto": cls.NAO_CONFORME.value,
+            "errado": cls.NAO_CONFORME.value,
+            "ajuste": cls.AJUSTE.value,
+            "parcial": cls.AJUSTE.value,
+            "duvida": cls.DUVIDA.value,
+            "incerto": cls.DUVIDA.value,
+        }
+        if chave in mapa:
+            return mapa[chave]
+        if valor in cls.valores():
+            return str(valor)
+        raise ValueError(f"Veredito de aprendizado IA inválido: {valor!r}")
+
+
 class PlanoEmpresa(_EnumTexto):
     INICIAL = "Inicial"
     INTERMEDIARIO = "Intermediario"
@@ -523,6 +575,11 @@ class Empresa(MixinAuditoria, Base):
         back_populates="empresa",
         passive_deletes=True,
     )
+    aprendizados_visuais_ia = relationship(
+        "AprendizadoVisualIa",
+        back_populates="empresa",
+        passive_deletes=True,
+    )
 
     @validates("plano_ativo")
     def _validar_plano_ativo(self, _key: str, valor: Any) -> str:
@@ -622,6 +679,16 @@ class Usuario(MixinAuditoria, Base):
         back_populates="usuario",
         cascade="all, delete-orphan",
     )
+    aprendizados_visuais_criados = relationship(
+        "AprendizadoVisualIa",
+        foreign_keys="AprendizadoVisualIa.criado_por_id",
+        back_populates="criado_por",
+    )
+    aprendizados_visuais_validados = relationship(
+        "AprendizadoVisualIa",
+        foreign_keys="AprendizadoVisualIa.validado_por_id",
+        back_populates="validado_por",
+    )
 
     @validates("nivel_acesso")
     def _validar_nivel_acesso(self, _key: str, valor: Any) -> int:
@@ -705,6 +772,106 @@ class PreferenciaMobileUsuario(MixinAuditoria, Base):
 
     def __repr__(self) -> str:
         return f"<PreferenciaMobileUsuario id={self.id} usuario_id={self.usuario_id}>"
+
+
+# =========================================================
+# MODELO: APRENDIZADOVISUALIA
+# =========================================================
+
+
+class AprendizadoVisualIa(MixinAuditoria, Base):
+    __tablename__ = "aprendizados_visuais_ia"
+    __table_args__ = (
+        Index("ix_aprendizado_visual_empresa_status", "empresa_id", "status", "validado_em"),
+        Index("ix_aprendizado_visual_laudo_criado", "laudo_id", "criado_em"),
+        Index("ix_aprendizado_visual_setor_status", "empresa_id", "setor_industrial", "status"),
+        Index("ix_aprendizado_visual_ref_msg", "mensagem_referencia_id"),
+        Index("ix_aprendizado_visual_sha", "imagem_sha256"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    empresa_id = Column(
+        Integer,
+        ForeignKey("empresas.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    laudo_id = Column(
+        Integer,
+        ForeignKey("laudos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    mensagem_referencia_id = Column(
+        Integer,
+        ForeignKey("mensagens_laudo.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    criado_por_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    validado_por_id = Column(
+        Integer,
+        ForeignKey("usuarios.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    setor_industrial = Column(String(100), nullable=False, default="geral")
+    resumo = Column(String(240), nullable=False)
+    descricao_contexto = Column(Text, nullable=True)
+    correcao_inspetor = Column(Text, nullable=False)
+    parecer_mesa = Column(Text, nullable=True)
+    sintese_consolidada = Column(Text, nullable=True)
+    pontos_chave_json = Column(JSON, nullable=False, default=list)
+    referencias_norma_json = Column(JSON, nullable=False, default=list)
+    marcacoes_json = Column(JSON, nullable=False, default=list)
+    status = Column(
+        SAEnum(StatusAprendizadoIa, values_callable=_valores_enum, native_enum=False),
+        nullable=False,
+        default=StatusAprendizadoIa.RASCUNHO_INSPETOR.value,
+    )
+    veredito_inspetor = Column(
+        SAEnum(VereditoAprendizadoIa, values_callable=_valores_enum, native_enum=False),
+        nullable=False,
+        default=VereditoAprendizadoIa.DUVIDA.value,
+    )
+    veredito_mesa = Column(
+        SAEnum(VereditoAprendizadoIa, values_callable=_valores_enum, native_enum=False),
+        nullable=True,
+    )
+    imagem_url = Column(String(600), nullable=True)
+    imagem_nome_original = Column(String(160), nullable=True)
+    imagem_mime_type = Column(String(120), nullable=True)
+    imagem_sha256 = Column(String(64), nullable=True)
+    caminho_arquivo = Column(String(600), nullable=True)
+    validado_em = Column(DateTime(timezone=True), nullable=True)
+
+    empresa = relationship("Empresa", back_populates="aprendizados_visuais_ia")
+    laudo = relationship("Laudo", back_populates="aprendizados_visuais_ia")
+    mensagem_referencia = relationship("MensagemLaudo", foreign_keys=[mensagem_referencia_id])
+    criado_por = relationship("Usuario", foreign_keys=[criado_por_id], back_populates="aprendizados_visuais_criados")
+    validado_por = relationship("Usuario", foreign_keys=[validado_por_id], back_populates="aprendizados_visuais_validados")
+
+    @validates("status")
+    def _validar_status(self, _key: str, valor: Any) -> str:
+        return StatusAprendizadoIa.normalizar(valor)
+
+    @validates("veredito_inspetor")
+    def _validar_veredito_inspetor(self, _key: str, valor: Any) -> str:
+        return VereditoAprendizadoIa.normalizar(valor)
+
+    @validates("veredito_mesa")
+    def _validar_veredito_mesa(self, _key: str, valor: Any) -> str | None:
+        if valor in (None, ""):
+            return None
+        return VereditoAprendizadoIa.normalizar(valor)
+
+    def __repr__(self) -> str:
+        return f"<AprendizadoVisualIa id={self.id} laudo_id={self.laudo_id} status={self.status!r}>"
 
 
 # =========================================================
@@ -897,6 +1064,12 @@ class Laudo(MixinAuditoria, Base):
         cascade="all, delete-orphan",
         order_by="AnexoMesa.criado_em",
     )
+    aprendizados_visuais_ia = relationship(
+        "AprendizadoVisualIa",
+        back_populates="laudo",
+        cascade="all, delete-orphan",
+        order_by="AprendizadoVisualIa.criado_em",
+    )
 
     @validates("status_conformidade")
     def _validar_status_conformidade(self, _key: str, valor: Any) -> str:
@@ -940,6 +1113,10 @@ class TemplateLaudo(MixinAuditoria, Base):
             "modo_editor IN ('legado_pdf', 'editor_rico')",
             name="ck_template_laudo_modo_editor",
         ),
+        CheckConstraint(
+            "status_template IN ('rascunho', 'em_teste', 'ativo', 'legado', 'arquivado')",
+            name="ck_template_laudo_status_template",
+        ),
         UniqueConstraint(
             "empresa_id",
             "codigo_template",
@@ -967,7 +1144,9 @@ class TemplateLaudo(MixinAuditoria, Base):
     codigo_template = Column(String(80), nullable=False)
     versao = Column(Integer, nullable=False, default=1)
     ativo = Column(Boolean, nullable=False, default=True)
+    base_recomendada_fixa = Column(Boolean, nullable=False, default=False)
     modo_editor = Column(String(20), nullable=False, default="legado_pdf")
+    status_template = Column(String(20), nullable=False, default="rascunho")
     arquivo_pdf_base = Column(String(500), nullable=False)
     mapeamento_campos_json = Column(JSON, nullable=True)
     documento_editor_json = Column(JSON, nullable=True)

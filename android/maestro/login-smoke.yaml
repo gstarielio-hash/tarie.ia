@@ -18,6 +18,7 @@ env:
       - tapOn:
           id: login-email-input
       - inputText: ${LOGIN_EMAIL}
+      - hideKeyboard
       - tapOn:
           id: login-password-input
       - inputText: ${LOGIN_PASSWORD}

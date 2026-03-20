@@ -1,6 +1,19 @@
+import { useRef } from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Animated, Image, type ImageSourcePropType, Pressable, ScrollView, Text, TextInput, View, type PanResponderInstance } from "react-native";
+import {
+  Animated,
+  Image,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+  type ImageSourcePropType,
+  type PanResponderInstance,
+} from "react-native";
 
+import { EmptyState } from "../../components/EmptyState";
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
 
@@ -10,10 +23,137 @@ interface HistoryDrawerSection<TItem> {
   items: TItem[];
 }
 
-interface HistoryFilterItem {
-  key: string;
-  label: string;
-  count: number;
+const HISTORY_DELETE_SWIPE_TRIGGER = 112;
+const HISTORY_DELETE_SWIPE_DISMISS = 420;
+
+type HistoryDrawerItemRecord = {
+  id: number;
+  titulo: string;
+  preview: string;
+};
+
+function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
+  ativo,
+  item,
+  onExcluir,
+  onSelecionar,
+  testID,
+}: {
+  ativo: boolean;
+  item: TItem;
+  onExcluir: () => void;
+  onSelecionar: () => void;
+  testID: string;
+}) {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const animandoExclusaoRef = useRef(false);
+  const swipeProgress = translateX.interpolate({
+    inputRange: [0, 28, HISTORY_DELETE_SWIPE_TRIGGER],
+    outputRange: [0, 0.3, 1],
+    extrapolate: "clamp",
+  });
+
+  const resetSwipe = () => {
+    Animated.spring(translateX, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 12,
+    }).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        !animandoExclusaoRef.current &&
+        gestureState.dx > 10 &&
+        Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
+      onPanResponderMove: (_, gestureState) => {
+        translateX.setValue(Math.max(0, gestureState.dx));
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx >= HISTORY_DELETE_SWIPE_TRIGGER) {
+          animandoExclusaoRef.current = true;
+          Animated.timing(translateX, {
+            toValue: HISTORY_DELETE_SWIPE_DISMISS,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            onExcluir();
+            animandoExclusaoRef.current = false;
+            translateX.setValue(0);
+          });
+          return;
+        }
+
+        resetSwipe();
+      },
+      onPanResponderTerminate: resetSwipe,
+    }),
+  ).current;
+
+  return (
+    <View style={styles.historyItemShell}>
+      <Animated.View pointerEvents="none" style={[styles.historyItemDeleteRail, { opacity: swipeProgress }]}>
+        <Animated.View
+          style={[
+            styles.historyItemDeleteRailBadge,
+            {
+              transform: [
+                {
+                  scale: swipeProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.92, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger} />
+          <Text style={styles.historyItemDeleteRailText}>Excluir</Text>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.View {...panResponder.panHandlers} style={{ transform: [{ translateX }] }}>
+        <Pressable
+          onPress={onSelecionar}
+          style={[
+            styles.historyItem,
+            styles.historyItemPrimary,
+            ativo ? styles.historyItemActive : null,
+          ]}
+          testID={testID}
+        >
+          <View style={styles.historyItemCopy}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.historyItemTitle,
+                ativo ? styles.historyItemTitleActive : null,
+              ]}
+            >
+              {item.titulo}
+            </Text>
+            <Text
+              numberOfLines={2}
+              style={[
+                styles.historyItemPreview,
+                ativo ? styles.historyItemPreviewActive : null,
+              ]}
+            >
+              {item.preview || "Sem atualização recente"}
+            </Text>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={18}
+            color={ativo ? "rgba(255,255,255,0.78)" : colors.textSecondary}
+          />
+        </Pressable>
+      </Animated.View>
+    </View>
+  );
 }
 
 export function HistoryDrawerPanel<TItem extends {
@@ -33,19 +173,10 @@ export function HistoryDrawerPanel<TItem extends {
   onCloseHistory,
   buscaHistorico,
   onBuscaHistoricoChange,
-  conversasVisiveisTotal,
-  conversasFixadasTotal,
   conversasOcultasTotal,
-  resumoHistoricoDrawer,
-  filtrosHistoricoComContagem,
-  filtroHistorico,
-  onFiltroHistoricoChange,
   historicoAgrupadoFinal,
   laudoSelecionadoId,
-  formatarTipoTemplateLaudo,
-  formatarHorarioAtividade,
   onSelecionarHistorico,
-  onAlternarFixadoHistorico,
   onExcluirConversaHistorico,
   historicoVazioTitulo,
   historicoVazioTexto,
@@ -56,24 +187,18 @@ export function HistoryDrawerPanel<TItem extends {
   onCloseHistory: () => void;
   buscaHistorico: string;
   onBuscaHistoricoChange: (value: string) => void;
-  conversasVisiveisTotal: number;
-  conversasFixadasTotal: number;
   conversasOcultasTotal: number;
-  resumoHistoricoDrawer: string;
-  filtrosHistoricoComContagem: HistoryFilterItem[];
-  filtroHistorico: string;
-  onFiltroHistoricoChange: (key: string) => void;
   historicoAgrupadoFinal: HistoryDrawerSection<TItem>[];
   laudoSelecionadoId: number | null;
-  formatarTipoTemplateLaudo: (value: string | null | undefined) => string;
-  formatarHorarioAtividade: (value: string) => string;
   onSelecionarHistorico: (item: TItem) => void;
-  onAlternarFixadoHistorico: (item: TItem) => void;
   onExcluirConversaHistorico: (item: TItem) => void;
   historicoVazioTitulo: string;
   historicoVazioTexto: string;
   brandMarkSource: ImageSourcePropType;
 }) {
+  const totalHistorico = historicoAgrupadoFinal.reduce((total, section) => total + section.items.length, 0) + conversasOcultasTotal;
+  const exibirBusca = totalHistorico > 0 || Boolean(buscaHistorico.trim());
+
   return (
     <Animated.View
       {...historyDrawerPanResponder.panHandlers}
@@ -91,9 +216,6 @@ export function HistoryDrawerPanel<TItem extends {
             <Text style={styles.historyBrandEyebrow}>tariel.ia</Text>
           </View>
           <Text style={styles.sidePanelTitle}>Histórico</Text>
-          <Text style={styles.sidePanelDescription}>
-            Retome laudos recentes e volte para o ponto certo da conversa.
-          </Text>
         </View>
         <Pressable
           onPress={onCloseHistory}
@@ -104,63 +226,19 @@ export function HistoryDrawerPanel<TItem extends {
         </Pressable>
       </View>
 
-      <View style={styles.historySearchShell}>
-        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
-        <TextInput
-          onChangeText={onBuscaHistoricoChange}
-          placeholder="Buscar conversas..."
-          placeholderTextColor={colors.textSecondary}
-          style={styles.historySearchInput}
-          testID="history-search-input"
-          value={buscaHistorico}
-        />
-      </View>
-
-      <View style={styles.historySummaryCard}>
-        <View style={styles.historySummaryMetrics}>
-          <View style={styles.historySummaryMetric}>
-            <Text style={styles.historySummaryMetricValue}>{conversasVisiveisTotal}</Text>
-            <Text style={styles.historySummaryMetricLabel}>Visíveis</Text>
-          </View>
-          <View style={styles.historySummaryMetric}>
-            <Text style={styles.historySummaryMetricValue}>{conversasFixadasTotal}</Text>
-            <Text style={styles.historySummaryMetricLabel}>Fixadas</Text>
-          </View>
-          <View style={styles.historySummaryMetric}>
-            <Text style={styles.historySummaryMetricValue}>{conversasOcultasTotal}</Text>
-            <Text style={styles.historySummaryMetricLabel}>Ocultas</Text>
-          </View>
+      {exibirBusca ? (
+        <View style={styles.historySearchShell}>
+          <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+          <TextInput
+            onChangeText={onBuscaHistoricoChange}
+            placeholder="Buscar histórico"
+            placeholderTextColor={colors.textSecondary}
+            style={styles.historySearchInput}
+            testID="history-search-input"
+            value={buscaHistorico}
+          />
         </View>
-        <Text style={styles.historySummaryText}>{resumoHistoricoDrawer}</Text>
-      </View>
-
-      <View style={styles.historyFilterRow}>
-        {filtrosHistoricoComContagem.map((item) => {
-          const ativo = filtroHistorico === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => onFiltroHistoricoChange(item.key)}
-              style={[styles.historyFilterChip, ativo ? styles.historyFilterChipActive : null]}
-              testID={`history-filter-${item.key}`}
-            >
-              <Text style={[styles.historyFilterChipText, ativo ? styles.historyFilterChipTextActive : null]}>
-                {item.label}
-              </Text>
-              <View style={[styles.historyFilterCount, ativo ? styles.historyFilterCountActive : null]}>
-                <Text
-                  style={[
-                    styles.historyFilterCountText,
-                    ativo ? styles.historyFilterCountTextActive : null,
-                  ]}
-                >
-                  {item.count}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      ) : null}
 
       <ScrollView contentContainerStyle={styles.historySections}>
         {historicoAgrupadoFinal.length ? (
@@ -176,182 +254,15 @@ export function HistoryDrawerPanel<TItem extends {
                 {section.items.map((item, itemIndex) => {
                   const ativo = item.id === laudoSelecionadoId;
                   const isFirstHistoryItem = sectionIndex === 0 && itemIndex === 0;
-                  const templateLabel = formatarTipoTemplateLaudo(item.tipo_template);
-                  const modoLaudoLabel = item.permite_edicao
-                    ? "Editável"
-                    : item.permite_reabrir
-                      ? "Reabrir"
-                      : "Leitura";
                   return (
-                    <View key={`history-${section.key}-${item.id}`} style={styles.historyItemShell}>
-                      <Pressable
-                        onPress={() => onSelecionarHistorico(item)}
-                        style={[
-                          styles.historyItem,
-                          styles.historyItemPrimary,
-                          ativo ? styles.historyItemActive : null,
-                        ]}
+                    <HistoryDrawerListItem
+                      key={`history-${section.key}-${item.id}`}
+                      ativo={ativo}
+                      item={item}
+                      onExcluir={() => onExcluirConversaHistorico(item)}
+                      onSelecionar={() => onSelecionarHistorico(item)}
                         testID={isFirstHistoryItem ? "history-first-item-button" : `history-item-${item.id}`}
-                      >
-                        <View style={[styles.historyItemIcon, ativo ? styles.historyItemIconActive : null]}>
-                          <Image source={brandMarkSource} style={styles.historyItemBrandIcon} />
-                        </View>
-                        <View style={styles.historyItemCopy}>
-                          <View style={styles.historyItemHeading}>
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                styles.historyItemTitle,
-                                ativo ? styles.historyItemTitleActive : null,
-                              ]}
-                            >
-                              {item.titulo}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.historyItemTime,
-                                ativo ? styles.historyItemTimeActive : null,
-                              ]}
-                            >
-                              {formatarHorarioAtividade(item.data_iso)}
-                            </Text>
-                          </View>
-                          <View style={styles.historyItemMetaRow}>
-                            <View
-                              style={[
-                                styles.historyItemStatus,
-                                item.status_card === "ajustes"
-                                  ? styles.historyItemStatusDanger
-                                  : item.status_card === "aprovado"
-                                    ? styles.historyItemStatusSuccess
-                                    : item.status_card === "aguardando"
-                                      ? styles.historyItemStatusAccent
-                                      : null,
-                                ativo ? styles.historyItemStatusActive : null,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.historyItemStatusText,
-                                  item.status_card === "ajustes"
-                                    ? styles.historyItemStatusTextDanger
-                                    : item.status_card === "aprovado"
-                                      ? styles.historyItemStatusTextSuccess
-                                      : item.status_card === "aguardando"
-                                        ? styles.historyItemStatusTextAccent
-                                        : null,
-                                  ativo ? styles.historyItemStatusTextActive : null,
-                                ]}
-                              >
-                                {item.status_card_label}
-                              </Text>
-                            </View>
-                            {item.pinado ? (
-                              <View style={[styles.historyItemPinnedTag, ativo ? styles.historyItemPinnedTagActive : null]}>
-                                <MaterialCommunityIcons
-                                  color={ativo ? colors.white : colors.accent}
-                                  name="pin"
-                                  size={12}
-                                />
-                                <Text
-                                  style={[
-                                    styles.historyItemPinnedTagText,
-                                    ativo ? styles.historyItemPinnedTagTextActive : null,
-                                  ]}
-                                >
-                                  Fixada
-                                </Text>
-                              </View>
-                            ) : null}
-                          </View>
-                          <View style={styles.historyItemMetaRow}>
-                            <View style={[styles.historyItemInfoTag, ativo ? styles.historyItemInfoTagActive : null]}>
-                              <MaterialCommunityIcons
-                                color={ativo ? colors.white : colors.textSecondary}
-                                name="shape-outline"
-                                size={12}
-                              />
-                              <Text
-                                style={[
-                                  styles.historyItemInfoTagText,
-                                  ativo ? styles.historyItemInfoTagTextActive : null,
-                                ]}
-                              >
-                                {templateLabel}
-                              </Text>
-                            </View>
-                            <View
-                              style={[
-                                styles.historyItemInfoTag,
-                                item.permite_edicao ? styles.historyItemInfoTagEditable : null,
-                                ativo ? styles.historyItemInfoTagActive : null,
-                              ]}
-                            >
-                              <MaterialCommunityIcons
-                                color={
-                                  ativo
-                                    ? colors.white
-                                    : item.permite_edicao
-                                      ? colors.success
-                                      : colors.textSecondary
-                                }
-                                name={item.permite_edicao ? "pencil-outline" : "lock-outline"}
-                                size={12}
-                              />
-                              <Text
-                                style={[
-                                  styles.historyItemInfoTagText,
-                                  item.permite_edicao ? styles.historyItemInfoTagTextEditable : null,
-                                  ativo ? styles.historyItemInfoTagTextActive : null,
-                                ]}
-                              >
-                                {modoLaudoLabel}
-                              </Text>
-                            </View>
-                          </View>
-                          <Text
-                            numberOfLines={2}
-                            style={[
-                              styles.historyItemPreview,
-                              ativo ? styles.historyItemPreviewActive : null,
-                            ]}
-                          >
-                            {item.preview || "Sem resumo recente"}
-                          </Text>
-                        </View>
-                        <MaterialCommunityIcons
-                          name="chevron-right"
-                          size={18}
-                          color={ativo ? "rgba(255,255,255,0.78)" : colors.textSecondary}
-                        />
-                      </Pressable>
-
-                      <View style={styles.historyItemActions}>
-                        <Pressable
-                          accessibilityLabel={item.pinado ? "Desafixar conversa" : "Fixar conversa"}
-                          onPress={() => onAlternarFixadoHistorico(item)}
-                          style={[
-                            styles.historyItemActionButton,
-                            item.pinado ? styles.historyItemActionButtonPinned : null,
-                          ]}
-                          testID={isFirstHistoryItem ? "history-first-item-pin-button" : `history-item-pin-${item.id}`}
-                        >
-                          <MaterialCommunityIcons
-                            name={item.pinado ? "pin-off-outline" : "pin-outline"}
-                            size={18}
-                            color={item.pinado ? colors.white : colors.accent}
-                          />
-                        </Pressable>
-                        <Pressable
-                          accessibilityLabel="Remover conversa do histórico"
-                          onPress={() => onExcluirConversaHistorico(item)}
-                          style={[styles.historyItemActionButton, styles.historyItemActionButtonDanger]}
-                          testID={isFirstHistoryItem ? "history-first-item-delete-button" : `history-item-delete-${item.id}`}
-                        >
-                          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#B85A4A" />
-                        </Pressable>
-                      </View>
-                    </View>
+                    />
                   );
                 })}
               </View>
@@ -359,9 +270,12 @@ export function HistoryDrawerPanel<TItem extends {
           ))
         ) : (
           <View style={styles.historyEmptyState}>
-            <Image source={brandMarkSource} style={styles.historyEmptyBrand} />
-            <Text style={styles.historyEmptyTitle}>{historicoVazioTitulo}</Text>
-            <Text style={styles.historyEmptyText}>{historicoVazioTexto}</Text>
+            <EmptyState
+              compact
+              description={historicoVazioTexto}
+              icon="history"
+              title={historicoVazioTitulo}
+            />
           </View>
         )}
       </ScrollView>

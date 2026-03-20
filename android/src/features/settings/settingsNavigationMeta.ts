@@ -50,7 +50,7 @@ export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSe
   },
   conta: {
     title: "Conta",
-    subtitle: "Informações da conta e assinatura do inspetor.",
+    subtitle: "Perfil autenticado, email, telefone e senha do inspetor.",
     icon: "account-circle-outline",
   },
   preferenciasIa: {
@@ -99,13 +99,13 @@ export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSe
     icon: "history",
   },
   dadosConversas: {
-    title: "Dados e conversas",
-    subtitle: "Histórico, retenção, exportação e exclusão de conversas.",
+    title: "Controles de dados",
+    subtitle: "Histórico local, consentimentos, retenção e regras de sincronização.",
     icon: "database-outline",
   },
   permissoes: {
     title: "Permissões",
-    subtitle: "Câmera, arquivos, microfone, notificações e biometria.",
+    subtitle: "Câmera, arquivos, microfone e notificações.",
     icon: "shield-sync-outline",
   },
   segurancaArquivos: {
@@ -124,9 +124,9 @@ export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSe
     icon: "alert-outline",
   },
   recursosAvancados: {
-    title: "Recursos avançados",
-    subtitle: "Entrada por voz, integrações e plugins do app.",
-    icon: "flask-outline",
+    title: "Fala",
+    subtitle: "Preferências de voz, transcrição e leitura assistida.",
+    icon: "microphone-message",
   },
   sistema: {
     title: "Sistema",
@@ -149,7 +149,7 @@ export const SETTINGS_DRAWER_PAGE_META: Record<Exclude<SettingsDrawerPage, "over
   },
   contaAcesso: {
     title: "Conta e acesso",
-    subtitle: "Perfil, assinatura, email, senha e métodos de acesso da conta.",
+    subtitle: "Perfil autenticado, email, telefone e senha da conta.",
     icon: "account-circle-outline",
     sections: ["conta"],
   },
@@ -161,25 +161,19 @@ export const SETTINGS_DRAWER_PAGE_META: Record<Exclude<SettingsDrawerPage, "over
   },
   seguranca: {
     title: "Segurança e privacidade",
-    subtitle: "Sessões, 2FA, permissões, dados e proteção do dispositivo.",
+    subtitle: "Permissões, privacidade, dados locais e proteção do dispositivo.",
     icon: "shield-lock-outline",
     sections: [
-      "verificacaoIdentidade",
-      "twofa",
-      "contasConectadas",
-      "sessoes",
       "protecaoDispositivo",
       "permissoes",
       "privacidadeNotificacoes",
       "dadosConversas",
       "segurancaArquivos",
-      "atividadeSeguranca",
-      "excluirConta",
     ],
   },
   sistemaSuporte: {
     title: "Sistema e suporte",
-    subtitle: "Recursos avançados, manutenção do app e canais de ajuda.",
+    subtitle: "Fala, manutenção do app e canais de ajuda.",
     icon: "cellphone-cog",
     sections: ["sistema", "recursosAvancados", "suporte"],
   },

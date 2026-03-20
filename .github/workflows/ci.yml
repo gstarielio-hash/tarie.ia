@@ -11,6 +11,9 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: web
 
     steps:
       - name: Checkout
@@ -21,6 +24,7 @@ jobs:
         with:
           python-version: "3.13"
           cache: "pip"
+          cache-dependency-path: web/requirements.txt
 
       - name: Install dependencies
         run: |
@@ -35,7 +39,7 @@ jobs:
 
       - name: Critical pytest suite
         run: |
-          python -m pytest -q \
+          PYTHONPATH=. python -m pytest -q \
             tests/test_smoke.py \
             tests/test_regras_rotas_criticas.py \
             tests/test_inspetor_comandos_dominio.py \

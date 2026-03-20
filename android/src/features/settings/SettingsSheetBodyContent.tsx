@@ -16,6 +16,7 @@ import {
   SettingsPhotoSheetContent,
   SettingsPlanSheetContent,
   SettingsPluginsSheetContent,
+  SettingsProfileSheetContent,
   SettingsReauthSheetContent,
 } from "./SettingsSheetAccountContent";
 import { SettingsAiModelSheetContent } from "./SettingsSheetExperienceContent";
@@ -69,6 +70,11 @@ interface HelpArticleItem {
 
 interface SettingsSheetBodyContentParams<TIntegration extends ExternalIntegrationCardModel> {
   settingsSheet: SettingsSheetState | null;
+  appName: string;
+  appBuildLabel: string;
+  appPlatformLabel: string;
+  apiEnvironmentLabel: string;
+  supportChannelLabel: string;
   modeloIa: (typeof AI_MODEL_OPTIONS)[number];
   salvarHistoricoConversas: boolean;
   retencaoDados: string;
@@ -79,8 +85,15 @@ interface SettingsSheetBodyContentParams<TIntegration extends ExternalIntegratio
   reauthReason: string;
   reautenticacaoExpiraEm: string;
   provedoresConectados: readonly ConnectedProviderSummary[];
+  workspaceLabel: string;
   perfilFotoHint: string;
   perfilFotoUri: string;
+  nomeCompletoDraft: string;
+  nomeExibicaoDraft: string;
+  telefoneDraft: string;
+  onNomeCompletoDraftChange: (value: string) => void;
+  onNomeExibicaoDraftChange: (value: string) => void;
+  onTelefoneDraftChange: (value: string) => void;
   planoAtual: string;
   cartaoAtual: string;
   emailAtualConta: string;
@@ -128,6 +141,11 @@ interface SettingsSheetBodyContentParams<TIntegration extends ExternalIntegratio
 
 export function renderSettingsSheetBodyContent<TIntegration extends ExternalIntegrationCardModel>({
   settingsSheet,
+  appName,
+  appBuildLabel,
+  appPlatformLabel,
+  apiEnvironmentLabel,
+  supportChannelLabel,
   modeloIa,
   salvarHistoricoConversas,
   retencaoDados,
@@ -138,8 +156,15 @@ export function renderSettingsSheetBodyContent<TIntegration extends ExternalInte
   reauthReason,
   reautenticacaoExpiraEm,
   provedoresConectados,
+  workspaceLabel,
   perfilFotoHint,
   perfilFotoUri,
+  nomeCompletoDraft,
+  nomeExibicaoDraft,
+  telefoneDraft,
+  onNomeCompletoDraftChange,
+  onNomeExibicaoDraftChange,
+  onTelefoneDraftChange,
   planoAtual,
   cartaoAtual,
   emailAtualConta,
@@ -191,10 +216,16 @@ export function renderSettingsSheetBodyContent<TIntegration extends ExternalInte
   const staticSheetContent = renderStaticSettingsSheetBody({
     kind: settingsSheet.kind,
     title: settingsSheet.title,
+    appName,
     salvarHistoricoConversas,
     retencaoDados,
     appVersionLabel: APP_VERSION_LABEL,
+    appBuildLabel,
     appBuildChannel: APP_BUILD_CHANNEL,
+    appPlatformLabel,
+    apiEnvironmentLabel,
+    workspaceLabel,
+    supportChannelLabel,
     ultimaVerificacaoAtualizacaoLabel,
     statusAtualizacaoApp,
     resumoAtualizacaoApp,
@@ -207,6 +238,17 @@ export function renderSettingsSheetBodyContent<TIntegration extends ExternalInte
   }
 
   switch (settingsSheet.kind) {
+    case "profile":
+      return (
+        <SettingsProfileSheetContent
+          nomeCompletoDraft={nomeCompletoDraft}
+          nomeExibicaoDraft={nomeExibicaoDraft}
+          onNomeCompletoChange={onNomeCompletoDraftChange}
+          onNomeExibicaoChange={onNomeExibicaoDraftChange}
+          onTelefoneChange={onTelefoneDraftChange}
+          telefoneDraft={telefoneDraft}
+        />
+      );
     case "aiModel":
       return (
         <SettingsAiModelSheetContent

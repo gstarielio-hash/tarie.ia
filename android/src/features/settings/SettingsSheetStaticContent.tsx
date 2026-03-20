@@ -2,7 +2,7 @@ import { Text, View } from "react-native";
 
 import { styles } from "../InspectorMobileApp.styles";
 
-type StaticSheetKind = "privacy" | "updates" | "terms" | "licenses" | "legal";
+type StaticSheetKind = "privacy" | "updates" | "terms" | "licenses" | "legal" | "about";
 
 interface UpdateChangelogItem {
   id: string;
@@ -26,10 +26,16 @@ interface LicenseCatalogItem {
 interface RenderStaticSettingsSheetParams {
   kind: string;
   title: string;
+  appName: string;
   salvarHistoricoConversas: boolean;
   retencaoDados: string;
   appVersionLabel: string;
+  appBuildLabel: string;
   appBuildChannel: string;
+  appPlatformLabel: string;
+  apiEnvironmentLabel: string;
+  workspaceLabel: string;
+  supportChannelLabel: string;
   ultimaVerificacaoAtualizacaoLabel: string;
   statusAtualizacaoApp: string;
   resumoAtualizacaoApp: string;
@@ -41,10 +47,16 @@ interface RenderStaticSettingsSheetParams {
 export function renderStaticSettingsSheetBody({
   kind,
   title,
+  appName,
   salvarHistoricoConversas,
   retencaoDados,
   appVersionLabel,
+  appBuildLabel,
   appBuildChannel,
+  appPlatformLabel,
+  apiEnvironmentLabel,
+  workspaceLabel,
+  supportChannelLabel,
   ultimaVerificacaoAtualizacaoLabel,
   statusAtualizacaoApp,
   resumoAtualizacaoApp,
@@ -54,6 +66,49 @@ export function renderStaticSettingsSheetBody({
 }: RenderStaticSettingsSheetParams) {
   if (!isStaticSheetKind(kind)) {
     return null;
+  }
+
+  if (kind === "about") {
+    return (
+      <View style={styles.settingsFlowStack}>
+        <View style={styles.settingsInfoCard}>
+          <Text style={styles.settingsInfoTitle}>{appName}</Text>
+          <Text style={styles.settingsInfoText}>
+            Build operacional do inspetor para chat, mesa, fila offline, atividade e suporte.
+          </Text>
+        </View>
+        <View style={styles.settingsInfoGrid}>
+          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
+            <Text style={styles.settingsInfoTitle}>Versão</Text>
+            <Text style={styles.settingsInfoText}>{appVersionLabel}</Text>
+            <Text style={styles.settingsInfoSubtle}>{appBuildLabel}</Text>
+          </View>
+          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
+            <Text style={styles.settingsInfoTitle}>Canal</Text>
+            <Text style={styles.settingsInfoText}>{appBuildChannel}</Text>
+            <Text style={styles.settingsInfoSubtle}>{appPlatformLabel}</Text>
+          </View>
+        </View>
+        <View style={styles.settingsMiniList}>
+          <View style={styles.settingsMiniListItem}>
+            <Text style={styles.settingsMiniListTitle}>Ambiente da API</Text>
+            <Text style={styles.settingsMiniListMeta}>{apiEnvironmentLabel}</Text>
+          </View>
+          <View style={styles.settingsMiniListItem}>
+            <Text style={styles.settingsMiniListTitle}>Workspace atual</Text>
+            <Text style={styles.settingsMiniListMeta}>{workspaceLabel}</Text>
+          </View>
+          <View style={styles.settingsMiniListItem}>
+            <Text style={styles.settingsMiniListTitle}>Canal de suporte</Text>
+            <Text style={styles.settingsMiniListMeta}>{supportChannelLabel}</Text>
+          </View>
+          <View style={styles.settingsMiniListItem}>
+            <Text style={styles.settingsMiniListTitle}>Documentos disponíveis</Text>
+            <Text style={styles.settingsMiniListMeta}>Política de privacidade, termos de uso e licenças.</Text>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   if (kind === "privacy") {
@@ -179,5 +234,12 @@ export function renderStaticSettingsSheetBody({
 }
 
 function isStaticSheetKind(kind: string): kind is StaticSheetKind {
-  return kind === "privacy" || kind === "updates" || kind === "terms" || kind === "licenses" || kind === "legal";
+  return (
+    kind === "privacy" ||
+    kind === "updates" ||
+    kind === "terms" ||
+    kind === "licenses" ||
+    kind === "legal" ||
+    kind === "about"
+  );
 }

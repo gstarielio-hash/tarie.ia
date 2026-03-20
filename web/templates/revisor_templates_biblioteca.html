@@ -11,17 +11,17 @@
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/revisor/templates_biblioteca.css">
 </head>
 
-<body>
+<body class="templates-shell templates-shell-light">
     <header class="top top-light">
         <div class="brand-wrap">
-            <div class="brand-logo">TW</div>
+            <div class="brand-logo">TI</div>
             <div class="brand-copy">
-                <strong>Tariel Templates</strong>
-                <small>Biblioteca profissional de laudos</small>
+                <strong>Tariel System</strong>
+                <small>Biblioteca técnica da mesa</small>
             </div>
         </div>
         <div class="links links-light">
@@ -29,7 +29,7 @@
             <a class="chip chip-light active" href="/revisao/templates-laudo">Biblioteca</a>
             <a class="chip chip-light" href="/revisao/templates-laudo/editor?novo=1">Editor Word</a>
         </div>
-        <form action="/revisao/logout" method="POST" style="margin:0;">
+        <form action="/revisao/logout" method="POST" class="top-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn ghost ghost-light">Sair</button>
         </form>
@@ -38,8 +38,9 @@
     <main class="main">
         <section class="hero hero-light">
             <div class="hero-copy">
-                <h1>Biblioteca Profissional de Templates</h1>
-                <p>Visualize modelos já criados, filtre por tipo e abra no editor Word para evoluir o layout padrão da Tariel.ia.</p>
+                <span class="hero-eyebrow">Operação documental</span>
+                <h1>Biblioteca de Templates</h1>
+                <p>Biblioteca Profissional de Templates para abrir bases, ativar versões e evoluir o padrão documental da Tariel.</p>
             </div>
             <div class="hero-actions">
                 <input id="search-templates" type="search" placeholder="Buscar por nome ou código...">
@@ -47,6 +48,14 @@
                     <option value="todos">Todos os modos</option>
                     <option value="word">Word</option>
                     <option value="pdf">PDF base</option>
+                </select>
+                <select id="filter-status-template">
+                    <option value="todos">Todos os ciclos</option>
+                    <option value="ativo">Ativo</option>
+                    <option value="em_teste">Em teste</option>
+                    <option value="rascunho">Rascunho</option>
+                    <option value="legado">Legado</option>
+                    <option value="arquivado">Arquivado</option>
                 </select>
                 <select id="sort-templates">
                     <option value="recentes">Mais recentes</option>
@@ -75,9 +84,19 @@
                 <small>Prontos para uso imediato</small>
             </article>
             <article class="overview-card">
-                <h4>Última atualização</h4>
-                <strong id="metric-recente">-</strong>
-                <small>Mais recente na biblioteca</small>
+                <h4>Em teste</h4>
+                <strong id="metric-testing">0</strong>
+                <small>Versionamento em validação</small>
+            </article>
+            <article class="overview-card">
+                <h4>Uso total</h4>
+                <strong id="metric-usage">0</strong>
+                <small>Laudos vinculados aos códigos</small>
+            </article>
+            <article class="overview-card">
+                <h4>Último uso</h4>
+                <strong id="metric-recente" data-metric-last-use>-</strong>
+                <small>Mais recente na operação</small>
             </article>
         </section>
 
@@ -93,21 +112,95 @@
                 <label class="check"><input type="checkbox" id="flt-ativo" checked> Apenas ativos</label>
                 <label class="check"><input type="checkbox" id="flt-rascunho" checked> Incluir rascunhos</label>
                 <button id="btn-limpar-filtros" type="button" class="btn ghost ghost-light btn-full">Limpar filtros</button>
-                <p class="hint">Clique em <strong>Criar seu modelo</strong> para abrir o editor Word em tela separada.</p>
+                <p class="hint">Use ciclo de vida, clone de versão, ações em lote e comparação entre versões para manter a biblioteca limpa sem perder histórico técnico.</p>
             </aside>
 
             <section class="templates-panel templates-panel-light">
                 <div class="panel-head">
                     <div class="panel-head-copy">
                         <h2>Templates da Empresa</h2>
-                        <p>Catálogo com visualização rápida e ativação em um clique.</p>
+                        <p>Catálogo agrupado por código, com base recomendada, árvore de versões e ativação em um clique.</p>
                     </div>
                     <span id="status-lista" class="status"></span>
                 </div>
+                <section id="selection-toolbar" class="selection-toolbar" hidden aria-label="Ações em lote">
+                    <div class="selection-toolbar-copy">
+                        <strong id="selection-count">0 selecionados</strong>
+                        <small id="selection-hint">Selecione versões do mesmo código para comparar.</small>
+                    </div>
+                    <div class="selection-toolbar-actions">
+                        <button id="btn-compare-selected" type="button" class="btn ghost" disabled>Comparar versões</button>
+                        <button id="btn-batch-testing" type="button" class="btn ghost">Em teste</button>
+                        <button id="btn-batch-legacy" type="button" class="btn ghost">Legado</button>
+                        <button id="btn-batch-archive" type="button" class="btn ghost">Arquivar</button>
+                        <button id="btn-batch-delete" type="button" class="btn ghost">Excluir</button>
+                        <button id="btn-clear-selection" type="button" class="btn ghost">Limpar</button>
+                    </div>
+                </section>
                 <div id="lista" class="templates-grid"></div>
             </section>
         </section>
+
+        <section class="audit-panel" aria-label="Histórico da biblioteca de templates">
+            <div class="audit-panel-head">
+                <div class="audit-panel-copy">
+                    <span class="hero-eyebrow">Trilha de auditoria</span>
+                    <h2>Histórico recente da biblioteca</h2>
+                    <p>Arquivamentos, mudanças de ciclo, publicações e exclusões ficam registrados para consulta operacional.</p>
+                </div>
+                <div class="audit-panel-actions">
+                    <span id="status-auditoria" class="status"></span>
+                    <button id="btn-refresh-audit" class="btn ghost ghost-light" type="button">Atualizar histórico</button>
+                </div>
+            </div>
+            <div id="template-audit-list" class="audit-list"></div>
+        </section>
     </main>
+
+    <section id="template-diff-modal" class="template-diff-modal" hidden aria-label="Comparar versões de template">
+        <div class="template-diff-dialog">
+            <header class="template-diff-head">
+                <div class="template-diff-head-copy">
+                    <span class="hero-eyebrow">Comparação técnica</span>
+                    <h2 id="template-diff-title">Comparar versões</h2>
+                    <p id="template-diff-subtitle">Selecione duas versões do mesmo código para revisar mudanças.</p>
+                </div>
+                <button id="btn-close-template-diff" type="button" class="btn ghost">Fechar</button>
+            </header>
+            <section class="template-diff-summary" aria-label="Resumo da comparação">
+                <article class="template-diff-summary-card">
+                    <small>Campos alterados</small>
+                    <strong id="template-diff-summary-fields">0</strong>
+                </article>
+                <article class="template-diff-summary-card">
+                    <small>Linhas adicionadas</small>
+                    <strong id="template-diff-summary-added">0</strong>
+                </article>
+                <article class="template-diff-summary-card">
+                    <small>Linhas removidas</small>
+                    <strong id="template-diff-summary-removed">0</strong>
+                </article>
+                <article class="template-diff-summary-card">
+                    <small>Ocultas</small>
+                    <strong id="template-diff-summary-hidden">0</strong>
+                </article>
+            </section>
+            <section class="template-diff-meta">
+                <div id="template-diff-base-card" class="template-diff-version-card"></div>
+                <div id="template-diff-comp-card" class="template-diff-version-card"></div>
+            </section>
+            <section class="template-diff-grid">
+                <article class="template-diff-panel">
+                    <h3>Campos comparados</h3>
+                    <div id="template-diff-fields" class="template-diff-fields"></div>
+                </article>
+                <article class="template-diff-panel">
+                    <h3>Diff do conteúdo</h3>
+                    <div id="template-diff-lines" class="template-diff-lines"></div>
+                </article>
+            </section>
+        </div>
+    </section>
 
     <script nonce="{{ csp_nonce }}">
         window.__TARIEL_TEMPLATE_CONFIG__ = {

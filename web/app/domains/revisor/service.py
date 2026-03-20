@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.domains.chat.learning_helpers import listar_aprendizados_laudo, serializar_aprendizado_visual
 from app.domains.chat.media_helpers import safe_remove_file
 from app.domains.mesa.attachments import (
     conteudo_mensagem_mesa_com_anexo,
@@ -555,6 +556,10 @@ def carregar_laudo_completo_revisor(
         whispers = [mensagem for mensagem in historico if mensagem["is_whisper"]]
         cursor_proximo = int(pagina["cursor_proximo"]) if pagina["cursor_proximo"] else None
         tem_mais = bool(pagina["tem_mais"])
+    aprendizados_visuais = [
+        serializar_aprendizado_visual(item)
+        for item in listar_aprendizados_laudo(banco, laudo_id=laudo.id, empresa_id=empresa_id)
+    ]
 
     return {
         "id": laudo.id,
@@ -566,6 +571,7 @@ def carregar_laudo_completo_revisor(
         "dados_formulario": getattr(laudo, "dados_formulario", None),
         "historico": historico,
         "whispers": whispers,
+        "aprendizados_visuais": aprendizados_visuais,
         "historico_paginado": {
             "incluir_historico": incluir_historico,
             "cursor_proximo": cursor_proximo,

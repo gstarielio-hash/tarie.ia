@@ -74,13 +74,13 @@ export function buildSettingsSectionVisibility(
     {
       key: "prioridades",
       group: "prioridades",
-      terms: ["acoes prioritarias 2fa metodo de acesso permissoes criticas sessoes suspeitas atualizacoes"],
+      terms: ["acoes prioritarias permissoes criticas atualizacoes dispositivo"],
     },
     {
       key: "conta",
       group: "acesso",
       terms: [
-        `conta perfil email senha plano assinatura pagamento logout excluir ${input.perfilNomeCompleto} ${input.contaEmailLabel}`,
+        `conta perfil email telefone senha logout workspace empresa acesso ${input.perfilNomeCompleto} ${input.contaEmailLabel}`,
       ],
     },
     {
@@ -103,34 +103,9 @@ export function buildSettingsSectionVisibility(
       terms: [`notificacoes push respostas som vibracao emails ${input.somNotificacao}`],
     },
     {
-      key: "contasConectadas",
-      group: "seguranca",
-      terms: [`contas conectadas google apple microsoft metodo principal vinculo provedor ${input.provedorPrimario}`],
-    },
-    {
-      key: "sessoes",
-      group: "seguranca",
-      terms: [`sessoes dispositivos login atividade suspeita revisar encerrar ${input.resumoSessaoAtual} ${input.resumoBlindagemSessoes}`],
-    },
-    {
-      key: "twofa",
-      group: "seguranca",
-      terms: [`verificacao em duas etapas 2fa autenticador email codigos recuperacao ${input.resumo2FAStatus}`],
-    },
-    {
       key: "protecaoDispositivo",
       group: "seguranca",
       terms: [`protecao no dispositivo biometria bloqueio local multitarefa ${input.lockTimeout}`],
-    },
-    {
-      key: "verificacaoIdentidade",
-      group: "seguranca",
-      terms: [`verificacao de identidade reautenticacao acoes sensiveis ${input.reautenticacaoStatus}`],
-    },
-    {
-      key: "atividadeSeguranca",
-      group: "seguranca",
-      terms: [`atividade de seguranca eventos logins provedores 2fa exportacao historico ${input.totalEventosSeguranca}`],
     },
     {
       key: "dadosConversas",
@@ -140,7 +115,7 @@ export function buildSettingsSectionVisibility(
     {
       key: "permissoes",
       group: "seguranca",
-      terms: [`permissoes microfone camera arquivos notificacoes biometria ${input.resumoPermissoes}`],
+      terms: [`permissoes microfone camera arquivos notificacoes ${input.resumoPermissoes}`],
     },
     {
       key: "segurancaArquivos",
@@ -153,14 +128,9 @@ export function buildSettingsSectionVisibility(
       terms: [`privacidade em notificacoes previa tela bloqueada nova mensagem ${input.resumoPrivacidadeNotificacoes}`],
     },
     {
-      key: "excluirConta",
-      group: "seguranca",
-      terms: [`excluir conta apagamento remocao permanente exportar dados ${input.resumoExcluirConta}`],
-    },
-    {
       key: "recursosAvancados",
       group: "sistema",
-      terms: ["recursos avancados voz plugins integracoes google drive slack notion upload arquivos"],
+      terms: ["fala voz transcricao leitura assistida microfone acessibilidade"],
     },
     {
       key: "sistema",
@@ -170,7 +140,7 @@ export function buildSettingsSectionVisibility(
     {
       key: "suporte",
       group: "sistema",
-      terms: [`suporte ajuda feedback bug licencas termos diagnostico atualizacoes ${input.resumoFilaSuporteLocal}`],
+      terms: [`suporte ajuda feedback bug licencas termos privacidade sobre diagnostico whatsapp atualizacoes ${input.resumoFilaSuporteLocal}`],
     },
   ];
 
@@ -192,17 +162,11 @@ export function buildSettingsSectionVisibility(
     mostrarSecaoConfiguracao("aparencia") ||
     mostrarSecaoConfiguracao("notificacoes");
   const mostrarGrupoSeguranca =
-    mostrarSecaoConfiguracao("contasConectadas") ||
-    mostrarSecaoConfiguracao("sessoes") ||
-    mostrarSecaoConfiguracao("twofa") ||
     mostrarSecaoConfiguracao("protecaoDispositivo") ||
-    mostrarSecaoConfiguracao("verificacaoIdentidade") ||
-    mostrarSecaoConfiguracao("atividadeSeguranca") ||
     mostrarSecaoConfiguracao("dadosConversas") ||
     mostrarSecaoConfiguracao("permissoes") ||
     mostrarSecaoConfiguracao("segurancaArquivos") ||
-    mostrarSecaoConfiguracao("privacidadeNotificacoes") ||
-    mostrarSecaoConfiguracao("excluirConta");
+    mostrarSecaoConfiguracao("privacidadeNotificacoes");
   const mostrarGrupoSistema =
     mostrarSecaoConfiguracao("recursosAvancados") ||
     mostrarSecaoConfiguracao("sistema") ||
@@ -212,13 +176,7 @@ export function buildSettingsSectionVisibility(
   const totalSecoesExperiencia = secoesConfiguracaoVisiveis.filter((item) => item.group === "experiencia").length;
   const totalSecoesSeguranca = secoesConfiguracaoVisiveis.filter((item) => item.group === "seguranca").length;
   const totalSecoesSistema = secoesConfiguracaoVisiveis.filter((item) => item.group === "sistema").length;
-  const totalPrioridadesAbertas = [
-    !input.twoFactorEnabled,
-    input.provedoresConectadosTotal <= 1,
-    input.permissoesNegadasTotal > 0,
-    input.sessoesSuspeitasTotal > 0,
-    true,
-  ].filter(Boolean).length;
+  const totalPrioridadesAbertas = input.permissoesNegadasTotal > 0 ? 1 : 0;
   const resumoBuscaConfiguracoes = !buscaConfiguracoesNormalizada && input.filtroConfiguracoes === "todos"
     ? ""
     : totalSecoesConfiguracaoVisiveis

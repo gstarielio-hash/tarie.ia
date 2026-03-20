@@ -1,10 +1,9 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Image, Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
-import { colors } from "../../theme/tokens";
+import { ProfileAvatarPicker } from "../../settings/components";
 import { styles } from "../InspectorMobileApp.styles";
 import { SettingsPrintRow } from "./SettingsPrimitives";
-import type { SettingsDrawerPage } from "./settingsNavigationMeta";
+import type { SettingsDrawerPage, SettingsSectionKey } from "./settingsNavigationMeta";
 
 interface SettingsOverviewContentProps {
   settingsPrintDarkMode: boolean;
@@ -18,7 +17,7 @@ interface SettingsOverviewContentProps {
   temaResumoConfiguracao: string;
   corDestaqueResumoConfiguracao: string;
   onUploadFotoPerfil: () => void;
-  onAbrirPaginaConfiguracoes: (page: SettingsDrawerPage) => void;
+  onAbrirPaginaConfiguracoes: (page: SettingsDrawerPage, section?: SettingsSectionKey | "all") => void;
   onReportarProblema: () => void;
   onFecharConfiguracoes: () => void;
   onLogout: () => void | Promise<void>;
@@ -30,7 +29,7 @@ export function SettingsOverviewContent({
   iniciaisPerfilConfiguracao,
   nomeUsuarioExibicao,
   workspaceResumoConfiguracao,
-  planoResumoConfiguracao,
+  planoResumoConfiguracao: _planoResumoConfiguracao,
   contaEmailLabel,
   contaTelefoneLabel,
   temaResumoConfiguracao,
@@ -44,25 +43,13 @@ export function SettingsOverviewContent({
   return (
     <View style={styles.settingsPrintOverview}>
       <View style={styles.settingsPrintProfileBlock}>
-        <View style={styles.settingsPrintAvatarShell}>
-          {perfilFotoUri ? (
-            <Image source={{ uri: perfilFotoUri }} style={styles.settingsPrintAvatarImage} />
-          ) : (
-            <View style={styles.settingsPrintAvatarFallback}>
-              <Text style={styles.settingsPrintAvatarInitials}>{iniciaisPerfilConfiguracao}</Text>
-            </View>
-          )}
-          <Pressable
-            onPress={onUploadFotoPerfil}
-            style={[
-              styles.settingsPrintAvatarEditButton,
-              settingsPrintDarkMode ? styles.settingsPrintAvatarEditButtonDark : null,
-            ]}
-            testID="settings-overview-profile-photo"
-          >
-            <MaterialCommunityIcons color={colors.accent} name="pencil" size={12} />
-          </Pressable>
-        </View>
+        <ProfileAvatarPicker
+          darkMode={settingsPrintDarkMode}
+          fallbackLabel={iniciaisPerfilConfiguracao}
+          onPress={onUploadFotoPerfil}
+          photoUri={perfilFotoUri}
+          testID="settings-overview-profile-photo"
+        />
         <Text
           style={[
             styles.settingsPrintProfileName,
@@ -86,17 +73,19 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="tune-variant"
+            infoText="Ajuste aparência, comportamento da IA e alertas do aplicativo."
             onPress={() => onAbrirPaginaConfiguracoes("experiencia")}
             testID="settings-print-personalizacao-row"
-            title="Personalização"
+            title="Experiência do app"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="apps"
+            infoText="Acesse sistema, voz, atividade e canais de suporte do aplicativo."
             last
             onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte")}
             testID="settings-print-aplicativos-row"
-            title="Aplicativos"
+            title="Sistema e suporte"
           />
         </View>
       </View>
@@ -114,6 +103,7 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="briefcase-outline"
+            infoText="Revise a empresa e o ambiente ativos para este acesso."
             onPress={() => onAbrirPaginaConfiguracoes("contaAcesso")}
             subtitle={workspaceResumoConfiguracao}
             testID="settings-print-workspace-row"
@@ -122,21 +112,16 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="star-circle-outline"
+            infoText="Revise perfil autenticado, email, telefone e senha da conta."
             onPress={() => onAbrirPaginaConfiguracoes("contaAcesso")}
+            subtitle="Perfil autenticado"
             testID="settings-print-upgrade-row"
-            title="Faça upgrade para o Pro"
-          />
-          <SettingsPrintRow
-            darkMode={settingsPrintDarkMode}
-            icon="card-account-details-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("contaAcesso")}
-            subtitle={planoResumoConfiguracao}
-            testID="settings-print-assinatura-row"
-            title="Assinatura"
+            title="Conta e acesso"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="email-outline"
+            infoText="Revise e altere o email usado no acesso desta conta."
             onPress={() => onAbrirPaginaConfiguracoes("contaAcesso")}
             subtitle={contaEmailLabel}
             testID="settings-print-email-row"
@@ -145,6 +130,7 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="phone-outline"
+            infoText="Consulte o número de telefone sincronizado com o perfil autenticado."
             last
             onPress={() => onAbrirPaginaConfiguracoes("contaAcesso")}
             subtitle={contaTelefoneLabel}
@@ -159,7 +145,8 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="brightness-6"
-            onPress={() => onAbrirPaginaConfiguracoes("experiencia")}
+            infoText="Defina tema, densidade e aparência geral do aplicativo."
+            onPress={() => onAbrirPaginaConfiguracoes("experiencia", "aparencia")}
             subtitle={temaResumoConfiguracao}
             testID="settings-print-aparencia-row"
             title="Aparência"
@@ -167,8 +154,9 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="eyedropper-variant"
+            infoText="Escolha a cor de detalhe usada em destaques discretos do app."
             last
-            onPress={() => onAbrirPaginaConfiguracoes("experiencia")}
+            onPress={() => onAbrirPaginaConfiguracoes("experiencia", "aparencia")}
             subtitle={corDestaqueResumoConfiguracao}
             testID="settings-print-accent-row"
             title="Cor de ênfase"
@@ -181,42 +169,40 @@ export function SettingsOverviewContent({
         <View style={[styles.settingsPrintGroupCard, settingsPrintDarkMode ? styles.settingsPrintGroupCardDark : null]}>
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
-            icon="cog-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte")}
-            testID="settings-print-geral-row"
-            title="Geral"
-          />
-          <SettingsPrintRow
-            darkMode={settingsPrintDarkMode}
             icon="bell-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("experiencia")}
+            infoText="Controle push, som, vibração e privacidade das notificações."
+            onPress={() => onAbrirPaginaConfiguracoes("experiencia", "notificacoes")}
             testID="settings-print-notificacoes-row"
             title="Notificações"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="microphone-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte")}
+            infoText="Configure voz, microfone e recursos de ditado do app."
+            onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte", "recursosAvancados")}
             testID="settings-print-fala-row"
             title="Fala"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="database-cog-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("seguranca")}
+            infoText="Revise histórico, retenção, exportação e privacidade dos dados."
+            onPress={() => onAbrirPaginaConfiguracoes("seguranca", "dadosConversas")}
             testID="settings-print-data-controls-row"
             title="Controles de dados"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="shield-outline"
-            onPress={() => onAbrirPaginaConfiguracoes("seguranca")}
+            infoText="Revise permissões, proteção local, privacidade e dados do aplicativo."
+            onPress={() => onAbrirPaginaConfiguracoes("seguranca", "protecaoDispositivo")}
             testID="settings-print-seguranca-row"
             title="Segurança"
           />
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="bug-outline"
+            infoText="Envie um problema encontrado no aplicativo para análise."
             onPress={onReportarProblema}
             testID="settings-print-bug-row"
             title="Informar bug"
@@ -224,8 +210,9 @@ export function SettingsOverviewContent({
           <SettingsPrintRow
             darkMode={settingsPrintDarkMode}
             icon="information-outline"
+            infoText="Veja informações do app, documentação e canais de ajuda."
             last
-            onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte")}
+            onPress={() => onAbrirPaginaConfiguracoes("sistemaSuporte", "suporte")}
             testID="settings-print-sobre-row"
             title="Sobre"
           />

@@ -34,14 +34,24 @@ interface SettingsExperienceAppearanceSectionProps {
 interface SettingsExperienceNotificationsSectionProps {
   notificaRespostas: boolean;
   notificaPush: boolean;
+  notificacoesPermitidas: boolean;
   somNotificacao: SomNotificacao;
   vibracaoAtiva: boolean;
   emailsAtivos: boolean;
+  chatCategoryEnabled: boolean;
+  mesaCategoryEnabled: boolean;
+  systemCategoryEnabled: boolean;
+  criticalAlertsEnabled: boolean;
   onSetNotificaRespostas: (value: boolean) => void;
   onToggleNotificaPush: (value: boolean) => void;
   onSetSomNotificacao: (value: SomNotificacao) => void;
   onToggleVibracao: (value: boolean) => void;
   onSetEmailsAtivos: (value: boolean) => void;
+  onSetChatCategoryEnabled: (value: boolean) => void;
+  onSetMesaCategoryEnabled: (value: boolean) => void;
+  onSetSystemCategoryEnabled: (value: boolean) => void;
+  onSetCriticalAlertsEnabled: (value: boolean) => void;
+  onAbrirPermissaoNotificacoes: () => void;
 }
 
 function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
@@ -68,12 +78,14 @@ export function SettingsExperienceAppearanceSection({
     <SettingsSection
       icon="palette-outline"
       subtitle="Visual, densidade e comportamento da interface."
+      testID="settings-section-aparencia"
       title="Aparência"
     >
       <SettingsSegmentedRow
         icon="theme-light-dark"
         onChange={onSetTemaApp}
         options={THEME_OPTIONS}
+        testID="settings-appearance-theme-row"
         title="Tema"
         value={temaApp}
       />
@@ -81,6 +93,7 @@ export function SettingsExperienceAppearanceSection({
         icon="format-size"
         onChange={onSetTamanhoFonte}
         options={FONT_SIZE_OPTIONS}
+        testID="settings-appearance-font-row"
         title="Tamanho da fonte"
         value={tamanhoFonte}
       />
@@ -88,6 +101,7 @@ export function SettingsExperienceAppearanceSection({
         icon="view-compact-outline"
         onChange={onSetDensidadeInterface}
         options={DENSITY_OPTIONS}
+        testID="settings-appearance-density-row"
         title="Densidade da interface"
         value={densidadeInterface}
       />
@@ -96,12 +110,14 @@ export function SettingsExperienceAppearanceSection({
         icon="eyedropper-variant"
         onChange={onSetCorDestaque}
         options={ACCENT_OPTIONS}
+        testID="settings-appearance-accent-row"
         title="Cor de destaque"
         value={corDestaque}
       />
       <SettingsSwitchRow
         icon="motion-outline"
         onValueChange={onSetAnimacoesAtivas}
+        testID="settings-appearance-animations-row"
         title="Animações"
         value={animacoesAtivas}
       />
@@ -112,14 +128,24 @@ export function SettingsExperienceAppearanceSection({
 export function SettingsExperienceNotificationsSection({
   notificaRespostas,
   notificaPush,
+  notificacoesPermitidas,
   somNotificacao,
   vibracaoAtiva,
   emailsAtivos,
+  chatCategoryEnabled,
+  mesaCategoryEnabled,
+  systemCategoryEnabled,
+  criticalAlertsEnabled,
   onSetNotificaRespostas,
   onToggleNotificaPush,
   onSetSomNotificacao,
   onToggleVibracao,
   onSetEmailsAtivos,
+  onSetChatCategoryEnabled,
+  onSetMesaCategoryEnabled,
+  onSetSystemCategoryEnabled,
+  onSetCriticalAlertsEnabled,
+  onAbrirPermissaoNotificacoes,
 }: SettingsExperienceNotificationsSectionProps) {
   return (
     <SettingsSection
@@ -140,6 +166,13 @@ export function SettingsExperienceNotificationsSection({
         value={notificaPush}
       />
       <SettingsPressRow
+        description="Mostra o estado real da permissão nativa do sistema."
+        icon="cellphone-cog"
+        onPress={onAbrirPermissaoNotificacoes}
+        title="Permissão do sistema"
+        value={notificacoesPermitidas ? "Permitida" : "Negada"}
+      />
+      <SettingsPressRow
         icon="music-note-outline"
         onPress={() => onSetSomNotificacao(nextOptionValue(somNotificacao, NOTIFICATION_SOUND_OPTIONS))}
         title="Som de notificação"
@@ -157,6 +190,30 @@ export function SettingsExperienceNotificationsSection({
         onValueChange={onSetEmailsAtivos}
         title="Emails"
         value={emailsAtivos}
+      />
+      <SettingsSwitchRow
+        icon="message-processing-outline"
+        onValueChange={onSetChatCategoryEnabled}
+        title="Categoria Chat"
+        value={chatCategoryEnabled}
+      />
+      <SettingsSwitchRow
+        icon="clipboard-text-outline"
+        onValueChange={onSetMesaCategoryEnabled}
+        title="Categoria Mesa"
+        value={mesaCategoryEnabled}
+      />
+      <SettingsSwitchRow
+        icon="cellphone-cog"
+        onValueChange={onSetSystemCategoryEnabled}
+        title="Categoria Sistema"
+        value={systemCategoryEnabled}
+      />
+      <SettingsSwitchRow
+        icon="alert-circle-outline"
+        onValueChange={onSetCriticalAlertsEnabled}
+        title="Alertas críticos"
+        value={criticalAlertsEnabled}
       />
     </SettingsSection>
   );

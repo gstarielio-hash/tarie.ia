@@ -5,6 +5,11 @@ import {
   uploadDocumentoChatMobile,
 } from "../../config/api";
 import { registrarEventoObservabilidade } from "../../config/observability";
+import {
+  applyChatAiPreferencesToMessage,
+  type ChatAiRequestConfig,
+} from "./preferences";
+import type { ComposerAttachment } from "./types";
 import type {
   MobileChatMode,
   MobileChatMessage,
@@ -13,28 +18,6 @@ import type {
   MobileMesaMessage,
   MobileMesaSendResponse,
 } from "../../types/mobile";
-
-type ComposerAttachment =
-  | {
-      kind: "image";
-      label: string;
-      resumo: string;
-      dadosImagem: string;
-      previewUri: string;
-      fileUri: string;
-      mimeType: string;
-    }
-  | {
-      kind: "document";
-      label: string;
-      resumo: string;
-      textoDocumento: string;
-      nomeDocumento: string;
-      chars: number;
-      truncado: boolean;
-      fileUri: string;
-      mimeType: string;
-    };
 
 interface ConversationSnapshot {
   laudoId: number | null;
@@ -59,6 +42,7 @@ interface SendInspectorMessageFlowParams<TOfflineItem> {
   mensagem: string;
   anexoAtual: ComposerAttachment | null;
   snapshotConversa: ConversationSnapshot | null;
+  aiRequestConfig: ChatAiRequestConfig;
   sessionAccessToken: string;
   statusApi: string;
   podeEditarConversaNoComposer: (conversa: ConversationSnapshot | null | undefined) => boolean;
@@ -78,6 +62,9 @@ interface SendInspectorMessageFlowParams<TOfflineItem> {
     text: string;
     title: string;
     attachment: ComposerAttachment | null;
+    aiMode: MobileChatMode;
+    aiSummary: string;
+    aiMessagePrefix: string;
   }) => TOfflineItem;
   onSetMensagem: (value: string) => void;
   onSetAnexoRascunho: (value: ComposerAttachment | null) => void;
@@ -129,6 +116,7 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
   mensagem,
   anexoAtual,
   snapshotConversa,
+  aiRequestConfig,
   sessionAccessToken,
   statusApi,
   podeEditarConversaNoComposer,
@@ -163,7 +151,7 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
   }
 
   const textoExibicao = texto || textoFallbackAnexo(anexoAtual);
-  const modoAtivo = normalizarModoChat(snapshotConversa?.modo);
+  const modoAtivo = aiRequestConfig.mode;
   const setorAtivo = inferirSetorConversa(snapshotConversa);
 
   const mensagemOtimista: MobileChatMessage = {
@@ -204,7 +192,7 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
     }
 
     const respostaChat = await enviarMensagemChatMobile(sessionAccessToken, {
-      mensagem: texto,
+      mensagem: applyChatAiPreferencesToMessage(texto, aiRequestConfig),
       dadosImagem,
       setor: setorAtivo,
       textoDocumento,
@@ -233,6 +221,9 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
         text: texto,
         title: snapshotConversa?.laudoCard?.titulo || "Nova inspeção",
         attachment: anexoAtual,
+        aiMode: modoAtivo,
+        aiSummary: aiRequestConfig.summaryLabel,
+        aiMessagePrefix: aiRequestConfig.messagePrefix,
       });
       onQueueOfflineItem(itemFila);
       void registrarEventoObservabilidade({

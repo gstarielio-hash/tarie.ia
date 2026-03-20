@@ -40,7 +40,17 @@ locust-report.html
 locust-report_*.html
 .hypothesis/
 review-*.png
+history-home-*.png
+android/emulator-chat-screen*.png
+*-keyboard-layout.png
 fotos/
+android.zip
+codex_tariel_*_prompt.md
+android/codex_tariel_*_prompt.md
+run_codex_tariel_*.sh
+android/run_codex_tariel_*.sh
+android/tariel-logcat*.txt
+web/docs/HANDOFF_ATUAL.md
 local-mobile-api.log
 local-mobile-api.error.log
 local-mobile-api.pid

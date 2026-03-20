@@ -1,7 +1,4 @@
-import { Text, View } from "react-native";
-
 import { TWO_FACTOR_METHOD_OPTIONS } from "../InspectorMobileApp.constants";
-import { styles } from "../InspectorMobileApp.styles";
 import {
   SecurityProviderCard,
   SecuritySessionCard,
@@ -63,11 +60,7 @@ interface SettingsSecurityTwoFactorSectionProps {
 }
 
 export function SettingsSecurityConnectedAccountsSection({
-  provedorPrimario,
-  ultimoEventoProvedor,
-  resumoAlertaMetodosConta,
   provedoresConectados,
-  provedoresConectadosTotal,
   onToggleProviderConnection,
 }: SettingsSecurityConnectedAccountsSectionProps) {
   return (
@@ -77,27 +70,7 @@ export function SettingsSecurityConnectedAccountsSection({
       testID="settings-section-contas-conectadas"
       title="Contas conectadas"
     >
-      <View style={styles.securityStack}>
-        <View style={styles.settingsInfoGrid}>
-          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-            <Text style={styles.settingsInfoTitle}>Método principal</Text>
-            <Text style={styles.settingsInfoText}>{provedorPrimario}</Text>
-          </View>
-          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-            <Text style={styles.settingsInfoTitle}>Último vínculo</Text>
-            <Text style={styles.settingsInfoText}>{ultimoEventoProvedor}</Text>
-          </View>
-        </View>
-        <View style={styles.securityIntroCard}>
-          <Text style={styles.securityIntroTitle}>Métodos de login conectados</Text>
-          <Text style={styles.securityIntroText}>
-            Vincule Google, Apple e Microsoft à mesma conta do usuário com proteção para não remover o último método de acesso.
-          </Text>
-        </View>
-        <View style={styles.settingsInfoCard}>
-          <Text style={styles.settingsInfoTitle}>Proteção do acesso</Text>
-          <Text style={styles.settingsInfoText}>{resumoAlertaMetodosConta}</Text>
-        </View>
+      <>
         {provedoresConectados.map((provider) => (
           <SecurityProviderCard
             key={provider.id}
@@ -106,23 +79,14 @@ export function SettingsSecurityConnectedAccountsSection({
             testID={`settings-provider-${provider.id}`}
           />
         ))}
-        <Text style={styles.securityFootnote}>
-          {provedoresConectadosTotal > 1
-            ? `${provedoresConectadosTotal} métodos ativos.`
-            : "Mantenha mais de um método de acesso para evitar bloqueio da conta."}
-        </Text>
-      </View>
+      </>
     </SettingsSection>
   );
 }
 
 export function SettingsSecuritySessionsSection({
-  resumoSessaoAtual,
-  outrasSessoesAtivas,
   sessoesSuspeitasTotal,
   sessoesAtivas,
-  resumoBlindagemSessoes,
-  ultimoEventoSessao,
   onEncerrarSessao,
   onRevisarSessao,
   onEncerrarSessaoAtual,
@@ -138,29 +102,7 @@ export function SettingsSecuritySessionsSection({
       testID="settings-section-sessoes"
       title="Sessões e dispositivos"
     >
-      <View style={styles.securityStack}>
-        <View style={styles.settingsInfoGrid}>
-          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-            <Text style={styles.settingsInfoTitle}>Sessão atual</Text>
-            <Text style={styles.settingsInfoText}>{resumoSessaoAtual}</Text>
-          </View>
-          <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-            <Text style={styles.settingsInfoTitle}>Outros dispositivos</Text>
-            <Text style={styles.settingsInfoText}>{outrasSessoesAtivas.length} sessão(ões)</Text>
-            <Text style={styles.settingsInfoSubtle}>{sessoesSuspeitasTotal} suspeita(s)</Text>
-          </View>
-        </View>
-        <View style={styles.settingsInfoCard}>
-          <Text style={styles.settingsInfoTitle}>Resumo de risco</Text>
-          <Text style={styles.settingsInfoText}>
-            {sessoesAtivas.length} sessões ativas • {outrasSessoesAtivas.length} em outros dispositivos • {sessoesSuspeitasTotal} suspeita{sessoesSuspeitasTotal === 1 ? "" : "s"}
-          </Text>
-          <Text style={styles.settingsInfoSubtle}>{resumoBlindagemSessoes}</Text>
-        </View>
-        <View style={styles.settingsInfoCard}>
-          <Text style={styles.settingsInfoTitle}>Última revisão</Text>
-          <Text style={styles.settingsInfoText}>{ultimoEventoSessao}</Text>
-        </View>
+      <>
         {sessoesAtivas.map((item) => (
           <SecuritySessionCard
             item={item}
@@ -205,16 +147,12 @@ export function SettingsSecuritySessionsSection({
           testID="settings-session-total-logout-row"
           title="Logout total"
         />
-      </View>
+      </>
     </SettingsSection>
   );
 }
 
 export function SettingsSecurityTwoFactorSection({
-  resumo2FAStatus,
-  resumoCodigosRecuperacao,
-  resumo2FAFootnote,
-  reautenticacaoStatus,
   twoFactorEnabled,
   twoFactorMethod,
   recoveryCodesEnabled,
@@ -235,21 +173,6 @@ export function SettingsSecurityTwoFactorSection({
       testID="settings-section-twofa"
       title="Verificação em duas etapas"
     >
-      <View style={styles.settingsInfoGrid}>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Status</Text>
-          <Text style={styles.settingsInfoText}>{resumo2FAStatus}</Text>
-        </View>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Códigos</Text>
-          <Text style={styles.settingsInfoText}>{resumoCodigosRecuperacao}</Text>
-        </View>
-      </View>
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Estratégia de proteção</Text>
-        <Text style={styles.settingsInfoText}>{resumo2FAFootnote}</Text>
-        <Text style={styles.settingsInfoSubtle}>Reautenticação atual: {reautenticacaoStatus}</Text>
-      </View>
       <SettingsSwitchRow
         description="Exige reautenticação antes de ativar ou desativar."
         icon="shield-check-outline"
@@ -303,19 +226,13 @@ export function SettingsSecurityTwoFactorSection({
         value={codigosRecuperacao.length ? `${codigosRecuperacao.length} códigos` : "Indisponível"}
       />
       {codigosRecuperacao.length ? (
-        <View style={styles.securityIntroCard}>
-          <Text style={styles.securityIntroTitle}>Códigos gerados</Text>
-          <Text style={styles.securityIntroText}>
-            Eles são mostrados uma única vez. Salve com segurança antes de sair desta tela.
-          </Text>
-          <View style={styles.securityRecoveryGrid}>
-            {codigosRecuperacao.map((codigo) => (
-              <View key={codigo} style={styles.securityRecoveryCode}>
-                <Text style={styles.securityRecoveryCodeText}>{codigo}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        <SettingsPressRow
+          description="Eles são mostrados uma única vez. Salve com segurança antes de sair desta tela."
+          icon="key-chain-variant"
+          onPress={() => void onCompartilharCodigosRecuperacao()}
+          title="Códigos gerados"
+          value={`${codigosRecuperacao.length} disponíveis`}
+        />
       ) : null}
     </SettingsSection>
   );

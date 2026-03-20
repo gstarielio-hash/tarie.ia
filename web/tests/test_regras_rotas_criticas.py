@@ -27,6 +27,7 @@ import app.domains.admin.routes as rotas_admin
 import app.domains.chat.routes as rotas_inspetor
 import app.domains.revisor.routes as rotas_revisor
 from app.shared.database import (
+    AprendizadoVisualIa,
     AnexoMesa,
     Base,
     Empresa,
@@ -85,6 +86,10 @@ def _docx_bytes_teste(texto: str = "Checklist operacional do admin-cliente.") ->
 
 def _imagem_png_bytes_teste() -> bytes:
     return base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z2ioAAAAASUVORK5CYII=")
+
+
+def _imagem_png_data_uri_teste() -> str:
+    return "data:image/png;base64," + base64.b64encode(_imagem_png_bytes_teste()).decode()
 
 
 def _salvar_pdf_temporario_teste(prefixo: str = "template") -> str:
@@ -1132,7 +1137,7 @@ def test_revisor_tela_editor_word_templates_abre(ambiente_critico) -> None:
 
     assert resposta.status_code == 200
     assert "Editor Word" in resposta.text
-    assert "Workspace Word de Templates" in resposta.text
+    assert "Editor Word da Mesa" in resposta.text
     assert "Criar no Word (A4)" in resposta.text
 
 
@@ -1319,6 +1324,95 @@ def test_revisor_publicar_template_desativa_ativo_anterior(ambiente_critico) -> 
         assert template_v2.ativo is True
 
 
+def test_revisor_lote_status_templates_atualiza_ciclo(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_v1 = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Template lote v1",
+            "codigo_template": "lote_status",
+            "versao": "1",
+            "ativo": "true",
+        },
+        files={"arquivo_base": ("lote_v1.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_v1.status_code == 201
+    id_v1 = int(resposta_v1.json()["id"])
+
+    resposta_v2 = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Template lote v2",
+            "codigo_template": "lote_status",
+            "versao": "2",
+        },
+        files={"arquivo_base": ("lote_v2.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_v2.status_code == 201
+    id_v2 = int(resposta_v2.json()["id"])
+
+    resposta_lote = client.post(
+        "/revisao/api/templates-laudo/lote/status",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={"template_ids": [id_v1, id_v2], "status_template": "em_teste"},
+    )
+
+    assert resposta_lote.status_code == 200
+    corpo = resposta_lote.json()
+    assert corpo["total"] == 2
+    assert corpo["status_template"] == "em_teste"
+
+    with SessionLocal() as banco:
+        template_v1 = banco.get(TemplateLaudo, id_v1)
+        template_v2 = banco.get(TemplateLaudo, id_v2)
+        assert template_v1 is not None
+        assert template_v2 is not None
+        assert template_v1.status_template == "em_teste"
+        assert template_v2.status_template == "em_teste"
+        assert template_v1.ativo is False
+        assert template_v2.ativo is False
+
+
+def test_revisor_lote_excluir_templates_remove_selecao(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    ids_templates: list[int] = []
+    for versao in (1, 2):
+        resposta = client.post(
+            "/revisao/api/templates-laudo/upload",
+            headers={"X-CSRF-Token": csrf},
+            data={
+                "nome": f"Template excluir lote v{versao}",
+                "codigo_template": "lote_excluir",
+                "versao": str(versao),
+            },
+            files={"arquivo_base": (f"lote_delete_{versao}.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+        )
+        assert resposta.status_code == 201
+        ids_templates.append(int(resposta.json()["id"]))
+
+    resposta_lote = client.post(
+        "/revisao/api/templates-laudo/lote/excluir",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={"template_ids": ids_templates},
+    )
+
+    assert resposta_lote.status_code == 200
+    corpo = resposta_lote.json()
+    assert corpo["total"] == 2
+    assert corpo["status"] == "excluido"
+
+    with SessionLocal() as banco:
+        assert all(banco.get(TemplateLaudo, item_id) is None for item_id in ids_templates)
+
+
 def test_revisor_criar_template_editor_rico_e_detalhar(ambiente_critico) -> None:
     client = ambiente_critico["client"]
     csrf = _login_revisor(client, "revisor@empresa-a.test")
@@ -1357,6 +1451,615 @@ def test_revisor_criar_template_editor_rico_e_detalhar(ambiente_critico) -> None
     encontrado = next((it for it in itens if int(it["id"]) == template_id), None)
     assert encontrado is not None
     assert encontrado["is_editor_rico"] is True
+
+
+def test_revisor_lista_templates_expoe_grupo_e_base_recomendada(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_ativo = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Grupo ativo v1",
+            "codigo_template": "grupo_versionado",
+            "versao": "1",
+            "ativo": "true",
+        },
+        files={"arquivo_base": ("grupo_ativo_v1.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_ativo.status_code == 201
+    id_ativo = int(resposta_ativo.json()["id"])
+
+    resposta_word = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Grupo ativo v2 word",
+            "codigo_template": "grupo_versionado",
+            "versao": 2,
+            "origem_modo": "a4",
+        },
+    )
+    assert resposta_word.status_code == 201
+    id_word = int(resposta_word.json()["id"])
+
+    resposta_teste = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Grupo ativo v3 teste",
+            "codigo_template": "grupo_versionado",
+            "versao": "3",
+            "status_template": "em_teste",
+        },
+        files={"arquivo_base": ("grupo_teste_v3.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_teste.status_code == 201
+    id_teste = int(resposta_teste.json()["id"])
+
+    resposta_sem_ativo_teste = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Grupo sem ativo v1 teste",
+            "codigo_template": "grupo_sem_ativo",
+            "versao": "1",
+            "status_template": "em_teste",
+        },
+        files={"arquivo_base": ("grupo_sem_ativo_v1.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_sem_ativo_teste.status_code == 201
+    id_sem_ativo_teste = int(resposta_sem_ativo_teste.json()["id"])
+
+    resposta_sem_ativo_rascunho = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Grupo sem ativo v2 rascunho",
+            "codigo_template": "grupo_sem_ativo",
+            "versao": "2",
+            "status_template": "rascunho",
+        },
+        files={"arquivo_base": ("grupo_sem_ativo_v2.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_sem_ativo_rascunho.status_code == 201
+    id_sem_ativo_rascunho = int(resposta_sem_ativo_rascunho.json()["id"])
+
+    resposta_lista = client.get("/revisao/api/templates-laudo")
+    assert resposta_lista.status_code == 200
+    itens = resposta_lista.json().get("itens", [])
+
+    grupo_principal = [item for item in itens if item["codigo_template"] == "grupo_versionado"]
+    assert len(grupo_principal) == 3
+    ativo = next(item for item in grupo_principal if int(item["id"]) == id_ativo)
+    word = next(item for item in grupo_principal if int(item["id"]) == id_word)
+    teste = next(item for item in grupo_principal if int(item["id"]) == id_teste)
+    assert ativo["is_base_recomendada"] is True
+    assert ativo["base_recomendada_motivo"] == "Versão ativa em operação"
+    assert ativo["grupo_total_versoes"] == 3
+    assert ativo["grupo_total_word"] == 1
+    assert ativo["grupo_total_pdf"] == 2
+    assert ativo["grupo_versao_mais_recente"] == 3
+    assert ativo["grupo_template_ativo_id"] == id_ativo
+    assert ativo["grupo_base_recomendada_id"] == id_ativo
+    assert ativo["grupo_versoes_disponiveis"] == [3, 2, 1]
+    assert word["grupo_base_recomendada_id"] == id_ativo
+    assert teste["grupo_base_recomendada_id"] == id_ativo
+
+    grupo_sem_ativo = [item for item in itens if item["codigo_template"] == "grupo_sem_ativo"]
+    assert len(grupo_sem_ativo) == 2
+    sem_ativo_teste = next(item for item in grupo_sem_ativo if int(item["id"]) == id_sem_ativo_teste)
+    sem_ativo_rascunho = next(item for item in grupo_sem_ativo if int(item["id"]) == id_sem_ativo_rascunho)
+    assert sem_ativo_teste["is_base_recomendada"] is True
+    assert sem_ativo_teste["base_recomendada_motivo"] == "Versão em teste mais madura"
+    assert sem_ativo_teste["grupo_base_recomendada_id"] == id_sem_ativo_teste
+    assert sem_ativo_rascunho["grupo_base_recomendada_id"] == id_sem_ativo_teste
+
+
+def test_revisor_promove_base_recomendada_manual_no_grupo(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_ativo = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Base operacao v1",
+            "codigo_template": "grupo_promocao_base",
+            "versao": "1",
+            "ativo": "true",
+        },
+        files={"arquivo_base": ("grupo_promocao_base_v1.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_ativo.status_code == 201
+    id_ativo = int(resposta_ativo.json()["id"])
+
+    resposta_word = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Base editorial v2",
+            "codigo_template": "grupo_promocao_base",
+            "versao": 2,
+            "origem_modo": "a4",
+        },
+    )
+    assert resposta_word.status_code == 201
+    id_word = int(resposta_word.json()["id"])
+
+    resposta_promover = client.post(
+        f"/revisao/api/templates-laudo/{id_word}/base-recomendada",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_promover.status_code == 200
+    corpo_promover = resposta_promover.json()
+    assert corpo_promover["status"] == "promovido"
+    assert corpo_promover["base_recomendada_fixa"] is True
+    assert corpo_promover["base_recomendada_origem"] == "manual"
+
+    resposta_lista = client.get("/revisao/api/templates-laudo")
+    assert resposta_lista.status_code == 200
+    itens = resposta_lista.json().get("itens", [])
+
+    grupo = [item for item in itens if item["codigo_template"] == "grupo_promocao_base"]
+    assert len(grupo) == 2
+    ativo = next(item for item in grupo if int(item["id"]) == id_ativo)
+    word = next(item for item in grupo if int(item["id"]) == id_word)
+    assert ativo["ativo"] is True
+    assert ativo["grupo_base_recomendada_id"] == id_word
+    assert ativo["grupo_base_recomendada_origem"] == "manual"
+    assert ativo["is_base_recomendada"] is False
+    assert word["is_base_recomendada"] is True
+    assert word["base_recomendada_fixa"] is True
+    assert word["base_recomendada_origem"] == "manual"
+    assert word["base_recomendada_motivo"] == "Base promovida manualmente pela mesa"
+    assert word["grupo_base_recomendada_id"] == id_word
+
+    resposta_auditoria = client.get("/revisao/api/templates-laudo/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens_auditoria = resposta_auditoria.json().get("itens", [])
+    promotoria = next((item for item in itens_auditoria if item["acao"] == "template_base_recomendada_promovida"), None)
+    assert promotoria is not None
+    assert promotoria["payload"]["template_recomendado"]["template_id"] == id_word
+    assert promotoria["payload"]["base_anterior"]["template_id"] == id_ativo
+
+
+def test_revisor_restaura_base_recomendada_automatica_no_grupo(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_ativo = client.post(
+        "/revisao/api/templates-laudo/upload",
+        headers={"X-CSRF-Token": csrf},
+        data={
+            "nome": "Base operacao auto v1",
+            "codigo_template": "grupo_base_automatica",
+            "versao": "1",
+            "ativo": "true",
+        },
+        files={"arquivo_base": ("grupo_base_automatica_v1.pdf", _pdf_base_bytes_teste(), "application/pdf")},
+    )
+    assert resposta_ativo.status_code == 201
+    id_ativo = int(resposta_ativo.json()["id"])
+
+    resposta_word = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Base fixa temporaria v2",
+            "codigo_template": "grupo_base_automatica",
+            "versao": 2,
+            "origem_modo": "a4",
+        },
+    )
+    assert resposta_word.status_code == 201
+    id_word = int(resposta_word.json()["id"])
+
+    resposta_promover = client.post(
+        f"/revisao/api/templates-laudo/{id_word}/base-recomendada",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_promover.status_code == 200
+
+    resposta_restaurar = client.delete(
+        f"/revisao/api/templates-laudo/{id_word}/base-recomendada",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_restaurar.status_code == 200
+    corpo_restaurar = resposta_restaurar.json()
+    assert corpo_restaurar["status"] == "automatico"
+    assert corpo_restaurar["base_recomendada_origem"] == "automatica"
+    assert corpo_restaurar["grupo_base_recomendada_id"] == id_ativo
+
+    resposta_lista = client.get("/revisao/api/templates-laudo")
+    assert resposta_lista.status_code == 200
+    itens = resposta_lista.json().get("itens", [])
+
+    grupo = [item for item in itens if item["codigo_template"] == "grupo_base_automatica"]
+    assert len(grupo) == 2
+    ativo = next(item for item in grupo if int(item["id"]) == id_ativo)
+    word = next(item for item in grupo if int(item["id"]) == id_word)
+    assert ativo["is_base_recomendada"] is True
+    assert ativo["base_recomendada_origem"] == "automatica"
+    assert ativo["base_recomendada_motivo"] == "Versão ativa em operação"
+    assert word["is_base_recomendada"] is False
+    assert word["base_recomendada_fixa"] is False
+    assert word["grupo_base_recomendada_id"] == id_ativo
+    assert word["grupo_base_recomendada_origem"] == "automatica"
+
+    resposta_auditoria = client.get("/revisao/api/templates-laudo/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens_auditoria = resposta_auditoria.json().get("itens", [])
+    restauracao = next((item for item in itens_auditoria if item["acao"] == "template_base_recomendada_automatica_restaurada"), None)
+    assert restauracao is not None
+    assert restauracao["payload"]["base_anterior"]["template_id"] == id_word
+    assert restauracao["payload"]["base_recomendada_atual"]["template_id"] == id_ativo
+
+
+def test_revisor_diff_templates_compara_versoes_do_mesmo_codigo(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    resposta_v1 = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Template diff v1",
+            "codigo_template": "diff_word",
+            "versao": 1,
+            "origem_modo": "a4",
+        },
+    )
+    assert resposta_v1.status_code == 201
+    id_v1 = int(resposta_v1.json()["id"])
+
+    resposta_v2 = client.post(
+        "/revisao/api/templates-laudo/editor",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "nome": "Template diff v2",
+            "codigo_template": "diff_word",
+            "versao": 2,
+            "origem_modo": "a4",
+        },
+    )
+    assert resposta_v2.status_code == 201
+    id_v2 = int(resposta_v2.json()["id"])
+
+    for template_id, titulo, texto in (
+        (
+            id_v1,
+            "Linha de vida",
+            "Ponto A validado pelo inspetor.",
+        ),
+        (
+            id_v2,
+            "Linha de vida revisada",
+            "Ponto B validado pela mesa avaliadora.",
+        ),
+    ):
+        resposta_salvar = client.put(
+            f"/revisao/api/templates-laudo/editor/{template_id}",
+            headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+            json={
+                "documento_editor_json": {
+                    "version": 1,
+                    "doc": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "heading",
+                                "attrs": {"level": 1},
+                                "content": [{"type": "text", "text": titulo}],
+                            },
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": texto}],
+                            },
+                        ],
+                    },
+                },
+            },
+        )
+        assert resposta_salvar.status_code == 200
+
+    resposta_diff = client.get(
+        f"/revisao/api/templates-laudo/diff?base_id={id_v1}&comparado_id={id_v2}",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta_diff.status_code == 200
+    corpo = resposta_diff.json()
+    assert corpo["ok"] is True
+    assert corpo["base"]["codigo_template"] == "diff_word"
+    assert corpo["comparado"]["codigo_template"] == "diff_word"
+    assert corpo["resumo"]["campos_alterados"] >= 1
+    assert corpo["resumo"]["linhas_adicionadas"] >= 1
+    assert corpo["resumo_blocos"]["alterados"] >= 1
+    assert any(item["status"] == "alterado" for item in corpo["diff_blocos"])
+    assert any("Ponto B validado pela mesa avaliadora." in item["texto"] for item in corpo["diff_linhas"])
+    assert any(item["campo"] == "Versão" and item["mudou"] is True for item in corpo["comparacao_campos"])
+
+
+def test_revisor_diff_templates_expoe_comparacao_estrutural_por_bloco(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    ids: list[int] = []
+    for versao in (1, 2):
+        resposta = client.post(
+            "/revisao/api/templates-laudo/editor",
+            headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+            json={
+                "nome": f"Template estrutural v{versao}",
+                "codigo_template": "diff_estrutural_word",
+                "versao": versao,
+                "origem_modo": "a4",
+            },
+        )
+        assert resposta.status_code == 201
+        ids.append(int(resposta.json()["id"]))
+
+    id_v1, id_v2 = ids
+
+    resposta_salvar_v1 = client.put(
+        f"/revisao/api/templates-laudo/editor/{id_v1}",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "documento_editor_json": {
+                "version": 1,
+                "doc": {
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "heading",
+                            "attrs": {"level": 1},
+                            "content": [{"type": "text", "text": "Relatório técnico"}],
+                        },
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": "Cliente: "},
+                                {"type": "placeholder", "attrs": {"mode": "token", "key": "cliente_nome", "raw": "token:cliente_nome"}},
+                            ],
+                        },
+                        {
+                            "type": "bulletList",
+                            "content": [
+                                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Inspeção visual"}]}]},
+                                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Checklist inicial"}]}]},
+                            ],
+                        },
+                        {
+                            "type": "table",
+                            "content": [
+                                {
+                                    "type": "tableRow",
+                                    "content": [
+                                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Item"}]}]},
+                                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Status"}]}]},
+                                    ],
+                                },
+                                {
+                                    "type": "tableRow",
+                                    "content": [
+                                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "SPDA"}]}]},
+                                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Pendente"}]}]},
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        },
+    )
+    assert resposta_salvar_v1.status_code == 200
+
+    resposta_salvar_v2 = client.put(
+        f"/revisao/api/templates-laudo/editor/{id_v2}",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "documento_editor_json": {
+                "version": 1,
+                "doc": {
+                    "type": "doc",
+                    "content": [
+                        {
+                            "type": "heading",
+                            "attrs": {"level": 1},
+                            "content": [{"type": "text", "text": "Relatório técnico revisado"}],
+                        },
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": "Cliente: "},
+                                {
+                                    "type": "placeholder",
+                                    "attrs": {
+                                        "mode": "json_path",
+                                        "key": "informacoes_gerais.local_inspecao",
+                                        "raw": "json_path:informacoes_gerais.local_inspecao",
+                                    },
+                                },
+                            ],
+                        },
+                        {
+                            "type": "orderedList",
+                            "content": [
+                                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Inspeção visual revisada"}]}]},
+                                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Checklist técnico"}]}]},
+                                {"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Aprovação da mesa"}]}]},
+                            ],
+                        },
+                        {
+                            "type": "table",
+                            "content": [
+                                {
+                                    "type": "tableRow",
+                                    "content": [
+                                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Item"}]}]},
+                                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Status"}]}]},
+                                        {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Prioridade"}]}]},
+                                    ],
+                                },
+                                {
+                                    "type": "tableRow",
+                                    "content": [
+                                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "SPDA"}]}]},
+                                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Aprovado"}]}]},
+                                        {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Alta"}]}]},
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        },
+    )
+    assert resposta_salvar_v2.status_code == 200
+
+    resposta_diff = client.get(
+        f"/revisao/api/templates-laudo/diff?base_id={id_v1}&comparado_id={id_v2}",
+        headers={"X-CSRF-Token": csrf},
+    )
+
+    assert resposta_diff.status_code == 200
+    corpo = resposta_diff.json()
+    assert corpo["ok"] is True
+    assert corpo["resumo_blocos"]["alterados"] >= 4
+    assert any(
+        item["status"] == "alterado"
+        and item["base"]
+        and item["base"]["tipo"] == "heading"
+        for item in corpo["diff_blocos"]
+    )
+    assert any(
+        item["status"] == "alterado"
+        and item["base"]
+        and item["base"]["tipo"] in {"bulletList", "orderedList"}
+        and "Tipo de bloco alterado" in item["mudancas"]
+        for item in corpo["diff_blocos"]
+    )
+    assert any(
+        item["status"] == "alterado"
+        and item["base"]
+        and item["base"]["tipo"] == "paragraph"
+        and "Placeholders alterados" in item["mudancas"]
+        for item in corpo["diff_blocos"]
+    )
+    assert any(
+        item["status"] == "alterado"
+        and item["base"]
+        and item["base"]["tipo"] == "table"
+        and "Estrutura alterada" in item["mudancas"]
+        for item in corpo["diff_blocos"]
+    )
+
+
+def test_revisor_biblioteca_templates_registra_auditoria_operacional(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_revisor(client, "revisor@empresa-a.test")
+
+    template_ids: list[int] = []
+    for versao in (1, 2, 3, 4):
+        resposta = client.post(
+            "/revisao/api/templates-laudo/editor",
+            headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+            json={
+                "nome": f"Template auditoria v{versao}",
+                "codigo_template": "auditoria_templates",
+                "versao": versao,
+                "origem_modo": "a4",
+            },
+        )
+        assert resposta.status_code == 201
+        template_ids.append(int(resposta.json()["id"]))
+
+    id_publicar, id_lote_a, id_lote_b, id_excluir = template_ids
+
+    resposta_publicar = client.post(
+        f"/revisao/api/templates-laudo/editor/{id_publicar}/publicar",
+        headers={"X-CSRF-Token": csrf},
+        data={"csrf_token": csrf},
+    )
+    assert resposta_publicar.status_code == 200
+
+    resposta_lote = client.post(
+        "/revisao/api/templates-laudo/lote/status",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={
+            "template_ids": [id_lote_a, id_lote_b],
+            "status_template": "em_teste",
+        },
+    )
+    assert resposta_lote.status_code == 200
+
+    resposta_clonar = client.post(
+        f"/revisao/api/templates-laudo/{id_lote_a}/clonar",
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert resposta_clonar.status_code == 201
+    clone_id = int(resposta_clonar.json()["id"])
+
+    resposta_excluir_lote = client.post(
+        "/revisao/api/templates-laudo/lote/excluir",
+        headers={"X-CSRF-Token": csrf, "Content-Type": "application/json"},
+        json={"template_ids": [id_excluir]},
+    )
+    assert resposta_excluir_lote.status_code == 200
+
+    resposta_auditoria = client.get("/revisao/api/templates-laudo/auditoria")
+    assert resposta_auditoria.status_code == 200
+    itens = resposta_auditoria.json()["itens"]
+    acoes = {item["acao"] for item in itens}
+    assert {
+        "template_criado_word",
+        "template_publicado",
+        "template_status_lote_alterado",
+        "template_clonado",
+        "template_excluido_lote",
+    }.issubset(acoes)
+    assert all(item["portal"] == "revisao_templates" for item in itens)
+    assert any(item["ator_usuario_id"] == ids["revisor_a"] for item in itens)
+
+    registro_publicado = next(item for item in itens if item["acao"] == "template_publicado")
+    assert int(registro_publicado["payload"]["template_id"]) == id_publicar
+    assert registro_publicado["payload"]["status_template"] == "ativo"
+
+    registro_lote = next(item for item in itens if item["acao"] == "template_status_lote_alterado")
+    assert registro_lote["payload"]["status_destino"] == "em_teste"
+    assert registro_lote["payload"]["total"] == 2
+    assert {int(valor) for valor in registro_lote["payload"]["template_ids"]} == {id_lote_a, id_lote_b}
+
+    registro_clone = next(item for item in itens if item["acao"] == "template_clonado")
+    assert int(registro_clone["payload"]["template_origem"]["template_id"]) == id_lote_a
+    assert int(registro_clone["payload"]["template_clone"]["template_id"]) == clone_id
+
+    registro_exclusao = next(item for item in itens if item["acao"] == "template_excluido_lote")
+    assert registro_exclusao["payload"]["total"] == 1
+    assert registro_exclusao["payload"]["templates"][0]["template_id"] == id_excluir
+
+    with SessionLocal() as banco:
+        registros = list(
+            banco.scalars(
+                select(RegistroAuditoriaEmpresa)
+                .where(RegistroAuditoriaEmpresa.empresa_id == ids["empresa_a"])
+                .order_by(RegistroAuditoriaEmpresa.id.desc())
+            ).all()
+        )
+        assert registros
+        assert any(item.portal == "revisao_templates" for item in registros)
+        assert {item.acao for item in registros if item.portal == "revisao_templates"} >= {
+            "template_publicado",
+            "template_status_lote_alterado",
+            "template_clonado",
+            "template_excluido_lote",
+        }
 
 
 def test_revisor_salvar_e_preview_template_editor_rico(ambiente_critico) -> None:
@@ -2415,6 +3118,58 @@ def test_revisor_painel_filtro_busca_por_hash_e_texto(ambiente_critico) -> None:
     assert painel_texto.status_code == 200
     assert "Caldeira com ponto de corrosao" in painel_texto.text
     assert "Painel eletrico com nao conformidade" not in painel_texto.text
+
+
+def test_revisor_painel_filtro_aprendizados_pendentes(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    _login_revisor(client, "revisor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_com_aprendizado_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        laudo_sem_aprendizado_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.AGUARDANDO.value,
+        )
+
+        laudo_com_aprendizado = banco.get(Laudo, laudo_com_aprendizado_id)
+        laudo_sem_aprendizado = banco.get(Laudo, laudo_sem_aprendizado_id)
+        assert laudo_com_aprendizado is not None
+        assert laudo_sem_aprendizado is not None
+
+        banco.add(
+            AprendizadoVisualIa(
+                empresa_id=ids["empresa_a"],
+                laudo_id=laudo_com_aprendizado_id,
+                criado_por_id=ids["inspetor_a"],
+                setor_industrial="geral",
+                resumo="Linha de vida em revisão",
+                correcao_inspetor="A IA marcou o ponto errado e a mesa ainda precisa validar.",
+                status="rascunho_inspetor",
+                veredito_inspetor="duvida",
+            )
+        )
+        banco.commit()
+
+        hash_com_aprendizado = laudo_com_aprendizado.codigo_hash[-6:]
+        hash_sem_aprendizado = laudo_sem_aprendizado.codigo_hash[-6:]
+
+    painel_filtrado = client.get("/revisao/painel?aprendizados=pendentes")
+
+    assert painel_filtrado.status_code == 200
+    assert f"#{hash_com_aprendizado}" in painel_filtrado.text
+    assert f"#{hash_sem_aprendizado}" not in painel_filtrado.text
+    assert 'id="filtro-aprendizados"' in painel_filtrado.text
+    assert "Com aprendizados pendentes" in painel_filtrado.text
+    assert "1 aprend." in painel_filtrado.text
 
 
 def test_revisor_painel_em_andamento_prioriza_por_sla(ambiente_critico) -> None:
@@ -3842,6 +4597,324 @@ def test_jornada_e2e_isolamento_multiempresa_no_chat_e_mesa(ambiente_critico) ->
         json={"texto": "Mensagem legítima do inspetor A para mesa."},
     )
     assert resposta_legitima.status_code == 201
+
+
+def test_chat_ignora_aprendizado_visual_ainda_nao_validado_pela_mesa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta_aprendizado = client.post(
+        f"/app/api/laudo/{laudo_id}/aprendizados",
+        headers={"X-CSRF-Token": csrf},
+        json={
+            "resumo": "Linha de vida provisória",
+            "descricao_contexto": "Foto inicial do conjunto de ancoragem.",
+            "correcao_inspetor": "O ponto A da linha de vida parece correto nesta cena.",
+            "veredito_inspetor": "conforme",
+            "dados_imagem": _imagem_png_data_uri_teste(),
+            "nome_imagem": "linha-vida.png",
+            "pontos_chave": ["ponto A", "linha de vida"],
+            "referencias_norma": ["NR-35"],
+        },
+    )
+    assert resposta_aprendizado.status_code == 201
+
+    captura: dict[str, str] = {}
+
+    class ClienteIAStub:
+        def gerar_resposta_stream(self, mensagem: str, *args, **kwargs):  # noqa: ANN002, ANN003
+            captura["mensagem"] = mensagem
+            yield "Resposta de teste."
+
+    cliente_original = rotas_inspetor.cliente_ia
+    rotas_inspetor.cliente_ia = ClienteIAStub()
+    try:
+        resposta_chat = client.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf},
+            json={
+                "mensagem": "Analise a linha de vida desta evidência.",
+                "historico": [],
+                "laudo_id": laudo_id,
+            },
+        )
+    finally:
+        rotas_inspetor.cliente_ia = cliente_original
+
+    assert resposta_chat.status_code == 200
+    assert "text/event-stream" in (resposta_chat.headers.get("content-type", "").lower())
+    assert "aprendizados_visuais_validados" not in captura["mensagem"]
+    assert "ponto A da linha de vida parece correto" not in captura["mensagem"].lower()
+
+
+def test_chat_com_imagem_cria_rascunho_visual_para_mesa_mesmo_sem_correcao_explicita(ambiente_critico) -> None:
+    client_inspetor = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf_inspetor = _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    class ClienteIAStub:
+        def gerar_resposta_stream(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            yield "Análise inicial da IA."
+
+    cliente_original = rotas_inspetor.cliente_ia
+    rotas_inspetor.cliente_ia = ClienteIAStub()
+    try:
+        resposta_chat = client_inspetor.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf_inspetor},
+            json={
+                "mensagem": "Analise esta linha de vida.",
+                "historico": [],
+                "laudo_id": laudo_id,
+                "dados_imagem": _imagem_png_data_uri_teste(),
+            },
+        )
+    finally:
+        rotas_inspetor.cliente_ia = cliente_original
+
+    assert resposta_chat.status_code == 200
+
+    with TestClient(main.app) as client_revisor:
+        csrf_revisor = _login_revisor(client_revisor, "revisor@empresa-a.test")
+        resposta_aprendizados = client_revisor.get(
+            f"/revisao/api/laudo/{laudo_id}/aprendizados",
+            headers={"X-CSRF-Token": csrf_revisor},
+        )
+        assert resposta_aprendizados.status_code == 200
+        itens = resposta_aprendizados.json()["itens"]
+        assert len(itens) == 1
+        assert itens[0]["status"] == "rascunho_inspetor"
+        assert itens[0]["imagem_url"].startswith("/static/uploads/aprendizados_ia/")
+        assert "Sem correção explícita do inspetor" in itens[0]["correcao_inspetor"]
+
+        resposta_completo = client_revisor.get(f"/revisao/api/laudo/{laudo_id}/completo?incluir_historico=true")
+        assert resposta_completo.status_code == 200
+        assert len(resposta_completo.json()["aprendizados_visuais"]) == 1
+
+
+def test_chat_com_correcao_textual_atualiza_rascunho_visual_automatico(ambiente_critico) -> None:
+    client_inspetor = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf_inspetor = _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    class ClienteIAStub:
+        def gerar_resposta_stream(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            yield "A IA marcou o ponto como incorreto."
+
+    cliente_original = rotas_inspetor.cliente_ia
+    rotas_inspetor.cliente_ia = ClienteIAStub()
+    try:
+        resposta_imagem = client_inspetor.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf_inspetor},
+            json={
+                "mensagem": "Verifique esta ancoragem.",
+                "historico": [],
+                "laudo_id": laudo_id,
+                "dados_imagem": _imagem_png_data_uri_teste(),
+            },
+        )
+        resposta_correcao = client_inspetor.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf_inspetor},
+            json={
+                "mensagem": "Isso está correto, faça o relatório pra mim.",
+                "historico": [],
+                "laudo_id": laudo_id,
+            },
+        )
+    finally:
+        rotas_inspetor.cliente_ia = cliente_original
+
+    assert resposta_imagem.status_code == 200
+    assert resposta_correcao.status_code == 200
+
+    with SessionLocal() as banco:
+        itens = (
+            banco.query(AprendizadoVisualIa)
+            .filter(
+                AprendizadoVisualIa.laudo_id == laudo_id,
+                AprendizadoVisualIa.empresa_id == ids["empresa_a"],
+            )
+            .order_by(AprendizadoVisualIa.id.asc())
+            .all()
+        )
+        assert len(itens) == 1
+        assert "Isso está correto" in str(itens[0].correcao_inspetor)
+        assert str(getattr(itens[0].veredito_inspetor, "value", itens[0].veredito_inspetor)) == "conforme"
+
+
+def test_mesa_valida_aprendizado_visual_e_chat_consulta_sintese_final(ambiente_critico) -> None:
+    client_inspetor = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf_inspetor = _login_app_inspetor(client_inspetor, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_id = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+
+    resposta_aprendizado = client_inspetor.post(
+        f"/app/api/laudo/{laudo_id}/aprendizados",
+        headers={"X-CSRF-Token": csrf_inspetor},
+        json={
+            "resumo": "Ancoragem da linha de vida",
+            "descricao_contexto": "Correção inicial feita pelo inspetor em campo.",
+            "correcao_inspetor": "O ponto A é o ponto correto da linha de vida nesta imagem.",
+            "veredito_inspetor": "conforme",
+            "dados_imagem": _imagem_png_data_uri_teste(),
+            "nome_imagem": "ancoragem.png",
+            "pontos_chave": ["ponto A", "linha de vida"],
+            "referencias_norma": ["NR-35 item 35.5"],
+            "marcacoes": [{"rotulo": "Ponto A", "observacao": "Marcado pelo inspetor"}],
+        },
+    )
+    assert resposta_aprendizado.status_code == 201
+    aprendizado_id = int(resposta_aprendizado.json()["aprendizado"]["id"])
+
+    with TestClient(main.app) as client_revisor:
+        csrf_revisor = _login_revisor(client_revisor, "revisor@empresa-a.test")
+        resposta_validacao = client_revisor.post(
+            f"/revisao/api/aprendizados/{aprendizado_id}/validar",
+            headers={"X-CSRF-Token": csrf_revisor},
+            json={
+                "acao": "aprovar",
+                "parecer_mesa": "Mesa validou que o ponto B é o ponto correto; o ponto A estava incorreto.",
+                "sintese_consolidada": (
+                    "Usar como referência que o ponto B identifica a ancoragem correta "
+                    "da linha de vida e o ponto A deve ser tratado como incorreto."
+                ),
+                "veredito_mesa": "nao_conforme",
+                "pontos_chave": ["ponto B", "ancoragem correta", "linha de vida"],
+                "referencias_norma": ["NR-35 item 35.5", "ancoragem certificada"],
+                "marcacoes": [{"rotulo": "Ponto B", "observacao": "Referência validada pela mesa"}],
+            },
+        )
+    assert resposta_validacao.status_code == 200
+    assert resposta_validacao.json()["aprendizado"]["status"] == "validado_mesa"
+
+    captura: dict[str, str] = {}
+
+    class ClienteIAStub:
+        def gerar_resposta_stream(self, mensagem: str, *args, **kwargs):  # noqa: ANN002, ANN003
+            captura["mensagem"] = mensagem
+            yield "Resposta de teste."
+
+    cliente_original = rotas_inspetor.cliente_ia
+    rotas_inspetor.cliente_ia = ClienteIAStub()
+    try:
+        resposta_chat = client_inspetor.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf_inspetor},
+            json={
+                "mensagem": "Confirme qual é o ponto correto da linha de vida nesta foto.",
+                "historico": [],
+                "laudo_id": laudo_id,
+            },
+        )
+    finally:
+        rotas_inspetor.cliente_ia = cliente_original
+
+    assert resposta_chat.status_code == 200
+    assert "aprendizados_visuais_validados" in captura["mensagem"]
+    assert "ponto b identifica a ancoragem correta" in captura["mensagem"].lower()
+    assert "ponto a é o ponto correto" not in captura["mensagem"].lower()
+
+
+def test_chat_nao_vaza_aprendizado_visual_validado_de_outra_empresa(ambiente_critico) -> None:
+    client = ambiente_critico["client"]
+    SessionLocal = ambiente_critico["SessionLocal"]
+    ids = ambiente_critico["ids"]
+    csrf = _login_app_inspetor(client, "inspetor@empresa-a.test")
+
+    with SessionLocal() as banco:
+        laudo_a = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_a"],
+            usuario_id=ids["inspetor_a"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        laudo_b = _criar_laudo(
+            banco,
+            empresa_id=ids["empresa_b"],
+            usuario_id=ids["inspetor_b"],
+            status_revisao=StatusRevisao.RASCUNHO.value,
+        )
+        aprendizado = AprendizadoVisualIa(
+            empresa_id=ids["empresa_b"],
+            laudo_id=laudo_b,
+            criado_por_id=ids["inspetor_b"],
+            setor_industrial="geral",
+            resumo="Caso externo de ancoragem",
+            correcao_inspetor="Empresa B indicou ponto externo.",
+            sintese_consolidada="Empresa B validou que o ponto externo Z é a única ancoragem correta.",
+            status="validado_mesa",
+            veredito_inspetor="duvida",
+            veredito_mesa="conforme",
+            pontos_chave_json=["ponto externo Z"],
+            referencias_norma_json=["NR-35"],
+            marcacoes_json=[{"rotulo": "Ponto Z", "observacao": "Aprendizado empresa B"}],
+        )
+        banco.add(aprendizado)
+        banco.commit()
+
+    captura: dict[str, str] = {}
+
+    class ClienteIAStub:
+        def gerar_resposta_stream(self, mensagem: str, *args, **kwargs):  # noqa: ANN002, ANN003
+            captura["mensagem"] = mensagem
+            yield "Resposta de teste."
+
+    cliente_original = rotas_inspetor.cliente_ia
+    rotas_inspetor.cliente_ia = ClienteIAStub()
+    try:
+        resposta_chat = client.post(
+            "/app/api/chat",
+            headers={"X-CSRF-Token": csrf},
+            json={
+                "mensagem": "Analise a ancoragem desta linha de vida.",
+                "historico": [],
+                "laudo_id": laudo_a,
+            },
+        )
+    finally:
+        rotas_inspetor.cliente_ia = cliente_original
+
+    assert resposta_chat.status_code == 200
+    assert "empresa b validou" not in captura["mensagem"].lower()
+    assert "ponto externo z" not in captura["mensagem"].lower()
 
 
 def test_api_chat_stream_emite_confianca_e_salva_revisao(ambiente_critico) -> None:

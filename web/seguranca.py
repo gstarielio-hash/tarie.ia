@@ -22,14 +22,16 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlalchemy.orm import Session
 
 from banco_dados import NivelAcesso, Usuario, obter_banco
 
 logger = logging.getLogger(__name__)
 
-contexto_senha = CryptContext(schemes=["bcrypt"], deprecated="auto")
+contexto_senha = PasswordHash((Argon2Hasher(), BcryptHasher(rounds=12, prefix="2b")))
 
 # Duração máxima de uma sessão autenticada
 # Deve ser igual ao max_age configurado no SessionMiddleware em main.py
@@ -46,13 +48,24 @@ _SESSAO_EXPIRACAO: dict[str, datetime] = {}
 
 
 def criar_hash_senha(senha_pura: str) -> str:
-    """Gera hash bcrypt de uma senha."""
-    return contexto_senha.hash(senha_pura)
+    """Gera hash moderno de senha com suporte a verificação de bcrypt legado."""
+    senha = str(senha_pura or "")
+    if not senha:
+        raise ValueError("Senha vazia não é permitida.")
+    return contexto_senha.hash(senha)
 
 
 def verificar_senha(senha_pura: str, senha_hash: str) -> bool:
     """Verifica se a senha confere com o hash armazenado."""
-    return contexto_senha.verify(senha_pura, senha_hash)
+    senha = str(senha_pura or "")
+    hash_salvo = str(senha_hash or "")
+    if not senha or not hash_salvo:
+        return False
+    try:
+        return bool(contexto_senha.verify(senha, hash_salvo))
+    except Exception as erro:
+        logger.warning("Falha ao verificar hash de senha: %s", erro)
+        return False
 
 
 def gerar_senha_fortificada(comprimento: int = 14) -> str:

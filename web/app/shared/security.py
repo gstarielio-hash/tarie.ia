@@ -15,8 +15,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import Depends, HTTPException, Request, status
-from passlib.context import CryptContext
-from passlib.exc import PasslibSecurityError, UnknownHashError
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
+from pwdlib.hashers.bcrypt import BcryptHasher
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -55,11 +56,14 @@ JANELA_RENOVACAO_MINUTOS = env_int("SESSAO_JANELA_RENOVACAO_MINUTOS", 30)
 # Limpeza lazy: 1 em N requests.
 _CHANCE_LIMPEZA = max(env_int("SESSAO_CHANCE_LIMPEZA", 100), 1)
 
-contexto_senha = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__rounds=BCRYPT_ROUNDS,
+contexto_senha = PasswordHash(
+    (
+        Argon2Hasher(),
+        # Mantemos bcrypt como verificador legado para migração transparente.
+        BcryptHasher(rounds=BCRYPT_ROUNDS, prefix="2b"),
+    )
 )
+_PREFIXOS_BCRYPT_LEGADO = ("$2a$", "$2b$", "$2y$")
 
 CHAVE_SESSION_TOKEN = "session_token"
 CHAVE_USUARIO_ID = "usuario_id"
@@ -610,29 +614,29 @@ def criar_hash_senha(senha_pura: str) -> str:
     return contexto_senha.hash(senha)
 
 
-def verificar_senha(senha_pura: str, senha_hash: str) -> bool:
+def verificar_senha_com_upgrade(senha_pura: str, senha_hash: str) -> tuple[bool, str | None]:
     senha = str(senha_pura or "")
     hash_salvo = str(senha_hash or "")
 
     if not senha or not hash_salvo:
-        return False
+        return False, None
 
     try:
-        return bool(contexto_senha.verify(senha, hash_salvo))
-    except (UnknownHashError, PasslibSecurityError, ValueError) as erro:
+        senha_valida, hash_atualizado = contexto_senha.verify_and_update(senha, hash_salvo)
+        return bool(senha_valida), str(hash_atualizado) if hash_atualizado else None
+    except Exception as erro:
         logger.warning("Falha ao verificar hash de senha: %s", erro)
-        return False
+        return False, None
+
+
+def verificar_senha(senha_pura: str, senha_hash: str) -> bool:
+    senha_valida, _ = verificar_senha_com_upgrade(senha_pura, senha_hash)
+    return senha_valida
 
 
 def hash_precisa_upgrade(senha_hash: str) -> bool:
     hash_salvo = str(senha_hash or "")
-    if not hash_salvo:
-        return False
-
-    try:
-        return bool(contexto_senha.needs_update(hash_salvo))
-    except (UnknownHashError, PasslibSecurityError, ValueError):
-        return False
+    return bool(hash_salvo) and hash_salvo.startswith(_PREFIXOS_BCRYPT_LEGADO)
 
 
 def gerar_senha_fortificada(comprimento: int = 14) -> str:

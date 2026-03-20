@@ -88,6 +88,7 @@ from app.shared.security import (
     usuario_tem_acesso_portal,
     usuario_tem_bloqueio_ativo,
     verificar_senha,
+    verificar_senha_com_upgrade,
 )
 
 logger = logging.getLogger("tariel.cliente")
@@ -1299,7 +1300,11 @@ async def processar_login_cliente(
         )
 
     usuario = banco.scalar(select(Usuario).where(Usuario.email == email_normalizado))
-    if not usuario or not verificar_senha(senha, usuario.senha_hash):
+    senha_valida = False
+    hash_atualizado: str | None = None
+    if usuario:
+        senha_valida, hash_atualizado = verificar_senha_com_upgrade(senha, usuario.senha_hash)
+    if not usuario or not senha_valida:
         if usuario and hasattr(usuario, "incrementar_tentativa_falha"):
             usuario.incrementar_tentativa_falha()
             banco.commit()
@@ -1330,6 +1335,9 @@ async def processar_login_cliente(
     if bool(getattr(usuario, "senha_temporaria_ativa", False)):
         _iniciar_fluxo_troca_senha(request, usuario_id=usuario.id, lembrar=lembrar)
         return RedirectResponse(url="/cliente/trocar-senha", status_code=status.HTTP_303_SEE_OTHER)
+
+    if hash_atualizado:
+        usuario.senha_hash = hash_atualizado
 
     token = criar_sessao(usuario.id, lembrar=lembrar)
     definir_sessao_portal(

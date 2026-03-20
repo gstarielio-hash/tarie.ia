@@ -1,0 +1,70 @@
+appId: com.tarielia.inspetor
+tags:
+  - chat
+  - history
+  - home
+env:
+  LOGIN_EMAIL: ${MAESTRO_LOGIN_EMAIL}
+  LOGIN_PASSWORD: ${MAESTRO_LOGIN_PASSWORD}
+---
+- launchApp:
+    clearState: true
+
+- runFlow:
+    when:
+      visible:
+        id: login-email-input
+    commands:
+      - tapOn:
+          id: login-email-input
+      - inputText: ${LOGIN_EMAIL}
+      - hideKeyboard
+      - tapOn:
+          id: login-password-input
+      - inputText: ${LOGIN_PASSWORD}
+      - hideKeyboard
+      - tapOn:
+          id: login-submit-button
+
+- extendedWaitUntil:
+    visible:
+      id: open-history-button
+    timeout: 20000
+
+- tapOn:
+    id: open-history-button
+
+- extendedWaitUntil:
+    visible:
+      id: history-first-item-button
+    timeout: 10000
+
+- tapOn:
+    id: history-first-item-button
+
+- extendedWaitUntil:
+    visible:
+      id: open-new-chat-button
+    timeout: 10000
+
+- takeScreenshot: chat-home-before-reset
+
+- tapOn:
+    id: open-new-chat-button
+
+- extendedWaitUntil:
+    visible:
+      id: chat-composer-input
+    timeout: 10000
+
+- takeScreenshot: chat-home-after-reset
+
+- tapOn:
+    id: open-history-button
+
+- extendedWaitUntil:
+    visible:
+      id: history-first-item-button
+    timeout: 10000
+
+- takeScreenshot: chat-home-history-still-there

@@ -103,6 +103,9 @@ export function LoginScreen({
                   </View>
                 ) : (
                   <>
+                    <View style={styles.loginCardHeader}>
+                    </View>
+
                     <View style={styles.loginFields}>
                       <View style={styles.mobileField}>
                         <MaterialCommunityIcons color={colors.ink600} name="email-outline" size={22} />
@@ -115,7 +118,7 @@ export function LoginScreen({
                           keyboardType="email-address"
                           onChangeText={onEmailChange}
                           onSubmitEditing={onEmailSubmit}
-                          placeholder="Email"
+                          placeholder="Email corporativo"
                           placeholderTextColor="#8EA0B3"
                           returnKeyType="next"
                           style={[styles.mobileFieldInput, { fontSize: 17 * fontScale }]}
@@ -134,7 +137,7 @@ export function LoginScreen({
                           importantForAutofill="yes"
                           onChangeText={onSenhaChange}
                           onSubmitEditing={onSenhaSubmit}
-                          placeholder="Password"
+                          placeholder="Senha"
                           placeholderTextColor="#8EA0B3"
                           returnKeyType="done"
                           secureTextEntry={!mostrarSenha}
@@ -179,7 +182,7 @@ export function LoginScreen({
                       {entrando ? (
                         <ActivityIndicator color={colors.white} />
                       ) : (
-                        <Text style={styles.loginPrimaryButtonText}>Login</Text>
+                        <Text style={styles.loginPrimaryButtonText}>Entrar</Text>
                       )}
                     </Pressable>
 
@@ -190,7 +193,6 @@ export function LoginScreen({
                     </View>
 
                     <View style={styles.loginSocialStack}>
-                      <Text style={styles.loginSocialLabel}>Entrar com</Text>
                       <Pressable
                         onPress={() => onLoginSocial("Google")}
                         style={styles.loginSocialButton}
@@ -214,7 +216,7 @@ export function LoginScreen({
                     </View>
 
                     <Text style={styles.loginFooterText}>
-                      Precisa de acesso? Fale com o administrador da sua empresa.
+                      Sem acesso? Fale com o administrador.
                     </Text>
                   </>
                 )}

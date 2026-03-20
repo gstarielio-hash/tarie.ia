@@ -19,6 +19,11 @@ from app.domains.revisor.base import (
     RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
     roteador_revisor,
 )
+from app.domains.revisor.learning_api import (
+    DadosValidarAprendizadoVisual,
+    listar_aprendizados_visuais_revisor,
+    validar_aprendizado_visual_revisor,
+)
 from app.domains.revisor.mesa_api import (
     atualizar_pendencia_mesa_revisor,
     avaliar_laudo,
@@ -41,6 +46,7 @@ __all__ = [
     "ConnectionManager",
     "DadosPendenciaMesa",
     "DadosRespostaChat",
+    "DadosValidarAprendizadoVisual",
     "DadosWhisper",
     "RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR",
     "SessaoLocal",
@@ -52,6 +58,7 @@ __all__ = [
     "logout_revisor",
     "manager",
     "marcar_whispers_lidos",
+    "listar_aprendizados_visuais_revisor",
     "obter_historico_chat_revisor",
     "obter_laudo_completo",
     "obter_pacote_mesa_laudo",
@@ -63,6 +70,7 @@ __all__ = [
     "roteador_revisor",
     "tela_login_revisor",
     "tela_troca_senha_revisor",
+    "validar_aprendizado_visual_revisor",
     "websocket_whispers",
     "whisper_responder",
 ]

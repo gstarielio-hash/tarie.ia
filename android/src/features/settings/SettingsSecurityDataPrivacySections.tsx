@@ -1,10 +1,16 @@
-import { Text, View } from "react-native";
-
-import { DATA_RETENTION_OPTIONS } from "../InspectorMobileApp.constants";
-import { styles } from "../InspectorMobileApp.styles";
-import { SettingsPressRow, SettingsSection, SettingsSwitchRow } from "./SettingsPrimitives";
+import {
+  DATA_RETENTION_OPTIONS,
+  MEDIA_COMPRESSION_OPTIONS,
+} from "../InspectorMobileApp.constants";
+import {
+  SettingsPressRow,
+  SettingsScaleRow,
+  SettingsSection,
+  SettingsSwitchRow,
+} from "./SettingsPrimitives";
 
 type DataRetention = (typeof DATA_RETENTION_OPTIONS)[number];
+type MediaCompression = (typeof MEDIA_COMPRESSION_OPTIONS)[number];
 type UploadSecurityTopic = "validacao" | "urls" | "bloqueios";
 
 interface SettingsSecurityDataConversationsSectionProps {
@@ -12,14 +18,24 @@ interface SettingsSecurityDataConversationsSectionProps {
   conversasOcultasTotal: number;
   salvarHistoricoConversas: boolean;
   compartilharMelhoriaIa: boolean;
+  analyticsOptIn: boolean;
+  crashReportsOptIn: boolean;
+  wifiOnlySync: boolean;
   conversasVisiveisTotal: number;
   retencaoDados: DataRetention;
   backupAutomatico: boolean;
   sincronizacaoDispositivos: boolean;
+  autoUploadAttachments: boolean;
+  mediaCompression: MediaCompression;
+  cacheStatusLabel: string;
+  limpandoCache: boolean;
   nomeAutomaticoConversas: boolean;
   fixarConversas: boolean;
   onSetSalvarHistoricoConversas: (value: boolean) => void;
   onSetCompartilharMelhoriaIa: (value: boolean) => void;
+  onSetAnalyticsOptIn: (value: boolean) => void;
+  onSetCrashReportsOptIn: (value: boolean) => void;
+  onSetWifiOnlySync: (value: boolean) => void;
   onExportarDados: (formato: "JSON" | "PDF") => void;
   onGerenciarConversasIndividuais: () => void;
   onSetRetencaoDados: (value: DataRetention) => void;
@@ -27,6 +43,9 @@ interface SettingsSecurityDataConversationsSectionProps {
   onLimparTodasConversasConfig: () => void;
   onToggleBackupAutomatico: (value: boolean) => void;
   onToggleSincronizacaoDispositivos: (value: boolean) => void;
+  onToggleAutoUploadAttachments: (value: boolean) => void;
+  onSetMediaCompression: (value: MediaCompression) => void;
+  onLimparCache: () => void;
   onSetNomeAutomaticoConversas: (value: boolean) => void;
   onSetFixarConversas: (value: boolean) => void;
 }
@@ -39,6 +58,7 @@ interface SettingsSecurityPermissionsSectionProps {
   arquivosPermitidos: boolean;
   notificacoesPermitidas: boolean;
   biometriaPermitida: boolean;
+  showBiometricsPermission?: boolean;
   permissoesNegadasTotal: number;
   onGerenciarPermissao: (nome: string, status: string) => void;
   onAbrirAjustesDoSistema: (contexto: string) => void;
@@ -77,18 +97,26 @@ function nextOptionValue<T extends string>(current: T, options: readonly T[]): T
 }
 
 export function SettingsSecurityDataConversationsSection({
-  resumoDadosConversas,
-  conversasOcultasTotal,
   salvarHistoricoConversas,
   compartilharMelhoriaIa,
+  analyticsOptIn,
+  crashReportsOptIn,
+  wifiOnlySync,
   conversasVisiveisTotal,
   retencaoDados,
   backupAutomatico,
   sincronizacaoDispositivos,
+  autoUploadAttachments,
+  mediaCompression,
+  cacheStatusLabel,
+  limpandoCache,
   nomeAutomaticoConversas,
   fixarConversas,
   onSetSalvarHistoricoConversas,
   onSetCompartilharMelhoriaIa,
+  onSetAnalyticsOptIn,
+  onSetCrashReportsOptIn,
+  onSetWifiOnlySync,
   onExportarDados,
   onGerenciarConversasIndividuais,
   onSetRetencaoDados,
@@ -96,22 +124,19 @@ export function SettingsSecurityDataConversationsSection({
   onLimparTodasConversasConfig,
   onToggleBackupAutomatico,
   onToggleSincronizacaoDispositivos,
+  onToggleAutoUploadAttachments,
+  onSetMediaCompression,
+  onLimparCache,
   onSetNomeAutomaticoConversas,
   onSetFixarConversas,
 }: SettingsSecurityDataConversationsSectionProps) {
   return (
     <SettingsSection
       icon="forum-outline"
-      subtitle="Controle como conversas e dados da IA são armazenados."
+      subtitle="Controle retenção, consentimentos locais e regras de sincronização do app."
       testID="settings-section-dados-conversas"
-      title="Dados e conversas"
+      title="Controles de dados"
     >
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Resumo do histórico</Text>
-        <Text style={styles.settingsInfoText}>
-          {resumoDadosConversas} • {conversasOcultasTotal} removida{conversasOcultasTotal === 1 ? "" : "s"} do histórico local
-        </Text>
-      </View>
       <SettingsSwitchRow
         icon="history"
         onValueChange={onSetSalvarHistoricoConversas}
@@ -126,6 +151,30 @@ export function SettingsSecurityDataConversationsSection({
         testID="settings-data-improve-toggle-row"
         title="Permitir uso para melhoria da IA"
         value={compartilharMelhoriaIa}
+      />
+      <SettingsSwitchRow
+        description="Controla a gravação local de telemetria leve e diagnóstico operacional."
+        icon="chart-line"
+        onValueChange={onSetAnalyticsOptIn}
+        testID="settings-data-analytics-toggle-row"
+        title="Analytics do app"
+        value={analyticsOptIn}
+      />
+      <SettingsSwitchRow
+        description="Captura localmente erros JS não tratados quando houver consentimento."
+        icon="alert-decagram-outline"
+        onValueChange={onSetCrashReportsOptIn}
+        testID="settings-data-crash-toggle-row"
+        title="Relatórios de falha"
+        value={crashReportsOptIn}
+      />
+      <SettingsSwitchRow
+        description="Restringe sincronizações de fila e monitoramento de atividade a conexões Wi-Fi."
+        icon="wifi-lock"
+        onValueChange={onSetWifiOnlySync}
+        testID="settings-data-wifi-only-toggle-row"
+        title="Sincronizar só no Wi-Fi"
+        value={wifiOnlySync}
       />
       <SettingsPressRow
         description="A exportação exige reautenticação."
@@ -183,6 +232,26 @@ export function SettingsSecurityDataConversationsSection({
         value={sincronizacaoDispositivos}
       />
       <SettingsSwitchRow
+        icon="cloud-upload-outline"
+        onValueChange={onToggleAutoUploadAttachments}
+        title="Upload automático de anexos"
+        value={autoUploadAttachments}
+      />
+      <SettingsPressRow
+        description="Define a intensidade da compressão aplicada a imagens antes do envio."
+        icon="image-size-select-small"
+        onPress={() => onSetMediaCompression(nextOptionValue(mediaCompression, MEDIA_COMPRESSION_OPTIONS))}
+        title="Compressão de mídia"
+        value={mediaCompression}
+      />
+      <SettingsPressRow
+        description="Remove cache local de leitura, atividade e arquivos temporários do app."
+        icon="broom"
+        onPress={onLimparCache}
+        title="Limpar cache local"
+        value={limpandoCache ? "Limpando..." : cacheStatusLabel}
+      />
+      <SettingsSwitchRow
         icon="tag-text-outline"
         onValueChange={onSetNomeAutomaticoConversas}
         title="Nome automático de conversas"
@@ -194,21 +263,17 @@ export function SettingsSecurityDataConversationsSection({
         title="Fixar conversas"
         value={fixarConversas}
       />
-      <Text style={styles.securityFootnote}>
-        Quando o histórico é desativado, novas conversas deixam de ser persistidas no backend assim que essa política estiver ligada.
-      </Text>
     </SettingsSection>
   );
 }
 
 export function SettingsSecurityPermissionsSection({
-  resumoPermissoes,
-  resumoPermissoesCriticas,
   microfonePermitido,
   cameraPermitida,
   arquivosPermitidos,
   notificacoesPermitidas,
   biometriaPermitida,
+  showBiometricsPermission = false,
   permissoesNegadasTotal,
   onGerenciarPermissao,
   onAbrirAjustesDoSistema,
@@ -217,23 +282,9 @@ export function SettingsSecurityPermissionsSection({
   return (
     <SettingsSection
       icon="shield-key-outline"
-      subtitle="Status atual de acesso ao microfone, câmera, arquivos, notificações e biometria."
+      subtitle="Status atual de acesso ao microfone, câmera, arquivos e notificações."
       title="Permissões"
     >
-      <View style={styles.settingsInfoGrid}>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Resumo</Text>
-          <Text style={styles.settingsInfoText}>{resumoPermissoes}</Text>
-        </View>
-        <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
-          <Text style={styles.settingsInfoTitle}>Uso principal</Text>
-          <Text style={styles.settingsInfoText}>Anexos, voz, notificações e desbloqueio local.</Text>
-        </View>
-      </View>
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Permissões críticas</Text>
-        <Text style={styles.settingsInfoText}>{resumoPermissoesCriticas}</Text>
-      </View>
       <SettingsPressRow
         icon="microphone-outline"
         onPress={() => onGerenciarPermissao("Microfone", microfonePermitido ? "permitido" : "negado")}
@@ -258,12 +309,14 @@ export function SettingsSecurityPermissionsSection({
         title="Notificações"
         value={notificacoesPermitidas ? "Permitido" : "Negado"}
       />
-      <SettingsPressRow
-        icon="fingerprint"
-        onPress={() => onGerenciarPermissao("Biometria", biometriaPermitida ? "permitido" : "negado")}
-        title="Biometria"
-        value={biometriaPermitida ? "Permitido" : "Negado"}
-      />
+      {showBiometricsPermission ? (
+        <SettingsPressRow
+          icon="fingerprint"
+          onPress={() => onGerenciarPermissao("Biometria", biometriaPermitida ? "permitido" : "negado")}
+          title="Biometria"
+          value={biometriaPermitida ? "Permitido" : "Negado"}
+        />
+      ) : null}
       <SettingsPressRow
         description="Abra diretamente os ajustes do Android para revisar todas as permissões deste app."
         icon="open-in-app"
@@ -277,9 +330,6 @@ export function SettingsSecurityPermissionsSection({
         title="Revisar permissões críticas"
         value={permissoesNegadasTotal ? `${permissoesNegadasTotal} pendente(s)` : "Tudo certo"}
       />
-      <Text style={styles.securityFootnote}>
-        Quando negada, a ação levará o usuário para as configurações do sistema com contexto de uso claro.
-      </Text>
     </SettingsSection>
   );
 }
@@ -293,43 +343,32 @@ export function SettingsSecurityFileUploadSection({
       subtitle="Uploads são tratados como área crítica com validação e armazenamento protegido."
       title="Segurança de arquivos enviados"
     >
-      <View style={styles.securityIntroCard}>
-        <Text style={styles.securityIntroTitle}>Regras de upload</Text>
-        <Text style={styles.securityIntroText}>
-          Tipos aceitos: PDF, JPG, PNG e DOCX. Tamanho máximo por arquivo: 20 MB.
-        </Text>
-        <Text style={styles.securityIntroText}>
-          Os arquivos são validados no backend, associados ao usuário correto e servidos apenas por autorização.
-        </Text>
-      </View>
       <SettingsPressRow
+        description="Tipos aceitos: PDF, JPG, PNG e DOCX, com limite de 20 MB por arquivo."
         icon="shield-check-outline"
         onPress={() => onDetalhesSegurancaArquivos("validacao")}
         title="Validação de tipo e tamanho"
         value="Ativa"
       />
       <SettingsPressRow
+        description="Os arquivos só são servidos por URLs assinadas e vinculadas ao acesso correto."
         icon="link-variant"
         onPress={() => onDetalhesSegurancaArquivos("urls")}
         title="URLs protegidas"
         value="Assinadas"
       />
       <SettingsPressRow
+        description="Falhas de validação e bloqueios devolvem feedback claro antes do envio."
         icon="alert-octagon-outline"
         onPress={() => onDetalhesSegurancaArquivos("bloqueios")}
         title="Falhas e bloqueios"
         value="Com feedback"
       />
-      <Text style={styles.securityFootnote}>
-        O frontend nunca confia sozinho no arquivo enviado: validação, renomeação segura e controle de acesso são responsabilidade do backend.
-      </Text>
     </SettingsSection>
   );
 }
 
 export function SettingsSecurityNotificationPrivacySection({
-  resumoPrivacidadeNotificacoes,
-  previewPrivacidadeNotificacao,
   mostrarConteudoNotificacao,
   ocultarConteudoBloqueado,
   mostrarSomenteNovaMensagem,
@@ -344,10 +383,6 @@ export function SettingsSecurityNotificationPrivacySection({
       testID="settings-section-privacidade-notificacoes"
       title="Privacidade em notificações"
     >
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Prévia atual</Text>
-        <Text style={styles.settingsInfoText}>{resumoPrivacidadeNotificacoes}</Text>
-      </View>
       <SettingsSwitchRow
         description="Mostra o conteúdo da conversa quando permitido."
         icon="message-text-outline"
@@ -372,22 +407,11 @@ export function SettingsSecurityNotificationPrivacySection({
         title='Mostrar apenas "Nova mensagem"'
         value={mostrarSomenteNovaMensagem}
       />
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Como aparece hoje</Text>
-        <Text style={styles.settingsInfoText}>{previewPrivacidadeNotificacao}</Text>
-        <Text style={styles.settingsInfoSubtle}>
-          Esse exemplo respeita as combinações atuais de privacidade dentro do app.
-        </Text>
-      </View>
-      <Text style={styles.securityFootnote}>
-        Em modo privado, o app evita mostrar conteúdo sensível na tela bloqueada e reduz a prévia das conversas.
-      </Text>
     </SettingsSection>
   );
 }
 
 export function SettingsSecurityDeleteAccountSection({
-  resumoExcluirConta,
   reautenticacaoStatus,
   onExportarAntesDeExcluirConta,
   onReautenticacaoSensivel,
@@ -400,20 +424,6 @@ export function SettingsSecurityDeleteAccountSection({
       testID="settings-section-excluir-conta"
       title="Excluir conta"
     >
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Impacto da exclusão</Text>
-        <Text style={styles.settingsInfoText}>{resumoExcluirConta}</Text>
-      </View>
-      <View style={styles.settingsMiniList}>
-        <View style={styles.settingsMiniListItem}>
-          <Text style={styles.settingsMiniListTitle}>O que será removido</Text>
-          <Text style={styles.settingsMiniListMeta}>Conta, sessões, histórico de conversas, preferências e tokens ativos deste perfil.</Text>
-        </View>
-        <View style={styles.settingsMiniListItem}>
-          <Text style={styles.settingsMiniListTitle}>Política de recuperação</Text>
-          <Text style={styles.settingsMiniListMeta}>Nesta versão do app, a exclusão é tratada como permanente e exige múltiplas confirmações.</Text>
-        </View>
-      </View>
       <SettingsPressRow
         description="Faça um backup do perfil antes da exclusão definitiva."
         icon="database-export-outline"
@@ -438,9 +448,6 @@ export function SettingsSecurityDeleteAccountSection({
         testID="settings-delete-account-row"
         title="Excluir conta permanentemente"
       />
-      <Text style={styles.securityFootnote}>
-        Essa ação invalidará sessões e tokens e removerá os dados conforme a política do sistema.
-      </Text>
     </SettingsSection>
   );
 }

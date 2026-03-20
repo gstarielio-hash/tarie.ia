@@ -31,6 +31,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
     colorScheme,
     conversa,
     corDestaque,
+    contaTelefone,
     densidadeInterface,
     email,
     emailAtualConta,
@@ -142,10 +143,10 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
         ? "escuro"
         : "claro"
       : temaApp;
-  const appGradientColors: readonly [string, string] =
+  const appGradientColors: readonly [string, string, ...string[]] =
     temaEfetivo === "escuro"
       ? (["#0B141E", "#121F2D"] as const)
-      : ([colors.surfaceSoft, colors.surface] as const);
+      : ([colors.surfaceCanvas, colors.surfaceSoft, colors.surface] as const);
   const settingsPrintDarkMode = temaEfetivo === "escuro";
   const podeAbrirAnexosChat = podeAcionarComposer && uploadArquivosAtivo && arquivosPermitidos;
   const podeAbrirAnexosMesa = podeUsarComposerMesa && uploadArquivosAtivo && arquivosPermitidos;
@@ -205,7 +206,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
   const perfilNomeCompleto = perfilNome.trim() || "Inspetor Tariel";
   const perfilExibicaoLabel = perfilExibicao.trim() || perfilNomeCompleto;
   const contaEmailLabel = emailAtualConta || email || "Sem email cadastrado";
-  const contaTelefoneLabel = session?.bootstrap.usuario.telefone?.trim() || "Não informado";
+  const contaTelefoneLabel = contaTelefone?.trim() || session?.bootstrap.usuario.telefone?.trim() || "Não informado";
   const iniciaisPerfilConfiguracao =
     nomeUsuarioExibicao
       .split(/\s+/)
@@ -223,13 +224,18 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
     corDestaque === "laranja" ? "Padrão" : formatarTipoTemplateLaudo(corDestaque);
   const planoResumoConfiguracao = planoAtual === "Pro" ? "Plus" : planoAtual;
   const workspaceResumoConfiguracao = session?.bootstrap.usuario.empresa_nome?.trim() || "Pessoal";
+  const resumoContaAcesso = [
+    typeof session?.bootstrap.usuario.empresa_id === "number" ? `Empresa #${session.bootstrap.usuario.empresa_id}` : "",
+    typeof session?.bootstrap.usuario.nivel_acesso === "number" ? `Nível ${session.bootstrap.usuario.nivel_acesso}` : "",
+  ]
+    .filter(Boolean)
+    .join(" • ") || "Conta corporativa autenticada";
   const provedoresConectadosTotal = provedoresConectados.filter((item: any) => item.connected).length;
   const provedoresDisponiveisTotal = provedoresConectados.filter((item: any) => !item.connected).length;
   const integracoesConectadasTotal = integracoesExternas.filter((item: any) => item.connected).length;
   const integracoesDisponiveisTotal = integracoesExternas.length;
   const existeProvedorDisponivel = provedoresDisponiveisTotal > 0;
-  const provedorPrimario =
-    provedoresConectados.find((item: any) => item.connected)?.label || "Email e senha";
+  const provedorPrimario = session ? "Senha" : "Credencial principal";
   const ultimoEventoProvedor =
     eventosSeguranca.find((item: any) => item.type === "provider")?.status || "Sem vínculo recente";
   const ultimoEventoSessao =
@@ -280,17 +286,17 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
   const historicoVazioTitulo = buscaHistorico.trim()
     ? "Nada encontrado"
     : filtroHistorico === "fixadas"
-      ? "Nenhuma conversa fixada"
+      ? "Nenhum laudo fixado"
       : filtroHistorico === "recentes"
-        ? "Sem conversas recentes"
-        : "Histórico vazio";
+        ? "Nada recente"
+        : "Nenhum histórico ainda";
   const historicoVazioTexto = buscaHistorico.trim()
-    ? "Tente outro termo ou limpe a busca para ver mais laudos."
+    ? "Tente outro termo."
     : filtroHistorico === "fixadas"
-      ? "Fixe laudos importantes para encontrá-los mais rápido aqui."
+      ? "Fixe os mais importantes para retomar rápido."
       : filtroHistorico === "recentes"
-        ? "Assim que novas inspeções forem abertas, elas aparecem nesta faixa."
-        : "Inicie um novo laudo para o histórico começar a aparecer aqui.";
+        ? "Novos laudos aparecem aqui automaticamente."
+        : "Inicie um laudo para vê-lo aqui.";
   const tipoTemplateAtivoLabel = formatarTipoTemplateLaudo(conversaAtiva?.laudoCard?.tipo_template);
   const resumoMetodosConta =
     provedoresConectadosTotal > 0
@@ -318,21 +324,15 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
       ? `${codigosRecuperacao.length} códigos gerados`
       : "Pronto para gerar códigos"
     : "Códigos desativados";
-  const permissoesNegadasTotal = [
+  const permissoesReais = [
     microfonePermitido,
     cameraPermitida,
     arquivosPermitidos,
     notificacoesPermitidas,
-    biometriaPermitida,
-  ].filter((item) => !item).length;
-  const permissoesAtivasTotal = [
-    microfonePermitido,
-    cameraPermitida,
-    arquivosPermitidos,
-    notificacoesPermitidas,
-    biometriaPermitida,
-  ].filter(Boolean).length;
-  const resumoPermissoes = `${permissoesAtivasTotal} de 5 permissões liberadas`;
+  ];
+  const permissoesNegadasTotal = permissoesReais.filter((item) => !item).length;
+  const permissoesAtivasTotal = permissoesReais.filter(Boolean).length;
+  const resumoPermissoes = `${permissoesAtivasTotal} de ${permissoesReais.length} permissões liberadas`;
   const resumoPermissoesCriticas = permissoesNegadasTotal
     ? `${permissoesNegadasTotal} permissão(ões) ainda precisam de revisão`
     : "Todas as permissões principais já estão liberadas";
@@ -377,11 +377,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
   const resumoFilaSuporteLocal = filaSuporteLocal.length
     ? `${filaSuporteLocal.length} item(ns) locais • ${ticketsBugTotal} bug(s) • ${ticketsFeedbackTotal} feedback(s) • ${ticketsComAnexoTotal} com anexo`
     : "Sem itens na fila local";
-  const temPrioridadesConfiguracao =
-    !twoFactorEnabled ||
-    provedoresConectadosTotal <= 1 ||
-    permissoesNegadasTotal > 0 ||
-    sessoesSuspeitasTotal > 0;
+  const temPrioridadesConfiguracao = permissoesNegadasTotal > 0;
   const eventosSegurancaFiltrados = eventosSeguranca.filter((item: any) => {
     if (filtroEventosSeguranca === "todos") {
       return true;
@@ -457,7 +453,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
   const settingsDrawerShowingSearchResults = settingsDrawerInOverview && Boolean(buscaConfiguracoesNormalizada);
   const settingsDrawerShowingOverviewCards = settingsDrawerInOverview && !settingsDrawerShowingSearchResults;
   const keyboardVisible = keyboardHeight > 0;
-  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : undefined;
+  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : "height";
   const loginKeyboardVerticalOffset = Platform.OS === "ios" ? 18 : 0;
   const chatKeyboardVerticalOffset = Platform.OS === "ios" ? 8 : 0;
   const headerSafeTopInset = Platform.OS === "android" ? Math.max(StatusBar.currentHeight ?? 0, 0) : 0;
@@ -467,11 +463,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
       : keyboardVisible
         ? spacing.xl
         : spacing.xxl;
-  const composerKeyboardBottomOffset =
-    Platform.OS === "android" && keyboardVisible
-      ? Math.max(spacing.sm, keyboardHeight + spacing.xs)
-      : 0;
-  const threadKeyboardPaddingBottom = keyboardVisible ? Math.max(220, keyboardHeight + 72) : spacing.md;
+  const threadKeyboardPaddingBottom = keyboardVisible ? spacing.sm : spacing.md;
   const settingsDrawerMatchesPage = (page: string) =>
     settingsDrawerPage === page || settingsDrawerShowingSearchResults;
   const settingsDrawerPageSections = settingsDrawerInOverview
@@ -506,7 +498,6 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
     buscaConfiguracoesNormalizada,
     chatKeyboardVerticalOffset,
     chipsResumoFilaOffline,
-    composerKeyboardBottomOffset,
     contaEmailLabel,
     contaTelefoneLabel,
     conversaAtiva,
@@ -571,6 +562,7 @@ export function buildInspectorBaseDerivedState(input: InspectorBaseDerivedStateI
     resumoAlertaMetodosConta,
     resumoAtualizacaoApp,
     resumoBlindagemSessoes,
+    resumoContaAcesso,
     resumoBuscaConfiguracoes,
     resumoCodigosRecuperacao,
     resumoDadosConversas,

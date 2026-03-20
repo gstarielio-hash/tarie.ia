@@ -8,7 +8,6 @@ interface BootstrapSessionState {
 }
 
 interface RunBootstrapAppFlowParams {
-  applyLocalPreferences: (preferencias: Record<string, unknown>) => void;
   aplicarPreferenciasLaudos: (
     itens: MobileLaudoCard[],
     fixadosIds: number[],
@@ -17,10 +16,12 @@ interface RunBootstrapAppFlowParams {
   carregarBootstrapMobile: (accessToken: string) => Promise<MobileBootstrapResponse>;
   chaveCacheLaudo: (laudoId: number | null) => string;
   erroSugereModoOffline: (error: unknown) => boolean;
+  chatHistoryEnabled: boolean;
+  deviceBackupEnabled: boolean;
   lerCacheLeituraLocal: () => Promise<BootstrapCacheState>;
+  lerEstadoHistoricoLocal: () => Promise<{ laudosFixadosIds: number[]; historicoOcultoIds: number[] }>;
   lerFilaOfflineLocal: () => Promise<any[]>;
   lerNotificacoesLocais: () => Promise<any[]>;
-  lerPreferenciasLocais: () => Promise<Record<string, unknown>>;
   limparCachePorPrivacidade: (cache: BootstrapCacheState) => BootstrapCacheState;
   obterItemSeguro: (key: string) => Promise<string | null>;
   pingApi: () => Promise<boolean>;
@@ -33,6 +34,8 @@ interface RunBootstrapAppFlowParams {
   onSetFilaOffline: (itens: any[]) => void;
   onSetNotificacoes: (itens: any[]) => void;
   onSetCacheLeitura: (cache: any) => void;
+  onSetLaudosFixadosIds: (ids: number[]) => void;
+  onSetHistoricoOcultoIds: (ids: number[]) => void;
   onMergeCacheBootstrap: (bootstrap: MobileBootstrapResponse) => void;
   onSetSession: (session: BootstrapSessionState) => void;
   onSetUsandoCacheOffline: (value: boolean) => void;
@@ -44,15 +47,16 @@ interface RunBootstrapAppFlowParams {
 }
 
 export async function runBootstrapAppFlow({
-  applyLocalPreferences,
   aplicarPreferenciasLaudos,
   carregarBootstrapMobile,
   chaveCacheLaudo,
+  chatHistoryEnabled,
+  deviceBackupEnabled,
   erroSugereModoOffline,
   lerCacheLeituraLocal,
+  lerEstadoHistoricoLocal,
   lerFilaOfflineLocal,
   lerNotificacoesLocais,
-  lerPreferenciasLocais,
   limparCachePorPrivacidade,
   obterItemSeguro,
   pingApi,
@@ -65,6 +69,8 @@ export async function runBootstrapAppFlow({
   onSetFilaOffline,
   onSetNotificacoes,
   onSetCacheLeitura,
+  onSetLaudosFixadosIds,
+  onSetHistoricoOcultoIds,
   onMergeCacheBootstrap,
   onSetSession,
   onSetUsandoCacheOffline,
@@ -74,7 +80,7 @@ export async function runBootstrapAppFlow({
   onSetLaudoMesaCarregado,
   onSetErroLaudos,
 }: RunBootstrapAppFlowParams) {
-  const [online, savedEmail, savedToken, filaLocal, notificacoesLocais, cacheLocal, preferenciasLocais] =
+  const [online, savedEmail, savedToken, filaLocal, notificacoesLocais, cacheLocal, estadoHistoricoLocal] =
     await Promise.all([
       pingApi(),
       obterItemSeguro(EMAIL_KEY),
@@ -82,20 +88,21 @@ export async function runBootstrapAppFlow({
       lerFilaOfflineLocal(),
       lerNotificacoesLocais(),
       lerCacheLeituraLocal(),
-      lerPreferenciasLocais(),
+      lerEstadoHistoricoLocal(),
     ]);
 
   onSetStatusApi(online ? "online" : "offline");
   if (savedEmail) {
     onSetEmail(savedEmail);
   }
-  applyLocalPreferences(preferenciasLocais);
   onSetFilaOffline(filaLocal);
   onSetNotificacoes(notificacoesLocais);
+  onSetLaudosFixadosIds(estadoHistoricoLocal.laudosFixadosIds);
+  onSetHistoricoOcultoIds(estadoHistoricoLocal.historicoOcultoIds);
   onSetCacheLeitura(
-    preferenciasLocais.backupAutomatico === false
+    !deviceBackupEnabled
       ? CACHE_LEITURA_VAZIO
-      : preferenciasLocais.salvarHistoricoConversas === false
+      : !chatHistoryEnabled
         ? limparCachePorPrivacidade(cacheLocal)
         : cacheLocal,
   );
@@ -118,8 +125,8 @@ export async function runBootstrapAppFlow({
         : [];
       const laudosCache = aplicarPreferenciasLaudos(
         cacheLocal.laudos,
-        Array.isArray(preferenciasLocais.laudosFixadosIds) ? preferenciasLocais.laudosFixadosIds : [],
-        Array.isArray(preferenciasLocais.historicoOcultoIds) ? preferenciasLocais.historicoOcultoIds : [],
+        estadoHistoricoLocal.laudosFixadosIds,
+        estadoHistoricoLocal.historicoOcultoIds,
       );
 
       onSetSession({ accessToken: savedToken, bootstrap: cacheLocal.bootstrap });

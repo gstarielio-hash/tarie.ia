@@ -17,6 +17,7 @@ env:
       - tapOn:
           id: login-email-input
       - inputText: ${LOGIN_EMAIL}
+      - hideKeyboard
       - tapOn:
           id: login-password-input
       - inputText: ${LOGIN_PASSWORD}
@@ -65,6 +66,13 @@ env:
 - assertVisible:
     id: settings-ai-model-option-avancado
 
+- scrollUntilVisible:
+    element:
+      id: settings-ai-model-option-avancado
+    direction: DOWN
+    visibilityPercentage: 100
+    timeout: 10000
+
 - tapOn:
     id: settings-ai-model-option-avancado
 
@@ -76,13 +84,13 @@ env:
 - tapOn:
     id: settings-drawer-back-button
 
-- runFlow:
-    when:
-      visible:
-        id: settings-section-link-preferenciasIa
-    commands:
-      - tapOn:
-          id: settings-drawer-back-button
+- extendedWaitUntil:
+    visible:
+      id: settings-section-link-preferenciasIa
+    timeout: 10000
+
+- tapOn:
+    id: settings-drawer-back-button
 
 - extendedWaitUntil:
     visible:
@@ -98,38 +106,24 @@ env:
 - tapOn:
     id: settings-print-seguranca-row
 
-- scrollUntilVisible:
-    element:
-      id: settings-section-link-twofa
-    direction: UP
-    timeout: 10000
-
-- tapOn:
-    id: settings-section-link-twofa
-
 - extendedWaitUntil:
     visible:
-      id: settings-section-twofa
+      id: settings-section-protecao-dispositivo
     timeout: 10000
 
 - tapOn:
-    id: settings-twofa-method-row
+    id: settings-device-lock-timeout-row
+
+- tapOn:
+    id: settings-drawer-back-button
 
 - runFlow:
     when:
       visible:
-        id: settings-drawer-back-button
+        id: settings-section-link-protecaoDispositivo
     commands:
       - tapOn:
           id: settings-drawer-back-button
-
-- extendedWaitUntil:
-    visible:
-      id: settings-section-link-twofa
-    timeout: 10000
-
-- tapOn:
-    id: settings-drawer-back-button
 
 - extendedWaitUntil:
     visible:
@@ -147,28 +141,22 @@ env:
 
 - extendedWaitUntil:
     visible:
-      id: settings-section-link-aparencia
+      id: settings-section-aparencia
     timeout: 10000
 
 - tapOn:
-    id: settings-section-link-aparencia
-
-- assertVisible:
-    text: "Aparência"
-
-- tapOn:
-    text: "Tema"
+    id: settings-appearance-theme-row
 
 - tapOn:
     id: settings-drawer-back-button
 
-- extendedWaitUntil:
-    visible:
-      id: settings-section-link-aparencia
-    timeout: 10000
-
-- tapOn:
-    id: settings-drawer-back-button
+- runFlow:
+    when:
+      visible:
+        id: settings-section-link-aparencia
+    commands:
+      - tapOn:
+          id: settings-drawer-back-button
 
 - extendedWaitUntil:
     visible:
@@ -187,11 +175,8 @@ env:
 
 - extendedWaitUntil:
     visible:
-      id: settings-section-link-suporte
+      id: settings-section-suporte
     timeout: 10000
-
-- tapOn:
-    id: settings-section-link-suporte
 
 - assertVisible:
     id: settings-section-suporte
@@ -225,7 +210,7 @@ env:
 - runFlow:
     when:
       visible:
-        id: settings-drawer-back-button
+        id: settings-section-link-suporte
     commands:
       - tapOn:
           id: settings-drawer-back-button

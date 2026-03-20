@@ -35,7 +35,7 @@ export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel
     <View style={styles.securityProviderCard} testID={testID}>
       <View style={styles.securityProviderMain}>
         <View style={styles.securityProviderIconShell}>
-          <MaterialCommunityIcons color={colors.accent} name={integration.icon} size={22} />
+          <MaterialCommunityIcons color={colors.ink700} name={integration.icon} size={22} />
         </View>
         <View style={styles.securityProviderCopy}>
           <View style={styles.securityProviderHeading}>
@@ -81,7 +81,7 @@ export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel
           testID={testID ? `${testID}-sync` : undefined}
         >
           {syncing ? (
-            <ActivityIndicator color={colors.accent} size="small" />
+            <ActivityIndicator color={colors.ink700} size="small" />
           ) : (
             <Text style={styles.securitySessionActionText}>Sincronizar agora</Text>
           )}

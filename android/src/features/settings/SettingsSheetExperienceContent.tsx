@@ -37,49 +37,41 @@ export function SettingsAiModelSheetContent({
   onSelecionarModeloIa: (value: ModeloIa) => void;
 }) {
   return (
-    <View style={styles.settingsFlowStack}>
-      <View style={styles.settingsInfoCard}>
-        <Text style={styles.settingsInfoTitle}>Escolha o perfil do assistente</Text>
-        <Text style={styles.settingsInfoText}>
-          Esse ajuste afeta o comportamento padrão da IA nas próximas conversas.
-        </Text>
-      </View>
-      <View style={styles.settingsMiniList}>
-        {AI_MODEL_OPTIONS.map((option) => {
-          const ativo = option === modeloIa;
-          return (
-            <Pressable
-              key={`ai-model-${option}`}
-              onPress={() => onSelecionarModeloIa(option)}
-              style={[
-                styles.settingsMiniListItem,
-                styles.settingsMiniListItemPressable,
-                ativo ? styles.settingsMiniListItemActive : null,
-              ]}
-              testID={modelOptionTestId(option)}
-            >
-              <View style={styles.settingsMiniListItemHeader}>
-                <Text style={[styles.settingsMiniListTitle, ativo ? styles.settingsMiniListTitleActive : null]}>
-                  {option}
-                </Text>
-                <View
-                  style={[
-                    styles.settingsMiniListSelectionBadge,
-                    ativo ? styles.settingsMiniListSelectionBadgeActive : null,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    color={ativo ? colors.white : colors.textSecondary}
-                    name={ativo ? "check" : "circle-outline"}
-                    size={14}
-                  />
-                </View>
+    <View style={styles.settingsMiniList}>
+      {AI_MODEL_OPTIONS.map((option) => {
+        const ativo = option === modeloIa;
+        return (
+          <Pressable
+            key={`ai-model-${option}`}
+            onPress={() => onSelecionarModeloIa(option)}
+            style={[
+              styles.settingsMiniListItem,
+              styles.settingsMiniListItemPressable,
+              ativo ? styles.settingsMiniListItemActive : null,
+            ]}
+            testID={modelOptionTestId(option)}
+          >
+            <View style={styles.settingsMiniListItemHeader}>
+              <Text style={[styles.settingsMiniListTitle, ativo ? styles.settingsMiniListTitleActive : null]}>
+                {option}
+              </Text>
+              <View
+                style={[
+                  styles.settingsMiniListSelectionBadge,
+                  ativo ? styles.settingsMiniListSelectionBadgeActive : null,
+                ]}
+              >
+                <MaterialCommunityIcons
+                  color={ativo ? colors.white : colors.textSecondary}
+                  name={ativo ? "check" : "circle-outline"}
+                  size={14}
+                />
               </View>
-              <Text style={styles.settingsMiniListMeta}>{AI_MODEL_DETAILS[option].subtitle}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+            </View>
+            <Text style={styles.settingsMiniListMeta}>{AI_MODEL_DETAILS[option].subtitle}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

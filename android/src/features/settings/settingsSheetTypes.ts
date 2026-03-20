@@ -1,5 +1,6 @@
 export type SettingsSheetKind =
   | "aiModel"
+  | "profile"
   | "photo"
   | "email"
   | "password"
@@ -10,6 +11,7 @@ export type SettingsSheetKind =
   | "help"
   | "bug"
   | "feedback"
+  | "about"
   | "terms"
   | "licenses"
   | "legal"

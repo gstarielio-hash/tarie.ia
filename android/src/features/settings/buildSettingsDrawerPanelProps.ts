@@ -12,6 +12,8 @@ export function buildSettingsDrawerPanelProps(
   const {
     accountSectionContentProps,
     advancedResourcesSectionProps,
+    appBuildChannel,
+    appVersionLabel,
     artigosAjudaCount,
     configuracoesDrawerX,
     emailRetorno,
@@ -99,8 +101,8 @@ export function buildSettingsDrawerPanelProps(
     },
     systemSectionProps: {
       ...systemSectionProps,
-      appBuildChannel: APP_BUILD_CHANNEL,
-      appVersionLabel: APP_VERSION_LABEL,
+      appBuildChannel: systemSectionProps?.appBuildChannel || appBuildChannel || APP_BUILD_CHANNEL,
+      appVersionLabel: systemSectionProps?.appVersionLabel || appVersionLabel || APP_VERSION_LABEL,
       onAbrirFilaOffline,
     },
     totalSecoesConfiguracaoVisiveis,

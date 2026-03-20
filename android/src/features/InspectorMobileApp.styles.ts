@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 
-import { colors, radii, spacing } from "../theme/tokens";
+import { colors, radii, shadows, spacing, typography } from "../theme/tokens";
 import { chatStyles } from "./styles/chatStyles";
 import { historyStyles } from "./styles/historyStyles";
 import { loginStyles } from "./styles/loginStyles";
@@ -26,26 +26,22 @@ export const styles = StyleSheet.create({
   },
   launchOverlayHalo: {
     position: "absolute",
-    width: 156,
-    height: 156,
-    borderRadius: 78,
-    backgroundColor: "rgba(244,123,32,0.08)",
+    width: 168,
+    height: 168,
+    borderRadius: 84,
+    backgroundColor: "rgba(244,123,32,0.1)",
   },
   launchOverlayMark: {
     width: 108,
     height: 108,
-    borderRadius: 32,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    borderRadius: 30,
+    ...shadows.panel,
   },
   launchOverlayBrand: {
     color: colors.textPrimary,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
-    letterSpacing: 3,
+    letterSpacing: 2.8,
     textTransform: "uppercase",
   },
   launchOverlaySubtitle: {
@@ -62,17 +58,18 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.lg,
+    padding: spacing.xl,
+    gap: spacing.xl,
   },
   ...loginStyles,
   heroCard: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: radii.lg,
+    backgroundColor: "rgba(9,16,25,0.6)",
+    borderRadius: radii.xl,
     padding: spacing.xl,
     gap: spacing.md,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.08)",
+    ...shadows.floating,
   },
   brandRow: {
     flexDirection: "row",
@@ -82,25 +79,22 @@ export const styles = StyleSheet.create({
   },
   brandEyebrow: {
     color: colors.accentSoft,
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
+    ...typography.eyebrow,
   },
   brandTitle: {
     color: colors.white,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "800",
     marginTop: 4,
   },
   heroTitle: {
     color: colors.white,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "800",
-    lineHeight: 34,
+    lineHeight: 38,
   },
   heroDescription: {
-    color: "rgba(238,243,247,0.8)",
+    color: "rgba(238,243,247,0.78)",
     fontSize: 15,
     lineHeight: 22,
   },
@@ -110,13 +104,15 @@ export const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   heroTag: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   heroTagLabel: {
     color: colors.white,
@@ -124,10 +120,12 @@ export const styles = StyleSheet.create({
   },
   serverCard: {
     marginTop: spacing.sm,
-    backgroundColor: "rgba(9,16,25,0.35)",
+    backgroundColor: "rgba(9,16,25,0.42)",
     borderRadius: radii.md,
     padding: spacing.md,
     gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   serverLabel: {
     color: colors.accentSoft,
@@ -148,21 +146,21 @@ export const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   secondaryButtonText: {
     color: colors.white,
     fontWeight: "700",
   },
   formCard: {
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: radii.lg,
+    backgroundColor: colors.surfacePanel,
+    borderRadius: radii.xl,
     padding: spacing.xl,
     gap: spacing.md,
-    shadowColor: colors.ink900,
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.surfaceStrokeStrong,
+    ...shadows.panel,
   },
   loadingState: {
     alignItems: "center",
@@ -179,14 +177,12 @@ export const styles = StyleSheet.create({
   },
   formEyebrow: {
     color: colors.accent,
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 1.1,
+    ...typography.eyebrow,
   },
   formTitle: {
     color: colors.textPrimary,
-    fontSize: 28,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: "800",
   },
   formDescription: {
@@ -205,10 +201,10 @@ export const styles = StyleSheet.create({
   input: {
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: colors.white,
+    borderColor: colors.surfaceStrokeStrong,
+    backgroundColor: colors.surfaceCanvas,
     paddingHorizontal: spacing.md,
-    paddingVertical: 14,
+    paddingVertical: 15,
     color: colors.textPrimary,
     fontSize: 15,
   },
@@ -217,8 +213,8 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: colors.surfaceStroke,
-    backgroundColor: colors.white,
+    borderColor: colors.surfaceStrokeStrong,
+    backgroundColor: colors.surfaceCanvas,
   },
   passwordInput: {
     flex: 1,
@@ -244,7 +240,7 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
   },
   switchHint: {
-    color: colors.textSecondary,
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 4,
     maxWidth: 240,
@@ -261,9 +257,10 @@ export const styles = StyleSheet.create({
     minHeight: 54,
     alignItems: "center",
     justifyContent: "center",
+    ...shadows.accent,
   },
   primaryButtonDisabled: {
-    opacity: 0.75,
+    opacity: 0.65,
   },
   primaryButtonText: {
     color: colors.white,
@@ -271,7 +268,7 @@ export const styles = StyleSheet.create({
     fontWeight: "800",
   },
   footerHint: {
-    color: colors.textSecondary,
+    color: colors.textMuted,
     fontSize: 13,
     lineHeight: 20,
   },

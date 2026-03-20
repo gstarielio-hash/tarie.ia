@@ -12,30 +12,33 @@
     <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
 
     <link rel="stylesheet" href="/static/css/revisor/painel_revisor.css?v={{ v_app }}">
 </head>
 
-<body>
+<body class="mesa-shell">
     <header class="topbar">
         <div class="topbar-logo">
-            <span class="material-symbols-rounded" aria-hidden="true">inbox</span>
-            <span>Mesa de Avaliação</span>
+            <span class="topbar-mark" aria-hidden="true">TI</span>
+            <div class="topbar-brandcopy">
+                <span class="topbar-eyebrow">Tariel System</span>
+                <span class="topbar-title">Mesa Avaliadora</span>
+            </div>
         </div>
 
         <div class="topbar-usuario">
             <a href="/revisao/templates-laudo" class="btn-link-topbar">
-                <span class="material-symbols-rounded" aria-hidden="true" style="font-size:18px;">library_books</span>
+                <span class="material-symbols-rounded icon-topbar" aria-hidden="true">library_books</span>
                 <span>Templates</span>
             </a>
             <span class="topbar-usuario-nome">{{ usuario.nome_completo }}</span>
-            <form action="/revisao/logout" method="POST" style="margin: 0;">
+            <form action="/revisao/logout" method="POST" class="topbar-form">
                 <input type="hidden" name="csrf_token" id="global-csrf" value="{{ csrf_token }}">
                 <button type="submit" class="btn-sair">
-                    <span class="material-symbols-rounded" aria-hidden="true" style="font-size:18px;">logout</span>
+                    <span class="material-symbols-rounded icon-topbar" aria-hidden="true">logout</span>
                     <span>Sair</span>
                 </button>
             </form>
@@ -44,27 +47,75 @@
 
     <div class="layout-inbox">
         <aside class="coluna-lista" aria-label="Lista de laudos">
+            <section class="mesa-lista-intro">
+                <div class="mesa-lista-intro-topo">
+                    <span class="mesa-lista-eyebrow">Operação Técnica</span>
+                    <h1>Fila da Mesa</h1>
+                    <p>Triagem rápida, contexto do campo e validação final no mesmo fluxo técnico.</p>
+                </div>
+                <div class="mesa-lista-metricas" aria-label="Resumo operacional da mesa">
+                    <article class="mesa-metrica-card">
+                        <strong>{{ laudos_em_andamento|length }}</strong>
+                        <span>em campo</span>
+                    </article>
+                    <article class="mesa-metrica-card">
+                        <strong>{{ laudos_pendentes|length }}</strong>
+                        <span>aguardando</span>
+                    </article>
+                    <article class="mesa-metrica-card mesa-metrica-card--focus">
+                        <strong>{{ totais_operacao.get("responder_agora", 0) }}</strong>
+                        <span>responder agora</span>
+                    </article>
+                    <article class="mesa-metrica-card mesa-metrica-card--accent">
+                        <strong>{{ total_aprendizados_pendentes }}</strong>
+                        <span>aprendizados</span>
+                    </article>
+                    <article class="mesa-metrica-card">
+                        <strong>{{ totais_operacao.get("aguardando_inspetor", 0) }}</strong>
+                        <span>aguardando campo</span>
+                    </article>
+                    <article class="mesa-metrica-card">
+                        <strong>{{ totais_operacao.get("fechamento_mesa", 0) }}</strong>
+                        <span>fechamento</span>
+                    </article>
+                </div>
+            </section>
+
             <section id="container-whispers" class="whisper-box" {% if not whispers_pendentes %}hidden{% endif %} aria-live="polite">
-                <div class="lista-header whisper-header" style="border-bottom:none;">
+                <div class="lista-header whisper-header whisper-header--flush">
                     <span>Whispers (Chamados)</span>
                     <div class="ping-bolinha" aria-hidden="true"></div>
                 </div>
                 <div id="lista-whispers">
                     {% for whisper in whispers_pendentes %}
                     <article class="item-lista whisper-item js-item-laudo" data-id="{{ whisper.laudo_id }}" data-whispers-nao-lidos="1"
-                        data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) }}" tabindex="0" role="button"
+                        data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) }}"
+                        data-aprendizados-pendentes="{{ aprendizados_pendentes_por_laudo.get(whisper.laudo_id, 0) }}"
+                        data-status-revisao="Rascunho"
+                        data-fila-operacional="responder_agora"
+                        data-prioridade-operacional="critica"
+                        tabindex="0" role="button"
                         aria-label="Abrir chamado urgente #{{ whisper.hash | e }}">
                         <div class="item-topo">
                             <span class="item-hash">#{{ whisper.hash | e }}</span>
                             <span class="badge urgente">Urgente</span>
                         </div>
                         <div class="item-preview">{{ whisper.texto | default('', true) | truncate(60) }}</div>
+                        <div class="item-operacao-resumo">
+                            <span class="badge fila-operacional responder_agora">Responder agora</span>
+                            <span class="badge prioridade critica">Prioridade crítica</span>
+                        </div>
+                        <div class="item-proxima-acao js-proxima-acao">Próxima: Responder inspetor</div>
                         <div class="item-meta-rodape">
                             <div class="item-indicadores">
                                 <span class="badge indicador-whisper js-indicador-whispers">1 whisper</span>
                                 <span class="badge indicador-pendencia js-indicador-pendencias"
                                     {% if pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) <= 0 %}hidden{% endif %}>
                                     {{ pendencias_abertas_por_laudo.get(whisper.laudo_id, 0) }} pend.
+                                </span>
+                                <span class="badge indicador-aprendizado js-indicador-aprendizados"
+                                    {% if aprendizados_pendentes_por_laudo.get(whisper.laudo_id, 0) <= 0 %}hidden{% endif %}>
+                                    {{ aprendizados_pendentes_por_laudo.get(whisper.laudo_id, 0) }} aprend.
                                 </span>
                             </div>
                         </div>
@@ -84,9 +135,6 @@
                         </option>
                         {% endfor %}
                     </select>
-                    {% if filtro_inspetor_id or filtro_busca %}
-                    <a href="/revisao/painel" class="btn-limpar-filtro">Limpar</a>
-                    {% endif %}
                 </div>
                 <label class="filtro-label" for="filtro-busca">Busca rápida</label>
                 <div class="filtro-linha">
@@ -94,6 +142,29 @@
                         placeholder="Hash, descrição, setor ou modalidade"
                         value="{{ filtro_busca | default('', true) | e }}">
                     <button type="submit" class="btn-buscar-filtro">Buscar</button>
+                </div>
+                <label class="filtro-label" for="filtro-aprendizados">Aprendizados</label>
+                <div class="filtro-linha">
+                    <select id="filtro-aprendizados" name="aprendizados" class="filtro-select" onchange="this.form.submit()">
+                        <option value="">Todos os laudos</option>
+                        <option value="pendentes" {% if filtro_aprendizados == "pendentes" %}selected{% endif %}>
+                            Com aprendizados pendentes
+                        </option>
+                    </select>
+                </div>
+                <label class="filtro-label" for="filtro-operacao">Fluxo operacional</label>
+                <div class="filtro-linha">
+                    <select id="filtro-operacao" name="operacao" class="filtro-select" onchange="this.form.submit()">
+                        <option value="">Toda a fila</option>
+                        <option value="responder_agora" {% if filtro_operacao == "responder_agora" %}selected{% endif %}>Responder agora</option>
+                        <option value="validar_aprendizado" {% if filtro_operacao == "validar_aprendizado" %}selected{% endif %}>Validar aprendizado</option>
+                        <option value="aguardando_inspetor" {% if filtro_operacao == "aguardando_inspetor" %}selected{% endif %}>Aguardando campo</option>
+                        <option value="fechamento_mesa" {% if filtro_operacao == "fechamento_mesa" %}selected{% endif %}>Fechamento</option>
+                        <option value="acompanhamento" {% if filtro_operacao == "acompanhamento" %}selected{% endif %}>Acompanhamento</option>
+                    </select>
+                    {% if filtro_inspetor_id or filtro_busca or filtro_aprendizados or filtro_operacao %}
+                    <a href="/revisao/painel" class="btn-limpar-filtro">Limpar</a>
+                    {% endif %}
                 </div>
             </form>
 
@@ -103,7 +174,13 @@
                 {% for laudo in laudos_em_andamento %}
                 <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
                     data-whispers-nao-lidos="{{ laudo.whispers_nao_lidos or 0 }}"
-                    data-pendencias-abertas="{{ laudo.pendencias_abertas or 0 }}" tabindex="0"
+                    data-pendencias-abertas="{{ laudo.pendencias_abertas or 0 }}"
+                    data-aprendizados-pendentes="{{ laudo.aprendizados_pendentes or 0 }}"
+                    data-status-revisao="{{ laudo.status_revisao | e }}"
+                    data-sla-status="{{ laudo.tempo_em_campo_status | e }}"
+                    data-fila-operacional="{{ laudo.fila_operacional | e }}"
+                    data-prioridade-operacional="{{ laudo.prioridade_operacional | e }}"
+                    tabindex="0"
                     role="button" aria-label="Abrir laudo #{{ laudo.hash_curto }}">
                     <div class="item-topo">
                         <span class="item-hash">#{{ laudo.hash_curto | e }}</span>
@@ -112,6 +189,11 @@
                     <div class="item-preview">{{ laudo.primeira_mensagem | default('Inspeção iniciada em campo', true) | truncate(60) }}
                     </div>
                     <div class="item-responsavel">{{ laudo.inspetor_nome | e }}</div>
+                    <div class="item-operacao-resumo">
+                        <span class="badge fila-operacional {{ laudo.fila_operacional | e }}">{{ laudo.fila_operacional_label | e }}</span>
+                        <span class="badge prioridade {{ laudo.prioridade_operacional | e }}">Prioridade {{ laudo.prioridade_operacional_label | e }}</span>
+                    </div>
+                    <div class="item-proxima-acao js-proxima-acao">Próxima: {{ laudo.proxima_acao | e }}</div>
                     <div class="item-meta-rodape">
                         <div class="item-indicadores">
                             <span class="badge rascunho">Em Campo</span>
@@ -123,25 +205,41 @@
                                 {% if (laudo.pendencias_abertas or 0) <= 0 %}hidden{% endif %}>
                                 {{ laudo.pendencias_abertas or 0 }} pend.
                             </span>
+                            <span class="badge indicador-aprendizado js-indicador-aprendizados"
+                                {% if (laudo.aprendizados_pendentes or 0) <= 0 %}hidden{% endif %}>
+                                {{ laudo.aprendizados_pendentes or 0 }} aprend.
+                            </span>
                         </div>
                         <span class="sla-pill {{ laudo.tempo_em_campo_status | e }}">Em campo há {{ laudo.tempo_em_campo | e }}</span>
                     </div>
                 </article>
                 {% endfor %}
 
-                <div class="lista-header" style="border-top:1px solid var(--borda);">Aguardando Avaliação ({{ laudos_pendentes|length }})</div>
+                <div class="lista-header lista-header--section">Aguardando Avaliação ({{ laudos_pendentes|length }})</div>
 
                 {% for laudo in laudos_pendentes %}
                 <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
-                    data-whispers-nao-lidos="{{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }}"
-                    data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(laudo.id, 0) }}" tabindex="0"
-                    role="button" aria-label="Abrir laudo #{{ laudo.codigo_hash[-6:] }}">
+                    data-whispers-nao-lidos="{{ laudo.whispers_nao_lidos or 0 }}"
+                    data-pendencias-abertas="{{ laudo.pendencias_abertas or 0 }}"
+                    data-aprendizados-pendentes="{{ laudo.aprendizados_pendentes or 0 }}"
+                    data-status-revisao="{{ laudo.status_revisao | e }}"
+                    data-sla-status="{{ laudo.tempo_em_campo_status | e }}"
+                    data-fila-operacional="{{ laudo.fila_operacional | e }}"
+                    data-prioridade-operacional="{{ laudo.prioridade_operacional | e }}"
+                    tabindex="0"
+                    role="button" aria-label="Abrir laudo #{{ laudo.hash_curto }}">
                     <div class="item-topo">
-                        <span class="item-hash">#{{ laudo.codigo_hash[-6:] }}</span>
+                        <span class="item-hash">#{{ laudo.hash_curto | e }}</span>
                         <span class="item-data">{{ (laudo.atualizado_em or laudo.criado_em).strftime('%d/%m %H:%M') if (laudo.atualizado_em or laudo.criado_em) else '--/-- --:--' }}</span>
                     </div>
                     <div class="item-preview">{{ laudo.primeira_mensagem | default('Sem descrição') | truncate(60) }}
                     </div>
+                    <div class="item-responsavel">{{ laudo.inspetor_nome | e }}</div>
+                    <div class="item-operacao-resumo">
+                        <span class="badge fila-operacional {{ laudo.fila_operacional | e }}">{{ laudo.fila_operacional_label | e }}</span>
+                        <span class="badge prioridade {{ laudo.prioridade_operacional | e }}">Prioridade {{ laudo.prioridade_operacional_label | e }}</span>
+                    </div>
+                    <div class="item-proxima-acao js-proxima-acao">Próxima: {{ laudo.proxima_acao | e }}</div>
                     <div class="item-meta-rodape">
                         <div class="item-indicadores">
                             <span class="badge aguardando">Aguardando Aval</span>
@@ -153,23 +251,39 @@
                                 {% if pendencias_abertas_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
                                 {{ pendencias_abertas_por_laudo.get(laudo.id, 0) }} pend.
                             </span>
+                            <span class="badge indicador-aprendizado js-indicador-aprendizados"
+                                {% if (laudo.aprendizados_pendentes or 0) <= 0 %}hidden{% endif %}>
+                                {{ laudo.aprendizados_pendentes or 0 }} aprend.
+                            </span>
                         </div>
                     </div>
                 </article>
                 {% endfor %}
 
-                <div class="lista-header" style="border-top:1px solid var(--borda);">Histórico Recente</div>
+                <div class="lista-header lista-header--section">Histórico Recente</div>
 
                 {% for laudo in laudos_avaliados %}
                 <article class="item-lista js-item-laudo" id="item-{{ laudo.id }}" data-id="{{ laudo.id }}"
-                    data-whispers-nao-lidos="{{ whispers_nao_lidos_por_laudo.get(laudo.id, 0) }}"
-                    data-pendencias-abertas="{{ pendencias_abertas_por_laudo.get(laudo.id, 0) }}" tabindex="0"
-                    role="button" aria-label="Abrir laudo #{{ laudo.codigo_hash[-6:] }}">
+                    data-whispers-nao-lidos="{{ laudo.whispers_nao_lidos or 0 }}"
+                    data-pendencias-abertas="{{ laudo.pendencias_abertas or 0 }}"
+                    data-aprendizados-pendentes="{{ laudo.aprendizados_pendentes or 0 }}"
+                    data-status-revisao="{{ laudo.status_revisao | e }}"
+                    data-sla-status="{{ laudo.tempo_em_campo_status | e }}"
+                    data-fila-operacional="{{ laudo.fila_operacional | e }}"
+                    data-prioridade-operacional="{{ laudo.prioridade_operacional | e }}"
+                    tabindex="0"
+                    role="button" aria-label="Abrir laudo #{{ laudo.hash_curto }}">
                     <div class="item-topo">
-                        <span class="item-hash">#{{ laudo.codigo_hash[-6:] }}</span>
+                        <span class="item-hash">#{{ laudo.hash_curto | e }}</span>
                         <span class="item-data">{{ (laudo.atualizado_em or laudo.criado_em).strftime('%d/%m') if (laudo.atualizado_em or laudo.criado_em) else '--/--' }}</span>
                     </div>
-                    <div class="item-preview">{{ laudo.setor_industrial }}</div>
+                    <div class="item-preview">{{ laudo.setor_industrial | default('Histórico recente', true) }}</div>
+                    <div class="item-responsavel">{{ laudo.inspetor_nome | e }}</div>
+                    <div class="item-operacao-resumo">
+                        <span class="badge fila-operacional {{ laudo.fila_operacional | e }}">{{ laudo.fila_operacional_label | e }}</span>
+                        <span class="badge prioridade {{ laudo.prioridade_operacional | e }}">Prioridade {{ laudo.prioridade_operacional_label | e }}</span>
+                    </div>
+                    <div class="item-proxima-acao js-proxima-acao">Próxima: {{ laudo.proxima_acao | e }}</div>
                     <div class="item-meta-rodape">
                         <div class="item-indicadores">
                             {% if laudo.status_revisao == 'Aprovado' %}
@@ -185,6 +299,10 @@
                                 {% if pendencias_abertas_por_laudo.get(laudo.id, 0) <= 0 %}hidden{% endif %}>
                                 {{ pendencias_abertas_por_laudo.get(laudo.id, 0) }} pend.
                             </span>
+                            <span class="badge indicador-aprendizado js-indicador-aprendizados"
+                                {% if (laudo.aprendizados_pendentes or 0) <= 0 %}hidden{% endif %}>
+                                {{ laudo.aprendizados_pendentes or 0 }} aprend.
+                            </span>
                         </div>
                     </div>
                 </article>
@@ -195,10 +313,9 @@
         <main class="coluna-view" aria-label="Detalhes do laudo">
             <section id="estado-vazio" class="estado-vazio">
                 <div class="estado-vazio-box">
-                    <span class="material-symbols-rounded" aria-hidden="true"
-                        style="font-size:64px; margin-bottom:16px; opacity:.5;">mark_email_unread</span>
-                    <h3 style="margin-bottom:8px;">Selecione um laudo à esquerda</h3>
-                    <p>O histórico de inspeção e o relatório aparecerão aqui.</p>
+                    <span class="material-symbols-rounded estado-vazio-icone" aria-hidden="true">mark_email_unread</span>
+                    <h3 class="estado-vazio-titulo">Selecione um laudo da fila técnica</h3>
+                    <p>O histórico, a operação da mesa e os aprendizados visuais aparecem aqui no mesmo contexto.</p>
                 </div>
             </section>
 
@@ -211,44 +328,54 @@
                     <div class="view-acoes" id="view-acoes"></div>
                 </div>
 
-                <section id="mesa-operacao-painel" class="mesa-operacao-painel" hidden aria-live="polite">
-                    <div id="mesa-operacao-conteudo"></div>
-                </section>
-
-                <div class="view-timeline" id="view-timeline" role="log" aria-live="polite" aria-relevant="additions">
-                </div>
-
-                <div class="view-reply" id="box-resposta">
-                    <div id="ref-ativa-resposta" class="reply-ref-ativa" hidden>
-                        <div>
-                            <strong id="ref-ativa-titulo">Respondendo mensagem</strong>
-                            <p id="ref-ativa-texto"></p>
+                <div class="mesa-workspace">
+                    <section class="mesa-thread-pane" aria-label="Canal da mesa com o campo">
+                        <div class="view-timeline" id="view-timeline" role="log" aria-live="polite" aria-relevant="additions">
                         </div>
-                        <button type="button" id="btn-limpar-ref-ativa" class="btn-limpar-ref" aria-label="Remover referência">×</button>
-                    </div>
 
-                    <div id="preview-resposta-anexo" class="reply-attachment-preview" hidden></div>
+                        <div class="view-reply" id="box-resposta">
+                            <div id="ref-ativa-resposta" class="reply-ref-ativa" hidden>
+                                <div>
+                                    <strong id="ref-ativa-titulo">Respondendo mensagem</strong>
+                                    <p id="ref-ativa-texto"></p>
+                                </div>
+                                <button type="button" id="btn-limpar-ref-ativa" class="btn-limpar-ref" aria-label="Remover referência">×</button>
+                            </div>
 
-                    <div class="view-reply-main">
-                    <button type="button" id="btn-anexo-resposta" class="btn-anexo-chat" aria-label="Anexar arquivo para o inspetor">
-                        <span class="material-symbols-rounded" aria-hidden="true">attach_file</span>
-                    </button>
-                    <input
-                        type="file"
-                        id="input-anexo-resposta"
-                        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        hidden
-                        aria-hidden="true"
-                        tabindex="-1"
-                    >
-                    <label for="input-resposta" class="sr-only">Mensagem para o inspetor</label>
-                    <textarea id="input-resposta" rows="2"
-                        placeholder="Escreva para o inspetor ou envie um anexo... (Enter envia)" aria-label="Mensagem para o inspetor"></textarea>
-                    <button class="btn-enviar-chat" id="btn-enviar-msg" type="button">
-                        <span class="material-symbols-rounded" aria-hidden="true">send</span>
-                        <span>Enviar</span>
-                    </button>
-                    </div>
+                            <div id="preview-resposta-anexo" class="reply-attachment-preview" hidden></div>
+
+                            <div class="view-reply-main">
+                            <button type="button" id="btn-anexo-resposta" class="btn-anexo-chat" aria-label="Anexar arquivo para o inspetor">
+                                <span class="material-symbols-rounded" aria-hidden="true">attach_file</span>
+                            </button>
+                            <input
+                                type="file"
+                                id="input-anexo-resposta"
+                                accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                hidden
+                                aria-hidden="true"
+                                tabindex="-1"
+                            >
+                            <label for="input-resposta" class="sr-only">Mensagem para o inspetor</label>
+                            <textarea id="input-resposta" rows="2"
+                                placeholder="Escreva para o inspetor ou envie um anexo... (Enter envia)" aria-label="Mensagem para o inspetor"></textarea>
+                            <button class="btn-enviar-chat" id="btn-enviar-msg" type="button">
+                                <span class="material-symbols-rounded" aria-hidden="true">send</span>
+                                <span>Enviar</span>
+                            </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="mesa-context-pane" aria-label="Contexto técnico da mesa">
+                        <section id="mesa-operacao-painel" class="mesa-operacao-painel" hidden aria-live="polite">
+                            <div id="mesa-operacao-conteudo"></div>
+                        </section>
+
+                        <section id="aprendizados-visuais-painel" class="aprendizados-visuais-painel" hidden aria-live="polite">
+                            <div id="aprendizados-visuais-conteudo"></div>
+                        </section>
+                    </aside>
                 </div>
             </section>
         </main>
@@ -262,8 +389,7 @@
                     <span class="material-symbols-rounded" aria-hidden="true">assignment</span>
                     Relatório Estruturado IA
                 </h2>
-                <button class="btn-sair" id="btn-fechar-relatorio" type="button" aria-label="Fechar relatório"
-                    style="border:none;">
+                <button class="btn-sair btn-icon-only" id="btn-fechar-relatorio" type="button" aria-label="Fechar relatório">
                     <span class="material-symbols-rounded" aria-hidden="true">close</span>
                 </button>
             </div>
@@ -279,8 +405,7 @@
                     <span class="material-symbols-rounded" aria-hidden="true">dataset</span>
                     Pacote Técnico da Mesa
                 </h2>
-                <button class="btn-sair" id="btn-fechar-pacote" type="button" aria-label="Fechar pacote"
-                    style="border:none;">
+                <button class="btn-sair btn-icon-only" id="btn-fechar-pacote" type="button" aria-label="Fechar pacote">
                     <span class="material-symbols-rounded" aria-hidden="true">close</span>
                 </button>
             </div>
@@ -304,8 +429,7 @@
 
             <div class="dialog-acoes">
                 <button class="btn btn-neutro" id="btn-cancelar-motivo" type="button">Cancelar</button>
-                <button class="btn btn-rejeitar" id="btn-confirmar-motivo" type="button"
-                    style="background:var(--cor-rejeitado); color:#fff;">
+                <button class="btn btn-rejeitar btn-dialog-confirmar" id="btn-confirmar-motivo" type="button">
                     Confirmar Devolução
                 </button>
             </div>
@@ -337,6 +461,7 @@
     <script src="/static/js/revisor/revisor_painel_core.js?v={{ v_app }}" defer></script>
     <script src="/static/js/revisor/revisor_painel_mesa.js?v={{ v_app }}" defer></script>
     <script src="/static/js/revisor/revisor_painel_historico.js?v={{ v_app }}" defer></script>
+    <script src="/static/js/revisor/revisor_painel_aprendizados.js?v={{ v_app }}" defer></script>
     <script src="/static/js/revisor/painel_revisor_page.js?v={{ v_app }}" defer></script>
 </body>
 

@@ -27,7 +27,9 @@
     min-height: 0;
     height: 100%;
     overflow: hidden;
-    background: linear-gradient(180deg, rgba(22, 24, 30, 0.34), rgba(22, 24, 30, 0.12));
+    background:
+        radial-gradient(circle at 50% -4%, rgba(244, 123, 32, 0.06), transparent 22%),
+        linear-gradient(180deg, rgba(10, 20, 32, 0.36), rgba(10, 20, 32, 0.14));
     transition:
         max-width .3s cubic-bezier(.4, 0, .2, 1),
         margin .3s cubic-bezier(.4, 0, .2, 1);
@@ -64,8 +66,8 @@ body.sidebar-colapsada .painel-chat {
     padding: 10px 24px;
     border-bottom: var(--border-subtle, 1px solid rgba(255, 255, 255, 0.08));
     background:
-        radial-gradient(circle at top center, rgba(244, 123, 32, 0.05), transparent 42%),
-        rgba(255, 255, 255, 0.024);
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 42%),
+        linear-gradient(180deg, rgba(18, 35, 60, 0.38), rgba(10, 20, 32, 0.22));
     backdrop-filter: blur(8px);
 }
 
@@ -136,10 +138,10 @@ body.sidebar-colapsada .thread-nav-inner {
     gap: 6px;
     min-height: 30px;
     padding: 4px 10px;
-    border: 1px solid rgba(176, 196, 222, 0.18);
+    border: 1px solid rgba(196, 208, 222, 0.16);
     border-radius: 999px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
-    color: rgba(202, 210, 221, 0.62);
+    background: linear-gradient(180deg, rgba(24, 40, 61, 0.32), rgba(10, 20, 32, 0.12));
+    color: rgba(202, 210, 221, 0.72);
     font: inherit;
     font-size: var(--font-size-sm, 14px);
     font-weight: 500;
@@ -152,19 +154,21 @@ body.sidebar-colapsada .thread-nav-inner {
 }
 
 .thread-tab:hover {
-    border-color: rgba(244, 123, 32, 0.42);
+    border-color: rgba(196, 208, 222, 0.3);
     color: var(--text-primary, #ffffff);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.014));
+    background: linear-gradient(180deg, rgba(28, 47, 71, 0.44), rgba(14, 25, 39, 0.18));
 }
 
 .thread-tab.ativo,
 .thread-tab[aria-selected="true"] {
-    border-color: rgba(244, 123, 32, 0.56);
-    color: #FFE6D2;
+    border-color: rgba(255, 216, 178, 0.18);
+    color: #fff2e6;
     background:
-        radial-gradient(circle at top center, rgba(255, 202, 168, 0.08), transparent 40%),
-        rgba(244, 123, 32, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(244, 123, 32, 0.16);
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.12), transparent 40%),
+        linear-gradient(180deg, rgba(18, 35, 60, 0.98), rgba(10, 20, 32, 0.98));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 216, 178, 0.08),
+        0 10px 22px rgba(0, 0, 0, 0.16);
 }
 
 .thread-tab:focus-visible {
@@ -194,9 +198,9 @@ body.sidebar-colapsada .thread-nav-inner {
     scrollbar-color: rgba(146, 154, 167, 0.62) rgba(26, 30, 36, 0.38);
     scrollbar-gutter: stable both-edges;
     background:
-        radial-gradient(circle at 14% 10%, rgba(214, 122, 50, 0.07), transparent 24%),
+        radial-gradient(circle at 14% 10%, rgba(214, 122, 50, 0.08), transparent 24%),
         radial-gradient(circle at 80% 8%, rgba(210, 216, 226, 0.05), transparent 28%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.016), rgba(255, 255, 255, 0));
+        linear-gradient(180deg, rgba(18, 35, 60, 0.06), rgba(255, 255, 255, 0));
 }
 
 .area-mensagens::-webkit-scrollbar {
@@ -251,11 +255,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     overscroll-behavior: contain;
     text-align: center;
     background:
-        radial-gradient(circle at 50% -10%, rgba(244, 123, 32, 0.12), transparent 36%),
-        radial-gradient(circle at 100% 0, rgba(255, 255, 255, 0.03), transparent 28%),
-        linear-gradient(180deg, rgba(53, 58, 69, 0.66), rgba(28, 31, 37, 0.5));
-    border: 1px solid rgba(191, 198, 209, 0.22);
-    border-radius: var(--radius-xl, 22px);
+        radial-gradient(circle at 50% -10%, rgba(244, 123, 32, 0.16), transparent 36%),
+        radial-gradient(circle at 100% 0, rgba(255, 249, 243, 0.05), transparent 28%),
+        linear-gradient(180deg, rgba(18, 35, 60, 0.88), rgba(9, 16, 25, 0.78));
+    border: 1px solid rgba(229, 215, 200, 0.16);
+    border-radius: var(--radius-xl, 28px);
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
         var(--surface-shadow, 0 18px 42px rgba(0, 0, 0, 0.28));
@@ -279,18 +283,18 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .icone-boas-vindas span {
     display: block;
-    margin-bottom: 10px;
-    font-size: 56px;
+    margin-bottom: 12px;
+    font-size: 58px;
     color: var(--accent-tariel, #F47B20);
     filter: drop-shadow(0 0 14px rgba(244, 123, 32, 0.35));
 }
 
 .tela-boas-vindas h2 {
     margin: 15px 0 8px;
-    font-size: 30px;
-    font-weight: 600;
+    font-size: 32px;
+    font-weight: 800;
     line-height: 1.18;
-    letter-spacing: 0.005em;
+    letter-spacing: -0.03em;
     color: var(--text-primary, #ffffff);
 }
 
@@ -316,12 +320,12 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     align-items: flex-start;
     gap: 8px;
     text-align: left;
-    padding: 13px 14px;
-    border: 1px solid rgba(176, 196, 222, 0.22);
-    border-radius: 12px;
+    padding: 14px 15px;
+    border: 1px solid rgba(229, 215, 200, 0.14);
+    border-radius: 18px;
     background:
-        radial-gradient(circle at top right, rgba(244, 123, 32, 0.05), transparent 50%),
-        linear-gradient(180deg, rgba(34, 39, 47, 0.78), rgba(20, 24, 31, 0.86));
+        radial-gradient(circle at top right, rgba(244, 123, 32, 0.08), transparent 50%),
+        linear-gradient(180deg, rgba(24, 40, 61, 0.74), rgba(11, 22, 35, 0.82));
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
         0 10px 24px rgba(0, 0, 0, 0.14);
@@ -337,7 +341,7 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     font-size: 13px;
     font-weight: 600;
     color: #ffffff;
-    background: rgba(244, 123, 32, 0.78);
+    background: linear-gradient(180deg, rgba(244, 123, 32, 0.94), rgba(216, 104, 21, 0.98));
 }
 
 .passo-fluxo h3 {
@@ -366,8 +370,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .btn-acao-rapida {
     width: 100%;
-    min-height: 148px;
-    padding: 18px 16px;
+    min-height: 152px;
+    padding: 20px 18px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -376,11 +380,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     font: inherit;
     background:
         radial-gradient(circle at top right, rgba(244, 123, 32, 0.11), transparent 36%),
-        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.03), transparent 34%),
-        linear-gradient(180deg, rgba(42, 47, 56, 0.97), rgba(26, 30, 37, 0.99));
+        radial-gradient(circle at bottom left, rgba(255, 249, 243, 0.04), transparent 34%),
+        linear-gradient(180deg, rgba(24, 40, 61, 0.94), rgba(11, 22, 35, 0.98));
     color: var(--text-primary, #ffffff);
-    border: 1px solid rgba(191, 198, 209, 0.18);
-    border-radius: 14px;
+    border: 1px solid rgba(229, 215, 200, 0.14);
+    border-radius: 22px;
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
         0 14px 30px rgba(0, 0, 0, 0.2);
@@ -395,9 +399,9 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .btn-acao-rapida:hover {
     background:
         radial-gradient(circle at top right, rgba(244, 123, 32, 0.16), transparent 38%),
-        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.04), transparent 34%),
-        linear-gradient(180deg, rgba(47, 53, 63, 0.99), rgba(31, 35, 42, 1));
-    border-color: rgba(244, 123, 32, 0.55);
+        radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 34%),
+        linear-gradient(180deg, rgba(28, 47, 71, 0.98), rgba(15, 28, 44, 0.99));
+    border-color: rgba(244, 123, 32, 0.32);
     transform: translateY(-2px);
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
@@ -474,10 +478,12 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     width: 100%;
     max-width: 760px;
     margin: 28px auto 0;
-    padding: 18px 24px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
-    border: 1px solid rgba(191, 198, 209, 0.14);
-    border-radius: 14px;
+    padding: 20px 24px;
+    background:
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.08), transparent 48%),
+        linear-gradient(180deg, rgba(24, 40, 61, 0.74), rgba(12, 22, 35, 0.82));
+    border: 1px solid rgba(229, 215, 200, 0.12);
+    border-radius: 20px;
     box-shadow: var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05));
 }
 
@@ -565,11 +571,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     padding: 10px 12px;
     background: linear-gradient(
         180deg,
-        rgba(51, 57, 66, 0.96),
-        rgba(35, 39, 46, 0.99)
+        rgba(20, 35, 57, 0.98),
+        rgba(9, 16, 25, 0.99)
     );
-    border: 1px solid rgba(191, 198, 209, 0.20);
-    border-radius: 14px 20px 20px 20px;
+    border: 1px solid rgba(229, 215, 200, 0.12);
+    border-radius: 16px 22px 22px 22px;
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
         0 8px 20px rgba(0, 0, 0, 0.26);
@@ -583,11 +589,11 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 .mensagem-usuario .corpo-texto {
     background: linear-gradient(
         180deg,
-        rgba(63, 69, 80, 0.96),
-        rgba(45, 50, 59, 0.99)
+        rgba(38, 56, 79, 0.94),
+        rgba(18, 35, 60, 0.92)
     );
-    border: 1px solid rgba(184, 190, 200, 0.30);
-    border-radius: 20px 14px 20px 20px;
+    border: 1px solid rgba(255, 216, 178, 0.14);
+    border-radius: 22px 16px 22px 22px;
     box-shadow:
         var(--surface-highlight, inset 0 1px 0 rgba(255, 255, 255, 0.05)),
         0 8px 20px rgba(0, 0, 0, 0.28);
@@ -663,10 +669,10 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     color: var(--accent-soft, #F1BA8F);
     background: linear-gradient(
         180deg,
-        rgba(45, 49, 57, 1),
-        rgba(34, 37, 43, 1)
+        rgba(244, 123, 32, 0.94),
+        rgba(216, 104, 21, 0.98)
     );
-    border-color: rgba(214, 122, 50, 0.26);
+    border-color: rgba(255, 216, 178, 0.22);
 }
 
 .mensagem-inspetor .avatar,
@@ -674,8 +680,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     color: var(--text-primary, #ffffff);
     background: linear-gradient(
         180deg,
-        rgba(86, 92, 105, 0.92),
-        rgba(70, 75, 87, 0.98)
+        rgba(38, 56, 79, 0.92),
+        rgba(18, 35, 60, 0.98)
     );
     border-color: var(--user-accent-border, rgba(175, 182, 195, 0.34));
 }
@@ -780,9 +786,9 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     justify-content: center;
     gap: 6px;
     padding: 6px 10px;
-    border: 1px solid rgba(176, 196, 222, 0.12);
-    border-radius: var(--radius-sm, 8px);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018));
+    border: 1px solid rgba(196, 208, 222, 0.12);
+    border-radius: var(--radius-sm, 12px);
+    background: linear-gradient(180deg, rgba(24, 40, 61, 0.4), rgba(10, 20, 32, 0.22));
     color: var(--text-secondary, #90AAC0);
     font: inherit;
     font-size: 13px;
@@ -803,8 +809,8 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
 
 .btn-acao-msg:hover {
     color: var(--text-primary, #ffffff);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.028));
-    border-color: rgba(244, 123, 32, 0.24);
+    background: linear-gradient(180deg, rgba(28, 47, 71, 0.52), rgba(14, 25, 39, 0.3));
+    border-color: rgba(244, 123, 32, 0.22);
     transform: translateY(-1px);
     box-shadow: 0 8px 18px rgba(3, 11, 20, 0.22);
 }
@@ -1451,14 +1457,14 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     width: 100%;
     padding: 8px 16px 10px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid rgba(191, 198, 209, 0.18);
+    border-top: 1px solid rgba(229, 215, 200, 0.12);
     background:
-        radial-gradient(circle at 50% 0, rgba(244, 123, 32, 0.10), transparent 40%),
+        radial-gradient(circle at 50% 0, rgba(244, 123, 32, 0.12), transparent 40%),
         linear-gradient(
             180deg,
-            rgba(20, 23, 28, 0.06) 0%,
-            rgba(20, 23, 28, 0.86) 20%,
-            rgba(20, 23, 28, 0.985) 100%
+            rgba(9, 16, 25, 0.04) 0%,
+            rgba(9, 16, 25, 0.84) 20%,
+            rgba(9, 16, 25, 0.985) 100%
         );
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.04),
@@ -1472,16 +1478,16 @@ body.sidebar-colapsada .area-mensagens > .bloco-texto-solto {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 9px 11px;
-    border: 1px solid rgba(191, 198, 209, 0.2);
-    border-radius: 18px;
+    padding: 10px 12px;
+    border: 1px solid rgba(229, 215, 200, 0.14);
+    border-radius: 22px;
     background:
-        radial-gradient(circle at top center, rgba(244, 123, 32, 0.1), transparent 38%),
-        radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.03), transparent 34%),
+        radial-gradient(circle at top center, rgba(244, 123, 32, 0.11), transparent 38%),
+        radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.04), transparent 34%),
         linear-gradient(
             180deg,
-            rgba(52, 58, 68, 0.9),
-            rgba(34, 37, 44, 0.97)
+            rgba(18, 35, 60, 0.94),
+            rgba(9, 16, 25, 0.97)
         );
     box-shadow:
         0 14px 32px rgba(0, 0, 0, 0.3),
@@ -1499,7 +1505,7 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .pilula-entrada:hover {
-    border-color: rgba(191, 198, 209, 0.32);
+    border-color: rgba(196, 208, 222, 0.24);
     transform: translateY(-1px);
     box-shadow:
         0 14px 32px rgba(0, 0, 0, 0.30),
@@ -1507,7 +1513,7 @@ body.sidebar-colapsada .pilula-entrada {
 }
 
 .pilula-entrada:focus-within {
-    border-color: rgba(244, 123, 32, 0.70);
+    border-color: rgba(244, 123, 32, 0.38);
     box-shadow:
         var(--ring-tariel, 0 0 0 3px rgba(244, 123, 32, 0.16)),
         0 16px 40px rgba(0, 0, 0, 0.3);
@@ -1515,8 +1521,8 @@ body.sidebar-colapsada .pilula-entrada {
         radial-gradient(circle at top center, rgba(244, 123, 32, 0.12), transparent 38%),
         linear-gradient(
             180deg,
-            rgba(58, 64, 74, 0.92),
-            rgba(37, 41, 49, 0.97)
+            rgba(24, 40, 61, 0.96),
+            rgba(11, 22, 35, 0.98)
         );
     transform: translateY(-1px);
 }
@@ -1617,11 +1623,11 @@ body.sidebar-colapsada .pilula-entrada {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    border: 1px solid rgba(176, 196, 222, 0.2);
-    border-radius: 12px;
+    border: 1px solid rgba(196, 208, 222, 0.18);
+    border-radius: 14px;
     background:
         radial-gradient(circle at top center, rgba(255, 255, 255, 0.04), transparent 48%),
-        linear-gradient(180deg, rgba(45, 50, 59, 0.92), rgba(34, 37, 44, 0.94));
+        linear-gradient(180deg, rgba(24, 40, 61, 0.9), rgba(10, 20, 32, 0.94));
     color: var(--text-secondary, #c6d5e3);
     cursor: pointer;
     font: inherit;
@@ -1636,8 +1642,8 @@ body.sidebar-colapsada .pilula-entrada {
 .rodape-entrada .btn-icone:hover:not(:disabled) {
     background:
         radial-gradient(circle at top center, rgba(255, 255, 255, 0.05), transparent 48%),
-        linear-gradient(180deg, rgba(58, 64, 74, 0.96), rgba(38, 42, 49, 0.98));
-    border-color: rgba(191, 198, 209, 0.36);
+        linear-gradient(180deg, rgba(28, 47, 71, 0.98), rgba(18, 35, 60, 0.98));
+    border-color: rgba(244, 123, 32, 0.24);
     color: var(--text-primary, #ffffff);
     transform: translateY(-1px);
     box-shadow: 0 8px 18px rgba(2, 10, 18, 0.3);

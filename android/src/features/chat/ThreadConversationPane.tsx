@@ -17,10 +17,10 @@ import {
   AssistantCitationList,
   AssistantMessageContent,
 } from "../../components/AssistantRichMessage";
+import { EmptyState } from "../../components/EmptyState";
 import { colors } from "../../theme/tokens";
 import type { MobileAttachment, MobileChatMessage, MobileMesaMessage } from "../../types/mobile";
 import { styles } from "../InspectorMobileApp.styles";
-import { BrandIntroMark } from "../common/BrandElements";
 import { MessageAttachmentCard, MessageReferenceCard } from "./MessageCards";
 
 interface ThreadConversationPaneProps {
@@ -96,8 +96,20 @@ export function ThreadConversationPane({
 
     if (!mesaDisponivel) {
       return (
-        <View style={styles.threadEmptyState}>
-          <BrandIntroMark brandColor={accentColor} />
+        <View
+          style={[
+            styles.threadEmptyState,
+            keyboardVisible ? styles.threadEmptyStateKeyboardVisible : null,
+          ]}
+        >
+          <EmptyState
+            compact
+            description="Envie o primeiro registro no chat para liberar este espaço."
+            eyebrow="Mesa"
+            icon="clipboard-clock-outline"
+            tone="accent"
+            title="Mesa disponível após o primeiro laudo"
+          />
         </View>
       );
     }
@@ -105,6 +117,7 @@ export function ThreadConversationPane({
     return (
       <ScrollView
         ref={scrollRef}
+        style={styles.threadScroll}
         contentContainerStyle={[
           styles.threadContent,
           keyboardVisible ? styles.threadContentKeyboard : null,
@@ -252,8 +265,19 @@ export function ThreadConversationPane({
             );
           })
         ) : (
-          <View style={styles.threadEmptyState}>
-            <BrandIntroMark brandColor={accentColor} />
+          <View
+            style={[
+              styles.threadEmptyState,
+              keyboardVisible ? styles.threadEmptyStateKeyboardVisible : null,
+            ]}
+          >
+            <EmptyState
+              compact
+              description="Quando a mesa responder, os retornos aparecem aqui."
+              eyebrow="Mesa"
+              icon="message-reply-text-outline"
+              title="Nenhum retorno técnico"
+            />
           </View>
         )}
       </ScrollView>
@@ -271,8 +295,16 @@ export function ThreadConversationPane({
 
   if (conversaVazia) {
     return (
-      <View style={styles.threadEmptyState}>
-        <BrandIntroMark brandColor={accentColor} />
+      <View
+        style={[
+          styles.threadEmptyState,
+          keyboardVisible ? styles.threadEmptyStateKeyboardVisible : null,
+        ]}
+      >
+        <EmptyState
+          compact
+          icon="message-processing-outline"
+        />
       </View>
     );
   }
@@ -280,6 +312,7 @@ export function ThreadConversationPane({
   return (
     <ScrollView
       ref={scrollRef}
+      style={styles.threadScroll}
       contentContainerStyle={[
         styles.threadContent,
         keyboardVisible ? styles.threadContentKeyboard : null,
@@ -381,7 +414,7 @@ export function ThreadConversationPane({
                     {mensagemEhEngenharia ? (
                       <View style={[styles.messageStatusBadge, styles.messageStatusBadgeAccent]}>
                         <Text style={[styles.messageStatusBadgeText, styles.messageStatusBadgeTextAccent]}>
-                          Revisão
+                          Mesa
                         </Text>
                       </View>
                     ) : null}

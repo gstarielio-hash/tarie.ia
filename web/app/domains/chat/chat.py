@@ -45,6 +45,11 @@ from app.domains.chat.core_helpers import (
     resposta_json_ok,
 )
 from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
+from app.domains.chat.learning_helpers import (
+    anexar_contexto_aprendizado_na_mensagem,
+    construir_contexto_aprendizado_para_ia,
+    registrar_aprendizado_visual_automatico_chat,
+)
 from app.domains.chat.media_helpers import (
     nome_documento_seguro,
     safe_remove_file,
@@ -345,6 +350,7 @@ async def rota_chat(
         custo_api_reais=Decimal("0.0000"),
     )
     banco.add(mensagem_usuario)
+    banco.flush()
 
     laudo.atualizado_em = agora_utc()
     laudo.modo_resposta = dados.modo
@@ -357,6 +363,19 @@ async def rota_chat(
             tem_imagem=bool(dados_imagem_validos),
         )
 
+    if tipo_msg_usuario == TipoMensagem.USER.value and not eh_comando_finalizar:
+        registrar_aprendizado_visual_automatico_chat(
+            banco,
+            empresa_id=usuario.empresa_id,
+            laudo_id=laudo.id,
+            criado_por_id=usuario.id,
+            setor_industrial=str(laudo.setor_industrial or "geral"),
+            mensagem_id=int(mensagem_usuario.id),
+            mensagem_chat=mensagem_limpa,
+            dados_imagem=dados_imagem_validos,
+            referencia_mensagem_id=int(dados.referencia_mensagem_id or 0) or None,
+        )
+
     banco.commit()
     aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
@@ -365,6 +384,17 @@ async def rota_chat(
     usuario_id_atual = usuario.id
     usuario_nome_atual = usuario_nome(usuario)
     card_laudo_payload = serializar_card_laudo(banco, laudo) if primeira_interacao_real and laudo_possui_historico_visivel(banco, laudo) else None
+    contexto_aprendizado_ia = construir_contexto_aprendizado_para_ia(
+        banco,
+        empresa_id=empresa_id_atual,
+        laudo_id=laudo_id_atual,
+        setor_industrial=str(laudo.setor_industrial or "geral"),
+        mensagem_atual=mensagem_limpa,
+    )
+    mensagem_para_ia = anexar_contexto_aprendizado_na_mensagem(
+        mensagem_limpa,
+        contexto_aprendizado=contexto_aprendizado_ia,
+    )
 
     if eh_whisper_para_mesa:
 
@@ -473,7 +503,7 @@ async def rota_chat(
         def executar_stream() -> None:
             try:
                 gerador_stream = cliente_ia_ativo.gerar_resposta_stream(
-                    mensagem_limpa,
+                    mensagem_para_ia,
                     dados_imagem_validos or None,
                     dados.setor,
                     empresa_id=empresa_id_atual,

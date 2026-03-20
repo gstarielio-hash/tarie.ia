@@ -30,6 +30,8 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         viewAcoes: document.getElementById("view-acoes"),
         mesaOperacaoPainel: document.getElementById("mesa-operacao-painel"),
         mesaOperacaoConteudo: document.getElementById("mesa-operacao-conteudo"),
+        aprendizadosVisuaisPainel: document.getElementById("aprendizados-visuais-painel"),
+        aprendizadosVisuaisConteudo: document.getElementById("aprendizados-visuais-conteudo"),
         timeline: document.getElementById("view-timeline"),
         boxResposta: document.getElementById("box-resposta"),
         refAtivaResposta: document.getElementById("ref-ativa-resposta"),
@@ -67,7 +69,8 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         historicoMensagens: [],
         historicoCursorProximo: null,
         historicoTemMais: false,
-        carregandoHistoricoAntigo: false
+        carregandoHistoricoAntigo: false,
+        aprendizadosVisuais: []
     };
 
     const LIMITE_PAGINA_HISTORICO = 60;
@@ -325,9 +328,85 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         return valor > 99 ? "99+ pend." : `${valor} pend.`;
     };
 
+    const textoBadgeAprendizado = (total) => {
+        const valor = Math.max(0, Number(total || 0) || 0);
+        if (valor <= 0) return "0 aprend.";
+        return valor > 99 ? "99+ aprend." : `${valor} aprend.`;
+    };
+
+    const classificarOperacaoLaudo = ({
+        statusRevisao = "",
+        slaStatus = "",
+        whispersNaoLidos = 0,
+        pendenciasAbertas = 0,
+        aprendizadosPendentes = 0
+    } = {}) => {
+        const status = String(statusRevisao || "").trim();
+        const sla = String(slaStatus || "").trim();
+        const whispers = Math.max(0, Number(whispersNaoLidos || 0) || 0);
+        const pendencias = Math.max(0, Number(pendenciasAbertas || 0) || 0);
+        const aprendizados = Math.max(0, Number(aprendizadosPendentes || 0) || 0);
+
+        if (whispers > 0) {
+            return {
+                fila: "responder_agora",
+                filaLabel: "Responder agora",
+                prioridade: "critica",
+                prioridadeLabel: "Prioridade crítica",
+                proximaAcao: "Próxima: Responder inspetor"
+            };
+        }
+        if (aprendizados > 0) {
+            return {
+                fila: "validar_aprendizado",
+                filaLabel: "Validar aprendizado",
+                prioridade: "alta",
+                prioridadeLabel: "Prioridade alta",
+                proximaAcao: "Próxima: Validar aprendizado"
+            };
+        }
+        if (pendencias > 0) {
+            const prioridade = sla === "sla-critico" ? "alta" : "media";
+            return {
+                fila: "aguardando_inspetor",
+                filaLabel: "Aguardando campo",
+                prioridade,
+                prioridadeLabel: prioridade === "alta" ? "Prioridade alta" : "Prioridade média",
+                proximaAcao: "Próxima: Cobrar retorno do campo"
+            };
+        }
+        if (status === "Aguardando Aval") {
+            return {
+                fila: "fechamento_mesa",
+                filaLabel: "Fechamento",
+                prioridade: "media",
+                prioridadeLabel: "Prioridade média",
+                proximaAcao: "Próxima: Fechar revisão"
+            };
+        }
+        if (status === "Rascunho") {
+            const prioridade = sla === "sla-critico" ? "alta" : sla === "sla-atencao" ? "media" : "baixa";
+            return {
+                fila: "acompanhamento",
+                filaLabel: "Acompanhamento",
+                prioridade,
+                prioridadeLabel: prioridade === "alta" ? "Prioridade alta" : prioridade === "media" ? "Prioridade média" : "Prioridade baixa",
+                proximaAcao: "Próxima: Acompanhar campo"
+            };
+        }
+        return {
+            fila: "historico",
+            filaLabel: "Histórico",
+            prioridade: "baixa",
+            prioridadeLabel: "Prioridade baixa",
+            proximaAcao: "Próxima: Consultar histórico"
+        };
+    };
+
     const atualizarIndicadoresListaLaudo = (laudoId, {
         whispersNaoLidos = null,
-        pendenciasAbertas = null
+        pendenciasAbertas = null,
+        aprendizadosPendentes = null
     } = {}) => {
         const alvo = Number(laudoId || 0);
         if (!Number.isFinite(alvo) || alvo <= 0) return;
@@ -351,6 +430,43 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
                     badgePendencia.hidden = totalPendencias <= 0;
                     badgePendencia.textContent = textoBadgePendencia(totalPendencias);
                 }
+            }
+
+            if (aprendizadosPendentes !== null && aprendizadosPendentes !== undefined) {
+                const totalAprendizados = Math.max(0, Number(aprendizadosPendentes || 0) || 0);
+                itemEl.dataset.aprendizadosPendentes = String(totalAprendizados);
+                const badgeAprendizado = itemEl.querySelector(".js-indicador-aprendizados");
+                if (badgeAprendizado) {
+                    badgeAprendizado.hidden = totalAprendizados <= 0;
+                    badgeAprendizado.textContent = textoBadgeAprendizado(totalAprendizados);
+                }
+            }
+
+            const operacao = classificarOperacaoLaudo({
+                statusRevisao: itemEl.dataset.statusRevisao || "",
+                slaStatus: itemEl.dataset.slaStatus || "",
+                whispersNaoLidos: itemEl.dataset.whispersNaoLidos || 0,
+                pendenciasAbertas: itemEl.dataset.pendenciasAbertas || 0,
+                aprendizadosPendentes: itemEl.dataset.aprendizadosPendentes || 0
+            });
+            itemEl.dataset.filaOperacional = operacao.fila;
+            itemEl.dataset.prioridadeOperacional = operacao.prioridade;
+
+            const badgeFila = itemEl.querySelector(".badge.fila-operacional");
+            if (badgeFila) {
+                badgeFila.className = `badge fila-operacional ${operacao.fila}`;
+                badgeFila.textContent = operacao.filaLabel;
+            }
+
+            const badgePrioridade = itemEl.querySelector(".badge.prioridade");
+            if (badgePrioridade) {
+                badgePrioridade.className = `badge prioridade ${operacao.prioridade}`;
+                badgePrioridade.textContent = operacao.prioridadeLabel;
+            }
+
+            const proximaAcao = itemEl.querySelector(".js-proxima-acao");
+            if (proximaAcao) {
+                proximaAcao.textContent = operacao.proximaAcao;
             }
         });
     };
@@ -418,6 +534,13 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         if (els.mesaOperacaoConteudo) {
             els.mesaOperacaoConteudo.innerHTML = "";
         }
+        if (els.aprendizadosVisuaisPainel) {
+            els.aprendizadosVisuaisPainel.hidden = true;
+        }
+        if (els.aprendizadosVisuaisConteudo) {
+            els.aprendizadosVisuaisConteudo.innerHTML = "";
+        }
+        state.aprendizadosVisuais = [];
         els.timeline.innerHTML = `<div class="timeline-status">${escapeHtml(texto)}</div>`;
     };
 
@@ -505,6 +628,8 @@ Object.assign(NS, {
     setActiveItem,
     textoBadgeWhisper,
     textoBadgePendencia,
+    textoBadgeAprendizado,
+    classificarOperacaoLaudo,
     atualizarIndicadoresListaLaudo,
     ocultarContainerWhispersSeVazio,
     removerWhispersDaListaPorLaudo,

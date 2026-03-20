@@ -26,6 +26,7 @@ import {
 } from "react-native";
 
 import {
+  API_BASE_URL,
   carregarBootstrapMobile,
   carregarLaudosMobile,
   carregarMensagensLaudo,
@@ -43,10 +44,12 @@ import {
   uploadDocumentoChatMobile,
 } from "../config/api";
 import {
+  configureObservability,
   listarEventosObservabilidade,
   registrarEventoObservabilidade,
   resumirEventosObservabilidade,
 } from "../config/observability";
+import { configureCrashReports } from "../config/crashReports";
 import type {
   ApiHealthStatus,
   MobileAttachment,
@@ -75,6 +78,7 @@ import {
   EXTERNAL_INTEGRATION_OPTIONS,
   FONT_SIZE_OPTIONS,
   HELP_CENTER_ARTICLES,
+  HISTORY_UI_STATE_FILE,
   HISTORY_DRAWER_FILTERS,
   HISTORY_PANEL_CLOSED_X,
   LICENSES_CATALOG,
@@ -114,9 +118,26 @@ import {
   selecionarDocumentoRascunhoFlow,
   selecionarImagemRascunhoFlow,
 } from "./chat/attachmentDraftFlows";
+import { buildAttachmentHandlingPolicy } from "./chat/attachments";
 import { buildThreadContextState } from "./chat/buildThreadContextState";
 import { ehImagemAnexo, nomeExibicaoAnexo, urlAnexoAbsoluta } from "./chat/attachmentUtils";
 import { sendInspectorMessageFlow, sendMesaMessageFlow } from "./chat/messageSendFlows";
+import {
+  initializeNotificationsRuntime,
+  scheduleLocalActivityNotification,
+  syncNotificationChannels,
+} from "./chat/notifications";
+import {
+  buildChatAiRequestConfig,
+  describeChatAiBehaviorChange,
+} from "./chat/preferences";
+import { canSyncOnCurrentNetwork, gateHeavyTransfer, readNetworkSnapshot } from "./chat/network";
+import {
+  buildVoiceInputUnavailableMessage,
+  loadVoiceRuntimeState,
+  speakAssistantResponse,
+  stopSpeechPlayback,
+} from "./chat/voice";
 import { runBootstrapAppFlow } from "./bootstrap/runBootstrapAppFlow";
 import { buildAuthenticatedLayoutProps } from "./common/buildAuthenticatedLayoutProps";
 import { buildInspectorBaseDerivedState } from "./common/buildInspectorBaseDerivedState";
@@ -131,7 +152,6 @@ import {
 import type { PerfilContaSincronizado } from "./settings/settingsBackend";
 import type { CriticalSettingsSnapshot } from "./settings/criticalSettings";
 import { renderSettingsSheetBodyContent } from "./settings/SettingsSheetBodyContent";
-import { applyLocalPreferencesFromStorage } from "./settings/applyLocalPreferences";
 import { buildInspectorSettingsDrawerPanelProps } from "./settings/buildInspectorSettingsDrawerPanelProps";
 import { runExportDataFlow } from "./settings/exportDataFlow";
 import { handleConfirmSheetAction } from "./settings/settingsConfirmActions";
@@ -142,7 +162,16 @@ import {
   type SettingsSectionKey,
 } from "./settings/settingsNavigationMeta";
 import { useCriticalSettingsSync } from "./settings/useCriticalSettingsSync";
+import { clearLocalCache } from "./system/cacheControl";
+import { readDevicePermissionSnapshot, requestDevicePermission } from "./system/permissions";
+import { getInstalledAppRuntimeInfo } from "./system/runtime";
 import { InspectorAuthenticatedLayout } from "./InspectorAuthenticatedLayout";
+import {
+  mergeCriticalSnapshotIntoSettings,
+  mergeMobileUserIntoSettings,
+  settingsToCriticalSnapshot,
+  useSettingsStore,
+} from "../settings";
 
 function pushSettingsNavigationState(
   historyRef: { current: SettingsNavigationState[] },
@@ -229,11 +258,14 @@ interface OfflinePendingMessage {
   lastAttemptAt: string;
   lastError: string;
   nextRetryAt: string;
+  aiMode: MobileChatMode;
+  aiSummary: string;
+  aiMessagePrefix: string;
 }
 
 interface MobileActivityNotification {
   id: string;
-  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta";
+  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta" | "system" | "alerta_critico";
   laudoId: number | null;
   title: string;
   body: string;
@@ -309,71 +341,9 @@ interface SupportQueueItem {
   attachmentKind?: "image" | "document";
 }
 
-interface AppPreferencesState {
-  perfilNome: string;
-  perfilExibicao: string;
-  perfilFotoUri: string;
-  perfilFotoHint: string;
+interface LocalHistoryUiState {
   laudosFixadosIds: number[];
   historicoOcultoIds: number[];
-  planoAtual: (typeof PLAN_OPTIONS)[number];
-  cartaoAtual: (typeof PAYMENT_CARD_OPTIONS)[number];
-  modeloIa: (typeof AI_MODEL_OPTIONS)[number];
-  estiloResposta: (typeof RESPONSE_STYLE_OPTIONS)[number];
-  idiomaResposta: (typeof RESPONSE_LANGUAGE_OPTIONS)[number];
-  memoriaIa: boolean;
-  aprendizadoIa: boolean;
-  tomConversa: (typeof CONVERSATION_TONE_OPTIONS)[number];
-  temperaturaIa: number;
-  temaApp: (typeof THEME_OPTIONS)[number];
-  tamanhoFonte: (typeof FONT_SIZE_OPTIONS)[number];
-  densidadeInterface: (typeof DENSITY_OPTIONS)[number];
-  corDestaque: (typeof ACCENT_OPTIONS)[number];
-  animacoesAtivas: boolean;
-  notificaRespostas: boolean;
-  notificaPush: boolean;
-  somNotificacao: (typeof NOTIFICATION_SOUND_OPTIONS)[number];
-  vibracaoAtiva: boolean;
-  emailsAtivos: boolean;
-  salvarHistoricoConversas: boolean;
-  compartilharMelhoriaIa: boolean;
-  backupAutomatico: boolean;
-  sincronizacaoDispositivos: boolean;
-  nomeAutomaticoConversas: boolean;
-  fixarConversas: boolean;
-  entradaPorVoz: boolean;
-  respostaPorVoz: boolean;
-  uploadArquivosAtivo: boolean;
-  economiaDados: boolean;
-  usoBateria: (typeof BATTERY_OPTIONS)[number];
-  idiomaApp: (typeof APP_LANGUAGE_OPTIONS)[number];
-  regiaoApp: (typeof REGION_OPTIONS)[number];
-  provedoresConectados: ConnectedProvider[];
-  integracoesExternas: ExternalIntegration[];
-  sessoesAtivas: SessionDevice[];
-  twoFactorEnabled: boolean;
-  twoFactorMethod: (typeof TWO_FACTOR_METHOD_OPTIONS)[number];
-  recoveryCodesEnabled: boolean;
-  deviceBiometricsEnabled: boolean;
-  requireAuthOnOpen: boolean;
-  hideInMultitask: boolean;
-  lockTimeout: (typeof LOCK_TIMEOUT_OPTIONS)[number];
-  retencaoDados: (typeof DATA_RETENTION_OPTIONS)[number];
-  codigosRecuperacao: string[];
-  reautenticacaoStatus: string;
-  reautenticacaoExpiraEm: string;
-  eventosSeguranca: SecurityEventItem[];
-  mostrarConteudoNotificacao: boolean;
-  ocultarConteudoBloqueado: boolean;
-  mostrarSomenteNovaMensagem: boolean;
-  microfonePermitido: boolean;
-  cameraPermitida: boolean;
-  arquivosPermitidos: boolean;
-  notificacoesPermitidas: boolean;
-  biometriaPermitida: boolean;
-  filaSuporteLocal: SupportQueueItem[];
-  ultimaVerificacaoAtualizacao: string;
-  statusAtualizacaoApp: string;
 }
 
 interface SettingsNavigationState {
@@ -568,6 +538,9 @@ async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
           lastAttemptAt: String(registro.lastAttemptAt || ""),
           lastError: String(registro.lastError || "").trim(),
           nextRetryAt: String(registro.nextRetryAt || ""),
+          aiMode: normalizarModoChat(registro.aiMode, "detalhado"),
+          aiSummary: String(registro.aiSummary || "").trim(),
+          aiMessagePrefix: String(registro.aiMessagePrefix || "").trim(),
         };
       })
       .filter((item) => item.id && (item.text || item.attachment));
@@ -813,6 +786,9 @@ function criarItemFilaOffline(params: {
   title: string;
   attachment?: ComposerAttachment | null;
   referenceMessageId?: number | null;
+  aiMode?: MobileChatMode;
+  aiSummary?: string;
+  aiMessagePrefix?: string;
 }): OfflinePendingMessage {
   return {
     id: `${params.channel}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
@@ -827,6 +803,9 @@ function criarItemFilaOffline(params: {
     lastAttemptAt: "",
     lastError: "",
     nextRetryAt: "",
+    aiMode: normalizarModoChat(params.aiMode, "detalhado"),
+    aiSummary: String(params.aiSummary || "").trim(),
+    aiMessagePrefix: String(params.aiMessagePrefix || "").trim(),
   };
 }
 
@@ -954,8 +933,45 @@ function ehRegistro(valor: unknown): valor is Record<string, unknown> {
   return Boolean(valor) && typeof valor === "object" && !Array.isArray(valor);
 }
 
+function normalizarIdsEstadoHistoricoLocal(valor: unknown): number[] {
+  if (!Array.isArray(valor)) {
+    return [];
+  }
+
+  const ids = valor
+    .map((item) => (typeof item === "number" ? item : Number(item)))
+    .filter((item): item is number => Number.isInteger(item) && item > 0);
+
+  return Array.from(new Set(ids));
+}
+
 function ehOpcaoValida<T extends readonly string[]>(valor: unknown, opcoes: T): valor is T[number] {
   return typeof valor === "string" && (opcoes as readonly string[]).includes(valor);
+}
+
+function invalidarCacheImagemUri(uri: string): string {
+  const value = String(uri || "").trim();
+  if (!value) {
+    return "";
+  }
+  const separador = value.includes("?") ? "&" : "?";
+  return `${value}${separador}v=${Date.now()}`;
+}
+
+function normalizarTelefoneConta(value: string): string {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function construirUrlCanalSuporte(rawValue: string): string {
+  const value = String(rawValue || "").trim();
+  if (!value) {
+    return "";
+  }
+  if (/^(https?:\/\/|whatsapp:\/\/)/i.test(value)) {
+    return value;
+  }
+  const digits = value.replace(/\D/g, "");
+  return digits ? `https://wa.me/${digits}` : "";
 }
 
 function criarProvedoresConectadosPadrao(emailConta = ""): ConnectedProvider[] {
@@ -1141,21 +1157,33 @@ function normalizarItemSuporte(payload: unknown): SupportQueueItem | null {
   };
 }
 
-async function lerPreferenciasLocais(): Promise<Record<string, unknown>> {
+async function lerEstadoHistoricoLocal(): Promise<LocalHistoryUiState> {
   try {
-    const valor = await FileSystem.readAsStringAsync(APP_PREFERENCES_FILE);
+    const valor = await FileSystem.readAsStringAsync(HISTORY_UI_STATE_FILE);
     const payload = JSON.parse(valor);
-    return ehRegistro(payload) ? payload : {};
+    if (!ehRegistro(payload)) {
+      return { laudosFixadosIds: [], historicoOcultoIds: [] };
+    }
+    return {
+      laudosFixadosIds: normalizarIdsEstadoHistoricoLocal(payload.laudosFixadosIds),
+      historicoOcultoIds: normalizarIdsEstadoHistoricoLocal(payload.historicoOcultoIds),
+    };
   } catch {
-    return {};
+    return { laudosFixadosIds: [], historicoOcultoIds: [] };
   }
 }
 
-async function salvarPreferenciasLocais(preferencias: AppPreferencesState): Promise<void> {
+async function salvarEstadoHistoricoLocal(estado: LocalHistoryUiState): Promise<void> {
   try {
-    await FileSystem.writeAsStringAsync(APP_PREFERENCES_FILE, JSON.stringify(preferencias));
+    await FileSystem.writeAsStringAsync(
+      HISTORY_UI_STATE_FILE,
+      JSON.stringify({
+        laudosFixadosIds: Array.from(new Set(estado.laudosFixadosIds)),
+        historicoOcultoIds: Array.from(new Set(estado.historicoOcultoIds)),
+      }),
+    );
   } catch (error) {
-    console.warn("Falha ao salvar as preferências locais do app.", error);
+    console.warn("Falha ao salvar o estado local do histórico.", error);
   }
 }
 
@@ -1207,6 +1235,10 @@ function obterIntervaloMonitoramentoMs(
     return 40_000;
   }
   return 25_000;
+}
+
+async function podeSincronizarNaRedeAtual(wifiOnlySync: boolean): Promise<boolean> {
+  return canSyncOnCurrentNetwork(wifiOnlySync);
 }
 
 const MAX_LAUDOS_MONITORADOS_MESA = 6;
@@ -1547,11 +1579,11 @@ function criarNotificacaoStatusLaudo(item: MobileLaudoCard): MobileActivityNotif
 }
 
 function criarNotificacaoMesa(
-  kind: MobileActivityNotification["kind"],
+  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta",
   mensagemMesa: MobileMesaMessage,
   tituloLaudo: string,
 ): MobileActivityNotification {
-  const mapaTitulo: Record<MobileActivityNotification["kind"], string> = {
+  const mapaTitulo: Record<"status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta", string> = {
     status: "Atividade da mesa",
     mesa_nova: "Nova mensagem da mesa",
     mesa_resolvida: "Pendência marcada como resolvida",
@@ -1576,6 +1608,26 @@ function criarNotificacaoMesa(
     createdAt: new Date().toISOString(),
     unread: true,
     targetThread: "mesa",
+  };
+}
+
+function criarNotificacaoSistema(params: {
+  title: string;
+  body: string;
+  kind?: "system" | "alerta_critico";
+  laudoId?: number | null;
+  targetThread?: ActiveThread;
+}): MobileActivityNotification {
+  const kind = params.kind || "system";
+  return {
+    id: `${kind}:${Date.now()}:${Math.random().toString(16).slice(2, 7)}`,
+    kind,
+    laudoId: params.laudoId ?? null,
+    title: params.title,
+    body: params.body,
+    createdAt: new Date().toISOString(),
+    unread: true,
+    targetThread: params.targetThread || "chat",
   };
 }
 
@@ -1806,49 +1858,166 @@ export function InspectorMobileApp() {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [filtroFilaOffline, setFiltroFilaOffline] = useState<OfflineQueueFilter>("all");
   const [monitorandoAtividade, setMonitorandoAtividade] = useState(false);
-  const [perfilNome, setPerfilNome] = useState("");
-  const [perfilExibicao, setPerfilExibicao] = useState("");
-  const [perfilFotoUri, setPerfilFotoUri] = useState("");
-  const [perfilFotoHint, setPerfilFotoHint] = useState("Toque para atualizar");
+  const [voiceRuntimeState, setVoiceRuntimeState] = useState({
+    voices: [] as Array<{
+      identifier?: string;
+      name?: string;
+      language?: string;
+    }>,
+    ttsSupported: false,
+    sttSupported: false,
+  });
+  const [chatAiBehaviorNotice, setChatAiBehaviorNotice] = useState("");
+  const [verificandoAtualizacoes, setVerificandoAtualizacoes] = useState(false);
+  const [sincronizandoAgora, setSincronizandoAgora] = useState(false);
+  const [limpandoCache, setLimpandoCache] = useState(false);
+  const [ultimaLimpezaCacheEm, setUltimaLimpezaCacheEm] = useState("");
+  const { state: settingsState, hydrated: settingsHydrated, actions: settingsActions } = useSettingsStore();
+  const appRuntime = useMemo(() => getInstalledAppRuntimeInfo(), []);
+  const perfilNome = settingsState.account.fullName;
+  const setPerfilNome = (value: string) => settingsActions.updateAccount({ fullName: value });
+  const perfilExibicao = settingsState.account.displayName;
+  const setPerfilExibicao = (value: string) => settingsActions.updateAccount({ displayName: value });
+  const perfilFotoUri = settingsState.account.photoUri;
+  const setPerfilFotoUri = (value: string) => settingsActions.updateAccount({ photoUri: value });
+  const perfilFotoHint = settingsState.account.photoHint;
+  const setPerfilFotoHint = (value: string) => settingsActions.updateAccount({ photoHint: value });
   const [laudosFixadosIds, setLaudosFixadosIds] = useState<number[]>([]);
   const [historicoOcultoIds, setHistoricoOcultoIds] = useState<number[]>([]);
-  const [emailAtualConta, setEmailAtualConta] = useState("");
+  const emailAtualConta = settingsState.account.email;
+  const setEmailAtualConta = (value: string) => settingsActions.updateAccount({ email: value });
+  const contaTelefone = settingsState.account.phone;
+  const [nomeCompletoDraft, setNomeCompletoDraft] = useState("");
+  const [nomeExibicaoDraft, setNomeExibicaoDraft] = useState("");
+  const [telefoneDraft, setTelefoneDraft] = useState("");
   const [novoEmailDraft, setNovoEmailDraft] = useState("");
   const [senhaAtualDraft, setSenhaAtualDraft] = useState("");
   const [novaSenhaDraft, setNovaSenhaDraft] = useState("");
   const [confirmarSenhaDraft, setConfirmarSenhaDraft] = useState("");
   const [planoAtual, setPlanoAtual] = useState<(typeof PLAN_OPTIONS)[number]>("Pro");
   const [cartaoAtual, setCartaoAtual] = useState<(typeof PAYMENT_CARD_OPTIONS)[number]>("Visa final 4242");
-  const [modeloIa, setModeloIa] = useState<(typeof AI_MODEL_OPTIONS)[number]>("equilibrado");
-  const [estiloResposta, setEstiloResposta] = useState<(typeof RESPONSE_STYLE_OPTIONS)[number]>("detalhado");
-  const [idiomaResposta, setIdiomaResposta] = useState<(typeof RESPONSE_LANGUAGE_OPTIONS)[number]>("Português");
-  const [memoriaIa, setMemoriaIa] = useState(true);
-  const [aprendizadoIa, setAprendizadoIa] = useState(false);
-  const [tomConversa, setTomConversa] = useState<(typeof CONVERSATION_TONE_OPTIONS)[number]>("técnico");
-  const [temperaturaIa, setTemperaturaIa] = useState<number>(0.4);
-  const [temaApp, setTemaApp] = useState<(typeof THEME_OPTIONS)[number]>("claro");
-  const [tamanhoFonte, setTamanhoFonte] = useState<(typeof FONT_SIZE_OPTIONS)[number]>("médio");
-  const [densidadeInterface, setDensidadeInterface] = useState<(typeof DENSITY_OPTIONS)[number]>("confortável");
-  const [corDestaque, setCorDestaque] = useState<(typeof ACCENT_OPTIONS)[number]>("laranja");
-  const [animacoesAtivas, setAnimacoesAtivas] = useState(true);
-  const [notificaRespostas, setNotificaRespostas] = useState(true);
-  const [notificaPush, setNotificaPush] = useState(true);
-  const [somNotificacao, setSomNotificacao] = useState<(typeof NOTIFICATION_SOUND_OPTIONS)[number]>("Ping");
-  const [vibracaoAtiva, setVibracaoAtiva] = useState(true);
-  const [emailsAtivos, setEmailsAtivos] = useState(false);
-  const [salvarHistoricoConversas, setSalvarHistoricoConversas] = useState(true);
-  const [compartilharMelhoriaIa, setCompartilharMelhoriaIa] = useState(false);
-  const [backupAutomatico, setBackupAutomatico] = useState(true);
-  const [sincronizacaoDispositivos, setSincronizacaoDispositivos] = useState(true);
+  const modeloIa = settingsState.ai.model;
+  const setModeloIa = (value: (typeof AI_MODEL_OPTIONS)[number]) => settingsActions.updateAi({ model: value });
+  const estiloResposta = settingsState.ai.responseStyle;
+  const setEstiloResposta = (value: (typeof RESPONSE_STYLE_OPTIONS)[number]) =>
+    settingsActions.updateAi({ responseStyle: value });
+  const idiomaResposta = settingsState.ai.responseLanguage;
+  const setIdiomaResposta = (value: (typeof RESPONSE_LANGUAGE_OPTIONS)[number]) =>
+    settingsActions.updateAi({ responseLanguage: value });
+  const memoriaIa = settingsState.ai.memoryEnabled;
+  const setMemoriaIa = (value: boolean) => settingsActions.updateAi({ memoryEnabled: value });
+  const aprendizadoIa = settingsState.ai.learningOptIn;
+  const setAprendizadoIa = (value: boolean) => settingsActions.updateAi({ learningOptIn: value });
+  const tomConversa = settingsState.ai.tone;
+  const setTomConversa = (value: (typeof CONVERSATION_TONE_OPTIONS)[number]) =>
+    settingsActions.updateAi({ tone: value });
+  const temperaturaIa = settingsState.ai.temperature;
+  const setTemperaturaIa = (value: number) => settingsActions.updateAi({ temperature: value });
+  const temaApp = settingsState.appearance.theme;
+  const setTemaApp = (value: (typeof THEME_OPTIONS)[number]) => settingsActions.updateAppearance({ theme: value });
+  const tamanhoFonte = settingsState.appearance.fontScale;
+  const setTamanhoFonte = (value: (typeof FONT_SIZE_OPTIONS)[number]) =>
+    settingsActions.updateAppearance({ fontScale: value });
+  const densidadeInterface = settingsState.appearance.density;
+  const setDensidadeInterface = (value: (typeof DENSITY_OPTIONS)[number]) =>
+    settingsActions.updateAppearance({ density: value });
+  const corDestaque = settingsState.appearance.accentColor;
+  const setCorDestaque = (value: (typeof ACCENT_OPTIONS)[number]) =>
+    settingsActions.updateAppearance({ accentColor: value });
+  const animacoesAtivas = settingsState.appearance.animationsEnabled;
+  const setAnimacoesAtivas = (value: boolean) => settingsActions.updateAppearance({ animationsEnabled: value });
+  const notificaRespostas = settingsState.notifications.responseAlertsEnabled;
+  const setNotificaRespostas = (value: boolean) =>
+    settingsActions.updateNotifications({ responseAlertsEnabled: value });
+  const notificaPush = settingsState.notifications.pushEnabled;
+  const setNotificaPush = (value: boolean) => settingsActions.updateNotifications({ pushEnabled: value });
+  const chatCategoryEnabled = settingsState.notifications.chatCategoryEnabled;
+  const setChatCategoryEnabled = (value: boolean) =>
+    settingsActions.updateNotifications({ chatCategoryEnabled: value });
+  const mesaCategoryEnabled = settingsState.notifications.mesaCategoryEnabled;
+  const setMesaCategoryEnabled = (value: boolean) =>
+    settingsActions.updateNotifications({ mesaCategoryEnabled: value });
+  const systemCategoryEnabled = settingsState.notifications.systemCategoryEnabled;
+  const setSystemCategoryEnabled = (value: boolean) =>
+    settingsActions.updateNotifications({ systemCategoryEnabled: value });
+  const criticalAlertsEnabled = settingsState.notifications.criticalAlertsEnabled;
+  const setCriticalAlertsEnabled = (value: boolean) =>
+    settingsActions.updateNotifications({ criticalAlertsEnabled: value });
+  const somNotificacao = settingsState.notifications.soundPreset;
+  const setSomNotificacao = (value: (typeof NOTIFICATION_SOUND_OPTIONS)[number]) =>
+    settingsActions.updateNotifications({
+      soundPreset: value,
+      soundEnabled: value !== "Silencioso",
+    });
+  const vibracaoAtiva = settingsState.notifications.vibrationEnabled;
+  const setVibracaoAtiva = (value: boolean) => settingsActions.updateNotifications({ vibrationEnabled: value });
+  const emailsAtivos = settingsState.notifications.emailEnabled;
+  const setEmailsAtivos = (value: boolean) => settingsActions.updateNotifications({ emailEnabled: value });
+  const salvarHistoricoConversas = settingsState.dataControls.chatHistoryEnabled;
+  const setSalvarHistoricoConversas = (value: boolean) =>
+    settingsActions.updateDataControls({ chatHistoryEnabled: value });
+  const compartilharMelhoriaIa = settingsState.ai.learningOptIn;
+  const setCompartilharMelhoriaIa = (value: boolean) => settingsActions.updateAi({ learningOptIn: value });
+  const backupAutomatico = settingsState.dataControls.deviceBackupEnabled;
+  const setBackupAutomatico = (value: boolean) =>
+    settingsActions.updateDataControls({ deviceBackupEnabled: value });
+  const sincronizacaoDispositivos = settingsState.dataControls.crossDeviceSyncEnabled;
+  const setSincronizacaoDispositivos = (value: boolean) =>
+    settingsActions.updateDataControls({ crossDeviceSyncEnabled: value });
+  const analyticsOptIn = settingsState.dataControls.analyticsOptIn;
+  const setAnalyticsOptIn = (value: boolean) => settingsActions.updateDataControls({ analyticsOptIn: value });
+  const crashReportsOptIn = settingsState.dataControls.crashReportsOptIn;
+  const setCrashReportsOptIn = (value: boolean) =>
+    settingsActions.updateDataControls({ crashReportsOptIn: value });
+  const wifiOnlySync = settingsState.dataControls.wifiOnlySync;
+  const setWifiOnlySync = (value: boolean) => settingsActions.updateDataControls({ wifiOnlySync: value });
+  const autoUploadAttachments = settingsState.dataControls.autoUploadAttachments;
+  const setAutoUploadAttachments = (value: boolean) =>
+    settingsActions.updateDataControls({ autoUploadAttachments: value });
+  const mediaCompression = settingsState.dataControls.mediaCompression;
+  const setMediaCompression = (value: typeof settingsState.dataControls.mediaCompression) =>
+    settingsActions.updateDataControls({ mediaCompression: value });
   const [nomeAutomaticoConversas, setNomeAutomaticoConversas] = useState(true);
   const [fixarConversas, setFixarConversas] = useState(true);
-  const [entradaPorVoz, setEntradaPorVoz] = useState(false);
-  const [respostaPorVoz, setRespostaPorVoz] = useState(false);
-  const [uploadArquivosAtivo, setUploadArquivosAtivo] = useState(true);
-  const [economiaDados, setEconomiaDados] = useState(false);
-  const [usoBateria, setUsoBateria] = useState<(typeof BATTERY_OPTIONS)[number]>("Otimizado");
-  const [idiomaApp, setIdiomaApp] = useState<(typeof APP_LANGUAGE_OPTIONS)[number]>("Português");
-  const [regiaoApp, setRegiaoApp] = useState<(typeof REGION_OPTIONS)[number]>("Brasil");
+  const speechEnabled = settingsState.speech.enabled;
+  const setSpeechEnabled = (value: boolean) =>
+    settingsActions.updateSpeech({
+      enabled: value,
+      autoTranscribe: value ? settingsState.speech.autoTranscribe : false,
+      autoReadResponses: value ? settingsState.speech.autoReadResponses : false,
+    });
+  const entradaPorVoz = settingsState.speech.autoTranscribe;
+  const setEntradaPorVoz = (value: boolean) =>
+    settingsActions.updateSpeech({
+      autoTranscribe: value,
+      enabled: value || settingsState.speech.autoReadResponses,
+    });
+  const respostaPorVoz = settingsState.speech.autoReadResponses;
+  const setRespostaPorVoz = (value: boolean) =>
+    settingsActions.updateSpeech({
+      autoReadResponses: value,
+      enabled: value || settingsState.speech.autoTranscribe,
+    });
+  const voiceLanguage = settingsState.speech.voiceLanguage;
+  const setVoiceLanguage = (value: typeof settingsState.speech.voiceLanguage) =>
+    settingsActions.updateSpeech({ voiceLanguage: value });
+  const speechRate = settingsState.speech.speechRate;
+  const setSpeechRate = (value: number) => settingsActions.updateSpeech({ speechRate: value });
+  const preferredVoiceId = settingsState.speech.voiceId;
+  const setPreferredVoiceId = (value: string) => settingsActions.updateSpeech({ voiceId: value });
+  const uploadArquivosAtivo = settingsState.attachments.enabled;
+  const setUploadArquivosAtivo = (value: boolean) => settingsActions.updateAttachments({ enabled: value });
+  const economiaDados = settingsState.system.dataSaver;
+  const setEconomiaDados = (value: boolean) => settingsActions.updateSystem({ dataSaver: value });
+  const usoBateria = settingsState.system.batteryMode;
+  const setUsoBateria = (value: (typeof BATTERY_OPTIONS)[number]) =>
+    settingsActions.updateSystem({ batteryMode: value });
+  const idiomaApp = settingsState.system.language;
+  const setIdiomaApp = (value: (typeof APP_LANGUAGE_OPTIONS)[number]) =>
+    settingsActions.updateSystem({ language: value });
+  const regiaoApp = settingsState.system.region;
+  const setRegiaoApp = (value: (typeof REGION_OPTIONS)[number]) =>
+    settingsActions.updateSystem({ region: value });
   const [provedoresConectados, setProvedoresConectados] = useState<ConnectedProvider[]>(() =>
     criarProvedoresConectadosPadrao(),
   );
@@ -1859,11 +2028,20 @@ export function InspectorMobileApp() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [twoFactorMethod, setTwoFactorMethod] = useState<(typeof TWO_FACTOR_METHOD_OPTIONS)[number]>("App autenticador");
   const [recoveryCodesEnabled, setRecoveryCodesEnabled] = useState(true);
-  const [deviceBiometricsEnabled, setDeviceBiometricsEnabled] = useState(true);
-  const [requireAuthOnOpen, setRequireAuthOnOpen] = useState(true);
-  const [hideInMultitask, setHideInMultitask] = useState(true);
-  const [lockTimeout, setLockTimeout] = useState<(typeof LOCK_TIMEOUT_OPTIONS)[number]>("1 minuto");
-  const [retencaoDados, setRetencaoDados] = useState<(typeof DATA_RETENTION_OPTIONS)[number]>("90 dias");
+  const biometriaLocalSuportada = false;
+  const deviceBiometricsEnabled = biometriaLocalSuportada && settingsState.security.deviceBiometricsEnabled;
+  const setDeviceBiometricsEnabled = (value: boolean) =>
+    settingsActions.updateSecurity({ deviceBiometricsEnabled: value });
+  const requireAuthOnOpen = settingsState.security.requireAuthOnOpen;
+  const setRequireAuthOnOpen = (value: boolean) => settingsActions.updateSecurity({ requireAuthOnOpen: value });
+  const hideInMultitask = settingsState.security.hideInMultitask;
+  const setHideInMultitask = (value: boolean) => settingsActions.updateSecurity({ hideInMultitask: value });
+  const lockTimeout = settingsState.security.lockTimeout;
+  const setLockTimeout = (value: (typeof LOCK_TIMEOUT_OPTIONS)[number]) =>
+    settingsActions.updateSecurity({ lockTimeout: value });
+  const retencaoDados = settingsState.dataControls.retention;
+  const setRetencaoDados = (value: (typeof DATA_RETENTION_OPTIONS)[number]) =>
+    settingsActions.updateDataControls({ retention: value });
   const [codigo2FA, setCodigo2FA] = useState("");
   const [codigosRecuperacao, setCodigosRecuperacao] = useState<string[]>([]);
   const [reautenticacaoStatus, setReautenticacaoStatus] = useState("Não confirmada");
@@ -1896,9 +2074,15 @@ export function InspectorMobileApp() {
       critical: true,
     },
   ]);
-  const [mostrarConteudoNotificacao, setMostrarConteudoNotificacao] = useState(false);
-  const [ocultarConteudoBloqueado, setOcultarConteudoBloqueado] = useState(true);
-  const [mostrarSomenteNovaMensagem, setMostrarSomenteNovaMensagem] = useState(true);
+  const mostrarConteudoNotificacao = settingsState.notifications.showMessageContent;
+  const setMostrarConteudoNotificacao = (value: boolean) =>
+    settingsActions.updateNotifications({ showMessageContent: value });
+  const ocultarConteudoBloqueado = settingsState.notifications.hideContentOnLockScreen;
+  const setOcultarConteudoBloqueado = (value: boolean) =>
+    settingsActions.updateNotifications({ hideContentOnLockScreen: value });
+  const mostrarSomenteNovaMensagem = settingsState.notifications.onlyShowNewMessage;
+  const setMostrarSomenteNovaMensagem = (value: boolean) =>
+    settingsActions.updateNotifications({ onlyShowNewMessage: value });
   const [buscaAjuda, setBuscaAjuda] = useState("");
   const [artigoAjudaExpandidoId, setArtigoAjudaExpandidoId] = useState<string>(HELP_CENTER_ARTICLES[0]?.id ?? "");
   const [filaSuporteLocal, setFilaSuporteLocal] = useState<SupportQueueItem[]>([]);
@@ -1919,11 +2103,23 @@ export function InspectorMobileApp() {
   const [confirmSheet, setConfirmSheet] = useState<ConfirmSheetState | null>(null);
   const [confirmTextDraft, setConfirmTextDraft] = useState("");
   const [bloqueioAppAtivo, setBloqueioAppAtivo] = useState(false);
-  const [microfonePermitido, setMicrofonePermitido] = useState(true);
-  const [cameraPermitida, setCameraPermitida] = useState(true);
-  const [arquivosPermitidos, setArquivosPermitidos] = useState(true);
-  const [notificacoesPermitidas, setNotificacoesPermitidas] = useState(true);
-  const [biometriaPermitida, setBiometriaPermitida] = useState(true);
+  const microfonePermitido = settingsState.security.microphonePermission;
+  const setMicrofonePermitido = (value: boolean) => settingsActions.updateSecurity({ microphonePermission: value });
+  const cameraPermitida = settingsState.security.cameraPermission;
+  const setCameraPermitida = (value: boolean) => settingsActions.updateSecurity({ cameraPermission: value });
+  const arquivosPermitidos = settingsState.security.filesPermission;
+  const setArquivosPermitidos = (value: boolean) => settingsActions.updateSecurity({ filesPermission: value });
+  const notificacoesPermitidas = settingsState.security.notificationsPermission;
+  const setNotificacoesPermitidas = (value: boolean) =>
+    settingsActions.updateSecurity({ notificationsPermission: value });
+  const biometriaPermitida = settingsState.security.biometricsPermission;
+  const setBiometriaPermitida = (value: boolean) =>
+    settingsActions.updateSecurity({ biometricsPermission: value });
+  const attachmentHandlingPolicy = useMemo(
+    () => buildAttachmentHandlingPolicy(settingsState),
+    [settingsState],
+  );
+  const aiRequestConfig = useMemo(() => buildChatAiRequestConfig(settingsState.ai), [settingsState.ai]);
   const scrollRef = useRef<ScrollView | null>(null);
   const emailInputRef = useRef<TextInput | null>(null);
   const senhaInputRef = useRef<TextInput | null>(null);
@@ -1941,7 +2137,9 @@ export function InspectorMobileApp() {
   const drawerOverlayOpacity = useRef(new Animated.Value(0)).current;
   const historicoAbertoRef = useRef(false);
   const configuracoesAbertaRef = useRef(false);
+  const keyboardAbertoRef = useRef(false);
   const settingsNavigationHistoryRef = useRef<SettingsNavigationState[]>([]);
+  const aiBehaviorByThreadRef = useRef<Record<string, string>>({});
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const backgroundAtRef = useRef<number | null>(null);
   const colorScheme = useColorScheme();
@@ -1961,6 +2159,69 @@ export function InspectorMobileApp() {
       id: referenciaId,
       texto: resumoMensagemAtividade(mensagemAtual.texto, `Mensagem #${referenciaId}`),
     });
+  }
+
+  async function atualizarPermissoesDoSistema() {
+    const snapshot = await readDevicePermissionSnapshot();
+    setMicrofonePermitido(snapshot.microphone);
+    setCameraPermitida(snapshot.camera);
+    setArquivosPermitidos(snapshot.files);
+    setNotificacoesPermitidas(snapshot.notifications);
+    setBiometriaPermitida(snapshot.biometrics);
+  }
+
+  function handleAbrirPermissaoNotificacoes() {
+    void handleGerenciarPermissao("Notificações", notificacoesPermitidas ? "permitido" : "negado");
+  }
+
+  function handleAbrirAjudaDitado() {
+    Alert.alert("Ditado no composer", buildVoiceInputUnavailableMessage(voiceLanguage), [
+      { text: "Fechar", style: "cancel" },
+      {
+        text: "Abrir ajustes",
+        onPress: () => {
+          void Linking.openSettings();
+        },
+      },
+    ]);
+  }
+
+  function onCyclePreferredVoice() {
+    const voices = voiceRuntimeState.voices;
+    if (!voices.length) {
+      return;
+    }
+
+    const currentIndex = voices.findIndex((voice) => voice.identifier === preferredVoiceId);
+    const nextVoice = voices[(currentIndex + 1 + voices.length) % voices.length] || voices[0];
+    setPreferredVoiceId(nextVoice.identifier || "");
+  }
+
+  async function handleVoiceInputPress() {
+    if (!speechEnabled || !entradaPorVoz) {
+      Alert.alert("Entrada por voz desativada", "Ative a fala e a transcrição automática nas configurações.");
+      return;
+    }
+
+    const permitido = microfonePermitido || (await requestDevicePermission("microphone"));
+    setMicrofonePermitido(permitido);
+    if (!permitido) {
+      Alert.alert("Microfone bloqueado", "Conceda acesso ao microfone para usar recursos de voz.", [
+        { text: "Agora não", style: "cancel" },
+        {
+          text: "Abrir ajustes",
+          onPress: () => {
+            void Linking.openSettings();
+          },
+        },
+      ]);
+      return;
+    }
+
+    if (!voiceRuntimeState.sttSupported) {
+      handleAbrirAjudaDitado();
+      return;
+    }
   }
 
   function registrarLayoutMensagemChat(mensagemId: number | null, offsetY: number) {
@@ -1992,8 +2253,11 @@ export function InspectorMobileApp() {
   }
 
   useEffect(() => {
+    if (!settingsHydrated) {
+      return;
+    }
     void bootstrapApp();
-  }, []);
+  }, [settingsHydrated]);
 
   useEffect(() => {
     historicoAbertoRef.current = historicoAberto;
@@ -2004,18 +2268,15 @@ export function InspectorMobileApp() {
   }, [configuracoesAberta]);
 
   useEffect(() => {
+    keyboardAbertoRef.current = keyboardHeight > 0;
+  }, [keyboardHeight]);
+
+  useEffect(() => {
     if (!session) {
       return;
     }
 
-    const perfilSessao = mapearUsuarioParaPerfilConta(session.bootstrap.usuario);
-    setPerfilNome((estadoAtual) => estadoAtual || perfilSessao.nomeCompleto);
-    setPerfilExibicao((estadoAtual) => estadoAtual || perfilSessao.nomeExibicao || obterNomeCurto(perfilSessao.nomeCompleto || ""));
-    setEmailAtualConta((estadoAtual) => estadoAtual || perfilSessao.email || email);
-    setPerfilFotoUri((estadoAtual) => estadoAtual || perfilSessao.fotoPerfilUri);
-    if (perfilSessao.fotoPerfilUri) {
-      setPerfilFotoHint((estadoAtual) => estadoAtual || "Foto sincronizada com a conta");
-    }
+    settingsActions.updateWith((current) => mergeMobileUserIntoSettings(current, session.bootstrap.usuario));
     setProvedoresConectados((estadoAtual) =>
       estadoAtual.map((provider) =>
         provider.connected && !provider.email && session.bootstrap.usuario.email
@@ -2023,36 +2284,20 @@ export function InspectorMobileApp() {
           : provider,
       ),
     );
-  }, [email, session]);
+  }, [email, session, settingsActions]);
 
   const snapshotConfiguracoesCriticasAtuais = useMemo(
-    () => montarSnapshotConfiguracoesCriticasAtuais(),
-    [
-      arquivosPermitidos,
-      biometriaPermitida,
-      cameraPermitida,
-      compartilharMelhoriaIa,
-      emailsAtivos,
-      microfonePermitido,
-      modeloIa,
-      mostrarConteudoNotificacao,
-      mostrarSomenteNovaMensagem,
-      notificaPush,
-      notificaRespostas,
-      notificacoesPermitidas,
-      ocultarConteudoBloqueado,
-      retencaoDados,
-      salvarHistoricoConversas,
-      somNotificacao,
-      vibracaoAtiva,
-    ],
+    () => settingsToCriticalSnapshot(settingsState),
+    [settingsState],
   );
 
   useCriticalSettingsSync({
     accessToken: session?.accessToken,
     carregando,
     snapshotAtual: snapshotConfiguracoesCriticasAtuais,
-    aplicarSnapshot: aplicarSnapshotConfiguracoesCriticas,
+    aplicarSnapshot: (snapshot) => {
+      settingsActions.updateWith((current) => mergeCriticalSnapshotIntoSettings(current, snapshot));
+    },
     onLoadError: (error) => {
       console.warn("Falha ao carregar configuracoes criticas da conta no backend.", error);
     },
@@ -2060,6 +2305,53 @@ export function InspectorMobileApp() {
       console.warn("Falha ao sincronizar configuracoes criticas da conta no backend.", error);
     },
   });
+
+  useEffect(() => {
+    configureObservability({ analyticsOptIn });
+  }, [analyticsOptIn]);
+
+  useEffect(() => {
+    configureCrashReports({ enabled: crashReportsOptIn });
+  }, [crashReportsOptIn]);
+
+  useEffect(() => {
+    initializeNotificationsRuntime();
+  }, []);
+
+  useEffect(() => {
+    void syncNotificationChannels(settingsState.notifications);
+  }, [settingsState.notifications]);
+
+  useEffect(() => {
+    if (!settingsHydrated) {
+      return;
+    }
+    void atualizarPermissoesDoSistema();
+  }, [settingsHydrated]);
+
+  useEffect(() => {
+    let ativo = true;
+    void loadVoiceRuntimeState(voiceLanguage).then((runtime) => {
+      if (!ativo) {
+        return;
+      }
+      setVoiceRuntimeState(runtime);
+      if (preferredVoiceId && !runtime.voices.some((voice) => voice.identifier === preferredVoiceId)) {
+        setPreferredVoiceId("");
+      }
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [preferredVoiceId, voiceLanguage]);
+
+  useEffect(() => {
+    const threadKey = chaveCacheLaudo(conversa?.laudoId ?? null);
+    const previousSummary = aiBehaviorByThreadRef.current[threadKey] || "";
+    const nextSummary = aiRequestConfig.summaryLabel;
+    setChatAiBehaviorNotice(describeChatAiBehaviorChange(previousSummary, nextSummary));
+    aiBehaviorByThreadRef.current[threadKey] = nextSummary;
+  }, [aiRequestConfig.summaryLabel, conversa?.laudoId]);
 
   useEffect(() => {
     if (carregando) {
@@ -2074,6 +2366,16 @@ export function InspectorMobileApp() {
     }
     void salvarNotificacoesLocais(notificacoes);
   }, [carregando, notificacoes]);
+
+  useEffect(() => {
+    if (carregando) {
+      return;
+    }
+    void salvarEstadoHistoricoLocal({
+      laudosFixadosIds,
+      historicoOcultoIds,
+    });
+  }, [carregando, historicoOcultoIds, laudosFixadosIds]);
 
   useEffect(() => {
     if (carregando) {
@@ -2111,145 +2413,6 @@ export function InspectorMobileApp() {
       return limparCachePorPrivacidade(estadoAtual);
     });
   }, [carregando, salvarHistoricoConversas]);
-
-  useEffect(() => {
-    if (carregando) {
-      return;
-    }
-
-    void salvarPreferenciasLocais({
-      perfilNome,
-      perfilExibicao,
-      perfilFotoUri,
-      perfilFotoHint,
-      laudosFixadosIds,
-      historicoOcultoIds,
-      planoAtual,
-      cartaoAtual,
-      modeloIa,
-      estiloResposta,
-      idiomaResposta,
-      memoriaIa,
-      aprendizadoIa,
-      tomConversa,
-      temperaturaIa,
-      temaApp,
-      tamanhoFonte,
-      densidadeInterface,
-      corDestaque,
-      animacoesAtivas,
-      notificaRespostas,
-      notificaPush,
-      somNotificacao,
-      vibracaoAtiva,
-      emailsAtivos,
-      salvarHistoricoConversas,
-      compartilharMelhoriaIa,
-      backupAutomatico,
-      sincronizacaoDispositivos,
-      nomeAutomaticoConversas,
-      fixarConversas,
-      entradaPorVoz,
-      respostaPorVoz,
-      uploadArquivosAtivo,
-      economiaDados,
-      usoBateria,
-      idiomaApp,
-      regiaoApp,
-      provedoresConectados,
-      integracoesExternas,
-      sessoesAtivas,
-      twoFactorEnabled,
-      twoFactorMethod,
-      recoveryCodesEnabled,
-      deviceBiometricsEnabled,
-      requireAuthOnOpen,
-      hideInMultitask,
-      lockTimeout,
-      retencaoDados,
-      codigosRecuperacao,
-      reautenticacaoStatus,
-      reautenticacaoExpiraEm,
-      eventosSeguranca,
-      mostrarConteudoNotificacao,
-      ocultarConteudoBloqueado,
-      mostrarSomenteNovaMensagem,
-      microfonePermitido,
-      cameraPermitida,
-      arquivosPermitidos,
-      notificacoesPermitidas,
-      biometriaPermitida,
-      filaSuporteLocal,
-      ultimaVerificacaoAtualizacao,
-      statusAtualizacaoApp,
-    });
-  }, [
-    animacoesAtivas,
-    arquivosPermitidos,
-    aprendizadoIa,
-    backupAutomatico,
-    biometriaPermitida,
-    cameraPermitida,
-    carregando,
-    cartaoAtual,
-    codigosRecuperacao,
-    compartilharMelhoriaIa,
-    corDestaque,
-    densidadeInterface,
-    deviceBiometricsEnabled,
-    economiaDados,
-    emailsAtivos,
-    entradaPorVoz,
-    estiloResposta,
-    eventosSeguranca,
-    fixarConversas,
-    hideInMultitask,
-    idiomaApp,
-    idiomaResposta,
-    integracoesExternas,
-    lockTimeout,
-    memoriaIa,
-    microfonePermitido,
-    modeloIa,
-    mostrarConteudoNotificacao,
-    mostrarSomenteNovaMensagem,
-    nomeAutomaticoConversas,
-    notificaPush,
-    notificaRespostas,
-    notificacoesPermitidas,
-    ocultarConteudoBloqueado,
-    perfilExibicao,
-    perfilFotoUri,
-    perfilFotoHint,
-    perfilNome,
-    laudosFixadosIds,
-    historicoOcultoIds,
-    planoAtual,
-    provedoresConectados,
-    reautenticacaoExpiraEm,
-    reautenticacaoStatus,
-    recoveryCodesEnabled,
-    regiaoApp,
-    requireAuthOnOpen,
-    respostaPorVoz,
-    retencaoDados,
-    salvarHistoricoConversas,
-    sessoesAtivas,
-    sincronizacaoDispositivos,
-    somNotificacao,
-    tamanhoFonte,
-    temperaturaIa,
-    temaApp,
-    tomConversa,
-    twoFactorEnabled,
-    twoFactorMethod,
-    uploadArquivosAtivo,
-    usoBateria,
-    vibracaoAtiva,
-    filaSuporteLocal,
-    statusAtualizacaoApp,
-    ultimaVerificacaoAtualizacao,
-  ]);
 
   useEffect(() => {
     if (!reautenticacaoExpiraEm) {
@@ -2334,6 +2497,8 @@ export function InspectorMobileApp() {
       if (nextState !== "active" || estadoAtual === "active") {
         return;
       }
+
+      void atualizarPermissoesDoSistema();
 
       if (!requireAuthOnOpen) {
         setBloqueioAppAtivo(false);
@@ -2608,6 +2773,14 @@ export function InspectorMobileApp() {
   }, [keyboardHeight, session]);
 
   useEffect(() => {
+    if (keyboardHeight <= 0) {
+      return;
+    }
+
+    fecharPaineisLaterais();
+  }, [keyboardHeight]);
+
+  useEffect(() => {
     if (!session || statusApi !== "online" || !filaOffline.length || sincronizandoFilaOffline || !sincronizacaoDispositivos) {
       return;
     }
@@ -2687,6 +2860,9 @@ export function InspectorMobileApp() {
           if (!online || cancelado) {
             return;
           }
+          if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
+            return;
+          }
           setStatusApi("online");
           await handleRefresh();
         })();
@@ -2700,100 +2876,22 @@ export function InspectorMobileApp() {
       cancelado = true;
       clearInterval(intervalo);
     };
-  }, [conversa?.laudoId, economiaDados, session, sincronizacaoDispositivos, statusApi, usoBateria]);
+  }, [conversa?.laudoId, economiaDados, session, sincronizacaoDispositivos, statusApi, usoBateria, wifiOnlySync]);
 
   async function bootstrapApp() {
     setCarregando(true);
     setErro("");
     await runBootstrapAppFlow({
-      applyLocalPreferences: (preferenciasLocais) => {
-        applyLocalPreferencesFromStorage(preferenciasLocais, {
-          ehOpcaoValida,
-          formatarStatusReautenticacao,
-          normalizarEventoSeguranca,
-          normalizarIntegracaoExterna,
-          normalizarItemSuporte,
-          normalizarProviderConectado,
-          normalizarSessaoAtiva,
-          reautenticacaoAindaValida,
-          reconciliarIntegracoesExternas,
-          setAnimacoesAtivas,
-          setAprendizadoIa,
-          setArquivosPermitidos,
-          setBackupAutomatico,
-          setBiometriaPermitida,
-          setBugAttachmentDraft,
-          setCameraPermitida,
-          setCartaoAtual,
-          setCodigosRecuperacao,
-          setCompartilharMelhoriaIa,
-          setCorDestaque,
-          setDensidadeInterface,
-          setDeviceBiometricsEnabled,
-          setEconomiaDados,
-          setEmailAtualConta,
-          setEmailsAtivos,
-          setEntradaPorVoz,
-          setEstiloResposta,
-          setEventosSeguranca,
-          setFilaSuporteLocal,
-          setFixarConversas,
-          setHideInMultitask,
-          setHistoricoOcultoIds,
-          setIdiomaApp,
-          setIdiomaResposta,
-          setIntegracoesExternas,
-          setLaudosFixadosIds,
-          setLockTimeout,
-          setMemoriaIa,
-          setMicrofonePermitido,
-          setModeloIa,
-          setMostrarConteudoNotificacao,
-          setMostrarSomenteNovaMensagem,
-          setNomeAutomaticoConversas,
-          setNotificaPush,
-          setNotificaRespostas,
-          setNotificacoesPermitidas,
-          setNovaSenhaDraft,
-          setOcultarConteudoBloqueado,
-          setPerfilExibicao,
-          setPerfilFotoHint,
-          setPerfilFotoUri,
-          setPerfilNome,
-          setPlanoAtual,
-          setProvedoresConectados,
-          setReautenticacaoExpiraEm,
-          setReautenticacaoStatus,
-          setRecoveryCodesEnabled,
-          setRegiaoApp,
-          setRequireAuthOnOpen,
-          setRespostaPorVoz,
-          setRetencaoDados,
-          setSalvaHistoricoConversas: setSalvarHistoricoConversas,
-          setSessoesAtivas,
-          setSincronizacaoDispositivos,
-          setSomNotificacao,
-          setStatusAtualizacaoApp,
-          setTamanhoFonte,
-          setTemperaturaIa,
-          setTemaApp,
-          setTomConversa,
-          setTwoFactorEnabled,
-          setTwoFactorMethod,
-          setUltimaVerificacaoAtualizacao,
-          setUploadArquivosAtivo,
-          setUsoBateria,
-          setVibracaoAtiva,
-        });
-      },
       aplicarPreferenciasLaudos,
       carregarBootstrapMobile,
       chaveCacheLaudo,
+      chatHistoryEnabled: settingsState.dataControls.chatHistoryEnabled,
+      deviceBackupEnabled: settingsState.dataControls.deviceBackupEnabled,
       erroSugereModoOffline,
       lerCacheLeituraLocal,
+      lerEstadoHistoricoLocal,
       lerFilaOfflineLocal,
       lerNotificacoesLocais,
-      lerPreferenciasLocais,
       limparCachePorPrivacidade,
       obterItemSeguro,
       pingApi,
@@ -2808,6 +2906,8 @@ export function InspectorMobileApp() {
       onSetFilaOffline: setFilaOffline,
       onSetNotificacoes: setNotificacoes,
       onSetCacheLeitura: setCacheLeitura,
+      onSetLaudosFixadosIds: setLaudosFixadosIds,
+      onSetHistoricoOcultoIds: setHistoricoOcultoIds,
       onMergeCacheBootstrap: (bootstrap) => {
         setUsandoCacheOffline(false);
         setCacheLeitura((estadoAtual) => ({
@@ -2870,22 +2970,56 @@ export function InspectorMobileApp() {
   }
 
   async function handleRefresh() {
-    const online = await pingApi();
-    setStatusApi(online ? "online" : "offline");
+    setSincronizandoAgora(true);
+    try {
+      const online = await pingApi();
+      setStatusApi(online ? "online" : "offline");
 
-    if (session) {
-      if (online && sincronizacaoDispositivos && filaOffline.some((item) => pendenciaFilaProntaParaReenvio(item))) {
-        await sincronizarFilaOffline(session.accessToken, true);
+      if (session) {
+        if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
+          const mensagem = "Sincronização limitada ao Wi-Fi nas configurações de dados.";
+          setErroConversa(mensagem);
+          setErroMesa(mensagem);
+          registrarNotificacoes([
+            criarNotificacaoSistema({
+              title: "Sincronização aguardando Wi-Fi",
+              body: mensagem,
+            }),
+          ]);
+          return;
+        }
+        if (online && sincronizacaoDispositivos && filaOffline.some((item) => pendenciaFilaProntaParaReenvio(item))) {
+          await sincronizarFilaOffline(session.accessToken, true);
+        }
+        await carregarListaLaudos(session.accessToken, true);
+        const proximaConversa = await carregarConversaAtual(session.accessToken, true);
+        const laudoAtual = proximaConversa?.laudoId ?? conversa?.laudoId ?? null;
+        if (abaAtiva === "mesa" && laudoAtual) {
+          await carregarMesaAtual(session.accessToken, laudoAtual, true);
+        }
+        if (online) {
+          setUsandoCacheOffline(false);
+        }
+        registrarNotificacoes([
+          criarNotificacaoSistema({
+            title: "Sincronização concluída",
+            body: "Os dados locais foram atualizados com sucesso.",
+          }),
+        ]);
       }
-      await carregarListaLaudos(session.accessToken, true);
-      const proximaConversa = await carregarConversaAtual(session.accessToken, true);
-      const laudoAtual = proximaConversa?.laudoId ?? conversa?.laudoId ?? null;
-      if (abaAtiva === "mesa" && laudoAtual) {
-        await carregarMesaAtual(session.accessToken, laudoAtual, true);
-      }
-      if (online) {
-        setUsandoCacheOffline(false);
-      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível sincronizar agora.";
+      setErroConversa(message);
+      setErroMesa(message);
+      registrarNotificacoes([
+        criarNotificacaoSistema({
+          kind: "alerta_critico",
+          title: "Falha ao sincronizar",
+          body: message,
+        }),
+      ]);
+    } finally {
+      setSincronizandoAgora(false);
     }
   }
 
@@ -2919,6 +3053,21 @@ export function InspectorMobileApp() {
       setBugAttachmentDraft(null);
       setIntegracaoSincronizandoId("");
       setBloqueioAppAtivo(false);
+      setSettingsSheet(null);
+      setSettingsSheetLoading(false);
+      setSettingsSheetNotice("");
+      setConfirmSheet(null);
+      setConfirmTextDraft("");
+      setSenhaAtualDraft("");
+      setNovaSenhaDraft("");
+      setConfirmarSenhaDraft("");
+      setNomeCompletoDraft("");
+      setNomeExibicaoDraft("");
+      setTelefoneDraft("");
+      setNovoEmailDraft("");
+      setReautenticacaoExpiraEm("");
+      setReautenticacaoStatus("Não confirmada");
+      pendingSensitiveActionRef.current = null;
     }
   }
 
@@ -2928,6 +3077,7 @@ export function InspectorMobileApp() {
       FileSystem.deleteAsync(OFFLINE_QUEUE_FILE, { idempotent: true }),
       FileSystem.deleteAsync(NOTIFICATIONS_FILE, { idempotent: true }),
       FileSystem.deleteAsync(READ_CACHE_FILE, { idempotent: true }),
+      FileSystem.deleteAsync(HISTORY_UI_STATE_FILE, { idempotent: true }),
       FileSystem.deleteAsync(APP_PREFERENCES_FILE, { idempotent: true }),
     ]);
   }
@@ -2939,6 +3089,9 @@ export function InspectorMobileApp() {
     setPerfilFotoUri("");
     setPerfilFotoHint("Toque para atualizar");
     setEmailAtualConta("");
+    setNomeCompletoDraft("");
+    setNomeExibicaoDraft("");
+    setTelefoneDraft("");
     setNovoEmailDraft("");
     setSenhaAtualDraft("");
     setNovaSenhaDraft("");
@@ -2959,6 +3112,10 @@ export function InspectorMobileApp() {
     setAnimacoesAtivas(true);
     setNotificaRespostas(true);
     setNotificaPush(true);
+    setChatCategoryEnabled(true);
+    setMesaCategoryEnabled(true);
+    setSystemCategoryEnabled(true);
+    setCriticalAlertsEnabled(true);
     setSomNotificacao("Ping");
     setVibracaoAtiva(true);
     setEmailsAtivos(false);
@@ -2970,6 +3127,9 @@ export function InspectorMobileApp() {
     setFixarConversas(true);
     setEntradaPorVoz(false);
     setRespostaPorVoz(false);
+    setVoiceLanguage("Sistema");
+    setSpeechRate(1);
+    setPreferredVoiceId("");
     setUploadArquivosAtivo(true);
     setEconomiaDados(false);
     setUsoBateria("Otimizado");
@@ -2983,11 +3143,13 @@ export function InspectorMobileApp() {
     setTwoFactorEnabled(false);
     setTwoFactorMethod("App autenticador");
     setRecoveryCodesEnabled(true);
-    setDeviceBiometricsEnabled(true);
+    setDeviceBiometricsEnabled(false);
     setRequireAuthOnOpen(true);
     setHideInMultitask(true);
     setLockTimeout("1 minuto");
     setRetencaoDados("90 dias");
+    setAutoUploadAttachments(true);
+    setMediaCompression("equilibrada");
     setCodigosRecuperacao([]);
     setCodigo2FA("");
     setReautenticacaoExpiraEm("");
@@ -3184,6 +3346,16 @@ export function InspectorMobileApp() {
     setAnexoAbrindoChave(key);
 
     try {
+      const gateDownload = await gateHeavyTransfer({
+        wifiOnlySync,
+        requiresHeavyTransfer: attachmentHandlingPolicy.disableAggressiveDownloads,
+        blockedMessage: "O download deste anexo aguarda Wi-Fi por causa da economia de dados ativa.",
+      });
+      if (!gateDownload.allowed) {
+        Alert.alert("Anexo", gateDownload.reason || "Esse anexo precisa de uma rede adequada para abrir.");
+        return;
+      }
+
       const baseDir = `${FileSystem.cacheDirectory || ""}tariel-anexos`;
       await FileSystem.makeDirectoryAsync(baseDir, { intermediates: true });
 
@@ -3335,13 +3507,13 @@ export function InspectorMobileApp() {
     }
 
     const resposta = await enviarMensagemChatMobile(accessToken, {
-      mensagem: item.text,
+      mensagem: item.aiMessagePrefix ? `${item.aiMessagePrefix}\n\n${item.text}`.trim() : item.text,
       dadosImagem,
       setor: conversa?.laudoId && conversa.laudoId === laudoIdAtual ? inferirSetorConversa(conversa) : "geral",
       textoDocumento,
       nomeDocumento,
       laudoId: laudoIdAtual,
-      modo: normalizarModoChat(conversa?.modo),
+      modo: normalizarModoChat(item.aiMode || conversa?.modo),
       historico:
         conversa?.laudoId && conversa.laudoId === laudoIdAtual
           ? montarHistoricoParaEnvio(conversa.mensagens)
@@ -3352,6 +3524,12 @@ export function InspectorMobileApp() {
 
   async function sincronizarItemFilaOffline(item: OfflinePendingMessage) {
     if (!session || sincronizandoFilaOffline || sincronizandoItemFilaId) {
+      return;
+    }
+    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
+      const mensagem = "Ative Wi-Fi para sincronizar a fila offline neste dispositivo.";
+      setErroConversa(mensagem);
+      setErroMesa(mensagem);
       return;
     }
     if (!sincronizacaoDispositivos) {
@@ -3420,6 +3598,14 @@ export function InspectorMobileApp() {
 
   async function sincronizarFilaOffline(accessToken: string, silencioso = false) {
     if (!filaOffline.length || sincronizandoFilaOffline) {
+      return;
+    }
+    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
+      if (!silencioso) {
+        const mensagem = "A fila offline só sincroniza em Wi-Fi porque esse controle está ativo.";
+        setErroConversa(mensagem);
+        setErroMesa(mensagem);
+      }
       return;
     }
     if (!sincronizacaoDispositivos) {
@@ -3521,37 +3707,19 @@ export function InspectorMobileApp() {
       return;
     }
 
-    if (!notificacoesPermitidas || !notificaPush) {
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_dispatch_blocked",
-        ok: false,
-        count: novas.length,
-        detail: !notificacoesPermitidas ? "permission_denied" : "push_disabled",
-      });
-      return;
-    }
-
-    const novasFiltradas = notificaRespostas
-      ? novas
-      : novas.filter((item) => item.kind === "status");
-    if (!novasFiltradas.length) {
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_dispatch_filtered",
-        ok: true,
-        count: novas.length,
-        detail: "responses_disabled",
-      });
-      return;
-    }
-
-    const novasNormalizadas = novasFiltradas.map((item) => {
+    const novasNormalizadas = novas.map((item) => {
       let body = item.body;
       if (mostrarSomenteNovaMensagem) {
         body = "Nova mensagem";
       } else if (!mostrarConteudoNotificacao || ocultarConteudoBloqueado) {
-        body = item.kind === "status" ? "Há uma atualização no laudo." : "Há uma nova interação na conversa.";
+        body =
+          item.kind === "status"
+            ? "Há uma atualização no laudo."
+            : item.kind === "system"
+              ? "Há uma atualização no aplicativo."
+              : item.kind === "alerta_critico"
+                ? "Há um alerta crítico no aplicativo."
+                : "Há uma nova interação na conversa.";
       }
 
       return {
@@ -3559,6 +3727,8 @@ export function InspectorMobileApp() {
         body,
       };
     });
+    const idsExistentes = new Set(notificacoes.map((item) => item.id));
+    const novasUnicas = novasNormalizadas.filter((item) => !idsExistentes.has(item.id));
 
     setNotificacoes((estadoAtual) => {
       const mapa = new Map(estadoAtual.map((item) => [item.id, item]));
@@ -3572,11 +3742,51 @@ export function InspectorMobileApp() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, MAX_NOTIFICATIONS);
     });
+
+    const novasParaPush = (notificaRespostas
+      ? novasUnicas
+      : novasUnicas.filter(
+          (item) => item.kind === "status" || item.kind === "system" || item.kind === "alerta_critico",
+        ));
+
+    if (!notificacoesPermitidas || !notificaPush) {
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_dispatch_blocked",
+        ok: false,
+        count: novasParaPush.length,
+        detail: !notificacoesPermitidas ? "permission_denied" : "push_disabled",
+      });
+      return;
+    }
+
+    if (!novasParaPush.length) {
+      void registrarEventoObservabilidade({
+        kind: "push",
+        name: "push_dispatch_filtered",
+        ok: true,
+        count: novas.length,
+        detail: "responses_disabled",
+      });
+      return;
+    }
+
+    if (vibracaoAtiva) {
+      Vibration.vibrate(18);
+    }
+    void Promise.all(
+      novasParaPush.map((notification) =>
+        scheduleLocalActivityNotification({
+          notification,
+          settings: settingsState.notifications,
+        }),
+      ),
+    );
     void registrarEventoObservabilidade({
       kind: "push",
       name: "push_dispatch",
       ok: true,
-      count: novasNormalizadas.length,
+      count: novasParaPush.length,
       detail: mostrarSomenteNovaMensagem ? "preview_hidden" : "preview_visible",
     });
   }
@@ -3731,7 +3941,11 @@ export function InspectorMobileApp() {
     marcarCentralAtividadeComoLida();
   }
 
-  function handleAbrirConfiguracoes() {
+function handleAbrirConfiguracoes() {
+    if (keyboardHeight > 0) {
+      Keyboard.dismiss();
+      return;
+    }
     if (configuracoesAberta || configuracoesAbertaRef.current) {
       fecharConfiguracoes();
       return;
@@ -3849,14 +4063,26 @@ export function InspectorMobileApp() {
     abrirFluxoReautenticacao(motivo, onSuccess);
   }
 
+  function aplicarPerfilLocalNoEstado(payload: {
+    nomeCompleto: string;
+    nomeExibicao: string;
+    telefone: string;
+  }) {
+    setPerfilNome(payload.nomeCompleto);
+    setPerfilExibicao(payload.nomeExibicao);
+    settingsActions.updateAccount({ phone: payload.telefone });
+  }
+
   function aplicarPerfilSincronizadoNoEstado(perfil: PerfilContaSincronizado) {
+    const fotoComCacheInvalido = perfil.fotoPerfilUri ? invalidarCacheImagemUri(perfil.fotoPerfilUri) : "";
     setPerfilNome(perfil.nomeCompleto);
     if (perfil.nomeExibicao) {
-      setPerfilExibicao((estadoAtual) => estadoAtual || perfil.nomeExibicao);
+      setPerfilExibicao(perfil.nomeExibicao);
     }
     setEmailAtualConta(perfil.email);
-    if (perfil.fotoPerfilUri) {
-      setPerfilFotoUri(perfil.fotoPerfilUri);
+    settingsActions.updateAccount({ phone: perfil.telefone });
+    if (fotoComCacheInvalido) {
+      setPerfilFotoUri(fotoComCacheInvalido);
       setPerfilFotoHint("Foto sincronizada com a conta");
     }
     setSession((estadoAtual) => {
@@ -3872,7 +4098,7 @@ export function InspectorMobileApp() {
             nome_completo: perfil.nomeCompleto,
             email: perfil.email,
             telefone: perfil.telefone,
-            foto_perfil_url: perfil.fotoPerfilUri,
+            foto_perfil_url: fotoComCacheInvalido || perfil.fotoPerfilUri,
           },
         },
       };
@@ -3887,64 +4113,6 @@ export function InspectorMobileApp() {
           : provider,
       ),
     );
-  }
-
-  function montarSnapshotConfiguracoesCriticasAtuais(): CriticalSettingsSnapshot {
-    return {
-      notificacoes: {
-        notificaRespostas: notificaRespostas,
-        notificaPush: notificaPush,
-        somNotificacao: somNotificacao,
-        vibracaoAtiva: vibracaoAtiva,
-        emailsAtivos: emailsAtivos,
-      },
-      privacidade: {
-        mostrarConteudoNotificacao: mostrarConteudoNotificacao,
-        ocultarConteudoBloqueado: ocultarConteudoBloqueado,
-        mostrarSomenteNovaMensagem: mostrarSomenteNovaMensagem,
-        salvarHistoricoConversas: salvarHistoricoConversas,
-        compartilharMelhoriaIa: compartilharMelhoriaIa,
-        retencaoDados: retencaoDados,
-      },
-      permissoes: {
-        microfonePermitido: microfonePermitido,
-        cameraPermitida: cameraPermitida,
-        arquivosPermitidos: arquivosPermitidos,
-        notificacoesPermitidas: notificacoesPermitidas,
-        biometriaPermitida: biometriaPermitida,
-      },
-      experienciaIa: {
-        modeloIa: modeloIa,
-      },
-    };
-  }
-
-  function aplicarSnapshotConfiguracoesCriticas(snapshot: CriticalSettingsSnapshot) {
-    setNotificaRespostas(snapshot.notificacoes.notificaRespostas);
-    setNotificaPush(snapshot.notificacoes.notificaPush);
-    if (ehOpcaoValida(snapshot.notificacoes.somNotificacao, NOTIFICATION_SOUND_OPTIONS)) {
-      setSomNotificacao(snapshot.notificacoes.somNotificacao);
-    }
-    setVibracaoAtiva(snapshot.notificacoes.vibracaoAtiva);
-    setEmailsAtivos(snapshot.notificacoes.emailsAtivos);
-
-    setMostrarConteudoNotificacao(snapshot.privacidade.mostrarConteudoNotificacao);
-    setOcultarConteudoBloqueado(snapshot.privacidade.ocultarConteudoBloqueado);
-    setMostrarSomenteNovaMensagem(snapshot.privacidade.mostrarSomenteNovaMensagem);
-    setSalvarHistoricoConversas(snapshot.privacidade.salvarHistoricoConversas);
-    setCompartilharMelhoriaIa(snapshot.privacidade.compartilharMelhoriaIa);
-    if (ehOpcaoValida(snapshot.privacidade.retencaoDados, DATA_RETENTION_OPTIONS)) {
-      setRetencaoDados(snapshot.privacidade.retencaoDados);
-    }
-
-    setMicrofonePermitido(snapshot.permissoes.microfonePermitido);
-    setCameraPermitida(snapshot.permissoes.cameraPermitida);
-    setArquivosPermitidos(snapshot.permissoes.arquivosPermitidos);
-    setNotificacoesPermitidas(snapshot.permissoes.notificacoesPermitidas);
-    setBiometriaPermitida(snapshot.permissoes.biometriaPermitida);
-    if (ehOpcaoValida(snapshot.experienciaIa.modeloIa, AI_MODEL_OPTIONS)) {
-      setModeloIa(snapshot.experienciaIa.modeloIa);
-    }
   }
 
   async function handleConfirmarSettingsSheet() {
@@ -4005,29 +4173,48 @@ export function InspectorMobileApp() {
           }
 
           const asset = resultado.assets[0];
-          setPerfilFotoUri(asset.uri);
-          setPerfilFotoHint("Foto atualizada neste dispositivo");
-          if (session) {
-            try {
-              const nomeArquivo =
-                typeof asset.fileName === "string" && asset.fileName.trim()
-                  ? asset.fileName.trim()
-                  : `perfil-${Date.now()}.jpg`;
-              const perfilSincronizado = await enviarFotoPerfilNoBackend(session.accessToken, {
-                uri: asset.uri,
-                nome: nomeArquivo,
-                mimeType: typeof asset.mimeType === "string" && asset.mimeType.trim() ? asset.mimeType : "image/jpeg",
-              });
-              aplicarPerfilSincronizadoNoEstado(perfilSincronizado);
-              notificarConfiguracaoConcluida("Foto atualizada e sincronizada com a conta.");
-            } catch (error) {
-              notificarConfiguracaoConcluida(
-                `Foto aplicada localmente. Falha ao sincronizar no backend: ${error instanceof Error ? error.message : "indisponível agora."}`,
-              );
-            }
-            break;
+          const mimeType =
+            typeof asset.mimeType === "string" && asset.mimeType.trim() ? asset.mimeType.trim() : "image/jpeg";
+          if (!mimeType.startsWith("image/")) {
+            setSettingsSheetLoading(false);
+            setSettingsSheetNotice("Escolha um arquivo de imagem válido para a foto de perfil.");
+            return;
           }
-          notificarConfiguracaoConcluida("Foto aplicada localmente ao perfil do inspetor.");
+          if (typeof asset.fileSize === "number" && asset.fileSize > 5 * 1024 * 1024) {
+            setSettingsSheetLoading(false);
+            setSettingsSheetNotice("A foto de perfil precisa ter no máximo 5 MB.");
+            return;
+          }
+          if (!session) {
+            setSettingsSheetLoading(false);
+            setSettingsSheetNotice("A sessão atual não permite enviar a foto de perfil agora.");
+            return;
+          }
+
+          const nomeArquivo =
+            typeof asset.fileName === "string" && asset.fileName.trim()
+              ? asset.fileName.trim()
+              : `perfil-${Date.now()}.jpg`;
+          const fotoAnterior = perfilFotoUri;
+          const hintAnterior = perfilFotoHint;
+
+          try {
+            const perfilSincronizado = await enviarFotoPerfilNoBackend(session.accessToken, {
+              uri: asset.uri,
+              nome: nomeArquivo,
+              mimeType,
+            });
+            aplicarPerfilSincronizadoNoEstado(perfilSincronizado);
+            notificarConfiguracaoConcluida("Foto atualizada e sincronizada com a conta.");
+          } catch (error) {
+            setPerfilFotoUri(fotoAnterior);
+            setPerfilFotoHint(hintAnterior);
+            setSettingsSheetLoading(false);
+            setSettingsSheetNotice(
+              error instanceof Error ? error.message : "Não foi possível atualizar a foto agora.",
+            );
+            return;
+          }
         } catch (error) {
           setSettingsSheetLoading(false);
           setSettingsSheetNotice(
@@ -4038,6 +4225,21 @@ export function InspectorMobileApp() {
         break;
       default: {
         const delegatedResult = await handleSettingsSheetConfirmDelegated({
+          profile: {
+            currentNomeCompleto: perfilNome,
+            currentNomeExibicao: perfilExibicao,
+            currentTelefone: contaTelefone,
+            nomeCompletoDraft,
+            nomeExibicaoDraft,
+            onAplicarPerfilLocal: aplicarPerfilLocalNoEstado,
+            onAplicarPerfilSincronizado: aplicarPerfilSincronizadoNoEstado,
+            onAtualizarPerfilContaNoBackend: atualizarPerfilContaNoBackend,
+            onSetNomeCompletoDraft: setNomeCompletoDraft,
+            onSetNomeExibicaoDraft: setNomeExibicaoDraft,
+            onSetTelefoneDraft: setTelefoneDraft,
+            session,
+            telefoneDraft,
+          },
           billing: {
             current: cartaoAtual,
             onChange: setCartaoAtual,
@@ -4050,6 +4252,7 @@ export function InspectorMobileApp() {
             onAtualizarPerfilContaNoBackend: atualizarPerfilContaNoBackend,
             onSetEmailAtualConta: setEmailAtualConta,
             perfilNome,
+            telefone: contaTelefone,
             session,
           },
           exports: {
@@ -4074,17 +4277,24 @@ export function InspectorMobileApp() {
             bugAttachmentDraft,
             bugDescriptionDraft,
             bugEmailDraft,
+            currentDeviceLabel: sessaoAtual?.title || "Dispositivo atual",
             emailAtualConta,
             emailLogin: email,
             feedbackDraft,
+            accessLevelLabel:
+              typeof session?.bootstrap.usuario.nivel_acesso === "number"
+                ? `Nível ${session.bootstrap.usuario.nivel_acesso}`
+                : "Conta autenticada",
             onEnviarRelatoSuporteNoBackend: enviarRelatoSuporteNoBackend,
             onSetBugAttachmentDraft: setBugAttachmentDraft,
             onSetBugDescriptionDraft: setBugDescriptionDraft,
             onSetBugEmailDraft: setBugEmailDraft,
             onSetFeedbackDraft: setFeedbackDraft,
             onSetFilaSuporteLocal: setFilaSuporteLocal,
+            profileName: perfilExibicao || perfilNome || "Inspetor Tariel",
             session,
             statusApi,
+            workspaceName: workspaceResumoConfiguracao,
           },
           ui: {
             onNotificarConfiguracaoConcluida: notificarConfiguracaoConcluida,
@@ -4158,13 +4368,32 @@ export function InspectorMobileApp() {
     });
   }
 
+  function handleEditarPerfil() {
+    setNomeCompletoDraft(perfilNome);
+    setNomeExibicaoDraft(
+      perfilExibicao ||
+        perfilNome
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)[0] ||
+        "",
+    );
+    setTelefoneDraft(contaTelefone);
+    abrirSheetConfiguracao({
+      kind: "profile",
+      title: "Editar perfil",
+      subtitle: "Atualize nome, nome de exibição e telefone usados nesta conta.",
+      actionLabel: "Salvar perfil",
+    });
+  }
+
   function handleAlterarEmail() {
     setNovoEmailDraft(emailAtualConta || email);
     abrirSheetConfiguracao({
       kind: "email",
-      title: "Alterar email",
-      subtitle: "Atualize o email principal e envie uma confirmação para validar o acesso.",
-      actionLabel: "Solicitar confirmação",
+      title: "Alterar e-mail",
+      subtitle: "Atualize o e-mail principal usado no acesso e no suporte.",
+      actionLabel: "Salvar e-mail",
     });
   }
 
@@ -4203,6 +4432,19 @@ export function InspectorMobileApp() {
       title: "Gerenciar pagamento",
       subtitle: "Atualize o cartão cadastrado e deixe o método de cobrança pronto para a próxima renovação.",
       actionLabel: "Atualizar cartão",
+    });
+  }
+
+  function handleSolicitarLogout() {
+    abrirConfirmacaoConfiguracao({
+      kind: "sessionCurrent",
+      title: "Sair da conta",
+      description: "Vamos encerrar a sessão atual, limpar tokens e voltar para a tela de login deste dispositivo.",
+      confirmLabel: "Sair agora",
+      onConfirm: () => {
+        fecharConfiguracoes();
+        void handleLogout();
+      },
     });
   }
 
@@ -4437,13 +4679,89 @@ export function InspectorMobileApp() {
     });
   }
 
-  function handleVerificarAtualizacoes() {
-    abrirSheetConfiguracao({
-      kind: "updates",
-      title: "Verificar atualizações",
-      subtitle: "Consulte a versão atual, o canal do app e o status de disponibilidade de novas builds.",
-      actionLabel: "Verificar agora",
-    });
+  async function handleVerificarAtualizacoes() {
+    if (verificandoAtualizacoes) {
+      return;
+    }
+
+    setVerificandoAtualizacoes(true);
+    try {
+      const [online, networkSnapshot] = await Promise.all([pingApi(), readNetworkSnapshot()]);
+      setStatusApi(online ? "online" : "offline");
+      const verificadoEm = new Date().toISOString();
+      setUltimaVerificacaoAtualizacao(verificadoEm);
+      const status = online
+        ? `${appRuntime.updateStatusFallback} Rede atual: ${networkSnapshot.isWifi ? "Wi-Fi" : networkSnapshot.typeLabel}.`
+        : "Sem conexão para verificar a disponibilidade de atualização nesta build.";
+      setStatusAtualizacaoApp(status);
+      registrarNotificacoes([
+        criarNotificacaoSistema({
+          title: "Atualizações verificadas",
+          body: status,
+        }),
+      ]);
+      abrirSheetConfiguracao({
+        kind: "updates",
+        title: "Verificar atualizações",
+        subtitle: `Versão instalada ${appRuntime.versionLabel} • ${appRuntime.buildLabel}.`,
+        actionLabel: "Verificar agora",
+      });
+    } finally {
+      setVerificandoAtualizacoes(false);
+    }
+  }
+
+  async function handleLimparCache() {
+    if (limpandoCache) {
+      return;
+    }
+
+    setLimpandoCache(true);
+    try {
+      const baseCacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || "";
+      const resultado = await clearLocalCache([
+        READ_CACHE_FILE,
+        `${baseCacheDir}tariel-anexos`,
+        `${baseCacheDir}tariel-exports`,
+      ]);
+      setCacheLeitura((estadoAtual) => ({
+        ...CACHE_LEITURA_VAZIO,
+        bootstrap: estadoAtual.bootstrap,
+        updatedAt: "",
+      }));
+      setUltimaLimpezaCacheEm(new Date().toISOString());
+      registrarNotificacoes([
+        criarNotificacaoSistema({
+          title: "Cache limpo",
+          body: `${resultado.removedCount} item(ns) temporário(s) removido(s) do dispositivo.`,
+        }),
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Não foi possível limpar o cache local.";
+      registrarNotificacoes([
+        criarNotificacaoSistema({
+          kind: "alerta_critico",
+          title: "Falha ao limpar cache",
+          body: message,
+        }),
+      ]);
+      Alert.alert("Cache", message);
+    } finally {
+      setLimpandoCache(false);
+    }
+  }
+
+  function handleAbrirCanalSuporte() {
+    if (!canalSuporteUrl) {
+      Alert.alert("Suporte", "Nenhum canal de suporte operacional foi publicado para esta conta.");
+      return;
+    }
+    void (async () => {
+      const abriu = await tentarAbrirUrlExterna(canalSuporteUrl);
+      if (!abriu) {
+        Alert.alert("Suporte", "Não foi possível abrir o canal de suporte agora.");
+      }
+    })();
   }
 
   function handleCentralAjuda() {
@@ -4478,6 +4796,14 @@ export function InspectorMobileApp() {
     });
   }
 
+  function handleAbrirSobreApp() {
+    abrirSheetConfiguracao({
+      kind: "about",
+      title: "Sobre o app",
+      subtitle: "Versão, build, ambiente e documentos disponíveis nesta instalação do inspetor.",
+    });
+  }
+
   function handleAlternarArtigoAjuda(articleId: string) {
     setArtigoAjudaExpandidoId((estadoAtual) => (estadoAtual === articleId ? "" : articleId));
   }
@@ -4488,7 +4814,7 @@ export function InspectorMobileApp() {
     const payload = [
       "Tariel Inspetor - Diagnóstico local",
       `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
-      `Build: ${APP_VERSION_LABEL} (${APP_BUILD_CHANNEL})`,
+      `Build: ${appRuntime.versionLabel} (${appRuntime.buildLabel}) • ${APP_BUILD_CHANNEL}`,
       `API: ${statusApi === "online" ? "online" : "offline"}`,
       `Conta: ${perfilNome || perfilExibicao || "Inspetor"}`,
       `Email: ${emailAtualConta || email || "Sem email"}`,
@@ -4504,7 +4830,7 @@ export function InspectorMobileApp() {
       `Observabilidade (falhas por tipo): api=${resumoObservabilidade.failuresByKind.api}, fila=${resumoObservabilidade.failuresByKind.offline_queue}, atividade=${resumoObservabilidade.failuresByKind.activity_monitor}, push=${resumoObservabilidade.failuresByKind.push}`,
       `Última verificação de atualização: ${ultimaVerificacaoAtualizacao ? formatarHorarioAtividade(ultimaVerificacaoAtualizacao) : "nunca"}`,
       `Status da atualização: ${statusAtualizacaoApp}`,
-      `Permissões: ${[microfonePermitido ? "microfone" : "", cameraPermitida ? "câmera" : "", arquivosPermitidos ? "arquivos" : "", notificacoesPermitidas ? "notificações" : "", biometriaPermitida ? "biometria" : ""].filter(Boolean).join(", ") || "nenhuma ativa"}`,
+      `Permissões: ${[microfonePermitido ? "microfone" : "", cameraPermitida ? "câmera" : "", arquivosPermitidos ? "arquivos" : "", notificacoesPermitidas ? "notificações" : ""].filter(Boolean).join(", ") || "nenhuma ativa"}`,
       "",
       "Eventos recentes de segurança:",
       ...eventosSeguranca.slice(0, 5).map((item) => `- ${item.title} • ${item.status} • ${item.meta}`),
@@ -4887,22 +5213,65 @@ export function InspectorMobileApp() {
     setCodigo2FA("");
   }
 
-  function handleGerenciarPermissao(nome: string, status: string) {
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: `Gerenciar ${nome}`,
-      description: `${nome} está com status "${status}". Vamos abrir as configurações do sistema para ajustar essa permissão com segurança.`,
-      confirmLabel: "Abrir ajustes",
-      onConfirm: () => {
-        registrarEventoSegurancaLocal({
-          title: `Permissão revisada: ${nome}`,
-          meta: `Status atual ${status}. Ajustes do sistema foram abertos pelo usuário.`,
-          status: "Agora",
-          type: "session",
-        });
-        void Linking.openSettings();
-      },
+  async function handleGerenciarPermissao(nome: string, status: string) {
+    const chavePermissao =
+      nome === "Microfone"
+        ? "microphone"
+        : nome === "Câmera"
+          ? "camera"
+          : nome === "Arquivos"
+            ? "files"
+            : nome === "Notificações"
+              ? "notifications"
+              : null;
+
+    if (!chavePermissao) {
+      registrarEventoSegurancaLocal({
+        title: `Permissão revisada: ${nome}`,
+        meta: `Status atual ${status}. Ajustes do sistema foram abertos pelo usuário.`,
+        status: "Agora",
+        type: "session",
+      });
+      void Linking.openSettings();
+      return;
+    }
+
+    const concedida = await requestDevicePermission(chavePermissao);
+    if (chavePermissao === "microphone") {
+      setMicrofonePermitido(concedida);
+    } else if (chavePermissao === "camera") {
+      setCameraPermitida(concedida);
+    } else if (chavePermissao === "files") {
+      setArquivosPermitidos(concedida);
+    } else {
+      setNotificacoesPermitidas(concedida);
+      if (!concedida) {
+        setNotificaPush(false);
+      }
+    }
+
+    registrarEventoSegurancaLocal({
+      title: `Permissão revisada: ${nome}`,
+      meta: concedida ? `${nome} concedida diretamente pelo fluxo do app.` : `Status atual ${status}.`,
+      status: "Agora",
+      type: "session",
     });
+
+    if (!concedida) {
+      Alert.alert(
+        `${nome} indisponível`,
+        `O sistema manteve ${nome.toLowerCase()} como negado. Revise isso nos ajustes do Android.`,
+        [
+          { text: "Fechar", style: "cancel" },
+          {
+            text: "Abrir ajustes",
+            onPress: () => {
+              void Linking.openSettings();
+            },
+          },
+        ],
+      );
+    }
   }
 
   function handleAbrirAjustesDoSistema(contexto: string) {
@@ -4924,6 +5293,15 @@ export function InspectorMobileApp() {
   }
 
   function handleToggleBiometriaNoDispositivo(value: boolean) {
+    if (!biometriaLocalSuportada) {
+      setDeviceBiometricsEnabled(false);
+      Alert.alert(
+        "Biometria indisponível",
+        "Esta build ainda não possui autenticação biométrica nativa integrada. Use o bloqueio ao abrir e o bloqueio por inatividade.",
+      );
+      return;
+    }
+
     if (!value) {
       setDeviceBiometricsEnabled(false);
       registrarEventoSegurancaLocal({
@@ -5007,7 +5385,7 @@ export function InspectorMobileApp() {
     }
   }
 
-  function handleToggleUploadArquivos(value: boolean) {
+  async function handleToggleUploadArquivos(value: boolean) {
     if (!value) {
       setUploadArquivosAtivo(false);
       setAnexoRascunho(null);
@@ -5021,7 +5399,9 @@ export function InspectorMobileApp() {
       return;
     }
 
-    if (!arquivosPermitidos) {
+    const permitido = arquivosPermitidos || (await requestDevicePermission("files"));
+    setArquivosPermitidos(permitido);
+    if (!permitido) {
       setUploadArquivosAtivo(false);
       Alert.alert(
         "Permissão necessária",
@@ -5048,7 +5428,7 @@ export function InspectorMobileApp() {
     });
   }
 
-  function handleToggleEntradaPorVoz(value: boolean) {
+  async function handleToggleEntradaPorVoz(value: boolean) {
     if (!value) {
       setEntradaPorVoz(false);
       registrarEventoSegurancaLocal({
@@ -5060,7 +5440,9 @@ export function InspectorMobileApp() {
       return;
     }
 
-    if (!microfonePermitido) {
+    const permitido = microfonePermitido || (await requestDevicePermission("microphone"));
+    setMicrofonePermitido(permitido);
+    if (!permitido) {
       setEntradaPorVoz(false);
       Alert.alert(
         "Permissão necessária",
@@ -5085,10 +5467,31 @@ export function InspectorMobileApp() {
       status: "Agora",
       type: "data",
     });
+    if (!voiceRuntimeState.sttSupported) {
+      setSettingsSheetNotice(buildVoiceInputUnavailableMessage(voiceLanguage));
+    }
+  }
+
+  function handleToggleSpeechEnabled(value: boolean) {
+    setSpeechEnabled(value);
+    if (!value) {
+      void stopSpeechPlayback();
+    }
+    registrarEventoSegurancaLocal({
+      title: value ? "Preferências de fala ativadas" : "Preferências de fala desativadas",
+      meta: value
+        ? "O dispositivo volta a permitir preferências locais de voz e transcrição."
+        : "Os atalhos locais de fala foram pausados neste dispositivo.",
+      status: "Agora",
+      type: "data",
+    });
   }
 
   function handleToggleRespostaPorVoz(value: boolean) {
     setRespostaPorVoz(value);
+    if (!value) {
+      void stopSpeechPlayback();
+    }
     registrarEventoSegurancaLocal({
       title: "Resposta por voz atualizada",
       meta: value
@@ -5099,7 +5502,7 @@ export function InspectorMobileApp() {
     });
   }
 
-  function handleToggleNotificaPush(value: boolean) {
+  async function handleToggleNotificaPush(value: boolean) {
     if (!value) {
       setNotificaPush(false);
       void registrarEventoObservabilidade({
@@ -5111,7 +5514,9 @@ export function InspectorMobileApp() {
       return;
     }
 
-    if (notificacoesPermitidas) {
+    const permitido = notificacoesPermitidas || (await requestDevicePermission("notifications"));
+    setNotificacoesPermitidas(permitido);
+    if (permitido) {
       setNotificaPush(true);
       void registrarEventoObservabilidade({
         kind: "push",
@@ -5291,7 +5696,11 @@ export function InspectorMobileApp() {
     await handleSelecionarDocumento();
   }
 
-  function handleAbrirHistorico() {
+function handleAbrirHistorico() {
+    if (keyboardHeight > 0) {
+      Keyboard.dismiss();
+      return;
+    }
     if (historicoAberto || historicoAbertoRef.current) {
       fecharHistorico({ limparBusca: true });
       return;
@@ -5329,43 +5738,33 @@ export function InspectorMobileApp() {
   }
 
   function handleExcluirConversaHistorico(card: MobileLaudoCard) {
-    executarComReautenticacao(`Confirme sua identidade para remover ${card.titulo} do histórico deste app.`, () => {
-      abrirConfirmacaoConfiguracao({
-        kind: "security",
-        title: "Remover do histórico",
-        description: `A conversa "${card.titulo}" será removida localmente do histórico do inspetor neste dispositivo.`,
-        confirmLabel: "Remover",
-        onConfirm: () => {
-          setHistoricoOcultoIds((estadoAtual) => Array.from(new Set([...estadoAtual, card.id])));
-          setLaudosFixadosIds((estadoAtual) => estadoAtual.filter((item) => item !== card.id));
-          atualizarLaudosLocais((itens) => itens.filter((item) => item.id !== card.id));
-          setCacheLeitura((estadoAtual) => {
-            const chave = chaveCacheLaudo(card.id);
-            const { [chave]: _chatRemovido, ...restoConversas } = estadoAtual.conversasPorLaudo;
-            const { [chave]: _mesaRemovida, ...restoMesa } = estadoAtual.mesaPorLaudo;
-            return {
-              ...estadoAtual,
-              laudos: estadoAtual.laudos.filter((item) => item.id !== card.id),
-              conversasPorLaudo: restoConversas,
-              mesaPorLaudo: restoMesa,
-              updatedAt: new Date().toISOString(),
-            };
-          });
-          setNotificacoes((estadoAtual) => estadoAtual.filter((item) => item.laudoId !== card.id));
-          if (conversa?.laudoId === card.id) {
-            setConversa(criarConversaNova());
-            setMensagensMesa([]);
-            setMensagem("");
-            setMensagemMesa("");
-            setAnexoRascunho(null);
-            setAnexoMesaRascunho(null);
-            setErroMesa("");
-            setErroConversa("");
-            setLaudoMesaCarregado(null);
-          }
-        },
-      });
+    setHistoricoOcultoIds((estadoAtual) => Array.from(new Set([...estadoAtual, card.id])));
+    setLaudosFixadosIds((estadoAtual) => estadoAtual.filter((item) => item !== card.id));
+    atualizarLaudosLocais((itens) => itens.filter((item) => item.id !== card.id));
+    setCacheLeitura((estadoAtual) => {
+      const chave = chaveCacheLaudo(card.id);
+      const { [chave]: _chatRemovido, ...restoConversas } = estadoAtual.conversasPorLaudo;
+      const { [chave]: _mesaRemovida, ...restoMesa } = estadoAtual.mesaPorLaudo;
+      return {
+        ...estadoAtual,
+        laudos: estadoAtual.laudos.filter((item) => item.id !== card.id),
+        conversasPorLaudo: restoConversas,
+        mesaPorLaudo: restoMesa,
+        updatedAt: new Date().toISOString(),
+      };
     });
+    setNotificacoes((estadoAtual) => estadoAtual.filter((item) => item.laudoId !== card.id));
+    if (conversa?.laudoId === card.id) {
+      setConversa(criarConversaNova());
+      setMensagensMesa([]);
+      setMensagem("");
+      setMensagemMesa("");
+      setAnexoRascunho(null);
+      setAnexoMesaRascunho(null);
+      setErroMesa("");
+      setErroConversa("");
+      setLaudoMesaCarregado(null);
+    }
   }
 
   async function handleSelecionarHistorico(card: MobileLaudoCard | null) {
@@ -5420,6 +5819,7 @@ export function InspectorMobileApp() {
   const historyEdgePanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) =>
+        !keyboardAbertoRef.current &&
         !historicoAbertoRef.current &&
         !configuracoesAbertaRef.current &&
         gestureState.x0 <= PANEL_EDGE_GESTURE_WIDTH &&
@@ -5436,6 +5836,7 @@ export function InspectorMobileApp() {
   const settingsEdgePanResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) =>
+        !keyboardAbertoRef.current &&
         !historicoAbertoRef.current &&
         !configuracoesAbertaRef.current &&
         gestureState.x0 >= SCREEN_WIDTH - PANEL_EDGE_GESTURE_WIDTH &&
@@ -5545,6 +5946,9 @@ export function InspectorMobileApp() {
   }
 
   async function monitorarAtividade(accessToken: string) {
+    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
+      return;
+    }
     await runMonitorActivityFlow<MobileActivityNotification>({
       accessToken,
       monitorandoAtividade,
@@ -5616,6 +6020,10 @@ export function InspectorMobileApp() {
     await abrirLaudoPorId(session.accessToken, card.id);
   }
 
+  async function handleAbrirNovoChat() {
+    await handleSelecionarLaudo(null);
+  }
+
   async function handleReabrir() {
     if (!session || !conversa?.laudoId) {
       return;
@@ -5643,6 +6051,7 @@ export function InspectorMobileApp() {
       abaAtiva,
       preparandoAnexo,
       uploadArquivosAtivo,
+      imageQuality: attachmentHandlingPolicy.imageQuality,
       arquivosPermitidos,
       montarAnexoImagem,
       onSetAnexoMesaRascunho: setAnexoMesaRascunho,
@@ -5661,6 +6070,7 @@ export function InspectorMobileApp() {
       abaAtiva,
       preparandoAnexo,
       uploadArquivosAtivo,
+      imageQuality: attachmentHandlingPolicy.imageQuality,
       cameraPermitida,
       montarAnexoImagem,
       onSetAnexoMesaRascunho: setAnexoMesaRascunho,
@@ -5675,11 +6085,25 @@ export function InspectorMobileApp() {
       return;
     }
 
+    const gateDocumento = await gateHeavyTransfer({
+      wifiOnlySync,
+      requiresHeavyTransfer: autoUploadAttachments,
+      blockedMessage: "O upload automático de documentos está restrito ao Wi-Fi neste dispositivo.",
+    });
+    const autoUploadDocuments = autoUploadAttachments && gateDocumento.allowed;
+    if (autoUploadAttachments && !gateDocumento.allowed) {
+      setErroConversa(
+        gateDocumento.reason || "Documento será mantido localmente até haver uma rede adequada.",
+      );
+    }
+
     await selecionarDocumentoRascunhoFlow({
       abaAtiva,
       preparandoAnexo,
       uploadArquivosAtivo,
+      imageQuality: attachmentHandlingPolicy.imageQuality,
       arquivosPermitidos,
+      autoUploadDocuments,
       sessionAccessToken: session.accessToken,
       statusApi,
       erroSugereModoOffline,
@@ -5701,10 +6125,36 @@ export function InspectorMobileApp() {
     }
 
     const snapshotConversa = conversa;
+    const gateAnexo = await gateHeavyTransfer({
+      wifiOnlySync,
+      requiresHeavyTransfer: Boolean(anexoRascunho),
+      blockedMessage: "Anexos foram guardados na fila local e só seguem quando houver Wi-Fi.",
+    });
+    if (anexoRascunho && !gateAnexo.allowed) {
+      setFilaOffline((estadoAtual) => [
+        ...estadoAtual,
+        criarItemFilaOffline({
+          channel: "chat",
+          laudoId: snapshotConversa?.laudoId ?? null,
+          text: mensagem.trim(),
+          title: snapshotConversa?.laudoCard?.titulo || "Nova inspeção",
+          attachment: anexoRascunho,
+          aiMode: aiRequestConfig.mode,
+          aiSummary: aiRequestConfig.summaryLabel,
+          aiMessagePrefix: aiRequestConfig.messagePrefix,
+        }),
+      ]);
+      setMensagem("");
+      setAnexoRascunho(null);
+      setErroConversa(gateAnexo.reason || "Envio local guardado para sincronizar depois.");
+      return;
+    }
+
     await sendInspectorMessageFlow<OfflinePendingMessage>({
       mensagem,
       anexoAtual: anexoRascunho,
       snapshotConversa,
+      aiRequestConfig,
       sessionAccessToken: session.accessToken,
       statusApi,
       podeEditarConversaNoComposer,
@@ -5751,6 +6201,10 @@ export function InspectorMobileApp() {
               : base.mensagens,
           };
         });
+        void speakAssistantResponse({
+          text: respostaChat.assistantText,
+          speech: settingsState.speech,
+        });
       },
       onReverterConversa: () => {
         setConversa(snapshotConversa);
@@ -5775,6 +6229,30 @@ export function InspectorMobileApp() {
 
     const referenciaMensagemId = Number(mensagemMesaReferenciaAtiva?.id || 0) || null;
     const snapshotMesa = mensagensMesa;
+    const gateAnexo = await gateHeavyTransfer({
+      wifiOnlySync,
+      requiresHeavyTransfer: Boolean(anexoMesaRascunho),
+      blockedMessage: "Anexos da mesa foram guardados na fila local e aguardam Wi-Fi para envio.",
+    });
+    if (anexoMesaRascunho && !gateAnexo.allowed && conversa.laudoId) {
+      setFilaOffline((estadoAtual) => [
+        ...estadoAtual,
+        criarItemFilaOffline({
+          channel: "mesa",
+          laudoId: conversa.laudoId,
+          text: mensagemMesa.trim(),
+          title: conversa.laudoCard?.titulo || "Mesa avaliadora",
+          attachment: anexoMesaRascunho,
+          referenceMessageId: referenciaMensagemId,
+        }),
+      ]);
+      setMensagemMesa("");
+      setAnexoMesaRascunho(null);
+      limparReferenciaMesaAtiva();
+      setErroMesa(gateAnexo.reason || "Resposta guardada localmente para sincronizar depois.");
+      return;
+    }
+
     await sendMesaMessageFlow<OfflinePendingMessage>({
       mensagemMesa,
       anexoAtual: anexoMesaRascunho,
@@ -5820,6 +6298,10 @@ export function InspectorMobileApp() {
 
   function renderSettingsSheetBody() {
     return renderSettingsSheetBodyContent({
+      apiEnvironmentLabel,
+      appBuildLabel: appRuntime.buildLabel,
+      appName: session?.bootstrap.app.nome || "Tariel Inspetor",
+      appPlatformLabel: `${Platform.OS} ${String(Platform.Version || "").trim() || "n/d"}`,
       artigoAjudaExpandidoId,
       artigosAjudaFiltrados,
       bugAttachmentDraft,
@@ -5838,6 +6320,8 @@ export function InspectorMobileApp() {
       integracoesDisponiveisTotal,
       integracoesExternas,
       modeloIa,
+      nomeCompletoDraft,
+      nomeExibicaoDraft,
       nomeAutomaticoConversas,
       novaSenhaDraft,
       novoEmailDraft,
@@ -5847,6 +6331,8 @@ export function InspectorMobileApp() {
       onBuscaAjudaChange: setBuscaAjuda,
       onConfirmarSenhaDraftChange: setConfirmarSenhaDraft,
       onFeedbackDraftChange: setFeedbackDraft,
+      onNomeCompletoDraftChange: setNomeCompletoDraft,
+      onNomeExibicaoDraftChange: setNomeExibicaoDraft,
       onNovaSenhaDraftChange: setNovaSenhaDraft,
       onNovoEmailDraftChange: setNovoEmailDraft,
       onRemoveScreenshot: handleRemoverScreenshotBug,
@@ -5857,6 +6343,7 @@ export function InspectorMobileApp() {
       onSyncNow: (item) => {
         void handleSincronizarIntegracaoExterna(item);
       },
+      onTelefoneDraftChange: setTelefoneDraft,
       onToggleIntegracao: handleAlternarIntegracaoExterna,
       onToggleNomeAutomaticoConversas: setNomeAutomaticoConversas,
       onToggleUploadArquivos: handleToggleUploadArquivos,
@@ -5877,9 +6364,12 @@ export function InspectorMobileApp() {
       settingsSheet,
       statusApi,
       statusAtualizacaoApp,
+      supportChannelLabel: canalSuporteLabel,
+      telefoneDraft,
       ultimaVerificacaoAtualizacaoLabel,
       ultimoTicketSuporte,
       uploadArquivosAtivo,
+      workspaceLabel: workspaceResumoConfiguracao,
     });
   }
 
@@ -5889,7 +6379,6 @@ export function InspectorMobileApp() {
     artigosAjudaFiltrados,
     buscaConfiguracoesNormalizada,
     chatKeyboardVerticalOffset,
-    composerKeyboardBottomOffset,
     contaEmailLabel,
     contaTelefoneLabel,
     conversaAtiva,
@@ -5948,6 +6437,7 @@ export function InspectorMobileApp() {
     resumoAlertaMetodosConta,
     resumoAtualizacaoApp,
     resumoBlindagemSessoes,
+    resumoContaAcesso,
     resumoCodigosRecuperacao,
     resumoDadosConversas,
     resumoExcluirConta,
@@ -6005,6 +6495,7 @@ export function InspectorMobileApp() {
     colorScheme,
     conversa,
     corDestaque,
+    contaTelefone,
     densidadeInterface,
     email,
     emailAtualConta,
@@ -6066,17 +6557,55 @@ export function InspectorMobileApp() {
     ultimaVerificacaoAtualizacao,
     uploadArquivosAtivo,
   });
+  const canalSuporteUrl = construirUrlCanalSuporte(session?.bootstrap.app.suporte_whatsapp || "");
+  const canalSuporteLabel = canalSuporteUrl ? "WhatsApp" : "Canal indisponível";
+  const apiEnvironmentLabel = (() => {
+    const raw = session?.bootstrap.app.api_base_url || API_BASE_URL;
+    try {
+      const parsed = new URL(raw);
+      return parsed.host || raw;
+    } catch {
+      return raw;
+    }
+  })();
+  const preferredVoice =
+    voiceRuntimeState.voices.find((voice) => voice.identifier === preferredVoiceId) ||
+    voiceRuntimeState.voices[0] ||
+    null;
+  const preferredVoiceLabel = preferredVoice?.name || (voiceRuntimeState.ttsSupported ? "Padrão do sistema" : "Indisponível");
+  const resumoCentralAtividade = !notificacoes.length
+    ? "Sem eventos"
+    : notificacoesNaoLidas
+      ? `${notificacoesNaoLidas} nova(s)`
+      : `${notificacoes.length} evento(s)`;
+  const resumoCache = limpandoCache
+    ? "Limpando..."
+    : ultimaLimpezaCacheEm
+      ? `Limpo ${formatarHorarioAtividade(ultimaLimpezaCacheEm)}`
+      : cacheLeitura.updatedAt
+        ? `Atualizado ${formatarHorarioAtividade(cacheLeitura.updatedAt)}`
+        : "Sem cache local";
+  const sincronizandoDados =
+    sincronizandoAgora ||
+    sincronizandoConversa ||
+    sincronizandoMesa ||
+    carregandoLaudos ||
+    sincronizandoFilaOffline;
   const settingsDrawerPanelProps = buildInspectorSettingsDrawerPanelProps({
+    appBuildChannel: APP_BUILD_CHANNEL,
+    appVersionLabel: `${appRuntime.versionLabel} • ${appRuntime.buildLabel}`,
     aprendizadoIa,
     animacoesAtivas,
     arquivosPermitidos,
     artigosAjudaFiltrados,
+    autoUploadAttachments,
     backupAutomatico,
     biometriaPermitida,
     cameraPermitida,
     cartaoAtual,
     codigo2FA,
     codigosRecuperacao,
+    criticalAlertsEnabled,
     compartilharMelhoriaIa,
     configuracoesDrawerX,
     contaEmailLabel,
@@ -6101,9 +6630,13 @@ export function InspectorMobileApp() {
     fixarConversas,
     handleAbrirAjustesDoSistema,
     handleAbrirCentralAtividade,
+    handleAbrirCanalSuporte,
     handleAbrirPaginaConfiguracoes,
+    handleAbrirSobreApp,
     handleAbrirSecaoConfiguracoes,
+    handleAbrirAjudaDitado,
     handleAlterarEmail,
+    handleEditarPerfil,
     handleAlterarSenha,
     handleApagarHistoricoConfiguracoes,
     handleCentralAjuda,
@@ -6128,9 +6661,11 @@ export function InspectorMobileApp() {
     handleHistoricoPagamentos,
     handleIntegracoesExternas,
     handleLicencas,
+    handleLimparCache,
     handleLimparFilaSuporteLocal,
     handleLimparTodasConversasConfig,
     handleLogout,
+    handleSolicitarLogout,
     handleAbrirModeloIa,
     handleMudarMetodo2FA,
     handlePermissoes,
@@ -6146,6 +6681,7 @@ export function InspectorMobileApp() {
     handleToggle2FA,
     handleToggleBackupAutomatico,
     handleToggleBiometriaNoDispositivo,
+    handleToggleSpeechEnabled,
     handleToggleEntradaPorVoz,
     handleToggleMostrarConteudoNotificacao,
     handleToggleMostrarSomenteNovaMensagem,
@@ -6180,7 +6716,11 @@ export function InspectorMobileApp() {
     notificaPush,
     notificaRespostas,
     notificacoesPermitidas,
+    analyticsOptIn,
+    chatCategoryEnabled,
+    limpandoCache,
     ocultarConteudoBloqueado,
+    onAbrirPermissaoNotificacoes: handleAbrirPermissaoNotificacoes,
     onAbrirFilaOffline: () => {
       setFilaOfflineAberta(true);
     },
@@ -6202,11 +6742,16 @@ export function InspectorMobileApp() {
     recoveryCodesEnabled,
     regiaoApp,
     requireAuthOnOpen,
+    preferredVoiceLabel,
+    resumoCache,
+    resumoCentralAtividade,
     respostaPorVoz,
+    crashReportsOptIn,
     resumo2FAFootnote,
     resumo2FAStatus,
     resumoAlertaMetodosConta,
     resumoBlindagemSessoes,
+    resumoContaAcesso,
     resumoCodigosRecuperacao,
     resumoDadosConversas,
     resumoExcluirConta,
@@ -6221,8 +6766,10 @@ export function InspectorMobileApp() {
     salvarHistoricoConversas,
     setAnimacoesAtivas,
     setAprendizadoIa,
+    setAnalyticsOptIn,
     setCodigo2FA,
     setCompartilharMelhoriaIa,
+    setCrashReportsOptIn,
     setCorDestaque,
     setDensidadeInterface,
     setEconomiaDados,
@@ -6246,11 +6793,21 @@ export function InspectorMobileApp() {
     setRetencaoDados,
     setSalvarHistoricoConversas,
     setSomNotificacao,
+    setSpeechEnabled,
+    setSpeechRate,
     setTamanhoFonte,
     setTemperaturaIa,
     setTemaApp,
     setTomConversa,
     setUsoBateria,
+    setVoiceLanguage,
+    setChatCategoryEnabled,
+    setMesaCategoryEnabled,
+    setSystemCategoryEnabled,
+    setCriticalAlertsEnabled,
+    setAutoUploadAttachments,
+    setMediaCompression,
+    setWifiOnlySync,
     settingsDrawerInOverview,
     settingsDrawerMatchesPage,
     settingsDrawerMatchesSection,
@@ -6265,6 +6822,10 @@ export function InspectorMobileApp() {
     sessoesSuspeitasTotal,
     sincronizacaoDispositivos,
     somNotificacao,
+    speechEnabled,
+    speechRate,
+    sttSupported: voiceRuntimeState.sttSupported,
+    systemCategoryEnabled,
     tamanhoFonte,
     temperaturaIa,
     temaApp,
@@ -6283,7 +6844,16 @@ export function InspectorMobileApp() {
     uploadArquivosAtivo,
     usoBateria,
     vibracaoAtiva,
+    verificandoAtualizacoes,
+    voiceLanguage,
+    supportChannelLabel: canalSuporteLabel,
+    ttsSupported: voiceRuntimeState.ttsSupported,
+    wifiOnlySync,
     workspaceResumoConfiguracao,
+    mediaCompression,
+    mesaCategoryEnabled,
+    onCyclePreferredVoice,
+    sincronizandoDados,
   });
   const notificacoesMesaLaudoAtual = notificacoes.filter(
     (item) => item.unread && item.targetThread === "mesa" && item.laudoId === laudoSelecionadoId,
@@ -6377,7 +6947,6 @@ export function InspectorMobileApp() {
       carregandoMesa,
       chatKeyboardVerticalOffset,
       chipsContextoThread,
-      composerKeyboardBottomOffset,
       configuracoesAberta,
       conversaAtiva,
       conversaVazia,
@@ -6404,6 +6973,7 @@ export function InspectorMobileApp() {
       handleAbrirAnexo,
       handleAbrirConfiguracoes,
       handleAbrirHistorico,
+      handleAbrirNovoChat,
       handleAbrirSeletorAnexo,
       handleAlternarFixadoHistorico,
       handleEnviarMensagem,
@@ -6447,6 +7017,10 @@ export function InspectorMobileApp() {
       podeEnviarComposer,
       podeEnviarMesa,
       podeUsarComposerMesa,
+      showVoiceInputAction: speechEnabled && entradaPorVoz,
+      onVoiceInputPress: handleVoiceInputPress,
+      voiceInputEnabled: speechEnabled && entradaPorVoz && microfonePermitido,
+      composerNotice: chatAiBehaviorNotice,
       registrarLayoutMensagemChat,
       resumoHistoricoDrawer,
       scrollRef,

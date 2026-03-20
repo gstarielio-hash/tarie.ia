@@ -31,7 +31,7 @@ interface InspectorAuthenticatedLayoutProps {
   historyEdgePanHandlers: GestureResponderHandlers;
   historyOpen: boolean;
   introVisivel: boolean;
-  keyboardAvoidingBehavior: "padding" | undefined;
+  keyboardAvoidingBehavior: "padding" | "height" | undefined;
   keyboardVisible: boolean;
   onClosePanels: () => void;
   onIntroDone: () => void;
@@ -95,7 +95,7 @@ export function InspectorAuthenticatedLayout({
               {!!erroConversa && <Text style={styles.errorText}>{erroConversa}</Text>}
 
               <View style={[styles.threadBody, keyboardVisible ? styles.threadBodyKeyboardVisible : null]}>
-                <ThreadContextCard {...threadContextCardProps} visible={threadContextVisible} />
+                <ThreadContextCard {...threadContextCardProps} visible={threadContextVisible && !keyboardVisible} />
                 <ThreadConversationPane {...threadConversationPaneProps} />
               </View>
 
@@ -112,6 +112,7 @@ export function InspectorAuthenticatedLayout({
             drawerOverlayOpacity={drawerOverlayOpacity}
             historyEdgePanHandlers={historyEdgePanHandlers}
             historyOpen={historyOpen}
+            keyboardVisible={keyboardVisible}
             onClosePanels={onClosePanels}
             renderHistoryDrawer={() => <HistoryDrawerPanel {...historyDrawerPanelProps} />}
             renderSettingsDrawer={() =>

@@ -106,7 +106,10 @@ export function BrandLaunchOverlay({
 
   return (
     <View pointerEvents="none" style={styles.launchOverlay}>
-      <LinearGradient colors={["rgba(248,243,237,0.96)", "rgba(252,253,252,0.98)"]} style={styles.launchOverlayGradient}>
+      <LinearGradient
+        colors={["rgba(255,249,243,0.96)", "rgba(252,248,242,0.98)", "rgba(246,239,231,0.99)"]}
+        style={styles.launchOverlayGradient}
+      >
         <Animated.View
           style={[
             styles.launchOverlayInner,

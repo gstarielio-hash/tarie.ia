@@ -75,6 +75,52 @@ export function SettingsPhotoSheetContent({
   );
 }
 
+export function SettingsProfileSheetContent({
+  nomeCompletoDraft,
+  nomeExibicaoDraft,
+  telefoneDraft,
+  onNomeCompletoChange,
+  onNomeExibicaoChange,
+  onTelefoneChange,
+}: {
+  nomeCompletoDraft: string;
+  nomeExibicaoDraft: string;
+  telefoneDraft: string;
+  onNomeCompletoChange: (value: string) => void;
+  onNomeExibicaoChange: (value: string) => void;
+  onTelefoneChange: (value: string) => void;
+}) {
+  return (
+    <View style={styles.settingsFlowStack}>
+      <SettingsTextField
+        autoCapitalize="words"
+        icon="account-outline"
+        onChangeText={onNomeCompletoChange}
+        placeholder="Nome completo"
+        title="Nome do usuário"
+        value={nomeCompletoDraft}
+      />
+      <SettingsTextField
+        autoCapitalize="words"
+        icon="badge-account-outline"
+        onChangeText={onNomeExibicaoChange}
+        placeholder="Nome exibido no app"
+        title="Nome de exibição"
+        value={nomeExibicaoDraft}
+      />
+      <SettingsTextField
+        autoCapitalize="none"
+        icon="phone-outline"
+        keyboardType="phone-pad"
+        onChangeText={onTelefoneChange}
+        placeholder="(11) 99999-9999"
+        title="Número de telefone"
+        value={telefoneDraft}
+      />
+    </View>
+  );
+}
+
 export function SettingsPlanSheetContent({ planoAtual }: { planoAtual: string }) {
   return (
     <View style={styles.settingsFlowStack}>
@@ -139,6 +185,7 @@ export function SettingsEmailSheetContent({
         <Text style={styles.settingsInfoText}>{emailAtualConta || emailLogin || "Sem email cadastrado"}</Text>
       </View>
       <SettingsTextField
+        autoCapitalize="none"
         icon="email-edit-outline"
         keyboardType="email-address"
         onChangeText={onNovoEmailChange}
@@ -168,23 +215,29 @@ export function SettingsPasswordSheetContent({
   return (
     <View style={styles.settingsFlowStack}>
       <SettingsTextField
+        autoCapitalize="none"
         icon="lock-check-outline"
         onChangeText={onSenhaAtualChange}
         placeholder="Senha atual"
+        secureTextEntry
         title="Senha atual"
         value={senhaAtualDraft}
       />
       <SettingsTextField
+        autoCapitalize="none"
         icon="lock-plus-outline"
         onChangeText={onNovaSenhaChange}
         placeholder="Nova senha"
+        secureTextEntry
         title="Nova senha"
         value={novaSenhaDraft}
       />
       <SettingsTextField
+        autoCapitalize="none"
         icon="shield-check-outline"
         onChangeText={onConfirmarSenhaChange}
         placeholder="Confirmar nova senha"
+        secureTextEntry
         title="Confirmar senha"
         value={confirmarSenhaDraft}
       />

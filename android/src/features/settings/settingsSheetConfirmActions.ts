@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 import {
   APP_BUILD_CHANNEL,
   APP_VERSION_LABEL,
@@ -49,8 +51,13 @@ interface SessionSnapshot {
   accessToken: string;
   bootstrap: {
     usuario: {
+      id?: number;
       nome_completo: string;
+      email?: string;
       telefone: string;
+      empresa_nome?: string;
+      empresa_id?: number;
+      nivel_acesso?: number;
     };
   };
 }
@@ -78,6 +85,28 @@ interface PerfilContaSincronizado {
 
 interface HandleSettingsSheetDelegatedParams {
   kind: SettingsSheetKind;
+  profile: {
+    nomeCompletoDraft: string;
+    nomeExibicaoDraft: string;
+    telefoneDraft: string;
+    currentNomeCompleto: string;
+    currentNomeExibicao: string;
+    currentTelefone: string;
+    session: SessionSnapshot | null;
+    onSetNomeCompletoDraft: (value: string) => void;
+    onSetNomeExibicaoDraft: (value: string) => void;
+    onSetTelefoneDraft: (value: string) => void;
+    onAplicarPerfilLocal: (payload: {
+      nomeCompleto: string;
+      nomeExibicao: string;
+      telefone: string;
+    }) => void;
+    onAtualizarPerfilContaNoBackend: (
+      accessToken: string,
+      payload: { nomeCompleto: string; email: string; telefone: string },
+    ) => Promise<PerfilContaSincronizado>;
+    onAplicarPerfilSincronizado: (perfil: PerfilContaSincronizado) => void;
+  };
   plan: {
     current: (typeof PLAN_OPTIONS)[number];
     onChange: (value: (typeof PLAN_OPTIONS)[number]) => void;
@@ -89,6 +118,7 @@ interface HandleSettingsSheetDelegatedParams {
   email: {
     draft: string;
     perfilNome: string;
+    telefone: string;
     emailAtualConta: string;
     emailLogin: string;
     session: SessionSnapshot | null;
@@ -114,6 +144,10 @@ interface HandleSettingsSheetDelegatedParams {
   };
   support: {
     session: SessionSnapshot | null;
+    profileName: string;
+    workspaceName: string;
+    accessLevelLabel: string;
+    currentDeviceLabel: string;
     emailAtualConta: string;
     emailLogin: string;
     statusApi: string;
@@ -169,8 +203,62 @@ function nextOptionValue<T extends string>(current: T, options: readonly T[]): T
   return options[(currentIndex + 1) % options.length];
 }
 
+function emailEhValido(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function normalizarTelefone(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function telefoneEhValido(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function validarSenhaForte(senhaAtual: string, novaSenha: string, confirmarSenha: string): string {
+  if (!senhaAtual || !novaSenha || !confirmarSenha) {
+    return "Preencha senha atual, nova senha e confirmação.";
+  }
+  if (novaSenha !== confirmarSenha) {
+    return "A nova senha e a confirmação precisam ser iguais.";
+  }
+  if (novaSenha.trim().length < 8) {
+    return "A nova senha precisa ter pelo menos 8 caracteres.";
+  }
+  if (!/[A-Za-z]/.test(novaSenha) || !/\d/.test(novaSenha)) {
+    return "Use ao menos uma letra e um número na nova senha.";
+  }
+  if (senhaAtual === novaSenha) {
+    return "A nova senha precisa ser diferente da senha atual.";
+  }
+  return "";
+}
+
+function buildSupportContext({
+  support,
+  attachmentLabel,
+}: {
+  support: HandleSettingsSheetDelegatedParams["support"];
+  attachmentLabel?: string;
+}): string {
+  return [
+    `App ${APP_VERSION_LABEL} • ${APP_BUILD_CHANNEL}`,
+    `Plataforma ${Platform.OS} ${String(Platform.Version || "").trim() || "n/d"}`,
+    `API ${support.statusApi}`,
+    `Workspace ${support.workspaceName || "Sem empresa"}`,
+    `Acesso ${support.accessLevelLabel || "Conta autenticada"}`,
+    `Usuário ${support.profileName || "Inspetor"}`,
+    `Dispositivo ${support.currentDeviceLabel || "Dispositivo atual"}`,
+    attachmentLabel ? `Anexo ${attachmentLabel}` : "",
+  ]
+    .filter(Boolean)
+    .join(" • ");
+}
+
 export async function handleSettingsSheetConfirmDelegated({
   kind,
+  profile,
   plan,
   billing,
   email,
@@ -181,6 +269,74 @@ export async function handleSettingsSheetConfirmDelegated({
   ui,
 }: HandleSettingsSheetDelegatedParams): Promise<SettingsSheetConfirmResult> {
   switch (kind) {
+    case "profile": {
+      const nomeCompleto = profile.nomeCompletoDraft.trim();
+      const nomeExibicao = profile.nomeExibicaoDraft.trim();
+      const telefone = normalizarTelefone(profile.telefoneDraft);
+
+      if (!nomeCompleto) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Informe o nome completo antes de salvar o perfil.");
+        return "return";
+      }
+      if (!nomeExibicao) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Informe o nome de exibição antes de salvar o perfil.");
+        return "return";
+      }
+      if (telefone && !telefoneEhValido(telefone)) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Informe um telefone válido com DDD para salvar o perfil.");
+        return "return";
+      }
+      if (
+        nomeCompleto === profile.currentNomeCompleto.trim() &&
+        nomeExibicao === profile.currentNomeExibicao.trim() &&
+        telefone === normalizarTelefone(profile.currentTelefone)
+      ) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Nenhuma alteração nova foi encontrada no perfil.");
+        return "return";
+      }
+
+      if (profile.session) {
+        try {
+          const perfilSincronizado = await profile.onAtualizarPerfilContaNoBackend(profile.session.accessToken, {
+            nomeCompleto,
+            email: profile.session.bootstrap.usuario.email || "",
+            telefone,
+          });
+          profile.onAplicarPerfilSincronizado(perfilSincronizado);
+          profile.onAplicarPerfilLocal({
+            nomeCompleto: perfilSincronizado.nomeCompleto,
+            nomeExibicao,
+            telefone: perfilSincronizado.telefone,
+          });
+          ui.onNotificarConfiguracaoConcluida("Perfil atualizado e sincronizado com a conta.");
+        } catch (error) {
+          ui.onSetSettingsSheetLoading(false);
+          ui.onSetSettingsSheetNotice(
+            error instanceof Error ? error.message : "Não foi possível atualizar o perfil agora.",
+          );
+          return "return";
+        }
+      } else {
+        profile.onAplicarPerfilLocal({
+          nomeCompleto,
+          nomeExibicao,
+          telefone,
+        });
+        ui.onNotificarConfiguracaoConcluida("Perfil atualizado neste dispositivo.");
+      }
+
+      ui.onRegistrarEventoSegurancaLocal({
+        title: "Perfil atualizado",
+        meta: `${nomeExibicao} • ${telefone || "Sem telefone"}`,
+        status: "Agora",
+        type: "data",
+      });
+      return "continue";
+    }
     case "plan": {
       const proximoPlano = nextOptionValue(plan.current, PLAN_OPTIONS);
       plan.onChange(proximoPlano);
@@ -208,49 +364,52 @@ export async function handleSettingsSheetConfirmDelegated({
       return "continue";
     }
     case "email": {
-      if (!email.draft.trim() || !email.draft.includes("@")) {
+      if (!emailEhValido(email.draft)) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Digite um email válido para solicitar a confirmação.");
+        ui.onSetSettingsSheetNotice("Digite um e-mail válido para salvar a conta.");
         return "return";
       }
-      const emailAtualizado = email.draft.trim();
+      const emailAtualizado = email.draft.trim().toLowerCase();
+      if (emailAtualizado === (email.emailAtualConta || email.emailLogin || "").trim().toLowerCase()) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Esse e-mail já está configurado como principal.");
+        return "return";
+      }
       if (email.session) {
         try {
           const perfilSincronizado = await email.onAtualizarPerfilContaNoBackend(email.session.accessToken, {
             nomeCompleto: email.perfilNome.trim() || email.session.bootstrap.usuario.nome_completo || "Inspetor Tariel",
             email: emailAtualizado,
-            telefone: email.session.bootstrap.usuario.telefone || "",
+            telefone: email.telefone.trim() || email.session.bootstrap.usuario.telefone || "",
           });
           email.onAplicarPerfilSincronizado(perfilSincronizado);
-          ui.onNotificarConfiguracaoConcluida("Email atualizado e sincronizado com a conta.");
+          ui.onNotificarConfiguracaoConcluida("E-mail atualizado e sincronizado com a conta.");
         } catch (error) {
           ui.onSetSettingsSheetLoading(false);
-          ui.onSetSettingsSheetNotice(error instanceof Error ? error.message : "Não foi possível atualizar o email agora.");
+          ui.onSetSettingsSheetNotice(error instanceof Error ? error.message : "Não foi possível atualizar o e-mail agora.");
           return "return";
         }
       } else {
         email.onSetEmailAtualConta(emailAtualizado);
-        ui.onNotificarConfiguracaoConcluida(
-          "Solicitação registrada localmente. A confirmação completa do email depende da sincronização com o backend.",
-        );
+        ui.onNotificarConfiguracaoConcluida("E-mail atualizado neste dispositivo.");
       }
       ui.onRegistrarEventoSegurancaLocal({
-        title: "Alteração de email iniciada",
-        meta: `Confirmação enviada para ${emailAtualizado}`,
+        title: "E-mail atualizado",
+        meta: emailAtualizado,
         status: "Agora",
         type: "data",
       });
       return "continue";
     }
     case "password": {
-      if (!password.senhaAtualDraft || !password.novaSenhaDraft || !password.confirmarSenhaDraft) {
+      const erroSenha = validarSenhaForte(
+        password.senhaAtualDraft,
+        password.novaSenhaDraft,
+        password.confirmarSenhaDraft,
+      );
+      if (erroSenha) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Preencha senha atual, nova senha e confirmação.");
-        return "return";
-      }
-      if (password.novaSenhaDraft !== password.confirmarSenhaDraft) {
-        ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("A nova senha e a confirmação precisam ser iguais.");
+        ui.onSetSettingsSheetNotice(erroSenha);
         return "return";
       }
       ui.onRegistrarEventoSegurancaLocal({
@@ -287,6 +446,11 @@ export async function handleSettingsSheetConfirmDelegated({
       if (!support.bugDescriptionDraft.trim()) {
         ui.onSetSettingsSheetLoading(false);
         ui.onSetSettingsSheetNotice("Descreva o problema antes de enviar.");
+        return "return";
+      }
+      if (support.bugEmailDraft.trim() && !emailEhValido(support.bugEmailDraft)) {
+        ui.onSetSettingsSheetLoading(false);
+        ui.onSetSettingsSheetNotice("Informe um e-mail válido para retorno ou deixe o campo em branco.");
         return "return";
       }
       const attachmentLabel = support.bugAttachmentDraft
@@ -326,7 +490,10 @@ export async function handleSettingsSheetConfirmDelegated({
             titulo: item.title,
             mensagem: item.body,
             emailRetorno: item.email,
-            contexto: `${APP_VERSION_LABEL} • ${APP_BUILD_CHANNEL} • API ${support.statusApi}`,
+            contexto: buildSupportContext({
+              support,
+              attachmentLabel: item.attachmentLabel,
+            }),
             anexoNome: item.attachmentLabel || "",
           });
           support.onSetFilaSuporteLocal((current) =>
@@ -375,7 +542,7 @@ export async function handleSettingsSheetConfirmDelegated({
             titulo: item.title,
             mensagem: item.body,
             emailRetorno: item.email,
-            contexto: `${APP_VERSION_LABEL} • ${APP_BUILD_CHANNEL} • API ${support.statusApi}`,
+            contexto: buildSupportContext({ support }),
           });
           support.onSetFilaSuporteLocal((current) =>
             current.map((entry) =>

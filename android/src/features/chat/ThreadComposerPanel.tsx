@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   Text,
@@ -34,7 +35,6 @@ type ComposerAttachmentDraft =
 interface ThreadComposerPanelProps {
   visible: boolean;
   keyboardVisible: boolean;
-  composerKeyboardBottomOffset: number;
   canReopen: boolean;
   onReopen: () => void;
   vendoMesa: boolean;
@@ -51,6 +51,10 @@ interface ThreadComposerPanelProps {
   podeEnviarMesa: boolean;
   onEnviarMensagemMesa: () => void;
   enviandoMesa: boolean;
+  showVoiceInputAction: boolean;
+  onVoiceInputPress: () => void;
+  voiceInputEnabled: boolean;
+  composerNotice: string;
   anexoRascunho: ComposerAttachmentDraft | null;
   onClearAnexoRascunho: () => void;
   podeAbrirAnexosChat: boolean;
@@ -98,7 +102,6 @@ function AttachmentDraftCard({
 export function ThreadComposerPanel({
   visible,
   keyboardVisible,
-  composerKeyboardBottomOffset,
   canReopen,
   onReopen,
   vendoMesa,
@@ -115,6 +118,10 @@ export function ThreadComposerPanel({
   podeEnviarMesa,
   onEnviarMensagemMesa,
   enviandoMesa,
+  showVoiceInputAction,
+  onVoiceInputPress,
+  voiceInputEnabled,
+  composerNotice,
   anexoRascunho,
   onClearAnexoRascunho,
   podeAbrirAnexosChat,
@@ -133,19 +140,71 @@ export function ThreadComposerPanel({
     return null;
   }
 
+  const showComposerHeader = vendoMesa;
+  const showInlineComposerNotice = Boolean(!vendoMesa && composerNotice);
+  const composerTitle = podeUsarComposerMesa ? "Responder à mesa" : "Mesa em leitura";
+  const composerStatusLabel = vendoMesa
+    ? podeUsarComposerMesa
+      ? "Resposta liberada"
+      : "Modo leitura"
+    : "";
+  const composerStatusStyle = vendoMesa
+    ? podeUsarComposerMesa
+      ? styles.composerStatusBadgeAccent
+      : null
+    : null;
+  const composerStatusTextStyle = vendoMesa
+    ? podeUsarComposerMesa
+      ? styles.composerStatusBadgeTextAccent
+      : null
+    : null;
+
   return (
     <View
       style={[
         styles.composerCard,
         keyboardVisible ? styles.composerCardKeyboardVisible : null,
-        keyboardVisible ? { bottom: composerKeyboardBottomOffset } : null,
       ]}
     >
-      {canReopen ? (
-        <Pressable onPress={onReopen} style={styles.cleanReopenAction}>
-          <MaterialCommunityIcons name="history" size={16} color={colors.accent} />
-          <Text style={styles.cleanReopenActionText}>Reabrir laudo</Text>
-        </Pressable>
+      {showComposerHeader ? (
+        <View style={styles.composerHeader}>
+          <View style={styles.composerHeaderCopy}>
+            <Text style={styles.composerTitle}>{composerTitle}</Text>
+            {!!composerNotice ? <Text style={styles.composerSubtitle}>{composerNotice}</Text> : null}
+          </View>
+          <View style={[styles.composerStatusBadge, composerStatusStyle]}>
+            <Text style={[styles.composerStatusBadgeText, composerStatusTextStyle]}>{composerStatusLabel}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {canReopen || showInlineComposerNotice ? (
+        <View style={styles.composerMiniActions}>
+          {canReopen ? (
+            <Pressable
+              accessibilityLabel="Reabrir laudo"
+              hitSlop={8}
+              onPress={onReopen}
+              style={styles.composerMiniAction}
+              testID="chat-composer-reopen-icon"
+            >
+              <MaterialCommunityIcons name="history" size={14} color={colors.accent} />
+            </Pressable>
+          ) : null}
+          {showInlineComposerNotice ? (
+            <Pressable
+              accessibilityLabel="Detalhes da configuração atual da IA"
+              hitSlop={8}
+              onPress={() => {
+                Alert.alert("Configuração atual da IA", composerNotice);
+              }}
+              style={styles.composerMiniAction}
+              testID="chat-composer-ai-notice-icon"
+            >
+              <MaterialCommunityIcons name="robot-outline" size={14} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
+        </View>
       ) : null}
 
       {vendoMesa ? (
@@ -184,6 +243,22 @@ export function ThreadComposerPanel({
             >
               <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
             </Pressable>
+            {showVoiceInputAction ? (
+              <Pressable
+                accessibilityState={{ disabled: !voiceInputEnabled }}
+                onPress={() => {
+                  onVoiceInputPress();
+                }}
+                style={[styles.attachInsideButton, !voiceInputEnabled ? styles.attachButtonDisabled : null]}
+                testID="mesa-voice-button"
+              >
+                <MaterialCommunityIcons
+                  name={voiceInputEnabled ? "microphone-outline" : "microphone-off"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
             <TextInput
               editable={podeUsarComposerMesa}
               multiline
@@ -242,6 +317,22 @@ export function ThreadComposerPanel({
             >
               <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
             </Pressable>
+            {showVoiceInputAction ? (
+              <Pressable
+                accessibilityState={{ disabled: !voiceInputEnabled }}
+                onPress={() => {
+                  onVoiceInputPress();
+                }}
+                style={[styles.attachInsideButton, !voiceInputEnabled ? styles.attachButtonDisabled : null]}
+                testID="chat-voice-button"
+              >
+                <MaterialCommunityIcons
+                  name={voiceInputEnabled ? "microphone-outline" : "microphone-off"}
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
             <TextInput
               editable={podeAcionarComposer}
               multiline

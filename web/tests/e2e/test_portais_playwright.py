@@ -1720,6 +1720,275 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
         contexto_revisor.close()
 
 
+def test_e2e_revisor_biblioteca_templates_compara_versoes_em_lote(
+    page: Page,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    _fazer_login(
+        page,
+        base_url=live_server_url,
+        portal="revisao",
+        email=credenciais_seed["revisor"]["email"],
+        senha=credenciais_seed["revisor"]["senha"],
+        rota_sucesso_regex=rf"{re.escape(live_server_url)}/revisao/painel/?$",
+    )
+
+    ids_templates: list[int] = []
+    for versao, titulo, texto in (
+        (1, "Template E2E v1", "Ponto A validado pelo inspetor."),
+        (2, "Template E2E v2", "Ponto B validado pela mesa."),
+    ):
+        resposta_criar = _api_fetch(
+            page,
+            path="/revisao/api/templates-laudo/editor",
+            method="POST",
+            json_body={
+                "nome": titulo,
+                "codigo_template": "e2e_diff_templates",
+                "versao": versao,
+                "origem_modo": "a4",
+            },
+        )
+        assert resposta_criar["status"] == 201, resposta_criar
+        template_id = int(resposta_criar["body"]["id"])
+        ids_templates.append(template_id)
+
+        resposta_salvar = _api_fetch(
+            page,
+            path=f"/revisao/api/templates-laudo/editor/{template_id}",
+            method="PUT",
+            json_body={
+                "documento_editor_json": {
+                    "version": 1,
+                    "doc": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "heading",
+                                "attrs": {"level": 1},
+                                "content": [{"type": "text", "text": titulo}],
+                            },
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": texto}],
+                            },
+                        ],
+                    },
+                }
+            },
+        )
+        assert resposta_salvar["status"] == 200, resposta_salvar
+
+    page.goto(f"{live_server_url}/revisao/templates-laudo", wait_until="domcontentloaded")
+    expect(page.locator("#selection-toolbar")).to_be_hidden()
+
+    primeiro_checkbox = page.locator(f'.template-version-row[data-template-version-id="{ids_templates[0]}"] .js-select-template').first
+    segundo_checkbox = page.locator(f'.template-version-row[data-template-version-id="{ids_templates[1]}"] .js-select-template').first
+    expect(primeiro_checkbox).to_be_visible(timeout=10000)
+    expect(segundo_checkbox).to_be_visible(timeout=10000)
+
+    primeiro_checkbox.check()
+    segundo_checkbox.check()
+
+    expect(page.locator("#selection-toolbar")).to_be_visible(timeout=10000)
+    expect(page.locator("#selection-count")).to_contain_text("2 selecionados", timeout=10000)
+    expect(page.locator("#btn-compare-selected")).to_be_enabled()
+
+    page.locator("#btn-compare-selected").click()
+
+    expect(page.locator("#template-diff-modal")).to_be_visible(timeout=10000)
+    expect(page.locator("#template-diff-title")).to_contain_text("e2e_diff_templates", timeout=10000)
+    expect(page.locator("#template-diff-lines")).to_contain_text("Ponto B validado pela mesa.", timeout=10000)
+
+
+def test_e2e_revisor_biblioteca_templates_promove_base_e_restaura_automatico(
+    page: Page,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    _fazer_login(
+        page,
+        base_url=live_server_url,
+        portal="revisao",
+        email=credenciais_seed["revisor"]["email"],
+        senha=credenciais_seed["revisor"]["senha"],
+        rota_sucesso_regex=rf"{re.escape(live_server_url)}/revisao/painel/?$",
+    )
+
+    ids_templates: list[int] = []
+    for versao, titulo, texto, ativo in (
+        (1, "Template Base Auto v1", "Versão ativa recomendada pela heurística.", True),
+        (2, "Template Base Fixa v2", "Versão manual para a mesa documental.", False),
+    ):
+        resposta_criar = _api_fetch(
+            page,
+            path="/revisao/api/templates-laudo/editor",
+            method="POST",
+            json_body={
+                "nome": titulo,
+                "codigo_template": "e2e_base_recomendada",
+                "versao": versao,
+                "origem_modo": "a4",
+                "ativo": ativo,
+            },
+        )
+        assert resposta_criar["status"] == 201, resposta_criar
+        template_id = int(resposta_criar["body"]["id"])
+        ids_templates.append(template_id)
+
+        resposta_salvar = _api_fetch(
+            page,
+            path=f"/revisao/api/templates-laudo/editor/{template_id}",
+            method="PUT",
+            json_body={
+                "documento_editor_json": {
+                    "version": 1,
+                    "doc": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "heading",
+                                "attrs": {"level": 1},
+                                "content": [{"type": "text", "text": titulo}],
+                            },
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": texto}],
+                            },
+                        ],
+                    },
+                }
+            },
+        )
+        assert resposta_salvar["status"] == 200, resposta_salvar
+
+    page.goto(f"{live_server_url}/revisao/templates-laudo", wait_until="domcontentloaded")
+
+    grupo = page.locator('[data-codigo-template="e2e_base_recomendada"]').first
+    expect(grupo).to_be_visible(timeout=10000)
+    expect(grupo.locator(".template-featured-body .template-title")).to_contain_text("Template Base Auto v1", timeout=10000)
+
+    linha_v2 = grupo.locator(f'.template-version-row[data-template-version-id="{ids_templates[1]}"]').first
+    expect(linha_v2.locator(".js-promover-base")).to_be_visible(timeout=10000)
+    linha_v2.locator(".js-promover-base").click()
+
+    expect(page.locator("#status-lista")).to_contain_text("Base recomendada atualizada.", timeout=10000)
+    expect(grupo.locator(".template-featured-body .template-title")).to_contain_text("Template Base Fixa v2", timeout=10000)
+    expect(grupo).to_contain_text(re.compile(r"base fixa", re.IGNORECASE))
+    expect(linha_v2.locator(".js-promover-base")).to_contain_text("Voltar ao automático", timeout=10000)
+
+    linha_v2.locator(".js-promover-base").click()
+
+    expect(page.locator("#status-lista")).to_contain_text("Base recomendada voltou ao modo automático.", timeout=10000)
+    expect(grupo.locator(".template-featured-body .template-title")).to_contain_text("Template Base Auto v1", timeout=10000)
+    expect(grupo.locator(".template-group-summary")).not_to_contain_text(re.compile(r"fixada pela mesa|base fixa", re.IGNORECASE))
+
+
+def test_e2e_revisor_editor_word_workspace_inspector_preview_e_comparacao(
+    page: Page,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    _fazer_login(
+        page,
+        base_url=live_server_url,
+        portal="revisao",
+        email=credenciais_seed["revisor"]["email"],
+        senha=credenciais_seed["revisor"]["senha"],
+        rota_sucesso_regex=rf"{re.escape(live_server_url)}/revisao/painel/?$",
+    )
+
+    codigo = f"e2e_editor_workspace_{uuid.uuid4().hex[:8]}"
+    ids_templates: list[int] = []
+    for versao, titulo, texto in (
+        (1, "Workspace Editor v1", "Base original aprovada pela mesa."),
+        (2, "Workspace Editor v2", "Base comparada com alteração estrutural."),
+    ):
+        resposta_criar = _api_fetch(
+            page,
+            path="/revisao/api/templates-laudo/editor",
+            method="POST",
+            json_body={
+                "nome": titulo,
+                "codigo_template": codigo,
+                "versao": versao,
+                "origem_modo": "a4",
+            },
+        )
+        assert resposta_criar["status"] == 201, resposta_criar
+        template_id = int(resposta_criar["body"]["id"])
+        ids_templates.append(template_id)
+
+        resposta_salvar = _api_fetch(
+            page,
+            path=f"/revisao/api/templates-laudo/editor/{template_id}",
+            method="PUT",
+            json_body={
+                "nome": titulo,
+                "documento_editor_json": {
+                    "version": 1,
+                    "doc": {
+                        "type": "doc",
+                        "content": [
+                            {
+                                "type": "heading",
+                                "attrs": {"level": 1},
+                                "content": [{"type": "text", "text": titulo}],
+                            },
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": texto}],
+                            },
+                        ],
+                    },
+                },
+                "estilo_json": {
+                    "pagina": {"size": "A4", "orientation": "portrait", "margens_mm": {"top": 18, "right": 14, "bottom": 18, "left": 14}},
+                    "cabecalho_texto": f"Tariel • {titulo}",
+                    "rodape_texto": "Documento E2E",
+                    "marca_dagua": {"texto": "E2E", "opacity": 0.08},
+                },
+            },
+        )
+        assert resposta_salvar["status"] == 200, resposta_salvar
+
+    page.goto(
+        f"{live_server_url}/revisao/templates-laudo/editor?template_id={ids_templates[0]}",
+        wait_until="domcontentloaded",
+    )
+
+    expect(page.locator("#card-editor-word")).to_be_visible(timeout=10000)
+    expect(page.locator(".word-left-rail")).to_be_visible(timeout=10000)
+    expect(page.locator(".word-tab.active")).to_contain_text("Documento", timeout=10000)
+    expect(page.locator("#editor-word-surface .ProseMirror")).to_be_visible(timeout=30000)
+    _assert_sem_overflow_horizontal(page)
+
+    page.locator('.word-tab[data-tab="layout"]').click()
+    expect(page.locator('#editor-header')).to_be_visible(timeout=10000)
+
+    page.locator('.word-tab[data-tab="preview"]').click()
+    expect(page.locator('#editor-preview-dados')).to_be_visible(timeout=10000)
+    page.locator("#btn-editor-preview").click()
+    expect(page.locator("#status-editor-word")).to_contain_text(re.compile(r"preview word atualizado", re.IGNORECASE), timeout=30000)
+    page.wait_for_function(
+        """() => {
+            const frame = document.getElementById("frame-editor-preview");
+            return !!frame && /^blob:/.test(String(frame.getAttribute("src") || ""));
+        }""",
+        timeout=30000,
+    )
+
+    page.locator('.word-tab[data-tab="comparar"]').click()
+    page.locator("#editor-compare-template-select").select_option(str(ids_templates[1]))
+    page.locator("#btn-editor-compare").click()
+
+    expect(page.locator("#editor-compare-summary")).to_be_visible(timeout=30000)
+    expect(page.locator("#status-editor-compare")).to_have_class(re.compile(r".*\bok\b.*"), timeout=30000)
+    expect(page.locator("#status-editor-compare")).not_to_be_empty(timeout=30000)
+    expect(page.locator("#editor-compare-blocks")).to_contain_text("Base comparada com alteração estrutural.", timeout=30000)
+
+
 def test_e2e_revisor_exporta_pacote_tecnico_da_mesa(
     browser: Browser,
     live_server_url: str,

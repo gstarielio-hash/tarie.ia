@@ -40,6 +40,37 @@ interface SettingsConfirmationModalProps {
   onConfirm: () => void;
 }
 
+function inferirTomNotice(mensagem: string): {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+} {
+  const normalizado = String(mensagem || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  if (
+    normalizado.includes("nao foi") ||
+    normalizado.includes("falha") ||
+    normalizado.includes("inval") ||
+    normalizado.includes("permita") ||
+    normalizado.includes("indisponivel") ||
+    normalizado.includes("precisa")
+  ) {
+    return { icon: "alert-circle-outline", color: colors.danger };
+  }
+
+  if (
+    normalizado.includes("cancelad") ||
+    normalizado.includes("nenhuma alteracao") ||
+    normalizado.includes("conecte")
+  ) {
+    return { icon: "information-outline", color: colors.textSecondary };
+  }
+
+  return { icon: "check-decagram", color: colors.success };
+}
+
 export function AppLockModal({
   visible,
   deviceBiometricsEnabled,
@@ -100,6 +131,7 @@ export function SettingsSheetModal({
   onClose,
   onConfirm,
 }: SettingsSheetModalProps) {
+  const noticeTone = inferirTomNotice(settingsSheetNotice);
   return (
     <Modal
       animationType="slide"
@@ -128,8 +160,8 @@ export function SettingsSheetModal({
             {renderSettingsSheetBody()}
             {settingsSheetNotice ? (
               <View style={styles.settingsSheetNotice}>
-                <MaterialCommunityIcons name="check-decagram" size={18} color={colors.success} />
-                <Text style={styles.settingsSheetNoticeText}>{settingsSheetNotice}</Text>
+                <MaterialCommunityIcons name={noticeTone.icon} size={18} color={noticeTone.color} />
+                <Text style={[styles.settingsSheetNoticeText, { color: noticeTone.color }]}>{settingsSheetNotice}</Text>
               </View>
             ) : null}
           </ScrollView>

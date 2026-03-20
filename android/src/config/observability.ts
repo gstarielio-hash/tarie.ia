@@ -31,6 +31,7 @@ interface ObservabilitySummary {
 
 const OBSERVABILITY_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-mobile-observability.json`;
 const OBSERVABILITY_LIMIT = 320;
+let analyticsOptInEnabled = true;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -112,9 +113,19 @@ async function saveEvents(items: MobileObservabilityEvent[]): Promise<void> {
   }
 }
 
+export function configureObservability(options: { analyticsOptIn: boolean }): void {
+  analyticsOptInEnabled = options.analyticsOptIn;
+  if (!analyticsOptInEnabled) {
+    void saveEvents([]);
+  }
+}
+
 export async function registrarEventoObservabilidade(
   input: Omit<MobileObservabilityEvent, "id" | "createdAt"> & { createdAt?: string },
 ): Promise<void> {
+  if (!analyticsOptInEnabled) {
+    return;
+  }
   const nome = String(input.name || "").trim();
   if (!nome) {
     return;

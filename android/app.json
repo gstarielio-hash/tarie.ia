@@ -45,7 +45,15 @@
         }
       ],
       "expo-document-picker",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#091019",
+          "defaultChannel": "tariel-chat"
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://tarie-ia.onrender.com"

@@ -1,0 +1,16 @@
+export const AI_MODEL_OPTIONS = ["rápido", "equilibrado", "avançado"] as const;
+export const RESPONSE_STYLE_OPTIONS = ["curto", "padrão", "detalhado", "criativo"] as const;
+export const RESPONSE_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol", "Auto detectar"] as const;
+export const CONVERSATION_TONE_OPTIONS = ["profissional", "casual", "técnico", "amigável"] as const;
+export const SPEECH_LANGUAGE_OPTIONS = ["Sistema", "Português", "Inglês", "Espanhol"] as const;
+export const THEME_OPTIONS = ["claro", "escuro", "automático"] as const;
+export const FONT_SIZE_OPTIONS = ["pequeno", "médio", "grande"] as const;
+export const DENSITY_OPTIONS = ["compacta", "confortável"] as const;
+export const ACCENT_OPTIONS = ["azul", "laranja", "roxo", "personalizado"] as const;
+export const NOTIFICATION_SOUND_OPTIONS = ["Ping", "Sino curto", "Silencioso"] as const;
+export const MEDIA_COMPRESSION_OPTIONS = ["forte", "equilibrada", "leve", "original"] as const;
+export const APP_LANGUAGE_OPTIONS = ["Português", "Inglês", "Espanhol"] as const;
+export const REGION_OPTIONS = ["Brasil", "Estados Unidos", "Europa"] as const;
+export const BATTERY_OPTIONS = ["Otimizado", "Desempenho", "Econômico"] as const;
+export const LOCK_TIMEOUT_OPTIONS = ["imediatamente", "1 minuto", "5 minutos", "15 minutos", "nunca"] as const;
+export const DATA_RETENTION_OPTIONS = ["30 dias", "90 dias", "1 ano", "Até excluir"] as const;

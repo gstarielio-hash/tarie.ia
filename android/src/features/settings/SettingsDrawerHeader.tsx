@@ -27,6 +27,9 @@ export function SettingsDrawerHeader({
             styles.activityModalEyebrow,
             settingsDrawerInOverview ? styles.activityModalEyebrowPrint : null,
             settingsDrawerInOverview && settingsPrintDarkMode ? styles.activityModalEyebrowPrintDark : null,
+            styles.settingsDrawerWordmark,
+            settingsDrawerInOverview ? styles.settingsDrawerWordmarkPrint : null,
+            settingsDrawerInOverview && settingsPrintDarkMode ? styles.settingsDrawerWordmarkPrintDark : null,
           ]}
         >
           tariel.ia
@@ -39,15 +42,6 @@ export function SettingsDrawerHeader({
           ]}
         >
           {settingsDrawerTitle}
-        </Text>
-        <Text
-          style={[
-            styles.sidePanelDescription,
-            settingsDrawerInOverview ? styles.sidePanelDescriptionPrint : null,
-            settingsDrawerInOverview && settingsPrintDarkMode ? styles.sidePanelDescriptionPrintDark : null,
-          ]}
-        >
-          {settingsDrawerSubtitle}
         </Text>
       </View>
       <Pressable

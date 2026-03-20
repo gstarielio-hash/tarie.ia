@@ -156,6 +156,8 @@ def test_template_revisor_aponta_websocket_com_prefixo_revisao() -> None:
     assert 'data-mesa-action="alternar-pendencia"' in painel_revisor_html
     assert "js-indicador-whispers" in painel_revisor_html
     assert "js-indicador-pendencias" in painel_revisor_html
+    assert "js-indicador-aprendizados" in painel_revisor_html
+    assert 'id="filtro-aprendizados"' in painel_revisor_html
     assert "anexo-mensagem-link" in painel_revisor_html
     assert 'id="btn-anexo-resposta"' in painel_revisor_html
     assert 'id="input-anexo-resposta"' in painel_revisor_html
@@ -631,27 +633,65 @@ def test_tela_templates_laudo_separa_biblioteca_e_editor_word() -> None:
     assert 'id="metric-word"' in html_biblioteca
     assert 'id="metric-ativo"' in html_biblioteca
     assert 'id="metric-recente"' in html_biblioteca
+    assert 'id="selection-toolbar"' in html_biblioteca
+    assert 'id="btn-compare-selected"' in html_biblioteca
+    assert 'id="template-diff-modal"' in html_biblioteca
+    assert 'id="template-audit-list"' in html_biblioteca
+    assert 'id="btn-refresh-audit"' in html_biblioteca
+    assert "Histórico recente da biblioteca" in html_biblioteca
     assert "Criar seu modelo" in html_biblioteca
+    assert "agrupado por código" in html_biblioteca
     assert "/static/js/revisor/templates_biblioteca_page.js" in html_biblioteca
 
     assert 'id="btn-open-editor-a4"' in html_editor
     assert 'id="card-editor-word"' in html_editor
     assert 'id="editor-word-surface"' in html_editor
+    assert 'class="word-workspace-shell"' in html_editor
+    assert 'class="word-left-rail"' in html_editor
+    assert 'class="word-inspector word-side-panel"' in html_editor
     assert 'id="btn-editor-preview"' in html_editor
+    assert 'id="btn-word-toggle-side"' in html_editor
+    assert 'id="editor-compare-template-select"' in html_editor
+    assert 'id="btn-editor-compare"' in html_editor
+    assert 'id="editor-compare-blocks"' in html_editor
+    assert "Inspector editorial" in html_editor
+    assert "Preview operacional" in html_editor
+    assert "Diff visual por bloco" in html_editor
     assert "/static/js/revisor/templates_editor_word.js" in html_editor
 
     assert "/revisao/api/templates-laudo" in js_biblioteca
     assert "/revisao/api/templates-laudo/editor/${Number(id)}/publicar" in js_biblioteca
     assert "/revisao/api/templates-laudo/${Number(id)}" in js_biblioteca
-    assert "/revisao/templates-laudo/editor?template_id=${id}" in js_biblioteca
+    assert "/revisao/api/templates-laudo/lote/status" in js_biblioteca
+    assert "/revisao/api/templates-laudo/lote/excluir" in js_biblioteca
+    assert "/revisao/api/templates-laudo/diff?" in js_biblioteca
+    assert "/revisao/api/templates-laudo/auditoria?" in js_biblioteca
+    assert "/revisao/api/templates-laudo/${Number(id)}/base-recomendada" in js_biblioteca
+    assert "/revisao/templates-laudo/editor?template_id=${Number(item.id)}" in js_biblioteca
     assert "js-usar" in js_biblioteca
+    assert "js-select-template" in js_biblioteca
+    assert "js-promover-base" in js_biblioteca
+    assert "Voltar ao automático" in js_biblioteca
     assert "ordenacao" in js_biblioteca
     assert "atualizarMetricas" in js_biblioteca
+    assert "construirGrupos" in js_biblioteca
+    assert "template-group-card" in js_biblioteca
+    assert "template-version-row" in js_biblioteca
+    assert "grupo_total_versoes" in js_biblioteca
+    assert "is_base_recomendada" in js_biblioteca
+    assert "base_recomendada_origem" in js_biblioteca
+    assert "template_base_recomendada_promovida" in js_biblioteca
+    assert "template_base_recomendada_automatica_restaurada" in js_biblioteca
+    assert "Árvore de versões" in js_biblioteca
     assert "renderizarThumbTemplate" in js_biblioteca
+    assert "renderAuditoria" in js_biblioteca
 
     assert "/revisao/api/templates-laudo/editor" in js_word
+    assert "/revisao/api/templates-laudo/diff?" in js_word
     assert "asset://" in js_word
     assert "origem_modo" in js_word
+    assert "defineTab(\"documento\")" in js_word
+    assert "Mostrar inspector" in js_word
 
 
 def test_chat_sidebar_e_modal_perfil_expoem_controles_essenciais() -> None:

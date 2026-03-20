@@ -33,6 +33,7 @@ from app.shared.security import (
     token_esta_ativo,
     usuario_tem_bloqueio_ativo,
     verificar_senha,
+    verificar_senha_com_upgrade,
 )
 from app.domains.admin.services import (
     adicionar_inspetor,
@@ -556,8 +557,12 @@ async def processar_login(
         )
 
     usuario = banco.scalar(select(Usuario).where(Usuario.email == email_normalizado))
+    senha_valida = False
+    hash_atualizado: str | None = None
+    if usuario:
+        senha_valida, hash_atualizado = verificar_senha_com_upgrade(senha, usuario.senha_hash)
 
-    if not usuario or not verificar_senha(senha, usuario.senha_hash):
+    if not usuario or not senha_valida:
         if usuario and hasattr(usuario, "incrementar_tentativa_falha"):
             try:
                 usuario.incrementar_tentativa_falha()
@@ -596,6 +601,9 @@ async def processar_login(
             encerrar_sessao(token_anterior)
         _iniciar_fluxo_troca_senha(request, usuario_id=usuario.id, lembrar=False)
         return RedirectResponse(url="/admin/trocar-senha", status_code=303)
+
+    if hash_atualizado:
+        usuario.senha_hash = hash_atualizado
 
     _registrar_sessao_admin(request, usuario)
 

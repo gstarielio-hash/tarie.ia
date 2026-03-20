@@ -20,7 +20,9 @@
         normalizarAnexoMensagem,
         renderizarAnexosMensagem,
         resumoMensagem,
+        textoBadgeAprendizado,
         textoBadgePendencia,
+        classificarOperacaoLaudo,
         definirReferenciaMensagemAtiva,
         showStatus
     } = NS;
@@ -91,11 +93,21 @@ const renderMessageBubble = (msg, pendente = false) => {
     };
 
     const renderWhisperItem = (dados) => {
+        const operacao = classificarOperacaoLaudo({
+            statusRevisao: "Rascunho",
+            whispersNaoLidos: 1,
+            pendenciasAbertas: Number(dados?.pendencias_abertas || 0) || 0,
+            aprendizadosPendentes: Number(dados?.aprendizados_pendentes || 0) || 0
+        });
         const item = document.createElement("article");
         item.className = "item-lista whisper-item js-item-laudo";
         item.dataset.id = String(dados.laudo_id);
         item.dataset.whispersNaoLidos = "1";
         item.dataset.pendenciasAbertas = String(Number(dados?.pendencias_abertas || 0) || 0);
+        item.dataset.aprendizadosPendentes = String(Number(dados?.aprendizados_pendentes || 0) || 0);
+        item.dataset.statusRevisao = "Rascunho";
+        item.dataset.filaOperacional = operacao.fila;
+        item.dataset.prioridadeOperacional = operacao.prioridade;
         item.setAttribute("tabindex", "0");
         item.setAttribute("role", "button");
         item.setAttribute("aria-label", `Abrir chamado urgente #${dados.hash}`);
@@ -106,11 +118,19 @@ const renderMessageBubble = (msg, pendente = false) => {
                 <span class="badge urgente">Urgente</span>
             </div>
             <div class="item-preview">${escapeHtml((dados.texto || "").slice(0, 60))}${(dados.texto || "").length > 60 ? "..." : ""}</div>
+            <div class="item-operacao-resumo">
+                <span class="badge fila-operacional ${escapeHtml(operacao.fila)}">${escapeHtml(operacao.filaLabel)}</span>
+                <span class="badge prioridade ${escapeHtml(operacao.prioridade)}">${escapeHtml(operacao.prioridadeLabel)}</span>
+            </div>
+            <div class="item-proxima-acao js-proxima-acao">${escapeHtml(operacao.proximaAcao)}</div>
             <div class="item-meta-rodape">
                 <div class="item-indicadores">
                     <span class="badge indicador-whisper js-indicador-whispers">1 whisper</span>
                     <span class="badge indicador-pendencia js-indicador-pendencias" ${(Number(dados?.pendencias_abertas || 0) || 0) > 0 ? "" : "hidden"}>
                         ${escapeHtml(textoBadgePendencia(Number(dados?.pendencias_abertas || 0) || 0))}
+                    </span>
+                    <span class="badge indicador-aprendizado js-indicador-aprendizados" ${(Number(dados?.aprendizados_pendentes || 0) || 0) > 0 ? "" : "hidden"}>
+                        ${escapeHtml(textoBadgeAprendizado(Number(dados?.aprendizados_pendentes || 0) || 0))}
                     </span>
                 </div>
             </div>

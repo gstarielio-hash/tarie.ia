@@ -21,27 +21,30 @@
                 <img src="/static/img/logo-horizontal-dark.png" alt="tariel.ia">
             </div>
             <span class="auth-eyebrow">Portal do Inspetor</span>
-            <h1 class="auth-title">Entre para operar inspeções, laudos e rotinas de campo.</h1>
+            <h1 class="auth-title">Retome a operação com clareza.</h1>
             <p class="auth-description">
-                O portal do inspetor concentra o laudo ativo, o histórico das interações e a execução do trabalho em campo.
+                O portal do inspetor concentra o laudo ativo, o histórico operacional e o fluxo com a mesa avaliadora no mesmo ambiente.
             </p>
 
-            <div class="auth-illustration">
-                <span class="auth-illustration__leaf auth-illustration__leaf--left"></span>
-                <span class="auth-illustration__leaf auth-illustration__leaf--center"></span>
-                <span class="auth-illustration__leaf auth-illustration__leaf--right"></span>
-                <span class="auth-illustration__ground"></span>
-                <div class="auth-illustration__door"></div>
-                <div class="auth-illustration__person">
-                    <span class="auth-illustration__head"></span>
-                    <span class="auth-illustration__torso"></span>
-                    <span class="auth-illustration__arm auth-illustration__arm--left"></span>
-                    <span class="auth-illustration__arm auth-illustration__arm--right"></span>
-                    <span class="auth-illustration__leg auth-illustration__leg--left"></span>
-                    <span class="auth-illustration__leg auth-illustration__leg--right"></span>
-                    <span class="auth-illustration__shoe auth-illustration__shoe--left"></span>
-                    <span class="auth-illustration__shoe auth-illustration__shoe--right"></span>
-                    <span class="auth-illustration__dot"></span>
+            <div class="auth-signal-stack">
+                <article class="auth-signal-card auth-signal-card--primary">
+                    <span class="auth-signal-label">Laudo ativo</span>
+                    <strong>Continue de onde parou</strong>
+                    <p>Rastreabilidade, fotos, checklist e histórico técnico no mesmo fluxo de campo.</p>
+                </article>
+
+                <div class="auth-signal-grid">
+                    <article class="auth-signal-card">
+                        <span class="auth-signal-label">Mesa avaliadora</span>
+                        <strong>Retorno estruturado</strong>
+                        <p>Pendências, validação e ajustes seguem no mesmo ambiente operacional.</p>
+                    </article>
+
+                    <article class="auth-signal-card auth-signal-card--accent">
+                        <span class="auth-signal-label">Operação</span>
+                        <strong>Campo com foco</strong>
+                        <p>Use o mesmo acesso liberado pela empresa para manter o laudo em movimento.</p>
+                    </article>
                 </div>
             </div>
 
@@ -50,8 +53,9 @@
 
         <section class="auth-card">
             <div class="auth-card-header">
-                <h1 class="auth-card-title">Login</h1>
-                <p class="auth-card-subtitle">Portal do Inspetor</p>
+                <span class="auth-eyebrow">Portal do Inspetor</span>
+                <h1 class="auth-card-title">Entre para seguir a inspeção.</h1>
+                <p class="auth-card-subtitle">Laudo ativo, histórico e validação com a mesa no mesmo ambiente.</p>
             </div>
 
             {% if erro %}

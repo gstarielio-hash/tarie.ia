@@ -10,12 +10,13 @@ import {
   SettingsSegmentedRow,
   SettingsSwitchRow,
 } from "./SettingsPrimitives";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 type LockTimeout = (typeof LOCK_TIMEOUT_OPTIONS)[number];
 type SecurityEventFilter = (typeof SECURITY_EVENT_FILTERS)[number];
 
 interface SettingsSecurityDeviceProtectionSectionProps {
+  biometricsSupported: boolean;
   deviceBiometricsEnabled: boolean;
   requireAuthOnOpen: boolean;
   lockTimeout: LockTimeout;
@@ -47,6 +48,7 @@ function nextOptionValue<T extends string>(current: T, options: readonly T[]): T
 }
 
 export function SettingsSecurityDeviceProtectionSection({
+  biometricsSupported,
   deviceBiometricsEnabled,
   requireAuthOnOpen,
   lockTimeout,
@@ -60,25 +62,31 @@ export function SettingsSecurityDeviceProtectionSection({
     <SettingsSection
       icon="cellphone-lock"
       subtitle="Proteja o acesso local ao aplicativo no dispositivo."
+      testID="settings-section-protecao-dispositivo"
       title="Proteção no dispositivo"
     >
-      <SettingsSwitchRow
-        description="Usa biometria do sistema para desbloqueio local."
-        icon="fingerprint"
-        onValueChange={onToggleBiometriaNoDispositivo}
-        title="Desbloquear app com biometria"
-        value={deviceBiometricsEnabled}
-      />
+      {biometricsSupported ? (
+        <SettingsSwitchRow
+          description="Usa biometria do sistema para desbloqueio local."
+          icon="fingerprint"
+          onValueChange={onToggleBiometriaNoDispositivo}
+          testID="settings-device-biometrics-row"
+          title="Desbloquear app com biometria"
+          value={deviceBiometricsEnabled}
+        />
+      ) : null}
       <SettingsSwitchRow
         description="Solicita autenticação ao abrir o app."
         icon="shield-account-outline"
         onValueChange={onSetRequireAuthOnOpen}
+        testID="settings-device-auth-open-row"
         title="Exigir autenticação ao abrir"
         value={requireAuthOnOpen}
       />
       <SettingsPressRow
         icon="timer-lock-outline"
         onPress={() => onSetLockTimeout(nextOptionValue(lockTimeout, LOCK_TIMEOUT_OPTIONS))}
+        testID="settings-device-lock-timeout-row"
         title="Bloquear após inatividade"
         value={lockTimeout}
       />
@@ -86,6 +94,7 @@ export function SettingsSecurityDeviceProtectionSection({
         description="Oculta informações sensíveis na multitarefa."
         icon="eye-off-outline"
         onValueChange={onSetHideInMultitask}
+        testID="settings-device-hide-multitask-row"
         title="Ocultar conteúdo na multitarefa"
         value={hideInMultitask}
       />
@@ -117,9 +126,6 @@ export function SettingsSecurityIdentityVerificationSection({
         title="Ações protegidas"
         value="Sempre confirmadas"
       />
-      <Text style={styles.securityFootnote}>
-        A confiança desta verificação expira após um curto período e volta a ser exigida para ações sensíveis.
-      </Text>
     </SettingsSection>
   );
 }
