@@ -1,3 +1,6 @@
+import type { SettingsSecurityEventPayload } from "./settingsConfirmActions";
+import type { SettingsSheetState } from "./settingsSheetTypes";
+
 interface ExportIntegrationItem {
   id: string;
   label: string;
@@ -19,19 +22,15 @@ interface ExportNotificationItem {
   unread: boolean;
 }
 
-interface RunExportDataFlowParams {
+export interface RunExportDataFlowParams {
   formato: "JSON" | "PDF" | "TXT";
   reautenticacaoExpiraEm: string;
   reautenticacaoAindaValida: (value: string) => boolean;
   abrirFluxoReautenticacao: (motivo: string, onSuccess?: () => void) => void;
-  registrarEventoSegurancaLocal: (payload: {
-    title: string;
-    meta: string;
-    status: string;
-    type: "data" | "login" | "provider" | "session" | "2fa";
-    critical?: boolean;
-  }) => void;
-  abrirSheetConfiguracao: (payload: any) => void;
+  registrarEventoSegurancaLocal: (
+    payload: SettingsSecurityEventPayload,
+  ) => void;
+  abrirSheetConfiguracao: (payload: SettingsSheetState) => void;
   perfilNome: string;
   perfilExibicao: string;
   emailAtualConta: string;

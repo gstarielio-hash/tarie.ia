@@ -1,66 +1,91 @@
-import { AI_MODEL_OPTIONS } from "../InspectorMobileApp.constants";
-import { runExportDataFlow } from "./exportDataFlow";
-import { handleConfirmSheetAction } from "./settingsConfirmActions";
+import type { Dispatch, SetStateAction } from "react";
 
-type Setter = (...args: any[]) => void;
+import type { MobileLaudoCard, MobileMesaMessage } from "../../types/mobile";
+import { AI_MODEL_OPTIONS } from "../InspectorMobileApp.constants";
+import type {
+  ChatState,
+  ComposerAttachment,
+  MobileActivityNotification,
+} from "../chat/types";
+import type { MobileReadCache } from "../common/readCacheTypes";
+import type { AttachmentPreviewState } from "../common/inspectorUiBuilderTypes";
+import { runExportDataFlow } from "./exportDataFlow";
+import type {
+  ConfirmSheetState,
+  SettingsSheetState,
+} from "./settingsSheetTypes";
+import { handleConfirmSheetAction } from "./settingsConfirmActions";
+import type { SettingsSecurityEventPayload } from "./settingsConfirmActions";
+import type {
+  ExternalIntegration,
+  SecurityEventItem,
+} from "./useSettingsPresentation";
 
 interface BuildSettingsConfirmAndExportActionsParams {
   abrirFluxoReautenticacao: (motivo: string, onSuccess?: () => void) => void;
-  abrirSheetConfiguracao: (config: any) => void;
+  abrirSheetConfiguracao: (config: SettingsSheetState) => void;
   compartilharMelhoriaIa: boolean;
-  compartilharTextoExportado: (...args: any[]) => Promise<boolean>;
-  confirmSheet: any;
+  compartilharTextoExportado: (params: {
+    extension: "json" | "txt";
+    content: string;
+    prefixo: string;
+  }) => Promise<boolean>;
+  confirmSheet: ConfirmSheetState | null;
   confirmTextDraft: string;
-  densidadeInterface: any;
+  densidadeInterface: string;
   economiaDados: boolean;
   email: string;
   emailAtualConta: string;
   emailsAtivos: boolean;
-  estiloResposta: any;
-  eventosSeguranca: any[];
+  estiloResposta: string;
+  eventosSeguranca: SecurityEventItem[];
   executarExclusaoContaLocal: () => Promise<void>;
   fecharConfirmacaoConfiguracao: () => void;
   fecharSheetConfiguracao: () => void;
-  integracoesExternas: any[];
-  idiomaResposta: any;
-  laudosDisponiveis: any[];
+  integracoesExternas: ExternalIntegration[];
+  idiomaResposta: string;
+  laudosDisponiveis: MobileLaudoCard[];
   memoriaIa: boolean;
-  modeloIa: any;
-  notificacoes: any[];
+  modeloIa: (typeof AI_MODEL_OPTIONS)[number];
+  notificacoes: MobileActivityNotification[];
   notificaPush: boolean;
   notificaRespostas: boolean;
   ocultarConteudoBloqueado: boolean;
-  onCreateNewConversation: () => any;
+  onCreateNewConversation: () => ChatState;
   onIsValidAiModel: (value: unknown) => boolean;
-  onRegistrarEventoSegurancaLocal: (evento: any) => void;
-  onSetAnexoMesaRascunho: Setter;
-  onSetAnexoRascunho: Setter;
-  onSetBuscaHistorico: Setter;
-  onSetCacheLeitura: (updater: (current: any) => any) => void;
-  onSetConversa: Setter;
-  onSetLaudosDisponiveis: Setter;
-  onSetMensagem: Setter;
-  onSetMensagemMesa: Setter;
-  onSetMensagensMesa: Setter;
-  onSetModeloIa: Setter;
-  onSetNotificacoes: Setter;
-  onSetPreviewAnexoImagem: Setter;
+  onRegistrarEventoSegurancaLocal: (
+    evento: SettingsSecurityEventPayload,
+  ) => void;
+  onSetAnexoMesaRascunho: Dispatch<SetStateAction<ComposerAttachment | null>>;
+  onSetAnexoRascunho: Dispatch<SetStateAction<ComposerAttachment | null>>;
+  onSetBuscaHistorico: Dispatch<SetStateAction<string>>;
+  onSetCacheLeitura: Dispatch<SetStateAction<MobileReadCache>>;
+  onSetConversa: Dispatch<SetStateAction<ChatState | null>>;
+  onSetLaudosDisponiveis: Dispatch<SetStateAction<MobileLaudoCard[]>>;
+  onSetMensagem: Dispatch<SetStateAction<string>>;
+  onSetMensagemMesa: Dispatch<SetStateAction<string>>;
+  onSetMensagensMesa: Dispatch<SetStateAction<MobileMesaMessage[]>>;
+  onSetModeloIa: (value: (typeof AI_MODEL_OPTIONS)[number]) => void;
+  onSetNotificacoes: Dispatch<SetStateAction<MobileActivityNotification[]>>;
+  onSetPreviewAnexoImagem: Dispatch<
+    SetStateAction<AttachmentPreviewState | null>
+  >;
   perfilExibicao: string;
   perfilNome: string;
-  planoAtual: any;
+  planoAtual: string;
   reautenticacaoAindaValida: (value: string) => boolean;
   reautenticacaoExpiraEm: string;
   retencaoDados: string;
   salvarHistoricoConversas: boolean;
-  serializarPayloadExportacao: (...args: any[]) => string;
-  tamanhoFonte: any;
-  temaApp: any;
-  usoBateria: any;
+  serializarPayloadExportacao: (payload: unknown) => string;
+  tamanhoFonte: string;
+  temaApp: string;
+  usoBateria: string;
   vibracaoAtiva: boolean;
-  corDestaque: any;
+  corDestaque: string;
   mostrarConteudoNotificacao: boolean;
   mostrarSomenteNovaMensagem: boolean;
-  limparCachePorPrivacidade: (cache: any) => any;
+  limparCachePorPrivacidade: (cache: MobileReadCache) => MobileReadCache;
 }
 
 export function buildSettingsConfirmAndExportActions({

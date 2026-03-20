@@ -1,72 +1,112 @@
 import * as ImagePicker from "expo-image-picker";
+import type { Dispatch, SetStateAction } from "react";
 
+import type { ApiHealthStatus } from "../../types/mobile";
+import {
+  PAYMENT_CARD_OPTIONS,
+  PLAN_OPTIONS,
+} from "../InspectorMobileApp.constants";
+import type { ComposerAttachment } from "../chat/types";
 import {
   applyLocalProfileState,
   applySyncedProfileState,
 } from "./profileState";
+import type { MobileSessionState } from "../session/sessionTypes";
+import type {
+  AtualizarPerfilContaPayload,
+  AtualizarSenhaContaPayload,
+  PerfilContaSincronizado,
+  RelatoSuportePayload,
+  UploadFotoPerfilPayload,
+} from "./settingsBackend";
 import { handleSettingsSheetConfirmFlow } from "./settingsSheetConfirmActions";
-
-type Setter = (...args: any[]) => void;
+import type { SettingsSecurityEventPayload } from "./settingsConfirmActions";
+import type { SettingsSheetState } from "./settingsSheetTypes";
+import type {
+  ConnectedProvider,
+  SessionDevice,
+  SupportQueueItem,
+} from "./useSettingsPresentation";
 
 interface BuildSettingsSheetConfirmActionParams {
-  bugAttachmentDraft: any;
+  bugAttachmentDraft: ComposerAttachment | null;
   bugDescriptionDraft: string;
   bugEmailDraft: string;
-  cartaoAtual: any;
-  confirmarSenhaDraft: any;
+  cartaoAtual: (typeof PAYMENT_CARD_OPTIONS)[number];
+  confirmarSenhaDraft: string;
   contaTelefone: string;
   email: string;
   emailAtualConta: string;
-  enviarFotoPerfilNoBackend: (...args: any[]) => Promise<any>;
-  enviarRelatoSuporteNoBackend: (...args: any[]) => Promise<any>;
+  enviarFotoPerfilNoBackend: (
+    accessToken: string,
+    payload: UploadFotoPerfilPayload,
+  ) => Promise<PerfilContaSincronizado>;
+  enviarRelatoSuporteNoBackend: (
+    accessToken: string,
+    payload: RelatoSuportePayload,
+  ) => Promise<{ status: string; protocolo: string }>;
   feedbackDraft: string;
   handleConfirmarSettingsSheetReauth: () => Promise<boolean>;
-  compartilharTextoExportado: (...args: any[]) => Promise<boolean>;
+  compartilharTextoExportado: (payload: {
+    extension: "txt";
+    content: string;
+    prefixo: string;
+  }) => Promise<boolean>;
   nomeCompletoDraft: string;
   nomeExibicaoDraft: string;
   notificarConfiguracaoConcluida: (message: string) => void;
   novaSenhaDraft: string;
   novoEmailDraft: string;
-  onRegistrarEventoSegurancaLocal: (evento: any) => void;
-  onSetBugAttachmentDraft: Setter;
-  onSetBugDescriptionDraft: Setter;
-  onSetBugEmailDraft: Setter;
-  onSetCartaoAtual: Setter;
-  onSetConfirmarSenhaDraft: Setter;
-  onSetEmailAtualConta: Setter;
-  onSetFeedbackDraft: Setter;
-  onSetFilaSuporteLocal: Setter;
-  onSetNomeCompletoDraft: Setter;
-  onSetNomeExibicaoDraft: Setter;
-  onSetNovaSenhaDraft: Setter;
-  onSetPerfilExibicao: Setter;
-  onSetPerfilFotoHint: Setter;
-  onSetPerfilFotoUri: Setter;
-  onSetPerfilNome: Setter;
-  onSetPlanoAtual: Setter;
-  onSetProvedoresConectados: Setter;
-  onSetSenhaAtualDraft: Setter;
-  onSetSession: Setter;
-  onSetSettingsSheetLoading: Setter;
-  onSetSettingsSheetNotice: Setter;
-  onSetStatusApi: Setter;
-  onSetStatusAtualizacaoApp: Setter;
-  onSetTelefoneDraft: Setter;
-  onSetUltimaVerificacaoAtualizacao: Setter;
-  onUpdateAccountPhone: Setter;
-  onAtualizarPerfilContaNoBackend: (...args: any[]) => Promise<any>;
-  onAtualizarSenhaContaNoBackend: (...args: any[]) => Promise<any>;
+  onRegistrarEventoSegurancaLocal: (
+    evento: SettingsSecurityEventPayload,
+  ) => void;
+  onSetBugAttachmentDraft: Dispatch<SetStateAction<ComposerAttachment | null>>;
+  onSetBugDescriptionDraft: Dispatch<SetStateAction<string>>;
+  onSetBugEmailDraft: Dispatch<SetStateAction<string>>;
+  onSetCartaoAtual: Dispatch<
+    SetStateAction<(typeof PAYMENT_CARD_OPTIONS)[number]>
+  >;
+  onSetConfirmarSenhaDraft: Dispatch<SetStateAction<string>>;
+  onSetEmailAtualConta: (value: string) => void;
+  onSetFeedbackDraft: Dispatch<SetStateAction<string>>;
+  onSetFilaSuporteLocal: Dispatch<SetStateAction<SupportQueueItem[]>>;
+  onSetNomeCompletoDraft: Dispatch<SetStateAction<string>>;
+  onSetNomeExibicaoDraft: Dispatch<SetStateAction<string>>;
+  onSetNovaSenhaDraft: Dispatch<SetStateAction<string>>;
+  onSetPerfilExibicao: (value: string) => void;
+  onSetPerfilFotoHint: (value: string) => void;
+  onSetPerfilFotoUri: (value: string) => void;
+  onSetPerfilNome: (value: string) => void;
+  onSetPlanoAtual: Dispatch<SetStateAction<(typeof PLAN_OPTIONS)[number]>>;
+  onSetProvedoresConectados: Dispatch<SetStateAction<ConnectedProvider[]>>;
+  onSetSenhaAtualDraft: Dispatch<SetStateAction<string>>;
+  onSetSession: Dispatch<SetStateAction<MobileSessionState | null>>;
+  onSetSettingsSheetLoading: Dispatch<SetStateAction<boolean>>;
+  onSetSettingsSheetNotice: Dispatch<SetStateAction<string>>;
+  onSetStatusApi: (value: ApiHealthStatus) => void;
+  onSetStatusAtualizacaoApp: Dispatch<SetStateAction<string>>;
+  onSetTelefoneDraft: Dispatch<SetStateAction<string>>;
+  onSetUltimaVerificacaoAtualizacao: Dispatch<SetStateAction<string>>;
+  onUpdateAccountPhone: (value: string) => void;
+  onAtualizarPerfilContaNoBackend: (
+    accessToken: string,
+    payload: AtualizarPerfilContaPayload,
+  ) => Promise<PerfilContaSincronizado>;
+  onAtualizarSenhaContaNoBackend: (
+    accessToken: string,
+    payload: AtualizarSenhaContaPayload,
+  ) => Promise<string>;
   onPingApi: () => Promise<boolean>;
   perfilExibicao: string;
   perfilFotoHint: string;
   perfilFotoUri: string;
   perfilNome: string;
-  planoAtual: any;
-  senhaAtualDraft: any;
-  session: any;
-  sessaoAtual: any;
-  settingsSheet: any;
-  statusApi: string;
+  planoAtual: (typeof PLAN_OPTIONS)[number];
+  senhaAtualDraft: string;
+  session: MobileSessionState | null;
+  sessaoAtual: SessionDevice | null;
+  settingsSheet: SettingsSheetState | null;
+  statusApi: ApiHealthStatus;
   telefoneDraft: string;
   workspaceResumoConfiguracao: string;
 }
@@ -133,7 +173,7 @@ export function buildSettingsSheetConfirmAction({
   telefoneDraft,
   workspaceResumoConfiguracao,
 }: BuildSettingsSheetConfirmActionParams) {
-  const aplicarPerfilSincronizado = (perfil: any) =>
+  const aplicarPerfilSincronizado = (perfil: PerfilContaSincronizado) =>
     applySyncedProfileState({
       perfil,
       onSetPerfilNome,
@@ -169,7 +209,7 @@ export function buildSettingsSheetConfirmAction({
           currentTelefone: contaTelefone,
           nomeCompletoDraft,
           nomeExibicaoDraft,
-          onAplicarPerfilLocal: (payload: any) =>
+          onAplicarPerfilLocal: (payload) =>
             applyLocalProfileState({
               payload,
               onSetPerfilNome,

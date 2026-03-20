@@ -29,16 +29,16 @@ import { renderStaticSettingsSheetBody } from "./SettingsSheetStaticContent";
 import type { ExternalIntegrationCardModel } from "./IntegrationConnectionCard";
 import type { SettingsSheetState } from "./settingsSheetTypes";
 
-interface ConnectedProviderSummary {
+export interface ConnectedProviderSummary {
   label: string;
   connected: boolean;
 }
 
-interface SessionDeviceSummary {
+export interface SessionDeviceSummary {
   title: string;
 }
 
-interface SupportQueueSnapshotItem {
+export interface SupportQueueSnapshotItem {
   kind: "bug" | "feedback";
   body: string;
   status: string;
@@ -46,7 +46,7 @@ interface SupportQueueSnapshotItem {
   attachmentLabel?: string;
 }
 
-type BugAttachmentDraft =
+export type BugAttachmentDraft =
   | {
       kind: "image";
       previewUri: string;
@@ -59,7 +59,7 @@ type BugAttachmentDraft =
     }
   | null;
 
-interface HelpArticleItem {
+export interface HelpArticleItem {
   id: string;
   title: string;
   category: string;
@@ -68,7 +68,7 @@ interface HelpArticleItem {
   body: string;
 }
 
-interface SettingsSheetBodyContentParams<
+export interface SettingsSheetBodyContentParams<
   TIntegration extends ExternalIntegrationCardModel,
 > {
   settingsSheet: SettingsSheetState | null;

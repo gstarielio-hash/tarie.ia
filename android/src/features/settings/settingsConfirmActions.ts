@@ -2,7 +2,7 @@ import type { ConfirmSheetState } from "./settingsSheetTypes";
 
 type SecurityEventType = "login" | "provider" | "2fa" | "data" | "session";
 
-interface SettingsSecurityEventPayload {
+export interface SettingsSecurityEventPayload {
   title: string;
   meta: string;
   status: string;

@@ -1,14 +1,26 @@
 import { Platform } from "react-native";
 
-import { renderSettingsSheetBodyContent } from "./SettingsSheetBodyContent";
+import type { ApiHealthStatus } from "../../types/mobile";
+import type { ComposerAttachment } from "../chat/types";
+import type {
+  ConnectedProvider,
+  ExternalIntegration,
+  SessionDevice,
+  SupportQueueItem,
+} from "./useSettingsPresentation";
+import {
+  renderSettingsSheetBodyContent,
+  type HelpArticleItem,
+} from "./SettingsSheetBodyContent";
+import type { SettingsSheetState } from "./settingsSheetTypes";
 
 interface BuildSettingsSheetBodyRendererParams {
   apiEnvironmentLabel: string;
   appBuildLabel: string;
   appName: string;
   artigoAjudaExpandidoId: string;
-  artigosAjudaFiltrados: readonly any[];
-  bugAttachmentDraft: any;
+  artigosAjudaFiltrados: readonly HelpArticleItem[];
+  bugAttachmentDraft: ComposerAttachment | null;
   bugDescriptionDraft: string;
   bugEmailDraft: string;
   buscaAjuda: string;
@@ -20,17 +32,21 @@ interface BuildSettingsSheetBodyRendererParams {
   formatarHorarioAtividade: (value: string) => string;
   formatarStatusReautenticacao: (value: string) => string;
   handleAlternarArtigoAjuda: (articleId: string) => void;
-  handleAlternarIntegracaoExterna: (integration: any) => void;
+  handleAlternarIntegracaoExterna: (integration: ExternalIntegration) => void;
   handleRemoverScreenshotBug: () => void;
-  handleSelecionarModeloIa: (value: any) => void;
+  handleSelecionarModeloIa: (
+    value: "rápido" | "equilibrado" | "avançado",
+  ) => void;
   handleSelecionarScreenshotBug: () => Promise<void>;
-  handleSincronizarIntegracaoExterna: (integration: any) => Promise<void>;
+  handleSincronizarIntegracaoExterna: (
+    integration: ExternalIntegration,
+  ) => Promise<void>;
   handleToggleUploadArquivos: (value: boolean) => void;
   integracaoSincronizandoId: string;
   integracoesConectadasTotal: number;
   integracoesDisponiveisTotal: number;
-  integracoesExternas: readonly any[];
-  modeloIa: any;
+  integracoesExternas: readonly ExternalIntegration[];
+  modeloIa: "rápido" | "equilibrado" | "avançado";
   nomeAutomaticoConversas: boolean;
   nomeCompletoDraft: string;
   nomeExibicaoDraft: string;
@@ -51,7 +67,7 @@ interface BuildSettingsSheetBodyRendererParams {
   perfilFotoHint: string;
   perfilFotoUri: string;
   planoAtual: string;
-  provedoresConectados: readonly any[];
+  provedoresConectados: readonly ConnectedProvider[];
   reauthReason: string;
   reautenticacaoExpiraEm: string;
   resumoAtualizacaoApp: string;
@@ -60,14 +76,14 @@ interface BuildSettingsSheetBodyRendererParams {
   retencaoDados: string;
   salvarHistoricoConversas: boolean;
   senhaAtualDraft: string;
-  sessaoAtual: any;
-  settingsSheet: any;
-  statusApi: string;
+  sessaoAtual: SessionDevice | null;
+  settingsSheet: SettingsSheetState | null;
+  statusApi: ApiHealthStatus;
   statusAtualizacaoApp: string;
   supportChannelLabel: string;
   telefoneDraft: string;
   ultimaVerificacaoAtualizacaoLabel: string;
-  ultimoTicketSuporte: any;
+  ultimoTicketSuporte: SupportQueueItem | null;
   uploadArquivosAtivo: boolean;
   workspaceLabel: string;
 }
