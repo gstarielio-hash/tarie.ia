@@ -3886,7 +3886,6 @@ export function InspectorMobileApp() {
           mensagem,
           mensagemMesa,
           mensagemMesaReferenciaAtiva,
-          microfonePermitido,
           placeholderComposer,
           placeholderMesa,
           podeAbrirAnexosChat,

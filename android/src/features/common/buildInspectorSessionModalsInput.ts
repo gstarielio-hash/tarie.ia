@@ -1,16 +1,14 @@
-type BuildInspectorSessionModalsInputParams = {
-  activityAndLock: Record<string, any>;
-  attachment: Record<string, any>;
-  offlineQueue: Record<string, any>;
-  settings: Record<string, any>;
-};
+import type {
+  BuildInspectorSessionModalsInputParams,
+  InspectorSessionModalsInput,
+} from "./inspectorUiBuilderTypes";
 
 export function buildInspectorSessionModalsInput({
   activityAndLock,
   attachment,
   offlineQueue,
   settings,
-}: BuildInspectorSessionModalsInputParams) {
+}: BuildInspectorSessionModalsInputParams): InspectorSessionModalsInput {
   return {
     ...activityAndLock,
     ...attachment,

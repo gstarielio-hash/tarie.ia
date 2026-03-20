@@ -1,6 +1,8 @@
-type SessionModalsLooseInput = Record<string, any>;
+import type { SessionModalsStackProps } from "./SessionModalsStack";
 
-export function buildSessionModalsStackProps(input: SessionModalsLooseInput) {
+export function buildSessionModalsStackProps(
+  input: SessionModalsStackProps,
+): SessionModalsStackProps {
   const {
     activityCenterVisible,
     appLockVisible,

@@ -1,10 +1,16 @@
 import { TARIEL_APP_MARK } from "../InspectorMobileApp.constants";
-
-type AuthenticatedLayoutSectionInput = Record<string, any>;
+import type {
+  AuthenticatedLayoutInput,
+  HistoryDrawerPanelMobileProps,
+  ThreadContextCardPanelProps,
+  ThreadHeaderControlsPanelProps,
+} from "./inspectorUiBuilderTypes";
+import type { ThreadComposerPanelProps } from "../chat/ThreadComposerPanel";
+import type { ThreadConversationPaneProps } from "../chat/ThreadConversationPane";
 
 export function buildHistoryDrawerPanelProps(
-  input: AuthenticatedLayoutSectionInput,
-) {
+  input: AuthenticatedLayoutInput,
+): HistoryDrawerPanelMobileProps {
   return {
     brandMarkSource: TARIEL_APP_MARK,
     buscaHistorico: input.buscaHistorico,
@@ -17,17 +23,17 @@ export function buildHistoryDrawerPanelProps(
     laudoSelecionadoId: input.laudoSelecionadoId,
     onBuscaHistoricoChange: input.setBuscaHistorico,
     onCloseHistory: () => input.fecharHistorico({ limparBusca: true }),
-    onExcluirConversaHistorico: (item: any) =>
+    onExcluirConversaHistorico: (item) =>
       input.handleExcluirConversaHistorico(item),
-    onSelecionarHistorico: (item: any) => {
+    onSelecionarHistorico: (item) => {
       void input.handleSelecionarHistorico(item);
     },
   };
 }
 
 export function buildThreadComposerPanelProps(
-  input: AuthenticatedLayoutSectionInput,
-) {
+  input: AuthenticatedLayoutInput,
+): Omit<ThreadComposerPanelProps, "visible"> {
   return {
     accentColor: input.accentColor,
     anexoMesaRascunho: input.anexoMesaRascunho,
@@ -71,8 +77,8 @@ export function buildThreadComposerPanelProps(
 }
 
 export function buildThreadContextCardProps(
-  input: AuthenticatedLayoutSectionInput,
-) {
+  input: AuthenticatedLayoutInput,
+): ThreadContextCardPanelProps {
   return {
     chips: input.chipsContextoThread,
     description: input.laudoContextDescription,
@@ -84,8 +90,8 @@ export function buildThreadContextCardProps(
 }
 
 export function buildThreadConversationPaneProps(
-  input: AuthenticatedLayoutSectionInput,
-) {
+  input: AuthenticatedLayoutInput,
+): ThreadConversationPaneProps {
   return {
     accentColor: input.accentColor,
     anexoAbrindoChave: input.anexoAbrindoChave,
@@ -119,8 +125,8 @@ export function buildThreadConversationPaneProps(
 }
 
 export function buildThreadHeaderControlsProps(
-  input: AuthenticatedLayoutSectionInput,
-) {
+  input: AuthenticatedLayoutInput,
+): ThreadHeaderControlsPanelProps {
   return {
     filaOfflineTotal: input.filaOfflineOrdenada.length,
     headerSafeTopInset: input.headerSafeTopInset,

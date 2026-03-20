@@ -1,10 +1,7 @@
-type BuildAuthenticatedLayoutInputParams = {
-  composer: Record<string, any>;
-  history: Record<string, any>;
-  session: Record<string, any>;
-  shell: Record<string, any>;
-  thread: Record<string, any>;
-};
+import type {
+  AuthenticatedLayoutInput,
+  BuildAuthenticatedLayoutInputParams,
+} from "./inspectorUiBuilderTypes";
 
 export function buildAuthenticatedLayoutInput({
   composer,
@@ -12,7 +9,7 @@ export function buildAuthenticatedLayoutInput({
   session,
   shell,
   thread,
-}: BuildAuthenticatedLayoutInputParams) {
+}: BuildAuthenticatedLayoutInputParams): AuthenticatedLayoutInput {
   return {
     ...shell,
     ...history,

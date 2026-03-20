@@ -7,20 +7,20 @@ import { styles } from "../InspectorMobileApp.styles";
 type ThreadTone = "accent" | "success" | "danger" | "muted";
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
-interface ThreadSpotlight {
+export interface ThreadSpotlight {
   label: string;
   tone: ThreadTone;
   icon: IconName;
 }
 
-interface ThreadChip {
+export interface ThreadChip {
   key: string;
   label: string;
   tone: ThreadTone;
   icon: IconName;
 }
 
-interface ThreadInsight {
+export interface ThreadInsight {
   key: string;
   label: string;
   value: string;
@@ -29,7 +29,7 @@ interface ThreadInsight {
   icon: IconName;
 }
 
-interface ThreadContextCardProps {
+export interface ThreadContextCardProps {
   visible: boolean;
   eyebrow: string;
   title: string;

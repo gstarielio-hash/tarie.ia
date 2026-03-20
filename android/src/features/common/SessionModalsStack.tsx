@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 
+import type { ApiHealthStatus } from "../../types/mobile";
 import {
   AppLockModal,
   SettingsConfirmationModal,
@@ -10,6 +11,10 @@ import type {
   ConfirmSheetState,
   SettingsSheetState,
 } from "../settings/settingsSheetTypes";
+import type {
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
 import {
   ActivityCenterModal,
   AttachmentPickerModal,
@@ -19,61 +24,48 @@ import {
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
-interface BaseActivityNotification {
-  id: string;
-  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta";
-  title: string;
-  body: string;
-  createdAt: string;
-  unread: boolean;
-  targetThread: "chat" | "mesa";
+export type OfflineQueueFilter = "all" | "chat" | "mesa";
+
+export interface SessionModalsStackFilter {
+  key: OfflineQueueFilter;
+  label: string;
+  count: number;
 }
 
-interface BaseOfflineQueueItem {
-  id: string;
-  channel: "chat" | "mesa";
-  title: string;
-  createdAt: string;
-  lastError: string;
-}
-
-interface SessionModalsStackProps<
-  TNotification extends BaseActivityNotification,
-  TOfflineItem extends BaseOfflineQueueItem,
-> {
+export interface SessionModalsStackProps {
   onChooseAttachment: (option: "camera" | "galeria" | "documento") => void;
   onCloseAttachmentPicker: () => void;
   attachmentPickerVisible: boolean;
 
   formatarHorarioAtividade: (value: string) => string;
   monitorandoAtividade: boolean;
-  notificacoes: readonly TNotification[];
-  onAbrirNotificacao: (item: TNotification) => void;
+  notificacoes: readonly MobileActivityNotification[];
+  onAbrirNotificacao: (item: MobileActivityNotification) => void;
   onCloseActivityCenter: () => void;
   activityCenterVisible: boolean;
 
-  detalheStatusPendenciaOffline: (item: TOfflineItem) => string;
-  filaOfflineFiltrada: readonly TOfflineItem[];
+  detalheStatusPendenciaOffline: (item: OfflinePendingMessage) => string;
+  filaOfflineFiltrada: readonly OfflinePendingMessage[];
   filaOfflineOrdenadaTotal: number;
-  filtroFilaOffline: string;
-  filtrosFilaOffline: readonly { key: string; label: string; count: number }[];
-  iconePendenciaOffline: (item: TOfflineItem) => IconName;
-  legendaPendenciaOffline: (item: TOfflineItem) => string;
+  filtroFilaOffline: OfflineQueueFilter;
+  filtrosFilaOffline: readonly SessionModalsStackFilter[];
+  iconePendenciaOffline: (item: OfflinePendingMessage) => IconName;
+  legendaPendenciaOffline: (item: OfflinePendingMessage) => string;
   onCloseOfflineQueue: () => void;
   onRemoverItemFilaOffline: (id: string) => void;
-  onRetomarItemFilaOffline: (item: TOfflineItem) => void;
-  onSetFiltroFilaOffline: (key: string) => void;
+  onRetomarItemFilaOffline: (item: OfflinePendingMessage) => void;
+  onSetFiltroFilaOffline: (key: OfflineQueueFilter) => void;
   onSincronizarFilaOffline: () => void;
-  onSincronizarItemFilaOffline: (item: TOfflineItem) => void;
-  pendenciaFilaProntaParaReenvio: (item: TOfflineItem) => boolean;
+  onSincronizarItemFilaOffline: (item: OfflinePendingMessage) => void;
+  pendenciaFilaProntaParaReenvio: (item: OfflinePendingMessage) => boolean;
   podeSincronizarFilaOffline: boolean;
   resumoFilaOfflineFiltrada: string;
-  resumoPendenciaOffline: (item: TOfflineItem) => string;
-  rotuloStatusPendenciaOffline: (item: TOfflineItem) => string;
+  resumoPendenciaOffline: (item: OfflinePendingMessage) => string;
+  rotuloStatusPendenciaOffline: (item: OfflinePendingMessage) => string;
   sincronizandoFilaOffline: boolean;
   sincronizandoItemFilaId: string;
   sincronizacaoDispositivos: boolean;
-  statusApi: string;
+  statusApi: ApiHealthStatus;
   offlineQueueVisible: boolean;
 
   deviceBiometricsEnabled: boolean;
@@ -103,10 +95,7 @@ interface SessionModalsStackProps<
   attachmentPreviewVisible: boolean;
 }
 
-export function SessionModalsStack<
-  TNotification extends BaseActivityNotification,
-  TOfflineItem extends BaseOfflineQueueItem,
->({
+export function SessionModalsStack({
   onChooseAttachment,
   onCloseAttachmentPicker,
   attachmentPickerVisible,
@@ -161,7 +150,7 @@ export function SessionModalsStack<
   attachmentPreviewTitle,
   attachmentPreviewUri,
   attachmentPreviewVisible,
-}: SessionModalsStackProps<TNotification, TOfflineItem>) {
+}: SessionModalsStackProps) {
   return (
     <>
       <AttachmentPickerModal

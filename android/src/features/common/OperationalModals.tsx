@@ -9,8 +9,17 @@ import {
   View,
 } from "react-native";
 
+import type { ApiHealthStatus } from "../../types/mobile";
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
+import type {
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
+import type {
+  OfflineQueueFilter,
+  SessionModalsStackFilter,
+} from "./SessionModalsStack";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -91,17 +100,7 @@ export function AttachmentPickerModal({
   );
 }
 
-export function ActivityCenterModal<
-  TNotification extends {
-    id: string;
-    kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta";
-    title: string;
-    body: string;
-    createdAt: string;
-    unread: boolean;
-    targetThread: "chat" | "mesa";
-  },
->({
+export function ActivityCenterModal({
   visible,
   onClose,
   monitorandoAtividade,
@@ -112,8 +111,8 @@ export function ActivityCenterModal<
   visible: boolean;
   onClose: () => void;
   monitorandoAtividade: boolean;
-  notificacoes: readonly TNotification[];
-  onAbrirNotificacao: (item: TNotification) => void;
+  notificacoes: readonly MobileActivityNotification[];
+  onAbrirNotificacao: (item: MobileActivityNotification) => void;
   formatarHorarioAtividade: (value: string) => string;
 }) {
   return (
@@ -219,15 +218,7 @@ export function ActivityCenterModal<
   );
 }
 
-export function OfflineQueueModal<
-  TOfflineItem extends {
-    id: string;
-    channel: "chat" | "mesa";
-    title: string;
-    createdAt: string;
-    lastError: string;
-  },
->({
+export function OfflineQueueModal({
   visible,
   onClose,
   resumoFilaOfflineFiltrada,
@@ -259,24 +250,24 @@ export function OfflineQueueModal<
   sincronizandoFilaOffline: boolean;
   podeSincronizarFilaOffline: boolean;
   sincronizacaoDispositivos: boolean;
-  statusApi: string;
+  statusApi: ApiHealthStatus;
   onSincronizarFilaOffline: () => void;
-  filtrosFilaOffline: readonly { key: string; label: string; count: number }[];
-  filtroFilaOffline: string;
-  onSetFiltroFilaOffline: (key: string) => void;
-  filaOfflineFiltrada: readonly TOfflineItem[];
+  filtrosFilaOffline: readonly SessionModalsStackFilter[];
+  filtroFilaOffline: OfflineQueueFilter;
+  onSetFiltroFilaOffline: (key: OfflineQueueFilter) => void;
+  filaOfflineFiltrada: readonly OfflinePendingMessage[];
   filaOfflineOrdenadaTotal: number;
   sincronizandoItemFilaId: string;
-  onSincronizarItemFilaOffline: (item: TOfflineItem) => void;
-  onRetomarItemFilaOffline: (item: TOfflineItem) => void;
+  onSincronizarItemFilaOffline: (item: OfflinePendingMessage) => void;
+  onRetomarItemFilaOffline: (item: OfflinePendingMessage) => void;
   onRemoverItemFilaOffline: (id: string) => void;
   formatarHorarioAtividade: (value: string) => string;
-  iconePendenciaOffline: (item: TOfflineItem) => IconName;
-  resumoPendenciaOffline: (item: TOfflineItem) => string;
-  legendaPendenciaOffline: (item: TOfflineItem) => string;
-  rotuloStatusPendenciaOffline: (item: TOfflineItem) => string;
-  detalheStatusPendenciaOffline: (item: TOfflineItem) => string;
-  pendenciaFilaProntaParaReenvio: (item: TOfflineItem) => boolean;
+  iconePendenciaOffline: (item: OfflinePendingMessage) => IconName;
+  resumoPendenciaOffline: (item: OfflinePendingMessage) => string;
+  legendaPendenciaOffline: (item: OfflinePendingMessage) => string;
+  rotuloStatusPendenciaOffline: (item: OfflinePendingMessage) => string;
+  detalheStatusPendenciaOffline: (item: OfflinePendingMessage) => string;
+  pendenciaFilaProntaParaReenvio: (item: OfflinePendingMessage) => boolean;
 }) {
   return (
     <Modal

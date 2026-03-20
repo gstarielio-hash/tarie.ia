@@ -5,7 +5,7 @@ import { TARIEL_APP_MARK } from "../InspectorMobileApp.constants";
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
 
-interface ThreadHeaderControlsProps {
+export interface ThreadHeaderControlsProps {
   headerSafeTopInset: number;
   keyboardVisible: boolean;
   onOpenNewChat: () => void;

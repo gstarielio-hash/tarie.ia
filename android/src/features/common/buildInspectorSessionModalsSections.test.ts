@@ -1,7 +1,67 @@
+import type { MobileBootstrapResponse } from "../../types/mobile";
+import type {
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
 import {
   buildInspectorSessionModalCallbacks,
   buildInspectorSessionModalState,
 } from "./buildInspectorSessionModalsSections";
+
+function criarBootstrap(): MobileBootstrapResponse {
+  return {
+    ok: true,
+    app: {
+      nome: "Tariel Inspetor",
+      portal: "inspetor",
+      api_base_url: "https://api.tariel.test",
+      suporte_whatsapp: "",
+    },
+    usuario: {
+      id: 7,
+      nome_completo: "Inspetor Tariel",
+      email: "inspetor@tariel.test",
+      telefone: "(11) 99999-0000",
+      foto_perfil_url: "",
+      empresa_nome: "Tariel",
+      empresa_id: 3,
+      nivel_acesso: 5,
+    },
+  };
+}
+
+function criarPendencia(id: string): OfflinePendingMessage {
+  return {
+    id,
+    channel: "chat",
+    laudoId: null,
+    text: "Mensagem pendente",
+    createdAt: "2026-03-20T10:00:00.000Z",
+    title: "Pendência",
+    attachment: null,
+    referenceMessageId: null,
+    attempts: 0,
+    lastAttemptAt: "",
+    lastError: "",
+    nextRetryAt: "",
+    aiMode: "detalhado",
+    aiSummary: "",
+    aiMessagePrefix: "",
+  };
+}
+
+function criarNotificacao(id: string): MobileActivityNotification {
+  return {
+    id,
+    kind: "status",
+    laudoId: null,
+    title: "Atualização",
+    body: "Há uma atualização.",
+    createdAt: "2026-03-20T10:00:00.000Z",
+    unread: true,
+    targetThread: "chat",
+  };
+}
 
 describe("buildInspectorSessionModalsSections", () => {
   it("monta o estado visual dos modais com preview e lock do app", () => {
@@ -9,20 +69,25 @@ describe("buildInspectorSessionModalsSections", () => {
       anexosAberto: true,
       bloqueioAppAtivo: true,
       centralAtividadeAberta: true,
-      confirmSheet: { kind: "logout" },
+      confirmSheet: {
+        kind: "security",
+        title: "Confirmar ação",
+        description: "Confirme a operação",
+        confirmLabel: "Confirmar",
+      },
       confirmTextDraft: "CONFIRMAR",
-      detalheStatusPendenciaOffline: "Backoff",
+      detalheStatusPendenciaOffline: jest.fn().mockReturnValue("Backoff"),
       deviceBiometricsEnabled: true,
       filaOfflineAberta: true,
-      filaOfflineFiltrada: [{ id: "1" }],
-      filaOfflineOrdenada: [{ id: "1" }, { id: "2" }],
+      filaOfflineFiltrada: [criarPendencia("1")],
+      filaOfflineOrdenada: [criarPendencia("1"), criarPendencia("2")],
       filtroFilaOffline: "all",
       filtrosFilaOffline: [{ key: "all", label: "Tudo", count: 2 }],
       formatarHorarioAtividade: jest.fn(),
       iconePendenciaOffline: jest.fn(),
       legendaPendenciaOffline: jest.fn(),
       monitorandoAtividade: true,
-      notificacoes: [{ id: "n-1" }],
+      notificacoes: [criarNotificacao("n-1")],
       pendenciaFilaProntaParaReenvio: jest.fn(),
       podeSincronizarFilaOffline: true,
       previewAnexoImagem: {
@@ -33,13 +98,17 @@ describe("buildInspectorSessionModalsSections", () => {
       resumoFilaOfflineFiltrada: "2 pendências",
       resumoPendenciaOffline: jest.fn(),
       rotuloStatusPendenciaOffline: jest.fn(),
-      session: { accessToken: "token-123" },
-      settingsSheet: { kind: "profile" },
+      session: { accessToken: "token-123", bootstrap: criarBootstrap() },
+      settingsSheet: {
+        kind: "profile",
+        title: "Perfil",
+        subtitle: "Atualize seus dados",
+      },
       settingsSheetLoading: false,
       settingsSheetNotice: "",
       sincronizacaoDispositivos: true,
       sincronizandoFilaOffline: false,
-      sincronizandoItemFilaId: null,
+      sincronizandoItemFilaId: "",
       statusApi: "online",
     });
 
@@ -66,7 +135,7 @@ describe("buildInspectorSessionModalsSections", () => {
       handleLogout: jest.fn(),
       handleRetomarItemFilaOffline: jest.fn(),
       removerItemFilaOffline: jest.fn(),
-      session: { accessToken: "token-abc" },
+      session: { accessToken: "token-abc", bootstrap: criarBootstrap() },
       setAnexosAberto: jest.fn(),
       setCentralAtividadeAberta: jest.fn(),
       setConfirmTextDraft: jest.fn(),

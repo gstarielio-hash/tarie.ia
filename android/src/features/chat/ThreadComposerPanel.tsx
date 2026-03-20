@@ -28,7 +28,7 @@ type ComposerAttachmentDraft =
       resumo: string;
     };
 
-interface ThreadComposerPanelProps {
+export interface ThreadComposerPanelProps {
   visible: boolean;
   keyboardVisible: boolean;
   canReopen: boolean;

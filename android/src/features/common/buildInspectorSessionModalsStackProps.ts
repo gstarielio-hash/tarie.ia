@@ -3,11 +3,10 @@ import {
   buildInspectorSessionModalCallbacks,
   buildInspectorSessionModalState,
 } from "./buildInspectorSessionModalsSections";
-
-type BuildInspectorSessionModalsStackPropsInput = Record<string, any>;
+import type { InspectorSessionModalsInput } from "./inspectorUiBuilderTypes";
 
 export function buildInspectorSessionModalsStackProps(
-  input: BuildInspectorSessionModalsStackPropsInput,
+  input: InspectorSessionModalsInput,
 ): ReturnType<typeof buildSessionModalsStackProps> {
   return buildSessionModalsStackProps({
     ...buildInspectorSessionModalState(input),

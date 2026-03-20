@@ -1,6 +1,88 @@
-type LooseInput = Record<string, any>;
+import type { SessionModalsStackProps } from "./SessionModalsStack";
+import type { InspectorSessionModalsInput } from "./inspectorUiBuilderTypes";
 
-export function buildInspectorSessionModalState(input: LooseInput) {
+type InspectorSessionModalStateInput = Pick<
+  InspectorSessionModalsInput,
+  | "anexosAberto"
+  | "bloqueioAppAtivo"
+  | "centralAtividadeAberta"
+  | "confirmSheet"
+  | "confirmTextDraft"
+  | "detalheStatusPendenciaOffline"
+  | "deviceBiometricsEnabled"
+  | "filaOfflineAberta"
+  | "filaOfflineFiltrada"
+  | "filaOfflineOrdenada"
+  | "filtroFilaOffline"
+  | "filtrosFilaOffline"
+  | "formatarHorarioAtividade"
+  | "iconePendenciaOffline"
+  | "legendaPendenciaOffline"
+  | "monitorandoAtividade"
+  | "notificacoes"
+  | "pendenciaFilaProntaParaReenvio"
+  | "podeSincronizarFilaOffline"
+  | "previewAnexoImagem"
+  | "renderSettingsSheetBody"
+  | "resumoFilaOfflineFiltrada"
+  | "resumoPendenciaOffline"
+  | "rotuloStatusPendenciaOffline"
+  | "session"
+  | "settingsSheet"
+  | "settingsSheetLoading"
+  | "settingsSheetNotice"
+  | "sincronizacaoDispositivos"
+  | "sincronizandoFilaOffline"
+  | "sincronizandoItemFilaId"
+  | "statusApi"
+>;
+
+type InspectorSessionModalCallbacksInput = Pick<
+  InspectorSessionModalsInput,
+  | "fecharConfirmacaoConfiguracao"
+  | "fecharSheetConfiguracao"
+  | "handleAbrirNotificacao"
+  | "handleConfirmarAcaoCritica"
+  | "handleConfirmarSettingsSheet"
+  | "handleDesbloquearAplicativo"
+  | "handleEscolherAnexo"
+  | "handleLogout"
+  | "handleRetomarItemFilaOffline"
+  | "removerItemFilaOffline"
+  | "session"
+  | "setAnexosAberto"
+  | "setCentralAtividadeAberta"
+  | "setConfirmTextDraft"
+  | "setFilaOfflineAberta"
+  | "setFiltroFilaOffline"
+  | "setPreviewAnexoImagem"
+  | "sincronizarFilaOffline"
+  | "sincronizarItemFilaOffline"
+>;
+
+export function buildInspectorSessionModalState(
+  input: InspectorSessionModalStateInput,
+): Omit<
+  SessionModalsStackProps,
+  | "onAbrirNotificacao"
+  | "onAppLockLogout"
+  | "onAppLockUnlock"
+  | "onChooseAttachment"
+  | "onCloseActivityCenter"
+  | "onCloseAttachmentPicker"
+  | "onCloseAttachmentPreview"
+  | "onCloseOfflineQueue"
+  | "onCloseSettingsConfirmation"
+  | "onCloseSettingsSheet"
+  | "onConfirmSettingsConfirmation"
+  | "onConfirmSettingsSheet"
+  | "onConfirmTextChange"
+  | "onRemoverItemFilaOffline"
+  | "onRetomarItemFilaOffline"
+  | "onSetFiltroFilaOffline"
+  | "onSincronizarFilaOffline"
+  | "onSincronizarItemFilaOffline"
+> {
   const {
     anexosAberto,
     bloqueioAppAtivo,
@@ -76,7 +158,29 @@ export function buildInspectorSessionModalState(input: LooseInput) {
   };
 }
 
-export function buildInspectorSessionModalCallbacks(input: LooseInput) {
+export function buildInspectorSessionModalCallbacks(
+  input: InspectorSessionModalCallbacksInput,
+): Pick<
+  SessionModalsStackProps,
+  | "onAbrirNotificacao"
+  | "onAppLockLogout"
+  | "onAppLockUnlock"
+  | "onChooseAttachment"
+  | "onCloseActivityCenter"
+  | "onCloseAttachmentPicker"
+  | "onCloseAttachmentPreview"
+  | "onCloseOfflineQueue"
+  | "onCloseSettingsConfirmation"
+  | "onCloseSettingsSheet"
+  | "onConfirmSettingsConfirmation"
+  | "onConfirmSettingsSheet"
+  | "onConfirmTextChange"
+  | "onRemoverItemFilaOffline"
+  | "onRetomarItemFilaOffline"
+  | "onSetFiltroFilaOffline"
+  | "onSincronizarFilaOffline"
+  | "onSincronizarItemFilaOffline"
+> {
   const {
     fecharConfirmacaoConfiguracao,
     fecharSheetConfiguracao,
@@ -100,7 +204,7 @@ export function buildInspectorSessionModalCallbacks(input: LooseInput) {
   } = input;
 
   return {
-    onAbrirNotificacao: (item: any) => {
+    onAbrirNotificacao: (item) => {
       void handleAbrirNotificacao(item);
     },
     onAppLockLogout: handleLogout,
@@ -120,17 +224,17 @@ export function buildInspectorSessionModalCallbacks(input: LooseInput) {
     },
     onConfirmTextChange: setConfirmTextDraft,
     onRemoverItemFilaOffline: removerItemFilaOffline,
-    onRetomarItemFilaOffline: (item: any) => {
+    onRetomarItemFilaOffline: (item) => {
       void handleRetomarItemFilaOffline(item);
     },
-    onSetFiltroFilaOffline: (key: string) => setFiltroFilaOffline(key as any),
+    onSetFiltroFilaOffline: (key) => setFiltroFilaOffline(key),
     onSincronizarFilaOffline: () => {
       if (!session) {
         return;
       }
       void sincronizarFilaOffline(session.accessToken);
     },
-    onSincronizarItemFilaOffline: (item: any) => {
+    onSincronizarItemFilaOffline: (item) => {
       void sincronizarItemFilaOffline(item);
     },
   };

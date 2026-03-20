@@ -8,11 +8,10 @@ import {
   buildThreadConversationPaneProps,
   buildThreadHeaderControlsProps,
 } from "./buildAuthenticatedLayoutSections";
-
-type BuildAuthenticatedLayoutPropsInput = Record<string, any>;
+import type { AuthenticatedLayoutInput } from "./inspectorUiBuilderTypes";
 
 export function buildAuthenticatedLayoutProps(
-  input: BuildAuthenticatedLayoutPropsInput,
+  input: AuthenticatedLayoutInput,
 ): ComponentProps<typeof InspectorAuthenticatedLayout> {
   return {
     accentColor: input.accentColor,

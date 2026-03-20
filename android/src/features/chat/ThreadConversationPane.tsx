@@ -27,7 +27,7 @@ import type {
 import { styles } from "../InspectorMobileApp.styles";
 import { MessageAttachmentCard, MessageReferenceCard } from "./MessageCards";
 
-interface ThreadConversationPaneProps {
+export interface ThreadConversationPaneProps {
   vendoMesa: boolean;
   carregandoMesa: boolean;
   mensagensMesa: MobileMesaMessage[];

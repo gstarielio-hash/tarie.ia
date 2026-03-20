@@ -17,7 +17,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
 
-interface HistoryDrawerSection<TItem> {
+export interface HistoryDrawerSection<TItem> {
   key: string;
   title: string;
   items: TItem[];
@@ -26,13 +26,20 @@ interface HistoryDrawerSection<TItem> {
 const HISTORY_DELETE_SWIPE_TRIGGER = 112;
 const HISTORY_DELETE_SWIPE_DISMISS = 420;
 
-type HistoryDrawerItemRecord = {
+export interface HistoryDrawerPanelItem {
   id: number;
   titulo: string;
   preview: string;
-};
+  data_iso: string;
+  status_card: string;
+  status_card_label: string;
+  pinado: boolean;
+  tipo_template: string | null;
+  permite_edicao: boolean;
+  permite_reabrir: boolean;
+}
 
-function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
+function HistoryDrawerListItem<TItem extends HistoryDrawerPanelItem>({
   ativo,
   item,
   onExcluir,
@@ -166,34 +173,7 @@ function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
   );
 }
 
-export function HistoryDrawerPanel<
-  TItem extends {
-    id: number;
-    titulo: string;
-    data_iso: string;
-    status_card: string;
-    status_card_label: string;
-    pinado: boolean;
-    tipo_template: string | null;
-    permite_edicao: boolean;
-    permite_reabrir: boolean;
-    preview: string;
-  },
->({
-  historyDrawerPanResponder,
-  historicoDrawerX,
-  onCloseHistory,
-  buscaHistorico,
-  onBuscaHistoricoChange,
-  conversasOcultasTotal,
-  historicoAgrupadoFinal,
-  laudoSelecionadoId,
-  onSelecionarHistorico,
-  onExcluirConversaHistorico,
-  historicoVazioTitulo,
-  historicoVazioTexto,
-  brandMarkSource,
-}: {
+export interface HistoryDrawerPanelProps<TItem extends HistoryDrawerPanelItem> {
   historyDrawerPanResponder: PanResponderInstance;
   historicoDrawerX: Animated.Value;
   onCloseHistory: () => void;
@@ -207,7 +187,23 @@ export function HistoryDrawerPanel<
   historicoVazioTitulo: string;
   historicoVazioTexto: string;
   brandMarkSource: ImageSourcePropType;
-}) {
+}
+
+export function HistoryDrawerPanel<TItem extends HistoryDrawerPanelItem>({
+  historyDrawerPanResponder,
+  historicoDrawerX,
+  onCloseHistory,
+  buscaHistorico,
+  onBuscaHistoricoChange,
+  conversasOcultasTotal,
+  historicoAgrupadoFinal,
+  laudoSelecionadoId,
+  onSelecionarHistorico,
+  onExcluirConversaHistorico,
+  historicoVazioTitulo,
+  historicoVazioTexto,
+  brandMarkSource,
+}: HistoryDrawerPanelProps<TItem>) {
   const totalHistorico =
     historicoAgrupadoFinal.reduce(
       (total, section) => total + section.items.length,

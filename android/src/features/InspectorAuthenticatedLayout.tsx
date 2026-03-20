@@ -9,21 +9,28 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
+import type { MobileLaudoCard } from "../types/mobile";
 import { styles } from "./InspectorMobileApp.styles";
 import { ThreadComposerPanel } from "./chat/ThreadComposerPanel";
 import { ThreadConversationPane } from "./chat/ThreadConversationPane";
 import { ThreadContextCard } from "./chat/ThreadContextCard";
 import { ThreadHeaderControls } from "./chat/ThreadHeaderControls";
 import { BrandLaunchOverlay } from "./common/BrandElements";
-import { SessionModalsStack } from "./common/SessionModalsStack";
+import {
+  SessionModalsStack,
+  type SessionModalsStackProps,
+} from "./common/SessionModalsStack";
 import { SidePanelsOverlay } from "./common/SidePanelsOverlay";
-import { HistoryDrawerPanel } from "./history/HistoryDrawerPanel";
+import {
+  HistoryDrawerPanel,
+  type HistoryDrawerPanelProps,
+} from "./history/HistoryDrawerPanel";
 import { SettingsDrawerPanel } from "./settings/SettingsDrawerPanel";
 
 interface InspectorAuthenticatedLayoutProps {
   accentColor: string;
   animacoesAtivas: boolean;
-  appGradientColors: readonly [string, string];
+  appGradientColors: readonly [string, string, ...string[]];
   chatKeyboardVerticalOffset: number;
   drawerOverlayOpacity: Animated.Value;
   erroConversa: string;
@@ -51,9 +58,9 @@ interface InspectorAuthenticatedLayoutProps {
     ComponentProps<typeof ThreadComposerPanel>,
     "visible"
   >;
-  historyDrawerPanelProps: ComponentProps<typeof HistoryDrawerPanel>;
+  historyDrawerPanelProps: HistoryDrawerPanelProps<MobileLaudoCard>;
   settingsDrawerPanelProps: ComponentProps<typeof SettingsDrawerPanel>;
-  sessionModalsStackProps: Record<string, any>;
+  sessionModalsStackProps: SessionModalsStackProps;
 }
 
 export function InspectorAuthenticatedLayout({
@@ -149,7 +156,7 @@ export function InspectorAuthenticatedLayout({
             settingsOpen={settingsOpen}
           />
 
-          <SessionModalsStack {...(sessionModalsStackProps as any)} />
+          <SessionModalsStack {...sessionModalsStackProps} />
         </KeyboardAvoidingView>
       </SafeAreaView>
       <BrandLaunchOverlay
