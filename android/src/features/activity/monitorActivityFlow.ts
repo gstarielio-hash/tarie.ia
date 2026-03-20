@@ -3,7 +3,11 @@ import {
   carregarMensagensMesaMobile,
 } from "../../config/api";
 import { registrarEventoObservabilidade } from "../../config/observability";
-import type { MobileLaudoCard, MobileMesaMessage } from "../../types/mobile";
+import type {
+  MobileLaudoCard,
+  MobileMesaMensagensResponse,
+  MobileMesaMessage,
+} from "../../types/mobile";
 
 interface RunMonitorActivityFlowParams<TNotification> {
   accessToken: string;
@@ -23,7 +27,7 @@ interface RunMonitorActivityFlowParams<TNotification> {
     item: MobileMesaMessage,
     tituloLaudo: string,
   ) => TNotification;
-  atualizarResumoLaudoAtual: (payload: unknown) => void;
+  atualizarResumoLaudoAtual: (payload: MobileMesaMensagensResponse) => void;
   registrarNotificacoes: (novasNotificacoes: TNotification[]) => void;
   erroSugereModoOffline: (error: unknown) => boolean;
   chaveCacheLaudo: (laudoId: number | null) => string;

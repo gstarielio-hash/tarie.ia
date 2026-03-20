@@ -9,6 +9,13 @@ interface CrashReportItem {
   stack?: string;
 }
 
+interface GlobalErrorUtilsLike {
+  getGlobalHandler: () => ((error: Error, isFatal?: boolean) => void) | null;
+  setGlobalHandler: (
+    handler: (error: Error, isFatal?: boolean) => void,
+  ) => void;
+}
+
 const CRASH_REPORTS_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-mobile-crash-reports.json`;
 let originalGlobalHandler: ((error: Error, isFatal?: boolean) => void) | null =
   null;
@@ -57,7 +64,8 @@ async function persistCrashReport(
 
 export function configureCrashReports(options: { enabled: boolean }): void {
   crashReportsEnabled = options.enabled;
-  const globalErrorUtils = (globalThis as any).ErrorUtils;
+  const globalErrorUtils = (globalThis as { ErrorUtils?: GlobalErrorUtilsLike })
+    .ErrorUtils;
   if (
     !globalErrorUtils ||
     typeof globalErrorUtils.getGlobalHandler !== "function" ||

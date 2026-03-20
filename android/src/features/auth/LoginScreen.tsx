@@ -17,7 +17,7 @@ import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
 import { BrandIntroMark, BrandLaunchOverlay } from "../common/BrandElements";
 
-interface LoginScreenProps {
+export interface LoginScreenProps {
   appGradientColors: readonly [string, string, ...string[]];
   keyboardAvoidingBehavior: KeyboardAvoidingViewProps["behavior"];
   loginKeyboardVerticalOffset: number;

@@ -1,3 +1,10 @@
+import type { ApiHealthStatus } from "../../types/mobile";
+import type {
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
+import type { MobileSessionState } from "../session/sessionTypes";
+
 interface BuildRefreshActionParams {
   abaAtiva: "chat" | "mesa";
   carregarConversaAtual: (
@@ -18,18 +25,18 @@ interface BuildRefreshActionParams {
     title: string;
     body: string;
     kind?: "system" | "alerta_critico";
-  }) => any;
-  filaOffline: any[];
+  }) => MobileActivityNotification;
+  filaOffline: OfflinePendingMessage[];
   onCanSyncOnCurrentNetwork: (wifiOnlySync: boolean) => Promise<boolean>;
-  onIsOfflineItemReadyForRetry: (item: any) => boolean;
+  onIsOfflineItemReadyForRetry: (item: OfflinePendingMessage) => boolean;
   onPingApi: () => Promise<boolean>;
-  onRegistrarNotificacoes: (items: any[]) => void;
+  onRegistrarNotificacoes: (items: MobileActivityNotification[]) => void;
   onSetErroConversa: (value: string) => void;
   onSetErroMesa: (value: string) => void;
   onSetSincronizandoAgora: (value: boolean) => void;
-  onSetStatusApi: (value: "online" | "offline") => void;
+  onSetStatusApi: (value: ApiHealthStatus) => void;
   onSetUsandoCacheOffline: (value: boolean) => void;
-  session: { accessToken: string } | null;
+  session: MobileSessionState | null;
   sincronizacaoDispositivos: boolean;
   sincronizarFilaOffline: (
     accessToken: string,

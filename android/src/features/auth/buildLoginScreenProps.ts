@@ -1,12 +1,38 @@
-import type { ComponentProps } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { TextInput } from "react-native";
 
-import { LoginScreen } from "./LoginScreen";
+import type { LoginScreenProps } from "./LoginScreen";
 
-type BuildLoginScreenPropsInput = Record<string, any>;
+interface BuildLoginScreenPropsInput {
+  accentColor: string;
+  animacoesAtivas: boolean;
+  appGradientColors: readonly [string, string, ...string[]];
+  carregando: boolean;
+  email: string;
+  emailInputRef: RefObject<TextInput | null>;
+  entrando: boolean;
+  erro: string;
+  fontScale: number;
+  handleEsqueciSenha: () => void | Promise<void>;
+  handleLogin: () => void | Promise<void>;
+  handleLoginSocial: (provider: "Google" | "Microsoft") => void | Promise<void>;
+  introVisivel: boolean;
+  keyboardAvoidingBehavior: LoginScreenProps["keyboardAvoidingBehavior"];
+  keyboardVisible: boolean;
+  loginKeyboardBottomPadding: number;
+  loginKeyboardVerticalOffset: number;
+  mostrarSenha: boolean;
+  senha: string;
+  senhaInputRef: RefObject<TextInput | null>;
+  setEmail: Dispatch<SetStateAction<string>>;
+  setIntroVisivel: Dispatch<SetStateAction<boolean>>;
+  setMostrarSenha: Dispatch<SetStateAction<boolean>>;
+  setSenha: Dispatch<SetStateAction<string>>;
+}
 
 export function buildLoginScreenProps(
   input: BuildLoginScreenPropsInput,
-): ComponentProps<typeof LoginScreen> {
+): LoginScreenProps {
   const {
     accentColor,
     animacoesAtivas,

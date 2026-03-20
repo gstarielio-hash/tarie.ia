@@ -2455,7 +2455,7 @@ export function InspectorMobileApp() {
     chaveCacheLaudo,
     onUpdateCurrentConversationSummary: (payload) => {
       setConversa((estadoAtual) =>
-        atualizarResumoLaudoAtual(estadoAtual, payload as any),
+        atualizarResumoLaudoAtual(estadoAtual, payload),
       );
     },
     onSetLaudosDisponiveis: setLaudosDisponiveis,

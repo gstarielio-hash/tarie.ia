@@ -9,7 +9,11 @@ import { Vibration } from "react-native";
 
 import { pingApi } from "../../config/api";
 import { registrarEventoObservabilidade } from "../../config/observability";
-import type { MobileLaudoCard, MobileMesaMessage } from "../../types/mobile";
+import type {
+  MobileLaudoCard,
+  MobileMesaMensagensResponse,
+  MobileMesaMessage,
+} from "../../types/mobile";
 import { runMonitorActivityFlow } from "./monitorActivityFlow";
 import {
   initializeNotificationsRuntime,
@@ -72,7 +76,9 @@ interface UseActivityCenterControllerParams<
   ) => TNotification;
   erroSugereModoOffline: (error: unknown) => boolean;
   chaveCacheLaudo: (laudoId: number | null) => string;
-  onUpdateCurrentConversationSummary: (payload: unknown) => void;
+  onUpdateCurrentConversationSummary: (
+    payload: MobileMesaMensagensResponse,
+  ) => void;
   onSetLaudosDisponiveis: Dispatch<SetStateAction<MobileLaudoCard[]>>;
   onSetCacheLaudos: (items: MobileLaudoCard[]) => void;
   onSetErroLaudos: Dispatch<SetStateAction<string>>;
