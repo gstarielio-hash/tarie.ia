@@ -20,6 +20,7 @@ Esse blueprint aponta para `web/` via `rootDir: web`, então:
 
 - Web: `web/README.md`
 - Mobile: `android/README.md`
+- Roadmap funcional unificado: `docs/roadmap_execucao_funcional_web_mobile.md`
 
 ## Qualidade Local
 
