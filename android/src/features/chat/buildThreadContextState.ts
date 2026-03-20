@@ -1,8 +1,11 @@
-type BuildThreadContextStateInput = Record<string, any>;
+import type {
+  BuildThreadContextStateInput,
+  ThreadContextStateResult,
+} from "../common/inspectorDerivedStateTypes";
 
 export function buildThreadContextState(
   input: BuildThreadContextStateInput,
-): Record<string, any> {
+): ThreadContextStateResult {
   const {
     conversaAtiva,
     filtrarThreadContextChips,

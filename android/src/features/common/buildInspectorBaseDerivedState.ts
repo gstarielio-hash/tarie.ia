@@ -4,19 +4,21 @@ import {
   buildInspectorLayoutDerivedState,
   buildInspectorSettingsDerivedState,
 } from "./buildInspectorBaseDerivedStateSections";
-
-type InspectorBaseDerivedStateInput = Record<string, any>;
+import type {
+  InspectorBaseDerivedStateInput,
+  InspectorSettingsDerivedStateResolvedInput,
+} from "./inspectorDerivedStateTypes";
 
 export function buildInspectorBaseDerivedState(
   input: InspectorBaseDerivedStateInput,
-): Record<string, any> {
+) {
   const conversation = buildInspectorConversationDerivedState(input);
   const historyAndOffline = buildInspectorHistoryAndOfflineDerivedState(input);
   const settings = buildInspectorSettingsDerivedState({
     ...input,
     ...conversation,
     ...historyAndOffline,
-  });
+  } satisfies InspectorSettingsDerivedStateResolvedInput);
   const layout = buildInspectorLayoutDerivedState(input);
 
   return {

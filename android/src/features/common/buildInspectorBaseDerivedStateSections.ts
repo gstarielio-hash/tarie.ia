@@ -13,11 +13,18 @@ import {
   type SettingsSectionKey,
 } from "../settings/settingsNavigationMeta";
 import { buildSettingsSectionVisibility } from "../settings/settingsSectionVisibility";
+import type {
+  InspectorConversationDerivedStateInput,
+  InspectorHistoryAndOfflineDerivedStateInput,
+  InspectorLayoutDerivedStateInput,
+  InspectorSettingsDerivedStateResolvedInput,
+} from "./inspectorDerivedStateTypes";
+import type { SessionModalsStackFilter } from "./SessionModalsStack";
 import { colors, spacing } from "../../theme/tokens";
 
-type LooseInput = Record<string, any>;
-
-export function buildInspectorConversationDerivedState(input: LooseInput) {
+export function buildInspectorConversationDerivedState(
+  input: InspectorConversationDerivedStateInput,
+) {
   const {
     anexoMesaRascunho,
     anexoRascunho,
@@ -159,7 +166,9 @@ export function buildInspectorConversationDerivedState(input: LooseInput) {
   };
 }
 
-export function buildInspectorHistoryAndOfflineDerivedState(input: LooseInput) {
+export function buildInspectorHistoryAndOfflineDerivedState(
+  input: InspectorHistoryAndOfflineDerivedStateInput,
+) {
   const {
     buscaHistorico,
     buildHistorySections,
@@ -197,7 +206,7 @@ export function buildInspectorHistoryAndOfflineDerivedState(input: LooseInput) {
   const totalFilaOfflineMesa = filaOfflineOrdenada.filter(
     (item) => item.channel === "mesa",
   ).length;
-  const filtrosFilaOffline = [
+  const filtrosFilaOffline: SessionModalsStackFilter[] = [
     { key: "all", label: "Tudo", count: filaOfflineOrdenada.length },
     { key: "chat", label: "Chat", count: totalFilaOfflineChat },
     { key: "mesa", label: "Mesa", count: totalFilaOfflineMesa },
@@ -242,12 +251,12 @@ export function buildInspectorHistoryAndOfflineDerivedState(input: LooseInput) {
       return alvo.includes(termoHistorico);
     });
   const conversasFixadasTotal = laudosDisponiveis.filter(
-    (item: any) => item.pinado,
+    (item) => item.pinado,
   ).length;
   const conversasVisiveisTotal = laudosDisponiveis.length;
   const conversasOcultasTotal = historicoOcultoIds.length;
   const agoraReferenciaHistorico = Date.now();
-  const totalHistoricoRecentes = laudosDisponiveis.filter((item: any) => {
+  const totalHistoricoRecentes = laudosDisponiveis.filter((item) => {
     const timestamp = new Date(item.data_iso).getTime();
     if (Number.isNaN(timestamp)) {
       return false;
@@ -315,7 +324,7 @@ export function buildInspectorHistoryAndOfflineDerivedState(input: LooseInput) {
   const podeSincronizarFilaOffline =
     statusApi === "online" && totalFilaOfflinePronta > 0;
   const notificacoesNaoLidas = notificacoes.filter(
-    (item: any) => item.unread,
+    (item) => item.unread,
   ).length;
 
   return {
@@ -344,7 +353,9 @@ export function buildInspectorHistoryAndOfflineDerivedState(input: LooseInput) {
   };
 }
 
-export function buildInspectorSettingsDerivedState(input: LooseInput) {
+export function buildInspectorSettingsDerivedState(
+  input: InspectorSettingsDerivedStateResolvedInput,
+) {
   const {
     arquivosPermitidos,
     buscaAjuda,
@@ -436,30 +447,28 @@ export function buildInspectorSettingsDerivedState(input: LooseInput) {
       .filter(Boolean)
       .join(" • ") || "Conta corporativa autenticada";
   const provedoresConectadosTotal = provedoresConectados.filter(
-    (item: any) => item.connected,
+    (item) => item.connected,
   ).length;
   const provedoresDisponiveisTotal = provedoresConectados.filter(
-    (item: any) => !item.connected,
+    (item) => !item.connected,
   ).length;
   const integracoesConectadasTotal = integracoesExternas.filter(
-    (item: any) => item.connected,
+    (item) => item.connected,
   ).length;
   const integracoesDisponiveisTotal = integracoesExternas.length;
   const existeProvedorDisponivel = provedoresDisponiveisTotal > 0;
   const provedorPrimario = session ? "Senha" : "Credencial principal";
   const ultimoEventoProvedor =
-    eventosSeguranca.find((item: any) => item.type === "provider")?.status ||
+    eventosSeguranca.find((item) => item.type === "provider")?.status ||
     "Sem vínculo recente";
   const ultimoEventoSessao =
     eventosSeguranca.find(
-      (item: any) => item.type === "session" || item.type === "login",
+      (item) => item.type === "session" || item.type === "login",
     )?.status || "Sem revisão recente";
-  const sessaoAtual = sessoesAtivas.find((item: any) => item.current) || null;
-  const outrasSessoesAtivas = sessoesAtivas.filter(
-    (item: any) => !item.current,
-  );
+  const sessaoAtual = sessoesAtivas.find((item) => item.current) || null;
+  const outrasSessoesAtivas = sessoesAtivas.filter((item) => !item.current);
   const sessoesSuspeitasTotal = sessoesAtivas.filter(
-    (item: any) => item.suspicious,
+    (item) => item.suspicious,
   ).length;
   const resumoMetodosConta =
     provedoresConectadosTotal > 0
@@ -538,19 +547,19 @@ export function buildInspectorSettingsDerivedState(input: LooseInput) {
       }
     : null;
   const ticketsBugTotal = filaSuporteLocal.filter(
-    (item: any) => item.kind === "bug",
+    (item) => item.kind === "bug",
   ).length;
   const ticketsFeedbackTotal = filaSuporteLocal.filter(
-    (item: any) => item.kind === "feedback",
+    (item) => item.kind === "feedback",
   ).length;
-  const ticketsComAnexoTotal = filaSuporteLocal.filter((item: any) =>
+  const ticketsComAnexoTotal = filaSuporteLocal.filter((item) =>
     Boolean(item.attachmentUri),
   ).length;
   const resumoFilaSuporteLocal = filaSuporteLocal.length
     ? `${filaSuporteLocal.length} item(ns) locais • ${ticketsBugTotal} bug(s) • ${ticketsFeedbackTotal} feedback(s) • ${ticketsComAnexoTotal} com anexo`
     : "Sem itens na fila local";
   const temPrioridadesConfiguracao = permissoesNegadasTotal > 0;
-  const eventosSegurancaFiltrados = eventosSeguranca.filter((item: any) => {
+  const eventosSegurancaFiltrados = eventosSeguranca.filter((item) => {
     if (filtroEventosSeguranca === "todos") {
       return true;
     }
@@ -723,11 +732,14 @@ export function buildInspectorSettingsDerivedState(input: LooseInput) {
   };
 }
 
-export function buildInspectorLayoutDerivedState(input: LooseInput) {
+export function buildInspectorLayoutDerivedState(
+  input: InspectorLayoutDerivedStateInput,
+) {
   const { keyboardHeight } = input;
 
   const keyboardVisible = keyboardHeight > 0;
-  const keyboardAvoidingBehavior = Platform.OS === "ios" ? "padding" : "height";
+  const keyboardAvoidingBehavior: "padding" | "height" =
+    Platform.OS === "ios" ? "padding" : "height";
   const loginKeyboardVerticalOffset = Platform.OS === "ios" ? 18 : 0;
   const chatKeyboardVerticalOffset = Platform.OS === "ios" ? 8 : 0;
   const headerSafeTopInset =

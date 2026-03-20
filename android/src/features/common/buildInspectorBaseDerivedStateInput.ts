@@ -1,10 +1,7 @@
-type BuildInspectorBaseDerivedStateInputParams = {
-  chat: Record<string, any>;
-  helpers: Record<string, any>;
-  historyAndOffline: Record<string, any>;
-  settingsAndAccount: Record<string, any>;
-  shell: Record<string, any>;
-};
+import type {
+  BuildInspectorBaseDerivedStateInputParams,
+  InspectorBaseDerivedStateInput,
+} from "./inspectorDerivedStateTypes";
 
 export function buildInspectorBaseDerivedStateInput({
   chat,
@@ -12,7 +9,7 @@ export function buildInspectorBaseDerivedStateInput({
   historyAndOffline,
   settingsAndAccount,
   shell,
-}: BuildInspectorBaseDerivedStateInputParams) {
+}: BuildInspectorBaseDerivedStateInputParams): InspectorBaseDerivedStateInput {
   return {
     ...shell,
     ...chat,

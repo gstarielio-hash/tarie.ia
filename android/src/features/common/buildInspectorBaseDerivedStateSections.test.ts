@@ -1,7 +1,73 @@
+import type { MobileLaudoCard } from "../../types/mobile";
+import type {
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
 import {
   buildInspectorConversationDerivedState,
   buildInspectorHistoryAndOfflineDerivedState,
 } from "./buildInspectorBaseDerivedStateSections";
+
+function criarLaudoParcial(
+  overrides: Partial<MobileLaudoCard>,
+): MobileLaudoCard {
+  return {
+    id: 42,
+    titulo: "Laudo",
+    preview: "Resumo",
+    pinado: false,
+    data_iso: "2026-03-20T10:00:00.000Z",
+    data_br: "20/03/2026",
+    hora_br: "10:00",
+    tipo_template: "TC",
+    status_revisao: "ativo",
+    status_card: "aguardando",
+    status_card_label: "Aguardando",
+    permite_edicao: true,
+    permite_reabrir: false,
+    possui_historico: true,
+    ...overrides,
+  };
+}
+
+function criarPendenciaParcial(
+  overrides: Partial<OfflinePendingMessage>,
+): OfflinePendingMessage {
+  return {
+    id: "offline-1",
+    channel: "chat",
+    laudoId: null,
+    text: "Mensagem pendente",
+    createdAt: "2026-03-20T10:00:00.000Z",
+    title: "Pendência",
+    attachment: null,
+    referenceMessageId: null,
+    attempts: 0,
+    lastAttemptAt: "",
+    lastError: "",
+    nextRetryAt: "",
+    aiMode: "detalhado",
+    aiSummary: "",
+    aiMessagePrefix: "",
+    ...overrides,
+  };
+}
+
+function criarNotificacaoParcial(
+  overrides: Partial<MobileActivityNotification>,
+): MobileActivityNotification {
+  return {
+    id: "notif-1",
+    kind: "status",
+    laudoId: null,
+    title: "Atualização",
+    body: "Há uma atualização.",
+    createdAt: "2026-03-20T10:00:00.000Z",
+    unread: true,
+    targetThread: "chat",
+    ...overrides,
+  };
+}
 
 describe("buildInspectorBaseDerivedStateSections", () => {
   it("prioriza o placeholder de reabertura quando a conversa exige reabrir", () => {
@@ -16,10 +82,13 @@ describe("buildInspectorBaseDerivedStateSections", () => {
         mensagens: [],
         permiteEdicao: true,
         permiteReabrir: true,
-        laudoCard: { tipo_template: "normal" },
+        estado: "relatorio_ativo",
+        statusCard: "aguardando",
+        laudoCard: criarLaudoParcial({ tipo_template: "normal" }),
+        modo: "detalhado",
       },
       corDestaque: "laranja",
-      densidadeInterface: "confortavel",
+      densidadeInterface: "confortável",
       formatarTipoTemplateLaudo: jest.fn().mockReturnValue("Normal"),
       mensagem: "",
       mensagemMesa: "",
@@ -29,7 +98,7 @@ describe("buildInspectorBaseDerivedStateSections", () => {
       podeEditarConversaNoComposer: jest.fn().mockReturnValue(true),
       preparandoAnexo: false,
       previewChatLiberadoParaConversa: jest.fn().mockReturnValue(false),
-      tamanhoFonte: "media",
+      tamanhoFonte: "médio",
       temaApp: "claro",
       uploadArquivosAtivo: true,
       carregandoConversa: false,
@@ -50,44 +119,53 @@ describe("buildInspectorBaseDerivedStateSections", () => {
 
     const state = buildInspectorHistoryAndOfflineDerivedState({
       buscaHistorico: "",
-      buildHistorySections: jest.fn((items) => items),
-      filaOffline: [
+      buildHistorySections: jest.fn((items) => [
         {
+          key: "fixadas",
+          title: "Fixadas",
+          items,
+        },
+      ]),
+      filaOffline: [
+        criarPendenciaParcial({
           id: "mesa-1",
           channel: "mesa",
           createdAt: "2026-03-19T10:00:00.000Z",
           lastError: "timeout",
-        },
-        {
+        }),
+        criarPendenciaParcial({
           id: "chat-1",
           channel: "chat",
           createdAt: "2026-03-20T11:00:00.000Z",
           lastError: "",
-        },
+        }),
       ],
       filtroFilaOffline: "all",
       filtroHistorico: "fixadas",
       fixarConversas: true,
-      historicoOcultoIds: ["l-3"],
+      historicoOcultoIds: [3],
       laudosDisponiveis: [
-        {
-          id: "l-1",
+        criarLaudoParcial({
+          id: 1,
           titulo: "Laudo 1",
           preview: "Resumo",
           status_card_label: "Em andamento",
           data_iso: "2026-03-20T11:00:00.000Z",
           pinado: true,
-        },
-        {
-          id: "l-2",
+        }),
+        criarLaudoParcial({
+          id: 2,
           titulo: "Laudo 2",
           preview: "Outro",
           status_card_label: "Concluido",
           data_iso: "2026-03-10T11:00:00.000Z",
           pinado: false,
-        },
+        }),
       ],
-      notificacoes: [{ unread: true }, { unread: false }],
+      notificacoes: [
+        criarNotificacaoParcial({ unread: true }),
+        criarNotificacaoParcial({ id: "notif-2", unread: false }),
+      ],
       pendenciaFilaProntaParaReenvio: jest
         .fn()
         .mockImplementation((item) => item.id === "chat-1"),
