@@ -72,13 +72,21 @@ import {
   loadVoiceRuntimeState,
 } from "./chat/voice";
 import { useInspectorChatController } from "./chat/useInspectorChatController";
-import type { MessageReferenceState } from "./chat/types";
+import type {
+  ActiveThread,
+  ChatState,
+  ComposerAttachment,
+  MessageReferenceState,
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "./chat/types";
 import { buildAuthenticatedLayoutInput } from "./common/buildAuthenticatedLayoutInput";
 import { buildAuthenticatedLayoutProps } from "./common/buildAuthenticatedLayoutProps";
 import { buildInspectorBaseDerivedState } from "./common/buildInspectorBaseDerivedState";
 import { buildInspectorBaseDerivedStateInput } from "./common/buildInspectorBaseDerivedStateInput";
 import { buildInspectorSessionModalsInput } from "./common/buildInspectorSessionModalsInput";
 import { buildInspectorSessionModalsStackProps } from "./common/buildInspectorSessionModalsStackProps";
+import type { MobileReadCache } from "./common/readCacheTypes";
 import { buildRefreshAction } from "./common/buildRefreshAction";
 import { useSidePanelsController } from "./common/useSidePanelsController";
 import { useHistoryController } from "./history/useHistoryController";
@@ -119,19 +127,6 @@ import {
   useSettingsStore,
 } from "../settings";
 import { useInspectorSession } from "./session/useInspectorSession";
-
-interface ChatState {
-  laudoId: number | null;
-  estado: MobileEstadoLaudo | string;
-  statusCard: string;
-  permiteEdicao: boolean;
-  permiteReabrir: boolean;
-  laudoCard: MobileLaudoCard | null;
-  modo: MobileChatMode | string;
-  mensagens: MobileChatMessage[];
-}
-
-type ActiveThread = "chat" | "mesa";
 type OfflineQueueFilter = "all" | "chat" | "mesa";
 type HistoryDrawerFilter = (typeof HISTORY_DRAWER_FILTERS)[number]["key"];
 type ThreadContextChipTone = "accent" | "success" | "danger" | "muted";
@@ -143,79 +138,9 @@ interface ThreadContextChipItem {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
 }
 
-type ComposerAttachment =
-  | {
-      kind: "image";
-      label: string;
-      resumo: string;
-      dadosImagem: string;
-      previewUri: string;
-      fileUri: string;
-      mimeType: string;
-    }
-  | {
-      kind: "document";
-      label: string;
-      resumo: string;
-      textoDocumento: string;
-      nomeDocumento: string;
-      chars: number;
-      truncado: boolean;
-      fileUri: string;
-      mimeType: string;
-    };
-
 interface AttachmentPreviewState {
   titulo: string;
   uri: string;
-}
-
-interface OfflinePendingMessage {
-  id: string;
-  channel: "chat" | "mesa";
-  laudoId: number | null;
-  text: string;
-  createdAt: string;
-  title: string;
-  attachment: ComposerAttachment | null;
-  referenceMessageId: number | null;
-  attempts: number;
-  lastAttemptAt: string;
-  lastError: string;
-  nextRetryAt: string;
-  aiMode: MobileChatMode;
-  aiSummary: string;
-  aiMessagePrefix: string;
-}
-
-interface MobileActivityNotification {
-  id: string;
-  kind:
-    | "status"
-    | "mesa_nova"
-    | "mesa_resolvida"
-    | "mesa_reaberta"
-    | "system"
-    | "alerta_critico";
-  laudoId: number | null;
-  title: string;
-  body: string;
-  createdAt: string;
-  unread: boolean;
-  targetThread: ActiveThread;
-}
-
-interface MobileReadCache {
-  bootstrap: MobileBootstrapResponse | null;
-  laudos: MobileLaudoCard[];
-  conversaAtual: ChatState | null;
-  conversasPorLaudo: Record<string, ChatState>;
-  mesaPorLaudo: Record<string, MobileMesaMessage[]>;
-  chatDrafts: Record<string, string>;
-  mesaDrafts: Record<string, string>;
-  chatAttachmentDrafts: Record<string, ComposerAttachment>;
-  mesaAttachmentDrafts: Record<string, ComposerAttachment>;
-  updatedAt: string;
 }
 
 type SettingsDrawerFilter = (typeof SETTINGS_DRAWER_FILTERS)[number]["key"];
@@ -2051,12 +1976,7 @@ export function InspectorMobileApp() {
       setSession,
       setStatusApi,
     },
-  } = useInspectorSession<
-    OfflinePendingMessage,
-    MobileActivityNotification,
-    MobileReadCache,
-    ChatState | null
-  >({
+  } = useInspectorSession({
     settingsHydrated,
     chatHistoryEnabled: settingsState.dataControls.chatHistoryEnabled,
     deviceBackupEnabled: settingsState.dataControls.deviceBackupEnabled,

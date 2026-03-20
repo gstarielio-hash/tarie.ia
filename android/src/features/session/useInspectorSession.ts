@@ -11,6 +11,12 @@ import type {
   MobileLaudoCard,
   MobileMesaMessage,
 } from "../../types/mobile";
+import type {
+  ChatState,
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
+import type { MobileReadCache } from "../common/readCacheTypes";
 import { EMAIL_KEY, TOKEN_KEY } from "../InspectorMobileApp.constants";
 import { runBootstrapAppFlow } from "../bootstrap/runBootstrapAppFlow";
 import {
@@ -25,12 +31,7 @@ interface LocalHistoryUiStateSnapshot {
   historicoOcultoIds: number[];
 }
 
-interface UseInspectorSessionParams<
-  TFilaOffline,
-  TNotificacao,
-  TCacheLeitura,
-  TConversa,
-> {
+export interface UseInspectorSessionParams {
   settingsHydrated: boolean;
   chatHistoryEnabled: boolean;
   deviceBackupEnabled: boolean;
@@ -41,20 +42,20 @@ interface UseInspectorSessionParams<
   ) => MobileLaudoCard[];
   chaveCacheLaudo: (laudoId: number | null) => string;
   erroSugereModoOffline: (error: unknown) => boolean;
-  lerCacheLeituraLocal: () => Promise<TCacheLeitura>;
+  lerCacheLeituraLocal: () => Promise<MobileReadCache>;
   lerEstadoHistoricoLocal: () => Promise<LocalHistoryUiStateSnapshot>;
-  lerFilaOfflineLocal: () => Promise<TFilaOffline[]>;
-  lerNotificacoesLocais: () => Promise<TNotificacao[]>;
-  limparCachePorPrivacidade: (cache: TCacheLeitura) => TCacheLeitura;
-  cacheLeituraVazio: TCacheLeitura;
-  onSetFilaOffline: (items: TFilaOffline[]) => void;
-  onSetNotificacoes: (items: TNotificacao[]) => void;
-  onSetCacheLeitura: (cache: TCacheLeitura) => void;
+  lerFilaOfflineLocal: () => Promise<OfflinePendingMessage[]>;
+  lerNotificacoesLocais: () => Promise<MobileActivityNotification[]>;
+  limparCachePorPrivacidade: (cache: MobileReadCache) => MobileReadCache;
+  cacheLeituraVazio: MobileReadCache;
+  onSetFilaOffline: (items: OfflinePendingMessage[]) => void;
+  onSetNotificacoes: (items: MobileActivityNotification[]) => void;
+  onSetCacheLeitura: (cache: MobileReadCache) => void;
   onSetLaudosFixadosIds: (ids: number[]) => void;
   onSetHistoricoOcultoIds: (ids: number[]) => void;
   onSetUsandoCacheOffline: (value: boolean) => void;
   onSetLaudosDisponiveis: (items: MobileLaudoCard[]) => void;
-  onSetConversa: (conversa: TConversa) => void;
+  onSetConversa: (conversa: ChatState | null) => void;
   onSetMensagensMesa: (items: MobileMesaMessage[]) => void;
   onSetLaudoMesaCarregado: (laudoId: number | null) => void;
   onSetErroLaudos: (value: string) => void;
@@ -63,19 +64,7 @@ interface UseInspectorSessionParams<
   onResetAfterLogout?: () => void | Promise<void>;
 }
 
-export function useInspectorSession<
-  TFilaOffline,
-  TNotificacao,
-  TCacheLeitura,
-  TConversa,
->(
-  params: UseInspectorSessionParams<
-    TFilaOffline,
-    TNotificacao,
-    TCacheLeitura,
-    TConversa
-  >,
-) {
+export function useInspectorSession(params: UseInspectorSessionParams) {
   const paramsRef = useRef(params);
   paramsRef.current = params;
 

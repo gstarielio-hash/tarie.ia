@@ -3,9 +3,13 @@ import type {
   MobileLaudoCard,
   MobileMesaMessage,
 } from "../../types/mobile";
+import type {
+  ChatState,
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
+import type { MobileReadCache } from "../common/readCacheTypes";
 import type { MobileSessionState } from "../session/sessionTypes";
-
-type BootstrapCacheState = any;
 
 interface RunBootstrapAppFlowParams {
   aplicarPreferenciasLaudos: (
@@ -20,34 +24,32 @@ interface RunBootstrapAppFlowParams {
   erroSugereModoOffline: (error: unknown) => boolean;
   chatHistoryEnabled: boolean;
   deviceBackupEnabled: boolean;
-  lerCacheLeituraLocal: () => Promise<BootstrapCacheState>;
+  lerCacheLeituraLocal: () => Promise<MobileReadCache>;
   lerEstadoHistoricoLocal: () => Promise<{
     laudosFixadosIds: number[];
     historicoOcultoIds: number[];
   }>;
-  lerFilaOfflineLocal: () => Promise<any[]>;
-  lerNotificacoesLocais: () => Promise<any[]>;
-  limparCachePorPrivacidade: (
-    cache: BootstrapCacheState,
-  ) => BootstrapCacheState;
+  lerFilaOfflineLocal: () => Promise<OfflinePendingMessage[]>;
+  lerNotificacoesLocais: () => Promise<MobileActivityNotification[]>;
+  limparCachePorPrivacidade: (cache: MobileReadCache) => MobileReadCache;
   obterItemSeguro: (key: string) => Promise<string | null>;
   pingApi: () => Promise<boolean>;
   removeToken: () => Promise<void>;
-  CACHE_LEITURA_VAZIO: BootstrapCacheState;
+  CACHE_LEITURA_VAZIO: MobileReadCache;
   EMAIL_KEY: string;
   TOKEN_KEY: string;
   onSetStatusApi: (status: "online" | "offline") => void;
   onSetEmail: (email: string) => void;
-  onSetFilaOffline: (itens: any[]) => void;
-  onSetNotificacoes: (itens: any[]) => void;
-  onSetCacheLeitura: (cache: any) => void;
+  onSetFilaOffline: (itens: OfflinePendingMessage[]) => void;
+  onSetNotificacoes: (itens: MobileActivityNotification[]) => void;
+  onSetCacheLeitura: (cache: MobileReadCache) => void;
   onSetLaudosFixadosIds: (ids: number[]) => void;
   onSetHistoricoOcultoIds: (ids: number[]) => void;
   onMergeCacheBootstrap: (bootstrap: MobileBootstrapResponse) => void;
   onSetSession: (session: MobileSessionState) => void;
   onSetUsandoCacheOffline: (value: boolean) => void;
   onSetLaudosDisponiveis: (itens: MobileLaudoCard[]) => void;
-  onSetConversa: (conversa: any) => void;
+  onSetConversa: (conversa: ChatState | null) => void;
   onSetMensagensMesa: (itens: MobileMesaMessage[]) => void;
   onSetLaudoMesaCarregado: (laudoId: number | null) => void;
   onSetErroLaudos: (value: string) => void;

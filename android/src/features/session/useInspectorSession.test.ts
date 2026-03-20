@@ -5,10 +5,14 @@ import {
   loginInspectorMobile,
   logoutInspectorMobile,
 } from "../../config/api";
+import type { MobileReadCache } from "../common/readCacheTypes";
 import { EMAIL_KEY, TOKEN_KEY } from "../InspectorMobileApp.constants";
 import { runBootstrapAppFlow } from "../bootstrap/runBootstrapAppFlow";
 import { removeSecureItem, writeSecureItem } from "./sessionStorage";
-import { useInspectorSession } from "./useInspectorSession";
+import {
+  useInspectorSession,
+  type UseInspectorSessionParams,
+} from "./useInspectorSession";
 
 jest.mock("../../config/api", () => ({
   carregarBootstrapMobile: jest.fn(),
@@ -49,11 +53,24 @@ function criarBootstrap() {
   } as const;
 }
 
+function criarCacheLeituraVazio(): MobileReadCache {
+  return {
+    bootstrap: null,
+    laudos: [],
+    conversaAtual: null,
+    conversasPorLaudo: {},
+    mesaPorLaudo: {},
+    chatDrafts: {},
+    mesaDrafts: {},
+    chatAttachmentDrafts: {},
+    mesaAttachmentDrafts: {},
+    updatedAt: "",
+  };
+}
+
 function criarParams(
-  overrides: Partial<
-    Parameters<typeof useInspectorSession<any, any, any, any>>[0]
-  > = {},
-): Parameters<typeof useInspectorSession<any, any, any, any>>[0] {
+  overrides: Partial<UseInspectorSessionParams> = {},
+): UseInspectorSessionParams {
   return {
     settingsHydrated: false,
     chatHistoryEnabled: true,
@@ -61,7 +78,7 @@ function criarParams(
     aplicarPreferenciasLaudos: jest.fn((items) => items),
     chaveCacheLaudo: jest.fn((laudoId) => `laudo:${laudoId ?? "rascunho"}`),
     erroSugereModoOffline: jest.fn().mockReturnValue(false),
-    lerCacheLeituraLocal: jest.fn().mockResolvedValue({}),
+    lerCacheLeituraLocal: jest.fn().mockResolvedValue(criarCacheLeituraVazio()),
     lerEstadoHistoricoLocal: jest.fn().mockResolvedValue({
       laudosFixadosIds: [],
       historicoOcultoIds: [],
@@ -69,7 +86,7 @@ function criarParams(
     lerFilaOfflineLocal: jest.fn().mockResolvedValue([]),
     lerNotificacoesLocais: jest.fn().mockResolvedValue([]),
     limparCachePorPrivacidade: jest.fn((cache) => cache),
-    cacheLeituraVazio: {},
+    cacheLeituraVazio: criarCacheLeituraVazio(),
     onSetFilaOffline: jest.fn(),
     onSetNotificacoes: jest.fn(),
     onSetCacheLeitura: jest.fn(),

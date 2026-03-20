@@ -1,17 +1,51 @@
+import type {
+  MobileBootstrapResponse,
+  MobileLaudoCard,
+  MobileMesaMessage,
+} from "../../types/mobile";
+import type {
+  ChatState,
+  MobileActivityNotification,
+  OfflinePendingMessage,
+} from "../chat/types";
+import type { MobileReadCache } from "../common/readCacheTypes";
 import { runBootstrapAppFlow } from "./runBootstrapAppFlow";
 
 function criarBootstrapMock() {
   return {
+    ok: true,
     usuario: {
       id: 7,
       email: "inspetor@tariel.test",
       nome_completo: "Inspetor Tariel",
+      telefone: "(11) 99999-0000",
+      foto_perfil_url: "",
+      empresa_nome: "Tariel",
+      empresa_id: 3,
+      nivel_acesso: 5,
     },
     app: {
       nome: "Tariel Inspetor",
+      portal: "inspetor",
       api_base_url: "https://api.tariel.test",
+      suporte_whatsapp: "",
     },
-  } as any;
+  } satisfies MobileBootstrapResponse;
+}
+
+function criarCacheVazio(): MobileReadCache {
+  return {
+    bootstrap: null,
+    laudos: [],
+    conversaAtual: null,
+    conversasPorLaudo: {},
+    mesaPorLaudo: {},
+    chatDrafts: {},
+    mesaDrafts: {},
+    chatAttachmentDrafts: {},
+    mesaAttachmentDrafts: {},
+    updatedAt: "",
+  };
 }
 
 describe("runBootstrapAppFlow", () => {
@@ -56,8 +90,37 @@ describe("runBootstrapAppFlow", () => {
         laudosFixadosIds: [10],
         historicoOcultoIds: [11],
       }),
-      lerFilaOfflineLocal: jest.fn().mockResolvedValue([{ id: "offline-1" }]),
-      lerNotificacoesLocais: jest.fn().mockResolvedValue([{ id: "notif-1" }]),
+      lerFilaOfflineLocal: jest.fn().mockResolvedValue([
+        {
+          id: "offline-1",
+          channel: "chat",
+          laudoId: null,
+          text: "Pendencia local",
+          createdAt: "2026-03-20T10:00:00.000Z",
+          title: "Mensagem pendente",
+          attachment: null,
+          referenceMessageId: null,
+          attempts: 0,
+          lastAttemptAt: "",
+          lastError: "",
+          nextRetryAt: "",
+          aiMode: "detalhado",
+          aiSummary: "",
+          aiMessagePrefix: "",
+        } satisfies OfflinePendingMessage,
+      ]),
+      lerNotificacoesLocais: jest.fn().mockResolvedValue([
+        {
+          id: "notif-1",
+          kind: "status",
+          laudoId: null,
+          title: "Atualizacao",
+          body: "Ha uma atualizacao.",
+          createdAt: "2026-03-20T10:00:00.000Z",
+          unread: true,
+          targetThread: "chat",
+        } satisfies MobileActivityNotification,
+      ]),
       limparCachePorPrivacidade: (cache) => cache,
       obterItemSeguro: jest
         .fn()
@@ -68,18 +131,7 @@ describe("runBootstrapAppFlow", () => {
         ),
       pingApi: jest.fn().mockResolvedValue(true),
       removeToken: jest.fn(),
-      CACHE_LEITURA_VAZIO: {
-        bootstrap: null,
-        laudos: [],
-        conversaAtual: null,
-        conversasPorLaudo: {},
-        mesaPorLaudo: {},
-        chatDrafts: {},
-        mesaDrafts: {},
-        chatAttachmentDrafts: {},
-        mesaAttachmentDrafts: {},
-        updatedAt: "",
-      },
+      CACHE_LEITURA_VAZIO: criarCacheVazio(),
       EMAIL_KEY: "tariel_inspetor_email",
       TOKEN_KEY: "tariel_inspetor_access_token",
       onSetStatusApi,
@@ -101,8 +153,20 @@ describe("runBootstrapAppFlow", () => {
 
     expect(onSetStatusApi).toHaveBeenCalledWith("online");
     expect(onSetEmail).toHaveBeenCalledWith("inspetor@tariel.test");
-    expect(onSetFilaOffline).toHaveBeenCalledWith([{ id: "offline-1" }]);
-    expect(onSetNotificacoes).toHaveBeenCalledWith([{ id: "notif-1" }]);
+    expect(onSetFilaOffline).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "offline-1",
+        }),
+      ]),
+    );
+    expect(onSetNotificacoes).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "notif-1",
+        }),
+      ]),
+    );
     expect(onSetLaudosFixadosIds).toHaveBeenCalledWith([10]);
     expect(onSetHistoricoOcultoIds).toHaveBeenCalledWith([11]);
     expect(onMergeCacheBootstrap).toHaveBeenCalledWith(bootstrap);
@@ -119,13 +183,49 @@ describe("runBootstrapAppFlow", () => {
 
   it("faz fallback offline com cache local quando o bootstrap remoto falha", async () => {
     const bootstrap = criarBootstrapMock();
-    const conversaCache = {
+    const conversaCache: ChatState = {
       laudoId: 33,
+      estado: "relatorio_ativo",
+      statusCard: "ativo",
+      permiteEdicao: true,
+      permiteReabrir: false,
+      laudoCard: null,
+      modo: "detalhado",
       mensagens: [],
-    } as any;
-    const laudosCache = [{ id: 33, titulo: "Laudo offline" }] as any[];
-    const mesaCache = [{ id: 91, texto: "Mensagem da mesa" }] as any[];
-    const cacheLocal = {
+    };
+    const laudosCache: MobileLaudoCard[] = [
+      {
+        id: 33,
+        titulo: "Laudo offline",
+        preview: "Resumo salvo",
+        pinado: false,
+        data_iso: "2026-03-20T10:00:00.000Z",
+        data_br: "20/03/2026",
+        hora_br: "10:00",
+        tipo_template: "TC",
+        status_revisao: "ativo",
+        status_card: "aguardando",
+        status_card_label: "Aguardando",
+        permite_edicao: true,
+        permite_reabrir: false,
+        possui_historico: true,
+      },
+    ];
+    const mesaCache: MobileMesaMessage[] = [
+      {
+        id: 91,
+        laudo_id: 33,
+        tipo: "humano_eng",
+        texto: "Mensagem da mesa",
+        remetente_id: 1,
+        data: "2026-03-20 10:00",
+        lida: false,
+        resolvida_em: "",
+        resolvida_em_label: "",
+        resolvida_por_nome: "",
+      },
+    ];
+    const cacheLocal: MobileReadCache = {
       bootstrap,
       laudos: laudosCache,
       conversaAtual: conversaCache,
@@ -172,18 +272,7 @@ describe("runBootstrapAppFlow", () => {
         ),
       pingApi: jest.fn().mockResolvedValue(false),
       removeToken,
-      CACHE_LEITURA_VAZIO: {
-        bootstrap: null,
-        laudos: [],
-        conversaAtual: null,
-        conversasPorLaudo: {},
-        mesaPorLaudo: {},
-        chatDrafts: {},
-        mesaDrafts: {},
-        chatAttachmentDrafts: {},
-        mesaAttachmentDrafts: {},
-        updatedAt: "",
-      },
+      CACHE_LEITURA_VAZIO: criarCacheVazio(),
       EMAIL_KEY: "tariel_inspetor_email",
       TOKEN_KEY: "tariel_inspetor_access_token",
       onSetStatusApi: jest.fn(),
