@@ -6,7 +6,10 @@ import {
   SettingsConfirmationModal,
   SettingsSheetModal,
 } from "../settings/SettingsOverlayModals";
-import type { ConfirmSheetState, SettingsSheetState } from "../settings/settingsSheetTypes";
+import type {
+  ConfirmSheetState,
+  SettingsSheetState,
+} from "../settings/settingsSheetTypes";
 import {
   ActivityCenterModal,
   AttachmentPickerModal,

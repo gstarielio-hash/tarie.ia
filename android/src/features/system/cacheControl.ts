@@ -4,7 +4,9 @@ export interface ClearCacheResult {
   removedCount: number;
 }
 
-export async function clearLocalCache(paths: string[]): Promise<ClearCacheResult> {
+export async function clearLocalCache(
+  paths: string[],
+): Promise<ClearCacheResult> {
   let removedCount = 0;
   for (const path of paths) {
     try {
@@ -19,4 +21,3 @@ export async function clearLocalCache(paths: string[]): Promise<ClearCacheResult
   }
   return { removedCount };
 }
-

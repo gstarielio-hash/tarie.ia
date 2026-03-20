@@ -41,7 +41,10 @@ function coletarBuildsAndroid(basePath) {
 
       const proximo = path.join(atual, entrada.name);
 
-      if (entrada.name === "build" && path.basename(path.dirname(proximo)) === "android") {
+      if (
+        entrada.name === "build" &&
+        path.basename(path.dirname(proximo)) === "android"
+      ) {
         encontrados.push(proximo);
         continue;
       }

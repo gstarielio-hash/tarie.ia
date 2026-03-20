@@ -13,11 +13,7 @@ import {
 
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
-
-interface MessageReferenceState {
-  id: number;
-  texto: string;
-}
+import type { MessageReferenceState } from "./types";
 
 type ComposerAttachmentDraft =
   | {
@@ -81,18 +77,31 @@ function AttachmentDraftCard({
     <View style={styles.attachmentDraftCard}>
       <View style={styles.attachmentDraftHeader}>
         {attachment.kind === "image" ? (
-          <Image source={{ uri: attachment.previewUri }} style={styles.attachmentDraftPreview} />
+          <Image
+            source={{ uri: attachment.previewUri }}
+            style={styles.attachmentDraftPreview}
+          />
         ) : (
           <View style={styles.attachmentDraftIcon}>
-            <MaterialCommunityIcons name="file-document-outline" size={18} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="file-document-outline"
+              size={18}
+              color={colors.accent}
+            />
           </View>
         )}
         <View style={styles.attachmentDraftCopy}>
           <Text style={styles.attachmentDraftTitle}>{attachment.label}</Text>
-          <Text style={styles.attachmentDraftDescription}>{attachment.resumo}</Text>
+          <Text style={styles.attachmentDraftDescription}>
+            {attachment.resumo}
+          </Text>
         </View>
         <Pressable onPress={onRemove} style={styles.attachmentDraftRemove}>
-          <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="close"
+            size={16}
+            color={colors.textSecondary}
+          />
         </Pressable>
       </View>
     </View>
@@ -142,7 +151,9 @@ export function ThreadComposerPanel({
 
   const showComposerHeader = vendoMesa;
   const showInlineComposerNotice = Boolean(!vendoMesa && composerNotice);
-  const composerTitle = podeUsarComposerMesa ? "Responder à mesa" : "Mesa em leitura";
+  const composerTitle = podeUsarComposerMesa
+    ? "Responder à mesa"
+    : "Mesa em leitura";
   const composerStatusLabel = vendoMesa
     ? podeUsarComposerMesa
       ? "Resposta liberada"
@@ -170,10 +181,16 @@ export function ThreadComposerPanel({
         <View style={styles.composerHeader}>
           <View style={styles.composerHeaderCopy}>
             <Text style={styles.composerTitle}>{composerTitle}</Text>
-            {!!composerNotice ? <Text style={styles.composerSubtitle}>{composerNotice}</Text> : null}
+            {!!composerNotice ? (
+              <Text style={styles.composerSubtitle}>{composerNotice}</Text>
+            ) : null}
           </View>
           <View style={[styles.composerStatusBadge, composerStatusStyle]}>
-            <Text style={[styles.composerStatusBadgeText, composerStatusTextStyle]}>{composerStatusLabel}</Text>
+            <Text
+              style={[styles.composerStatusBadgeText, composerStatusTextStyle]}
+            >
+              {composerStatusLabel}
+            </Text>
           </View>
         </View>
       ) : null}
@@ -188,7 +205,11 @@ export function ThreadComposerPanel({
               style={styles.composerMiniAction}
               testID="chat-composer-reopen-icon"
             >
-              <MaterialCommunityIcons name="history" size={14} color={colors.accent} />
+              <MaterialCommunityIcons
+                name="history"
+                size={14}
+                color={colors.accent}
+              />
             </Pressable>
           ) : null}
           {showInlineComposerNotice ? (
@@ -201,7 +222,11 @@ export function ThreadComposerPanel({
               style={styles.composerMiniAction}
               testID="chat-composer-ai-notice-icon"
             >
-              <MaterialCommunityIcons name="robot-outline" size={14} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="robot-outline"
+                size={14}
+                color={colors.textSecondary}
+              />
             </Pressable>
           ) : null}
         </View>
@@ -217,16 +242,28 @@ export function ThreadComposerPanel({
                 <Text style={styles.composerReferenceTitle}>
                   Respondendo #{mensagemMesaReferenciaAtiva.id}
                 </Text>
-                <Text style={styles.composerReferenceText}>{mensagemMesaReferenciaAtiva.texto}</Text>
+                <Text style={styles.composerReferenceText}>
+                  {mensagemMesaReferenciaAtiva.texto}
+                </Text>
               </View>
-              <Pressable onPress={onLimparReferenciaMesaAtiva} style={styles.composerReferenceRemove}>
-                <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+              <Pressable
+                onPress={onLimparReferenciaMesaAtiva}
+                style={styles.composerReferenceRemove}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={16}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
           ) : null}
 
           {anexoMesaRascunho ? (
-            <AttachmentDraftCard attachment={anexoMesaRascunho} onRemove={onClearAnexoMesaRascunho} />
+            <AttachmentDraftCard
+              attachment={anexoMesaRascunho}
+              onRemove={onClearAnexoMesaRascunho}
+            />
           ) : null}
 
           <View style={styles.composerRow}>
@@ -238,10 +275,17 @@ export function ThreadComposerPanel({
                 }
                 onAbrirSeletorAnexo();
               }}
-              style={[styles.attachInsideButton, !podeAbrirAnexosMesa ? styles.attachButtonDisabled : null]}
+              style={[
+                styles.attachInsideButton,
+                !podeAbrirAnexosMesa ? styles.attachButtonDisabled : null,
+              ]}
               testID="mesa-attach-button"
             >
-              <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="paperclip"
+                size={18}
+                color={colors.textSecondary}
+              />
             </Pressable>
             {showVoiceInputAction ? (
               <Pressable
@@ -249,11 +293,16 @@ export function ThreadComposerPanel({
                 onPress={() => {
                   onVoiceInputPress();
                 }}
-                style={[styles.attachInsideButton, !voiceInputEnabled ? styles.attachButtonDisabled : null]}
+                style={[
+                  styles.attachInsideButton,
+                  !voiceInputEnabled ? styles.attachButtonDisabled : null,
+                ]}
                 testID="mesa-voice-button"
               >
                 <MaterialCommunityIcons
-                  name={voiceInputEnabled ? "microphone-outline" : "microphone-off"}
+                  name={
+                    voiceInputEnabled ? "microphone-outline" : "microphone-off"
+                  }
                   size={18}
                   color={colors.textSecondary}
                 />
@@ -292,7 +341,11 @@ export function ThreadComposerPanel({
               {enviandoMesa ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <MaterialCommunityIcons name="send" size={20} color={colors.white} />
+                <MaterialCommunityIcons
+                  name="send"
+                  size={20}
+                  color={colors.white}
+                />
               )}
             </Pressable>
           </View>
@@ -300,7 +353,10 @@ export function ThreadComposerPanel({
       ) : (
         <>
           {anexoRascunho ? (
-            <AttachmentDraftCard attachment={anexoRascunho} onRemove={onClearAnexoRascunho} />
+            <AttachmentDraftCard
+              attachment={anexoRascunho}
+              onRemove={onClearAnexoRascunho}
+            />
           ) : null}
 
           <View style={styles.composerRow}>
@@ -312,10 +368,17 @@ export function ThreadComposerPanel({
                 }
                 onAbrirSeletorAnexo();
               }}
-              style={[styles.attachInsideButton, !podeAbrirAnexosChat ? styles.attachButtonDisabled : null]}
+              style={[
+                styles.attachInsideButton,
+                !podeAbrirAnexosChat ? styles.attachButtonDisabled : null,
+              ]}
               testID="chat-attach-button"
             >
-              <MaterialCommunityIcons name="paperclip" size={18} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="paperclip"
+                size={18}
+                color={colors.textSecondary}
+              />
             </Pressable>
             {showVoiceInputAction ? (
               <Pressable
@@ -323,11 +386,16 @@ export function ThreadComposerPanel({
                 onPress={() => {
                   onVoiceInputPress();
                 }}
-                style={[styles.attachInsideButton, !voiceInputEnabled ? styles.attachButtonDisabled : null]}
+                style={[
+                  styles.attachInsideButton,
+                  !voiceInputEnabled ? styles.attachButtonDisabled : null,
+                ]}
                 testID="chat-voice-button"
               >
                 <MaterialCommunityIcons
-                  name={voiceInputEnabled ? "microphone-outline" : "microphone-off"}
+                  name={
+                    voiceInputEnabled ? "microphone-outline" : "microphone-off"
+                  }
                   size={18}
                   color={colors.textSecondary}
                 />
@@ -366,7 +434,11 @@ export function ThreadComposerPanel({
               {enviandoMensagem ? (
                 <ActivityIndicator color={colors.white} size="small" />
               ) : (
-                <MaterialCommunityIcons name="send" size={20} color={colors.white} />
+                <MaterialCommunityIcons
+                  name="send"
+                  size={20}
+                  color={colors.white}
+                />
               )}
             </Pressable>
           </View>

@@ -127,7 +127,11 @@ export function SettingsSecuritySessionsSection({
           onPress={onEncerrarSessoesSuspeitas}
           testID="settings-session-close-suspicious-row"
           title="Encerrar sessões suspeitas"
-          value={sessoesSuspeitasTotal ? `${sessoesSuspeitasTotal} suspeita(s)` : "Nenhuma"}
+          value={
+            sessoesSuspeitasTotal
+              ? `${sessoesSuspeitasTotal} suspeita(s)`
+              : "Nenhuma"
+          }
         />
         <SettingsPressRow
           danger
@@ -223,7 +227,11 @@ export function SettingsSecurityTwoFactorSection({
         onPress={() => void onCompartilharCodigosRecuperacao()}
         testID="settings-twofa-share-recovery-row"
         title="Compartilhar códigos de recuperação"
-        value={codigosRecuperacao.length ? `${codigosRecuperacao.length} códigos` : "Indisponível"}
+        value={
+          codigosRecuperacao.length
+            ? `${codigosRecuperacao.length} códigos`
+            : "Indisponível"
+        }
       />
       {codigosRecuperacao.length ? (
         <SettingsPressRow

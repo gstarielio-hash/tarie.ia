@@ -12,7 +12,12 @@ export function nomeExibicaoAnexo(
       },
   fallback = "Anexo",
 ): string {
-  const candidatos = [item.nome_original, item.nome, item.nome_arquivo, item.label];
+  const candidatos = [
+    item.nome_original,
+    item.nome,
+    item.nome_arquivo,
+    item.label,
+  ];
   for (const valor of candidatos) {
     if (typeof valor === "string" && valor.trim()) {
       return valor.trim();
@@ -52,5 +57,7 @@ export function ehImagemAnexo(anexo: MobileAttachment): boolean {
   }
   const categoria = String(anexo.categoria || "").toLowerCase();
   const mime = String(anexo.mime_type || "").toLowerCase();
-  return categoria === "imagem" || categoria === "image" || mime.startsWith("image/");
+  return (
+    categoria === "imagem" || categoria === "image" || mime.startsWith("image/")
+  );
 }

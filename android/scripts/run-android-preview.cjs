@@ -23,7 +23,12 @@ function findJavaHome() {
     process.env.JAVA_HOME,
     process.env.ANDROID_STUDIO_JBR,
     "C:\\Program Files\\Android\\Android Studio\\jbr",
-    path.join(process.env.LOCALAPPDATA || "", "Programs", "Android Studio", "jbr"),
+    path.join(
+      process.env.LOCALAPPDATA || "",
+      "Programs",
+      "Android Studio",
+      "jbr",
+    ),
     home && path.join(home, "android-studio", "jbr"),
     "/opt/android-studio/jbr",
     "/usr/lib/jvm/default-java",
@@ -47,23 +52,42 @@ function findAndroidSdk() {
     home && path.join(home, ".android", "sdk"),
   ].filter(Boolean);
 
-  return candidates.find((sdkPath) => existsSync(path.join(sdkPath, "platform-tools"))) || null;
+  return (
+    candidates.find((sdkPath) =>
+      existsSync(path.join(sdkPath, "platform-tools")),
+    ) || null
+  );
 }
 
 function findNodeBinary() {
   const candidates = [
     process.execPath,
     process.env.NODE_BINARY,
-    path.join(process.env.ProgramFiles || "C:\\Program Files", "nodejs", "node.exe"),
-    path.join(process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)", "nodejs", "node.exe"),
+    path.join(
+      process.env.ProgramFiles || "C:\\Program Files",
+      "nodejs",
+      "node.exe",
+    ),
+    path.join(
+      process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)",
+      "nodejs",
+      "node.exe",
+    ),
   ].filter(Boolean);
 
   return candidates.find((nodePath) => existsSync(nodePath)) || null;
 }
 
 function ensureLocalProperties(androidSdkPath) {
-  const localPropertiesPath = path.join(process.cwd(), "android", "local.properties");
-  const sdkDir = process.platform === "win32" ? androidSdkPath.replace(/\\/g, "\\\\") : androidSdkPath;
+  const localPropertiesPath = path.join(
+    process.cwd(),
+    "android",
+    "local.properties",
+  );
+  const sdkDir =
+    process.platform === "win32"
+      ? androidSdkPath.replace(/\\/g, "\\\\")
+      : androidSdkPath;
   writeFileSync(localPropertiesPath, `sdk.dir=${sdkDir}\n`, "utf8");
 }
 
@@ -143,8 +167,12 @@ if (process.platform === "win32") {
 }
 
 const androidCwd = path.join(process.cwd(), "android");
-const gradleStopCommand = process.platform === "win32" ? "cmd.exe" : "./gradlew";
-const gradleStopArgs = process.platform === "win32" ? ["/d", "/s", "/c", "gradlew.bat --stop"] : ["--stop"];
+const gradleStopCommand =
+  process.platform === "win32" ? "cmd.exe" : "./gradlew";
+const gradleStopArgs =
+  process.platform === "win32"
+    ? ["/d", "/s", "/c", "gradlew.bat --stop"]
+    : ["--stop"];
 
 spawnSync(gradleStopCommand, gradleStopArgs, {
   cwd: androidCwd,
@@ -179,7 +207,15 @@ child.on("exit", (code) => {
   const adbPath = path.join(androidSdk, "platform-tools", adbBinary);
   const launcher = spawn(
     adbPath,
-    ["shell", "monkey", "-p", "com.tarielia.inspetor", "-c", "android.intent.category.LAUNCHER", "1"],
+    [
+      "shell",
+      "monkey",
+      "-p",
+      "com.tarielia.inspetor",
+      "-c",
+      "android.intent.category.LAUNCHER",
+      "1",
+    ],
     {
       env,
       stdio: "inherit",

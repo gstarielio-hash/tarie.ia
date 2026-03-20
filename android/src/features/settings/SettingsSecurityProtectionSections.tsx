@@ -39,7 +39,10 @@ interface SettingsSecurityActivitySectionProps {
   onReportarAtividadeSuspeita: () => void;
 }
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -85,7 +88,9 @@ export function SettingsSecurityDeviceProtectionSection({
       />
       <SettingsPressRow
         icon="timer-lock-outline"
-        onPress={() => onSetLockTimeout(nextOptionValue(lockTimeout, LOCK_TIMEOUT_OPTIONS))}
+        onPress={() =>
+          onSetLockTimeout(nextOptionValue(lockTimeout, LOCK_TIMEOUT_OPTIONS))
+        }
         testID="settings-device-lock-timeout-row"
         title="Bloquear após inatividade"
         value={lockTimeout}

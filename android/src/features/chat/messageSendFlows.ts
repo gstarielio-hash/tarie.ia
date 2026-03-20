@@ -45,14 +45,23 @@ interface SendInspectorMessageFlowParams<TOfflineItem> {
   aiRequestConfig: ChatAiRequestConfig;
   sessionAccessToken: string;
   statusApi: string;
-  podeEditarConversaNoComposer: (conversa: ConversationSnapshot | null | undefined) => boolean;
+  podeEditarConversaNoComposer: (
+    conversa: ConversationSnapshot | null | undefined,
+  ) => boolean;
   textoFallbackAnexo: (anexo: ComposerAttachment | null) => string;
-  normalizarModoChat: (modo: unknown, fallback?: MobileChatMode) => MobileChatMode;
-  inferirSetorConversa: (conversa: ConversationSnapshot | null | undefined) => string;
+  normalizarModoChat: (
+    modo: unknown,
+    fallback?: MobileChatMode,
+  ) => MobileChatMode;
+  inferirSetorConversa: (
+    conversa: ConversationSnapshot | null | undefined,
+  ) => string;
   montarHistoricoParaEnvio: (
     mensagens: MobileChatMessage[],
   ) => Array<{ papel: "usuario" | "assistente"; texto: string }>;
-  criarMensagemAssistenteServidor: (resposta: MobileChatSendResult) => MobileChatMessage | null;
+  criarMensagemAssistenteServidor: (
+    resposta: MobileChatSendResult,
+  ) => MobileChatMessage | null;
   carregarConversaAtual: () => Promise<void>;
   carregarListaLaudos: () => Promise<void>;
   erroSugereModoOffline: (erro: unknown) => boolean;
@@ -70,8 +79,14 @@ interface SendInspectorMessageFlowParams<TOfflineItem> {
   onSetAnexoRascunho: (value: ComposerAttachment | null) => void;
   onSetErroConversa: (value: string) => void;
   onSetEnviandoMensagem: (value: boolean) => void;
-  onApplyOptimisticMessage: (mensagem: MobileChatMessage, modoAtivo: MobileChatMode) => void;
-  onApplyAssistantResponse: (resposta: MobileChatSendResult, assistente: MobileChatMessage | null) => void;
+  onApplyOptimisticMessage: (
+    mensagem: MobileChatMessage,
+    modoAtivo: MobileChatMode,
+  ) => void;
+  onApplyAssistantResponse: (
+    resposta: MobileChatSendResult,
+    assistente: MobileChatMessage | null,
+  ) => void;
   onReverterConversa: () => void;
   onQueueOfflineItem: (item: TOfflineItem) => void;
   onSetStatusOffline: () => void;
@@ -103,7 +118,9 @@ interface SendMesaMessageFlowParams<TOfflineItem> {
   onSetAnexoMesaRascunho: (value: ComposerAttachment | null) => void;
   onSetErroMesa: (value: string) => void;
   onSetEnviandoMesa: (value: boolean) => void;
-  onSetMensagensMesa: (updater: (estadoAtual: MobileMesaMessage[]) => MobileMesaMessage[]) => void;
+  onSetMensagensMesa: (
+    updater: (estadoAtual: MobileMesaMessage[]) => MobileMesaMessage[],
+  ) => void;
   onSetMensagensMesaSnapshot: (snapshot: MobileMesaMessage[]) => void;
   onQueueOfflineItem: (item: TOfflineItem) => void;
   onSetStatusOffline: () => void;
@@ -121,7 +138,6 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
   statusApi,
   podeEditarConversaNoComposer,
   textoFallbackAnexo,
-  normalizarModoChat,
   inferirSetorConversa,
   montarHistoricoParaEnvio,
   criarMensagemAssistenteServidor,
@@ -146,7 +162,9 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
   }
 
   if (!podeEditarConversaNoComposer(snapshotConversa)) {
-    onSetErroConversa("Laudo em modo leitura. Reabra para enviar nova mensagem.");
+    onSetErroConversa(
+      "Laudo em modo leitura. Reabra para enviar nova mensagem.",
+    );
     return;
   }
 
@@ -160,7 +178,9 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
     texto: textoExibicao,
     tipo: "user",
     modo: modoAtivo,
-    anexos: anexoAtual ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }] : undefined,
+    anexos: anexoAtual
+      ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }]
+      : undefined,
   };
 
   onSetMensagem("");
@@ -199,18 +219,25 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
       nomeDocumento,
       laudoId: snapshotConversa?.laudoId ?? null,
       modo: modoAtivo,
-      historico: montarHistoricoParaEnvio([...(snapshotConversa?.mensagens || []), mensagemOtimista]),
+      historico: montarHistoricoParaEnvio([
+        ...(snapshotConversa?.mensagens || []),
+        mensagemOtimista,
+      ]),
     });
 
-    const mensagemAssistenteServidor = criarMensagemAssistenteServidor(respostaChat);
+    const mensagemAssistenteServidor =
+      criarMensagemAssistenteServidor(respostaChat);
     onApplyAssistantResponse(respostaChat, mensagemAssistenteServidor);
     await carregarConversaAtual();
     await carregarListaLaudos();
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Não foi possível enviar a mensagem do inspetor.";
+      error instanceof Error
+        ? error.message
+        : "Não foi possível enviar a mensagem do inspetor.";
     const podeEnfileirar = Boolean(
-      (texto.trim() || anexoAtual) && (statusApi === "offline" || erroSugereModoOffline(error)),
+      (texto.trim() || anexoAtual) &&
+      (statusApi === "offline" || erroSugereModoOffline(error)),
     );
 
     onReverterConversa();
@@ -233,7 +260,9 @@ export async function sendInspectorMessageFlow<TOfflineItem>({
         count: 1,
         detail: "chat",
       });
-      onSetErroConversa("Sem conexão estável. O envio foi guardado na fila local.");
+      onSetErroConversa(
+        "Sem conexão estável. O envio foi guardado na fila local.",
+      );
       onSetStatusOffline();
     } else {
       onRestoreDraft(texto, anexoAtual);
@@ -289,7 +318,9 @@ export async function sendMesaMessageFlow<TOfflineItem>({
     resolvida_em_label: "",
     resolvida_por_nome: "",
     referencia_mensagem_id: referenciaMensagemId || undefined,
-    anexos: anexoAtual ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }] : undefined,
+    anexos: anexoAtual
+      ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }]
+      : undefined,
   };
 
   onSetMensagemMesa("");
@@ -302,7 +333,10 @@ export async function sendMesaMessageFlow<TOfflineItem>({
     const resposta = anexoAtual
       ? await enviarAnexoMesaMobile(sessionAccessToken, conversa.laudoId, {
           uri: anexoAtual.fileUri,
-          nome: anexoAtual.kind === "document" ? anexoAtual.nomeDocumento : anexoAtual.label,
+          nome:
+            anexoAtual.kind === "document"
+              ? anexoAtual.nomeDocumento
+              : anexoAtual.label,
           mimeType: anexoAtual.mimeType,
           texto,
           referenciaMensagemId,
@@ -315,7 +349,9 @@ export async function sendMesaMessageFlow<TOfflineItem>({
         );
 
     onSetMensagensMesa((estadoAtual) => {
-      const semOtimista = estadoAtual.filter((item) => item.id !== mensagemOtimista.id);
+      const semOtimista = estadoAtual.filter(
+        (item) => item.id !== mensagemOtimista.id,
+      );
       return [...semOtimista, resposta.mensagem];
     });
 
@@ -324,9 +360,13 @@ export async function sendMesaMessageFlow<TOfflineItem>({
     onSetLaudoMesaCarregado(conversa.laudoId);
     await carregarListaLaudos();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Não foi possível responder à mesa.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível responder à mesa.";
     const podeEnfileirar = Boolean(
-      (texto.trim() || anexoAtual) && (statusApi === "offline" || erroSugereModoOffline(error)),
+      (texto.trim() || anexoAtual) &&
+      (statusApi === "offline" || erroSugereModoOffline(error)),
     );
 
     onSetMensagensMesaSnapshot(mensagensMesa);
@@ -347,7 +387,9 @@ export async function sendMesaMessageFlow<TOfflineItem>({
         count: 1,
         detail: "mesa",
       });
-      onSetErroMesa("Sem conexão estável. O envio para a mesa ficou guardado na fila local.");
+      onSetErroMesa(
+        "Sem conexão estável. O envio para a mesa ficou guardado na fila local.",
+      );
       onSetStatusOffline();
     } else {
       onRestoreDraft(texto, anexoAtual);

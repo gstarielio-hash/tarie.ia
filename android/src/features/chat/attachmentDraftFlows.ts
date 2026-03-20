@@ -18,12 +18,18 @@ interface AttachmentDraftBaseParams {
 
 interface SelectImageAttachmentDraftFlowParams extends AttachmentDraftBaseParams {
   arquivosPermitidos: boolean;
-  montarAnexoImagem: (asset: ImagePicker.ImagePickerAsset, resumo: string) => ComposerAttachment;
+  montarAnexoImagem: (
+    asset: ImagePicker.ImagePickerAsset,
+    resumo: string,
+  ) => ComposerAttachment;
 }
 
 interface CaptureImageAttachmentDraftFlowParams extends AttachmentDraftBaseParams {
   cameraPermitida: boolean;
-  montarAnexoImagem: (asset: ImagePicker.ImagePickerAsset, resumo: string) => ComposerAttachment;
+  montarAnexoImagem: (
+    asset: ImagePicker.ImagePickerAsset,
+    resumo: string,
+  ) => ComposerAttachment;
 }
 
 interface SelectDocumentAttachmentDraftFlowParams extends AttachmentDraftBaseParams {
@@ -34,7 +40,9 @@ interface SelectDocumentAttachmentDraftFlowParams extends AttachmentDraftBasePar
     asset: DocumentPicker.DocumentPickerAsset,
     resumo: string,
   ) => ComposerAttachment;
-  montarAnexoDocumentoMesa: (asset: DocumentPicker.DocumentPickerAsset) => ComposerAttachment;
+  montarAnexoDocumentoMesa: (
+    asset: DocumentPicker.DocumentPickerAsset,
+  ) => ComposerAttachment;
   onSetStatusOffline: () => void;
   sessionAccessToken: string;
   statusApi: string;
@@ -75,7 +83,10 @@ export async function selecionarImagemRascunhoFlow({
 
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissao.granted && permissao.accessPrivileges !== "limited") {
-      Alert.alert("Biblioteca de imagens", "Permita acesso às imagens para anexar evidências no chat.");
+      Alert.alert(
+        "Biblioteca de imagens",
+        "Permita acesso às imagens para anexar evidências no chat.",
+      );
       return;
     }
 
@@ -97,9 +108,17 @@ export async function selecionarImagemRascunhoFlow({
         ? "Imagem pronta para seguir direto para a mesa avaliadora."
         : "Imagem pronta para seguir com a mensagem do inspetor.",
     );
-    aplicarAnexoRascunho(abaAtiva, anexo, onSetAnexoRascunho, onSetAnexoMesaRascunho);
+    aplicarAnexoRascunho(
+      abaAtiva,
+      anexo,
+      onSetAnexoRascunho,
+      onSetAnexoMesaRascunho,
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Não foi possível selecionar a imagem.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível selecionar a imagem.";
     Alert.alert("Imagem", message);
   } finally {
     onSetPreparandoAnexo(false);
@@ -128,7 +147,10 @@ export async function capturarImagemRascunhoFlow({
 
     const permissao = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissao.granted) {
-      Alert.alert("Câmera", "Permita acesso à câmera para registrar evidências pelo app.");
+      Alert.alert(
+        "Câmera",
+        "Permita acesso à câmera para registrar evidências pelo app.",
+      );
       return;
     }
 
@@ -150,9 +172,17 @@ export async function capturarImagemRascunhoFlow({
         ? "Foto capturada no app e pronta para seguir para a mesa."
         : "Foto capturada no app e pronta para seguir com a conversa.",
     );
-    aplicarAnexoRascunho(abaAtiva, anexo, onSetAnexoRascunho, onSetAnexoMesaRascunho);
+    aplicarAnexoRascunho(
+      abaAtiva,
+      anexo,
+      onSetAnexoRascunho,
+      onSetAnexoMesaRascunho,
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Não foi possível usar a câmera agora.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível usar a câmera agora.";
     Alert.alert("Câmera", message);
   } finally {
     onSetPreparandoAnexo(false);
@@ -250,7 +280,10 @@ export async function selecionarDocumentoRascunhoFlow({
       throw error;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Não foi possível preparar o documento.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Não foi possível preparar o documento.";
     Alert.alert("Documento", message);
   } finally {
     onSetPreparandoAnexo(false);

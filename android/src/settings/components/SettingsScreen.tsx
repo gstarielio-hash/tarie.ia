@@ -9,7 +9,11 @@ interface SettingsScreenProps {
   testID?: string;
 }
 
-export function SettingsScreen({ children, scroll = true, testID }: SettingsScreenProps) {
+export function SettingsScreen({
+  children,
+  scroll = true,
+  testID,
+}: SettingsScreenProps) {
   if (!scroll) {
     return (
       <View style={styles.container} testID={testID}>
@@ -19,7 +23,11 @@ export function SettingsScreen({ children, scroll = true, testID }: SettingsScre
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} testID={testID}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      testID={testID}
+    >
       {children}
     </ScrollView>
   );

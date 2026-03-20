@@ -21,13 +21,20 @@ export function SettingsModal({
   testID,
 }: SettingsModalProps) {
   return (
-    <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
+    <Modal
+      animationType="fade"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
       <View style={styles.backdrop} testID={testID}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View style={styles.copy}>
               <Text style={styles.title}>{title}</Text>
-              {description ? <Text style={styles.description}>{description}</Text> : null}
+              {description ? (
+                <Text style={styles.description}>{description}</Text>
+              ) : null}
             </View>
             <Pressable hitSlop={8} onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Fechar</Text>

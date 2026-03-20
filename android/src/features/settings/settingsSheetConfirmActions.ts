@@ -8,7 +8,10 @@ import {
   PLAN_OPTIONS,
   TERMS_OF_USE_SECTIONS,
 } from "../InspectorMobileApp.constants";
-import type { SettingsSheetKind } from "./settingsSheetTypes";
+import type {
+  SettingsSheetKind,
+  SettingsSheetState,
+} from "./settingsSheetTypes";
 
 type SecurityEventType = "login" | "provider" | "2fa" | "data" | "session";
 
@@ -83,7 +86,7 @@ interface PerfilContaSincronizado {
   fotoPerfilUri: string;
 }
 
-interface HandleSettingsSheetDelegatedParams {
+export interface HandleSettingsSheetDelegatedParams {
   kind: SettingsSheetKind;
   profile: {
     nomeCompletoDraft: string;
@@ -136,7 +139,11 @@ interface HandleSettingsSheetDelegatedParams {
     session: SessionSnapshot | null;
     onAtualizarSenhaContaNoBackend: (
       accessToken: string,
-      payload: { senhaAtual: string; novaSenha: string; confirmarSenha: string },
+      payload: {
+        senhaAtual: string;
+        novaSenha: string;
+        confirmarSenha: string;
+      },
     ) => Promise<string>;
     onSetSenhaAtualDraft: (value: string) => void;
     onSetNovaSenhaDraft: (value: string) => void;
@@ -155,7 +162,9 @@ interface HandleSettingsSheetDelegatedParams {
     bugEmailDraft: string;
     bugAttachmentDraft: ComposerAttachment | null;
     feedbackDraft: string;
-    onSetFilaSuporteLocal: (updater: (current: SupportQueueItem[]) => SupportQueueItem[]) => void;
+    onSetFilaSuporteLocal: (
+      updater: (current: SupportQueueItem[]) => SupportQueueItem[],
+    ) => void;
     onSetBugDescriptionDraft: (value: string) => void;
     onSetBugEmailDraft: (value: string) => void;
     onSetBugAttachmentDraft: (value: ComposerAttachment | null) => void;
@@ -189,13 +198,55 @@ interface HandleSettingsSheetDelegatedParams {
     onSetSettingsSheetLoading: (value: boolean) => void;
     onSetSettingsSheetNotice: (value: string) => void;
     onNotificarConfiguracaoConcluida: (mensagem: string) => void;
-    onRegistrarEventoSegurancaLocal: (payload: SettingsSecurityEventPayload) => void;
+    onRegistrarEventoSegurancaLocal: (
+      payload: SettingsSecurityEventPayload,
+    ) => void;
   };
+}
+
+interface ImageLibraryPermissionResult {
+  granted: boolean;
+  accessPrivileges?: string | null;
+}
+
+interface ImageLibraryAsset {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
+}
+
+interface ImageLibraryLaunchResult {
+  canceled: boolean;
+  assets?: ImageLibraryAsset[] | null;
+}
+
+interface HandleSettingsSheetConfirmFlowParams {
+  settingsSheet: SettingsSheetState | null;
+  delayMs?: number;
+  photo: {
+    perfilFotoUri: string;
+    perfilFotoHint: string;
+    session: SessionSnapshot | null;
+    onEnviarFotoPerfilNoBackend: (
+      accessToken: string,
+      payload: { uri: string; nome: string; mimeType?: string },
+    ) => Promise<PerfilContaSincronizado>;
+    onAplicarPerfilSincronizado: (perfil: PerfilContaSincronizado) => void;
+    onSetPerfilFotoUri: (value: string) => void;
+    onSetPerfilFotoHint: (value: string) => void;
+  };
+  delegated: Omit<HandleSettingsSheetDelegatedParams, "kind">;
+  onRequestMediaLibraryPermissions: () => Promise<ImageLibraryPermissionResult>;
+  onLaunchImageLibrary: () => Promise<ImageLibraryLaunchResult>;
 }
 
 export type SettingsSheetConfirmResult = "continue" | "return";
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -216,7 +267,11 @@ function telefoneEhValido(value: string): boolean {
   return digits.length >= 10 && digits.length <= 15;
 }
 
-function validarSenhaForte(senhaAtual: string, novaSenha: string, confirmarSenha: string): string {
+function validarSenhaForte(
+  senhaAtual: string,
+  novaSenha: string,
+  confirmarSenha: string,
+): string {
   if (!senhaAtual || !novaSenha || !confirmarSenha) {
     return "Preencha senha atual, nova senha e confirmação.";
   }
@@ -256,6 +311,128 @@ function buildSupportContext({
     .join(" • ");
 }
 
+export async function handleSettingsSheetConfirmFlow({
+  settingsSheet,
+  delayMs = 420,
+  photo,
+  delegated,
+  onRequestMediaLibraryPermissions,
+  onLaunchImageLibrary,
+}: HandleSettingsSheetConfirmFlowParams): Promise<void> {
+  if (!settingsSheet) {
+    return;
+  }
+
+  delegated.ui.onSetSettingsSheetLoading(true);
+
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+  if (settingsSheet.kind === "photo") {
+    try {
+      const permissao = await onRequestMediaLibraryPermissions();
+      if (!permissao.granted && permissao.accessPrivileges !== "limited") {
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          "Permita acesso às imagens para atualizar a foto de perfil.",
+        );
+        return;
+      }
+
+      const resultado = await onLaunchImageLibrary();
+      if (resultado.canceled || !resultado.assets?.length) {
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          "Seleção cancelada. Escolha uma imagem para atualizar o perfil.",
+        );
+        return;
+      }
+
+      const asset = resultado.assets[0];
+      const mimeType =
+        typeof asset?.mimeType === "string" && asset.mimeType.trim()
+          ? asset.mimeType.trim()
+          : "image/jpeg";
+      if (!mimeType.startsWith("image/")) {
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          "Escolha um arquivo de imagem válido para a foto de perfil.",
+        );
+        return;
+      }
+      if (
+        typeof asset?.fileSize === "number" &&
+        asset.fileSize > 5 * 1024 * 1024
+      ) {
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          "A foto de perfil precisa ter no máximo 5 MB.",
+        );
+        return;
+      }
+      if (!photo.session) {
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          "A sessão atual não permite enviar a foto de perfil agora.",
+        );
+        return;
+      }
+
+      const nomeArquivo =
+        typeof asset?.fileName === "string" && asset.fileName.trim()
+          ? asset.fileName.trim()
+          : `perfil-${Date.now()}.jpg`;
+      const fotoAnterior = photo.perfilFotoUri;
+      const hintAnterior = photo.perfilFotoHint;
+
+      try {
+        const perfilSincronizado = await photo.onEnviarFotoPerfilNoBackend(
+          photo.session.accessToken,
+          {
+            uri: asset.uri,
+            nome: nomeArquivo,
+            mimeType,
+          },
+        );
+        photo.onAplicarPerfilSincronizado(perfilSincronizado);
+        delegated.ui.onNotificarConfiguracaoConcluida(
+          "Foto atualizada e sincronizada com a conta.",
+        );
+      } catch (error) {
+        photo.onSetPerfilFotoUri(fotoAnterior);
+        photo.onSetPerfilFotoHint(hintAnterior);
+        delegated.ui.onSetSettingsSheetLoading(false);
+        delegated.ui.onSetSettingsSheetNotice(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível atualizar a foto agora.",
+        );
+        return;
+      }
+
+      delegated.ui.onSetSettingsSheetLoading(false);
+      return;
+    } catch (error) {
+      delegated.ui.onSetSettingsSheetLoading(false);
+      delegated.ui.onSetSettingsSheetNotice(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar a foto agora.",
+      );
+      return;
+    }
+  }
+
+  const delegatedResult = await handleSettingsSheetConfirmDelegated({
+    ...delegated,
+    kind: settingsSheet.kind,
+  });
+  if (delegatedResult === "return") {
+    return;
+  }
+
+  delegated.ui.onSetSettingsSheetLoading(false);
+}
+
 export async function handleSettingsSheetConfirmDelegated({
   kind,
   profile,
@@ -276,17 +453,23 @@ export async function handleSettingsSheetConfirmDelegated({
 
       if (!nomeCompleto) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Informe o nome completo antes de salvar o perfil.");
+        ui.onSetSettingsSheetNotice(
+          "Informe o nome completo antes de salvar o perfil.",
+        );
         return "return";
       }
       if (!nomeExibicao) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Informe o nome de exibição antes de salvar o perfil.");
+        ui.onSetSettingsSheetNotice(
+          "Informe o nome de exibição antes de salvar o perfil.",
+        );
         return "return";
       }
       if (telefone && !telefoneEhValido(telefone)) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Informe um telefone válido com DDD para salvar o perfil.");
+        ui.onSetSettingsSheetNotice(
+          "Informe um telefone válido com DDD para salvar o perfil.",
+        );
         return "return";
       }
       if (
@@ -295,28 +478,38 @@ export async function handleSettingsSheetConfirmDelegated({
         telefone === normalizarTelefone(profile.currentTelefone)
       ) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Nenhuma alteração nova foi encontrada no perfil.");
+        ui.onSetSettingsSheetNotice(
+          "Nenhuma alteração nova foi encontrada no perfil.",
+        );
         return "return";
       }
 
       if (profile.session) {
         try {
-          const perfilSincronizado = await profile.onAtualizarPerfilContaNoBackend(profile.session.accessToken, {
-            nomeCompleto,
-            email: profile.session.bootstrap.usuario.email || "",
-            telefone,
-          });
+          const perfilSincronizado =
+            await profile.onAtualizarPerfilContaNoBackend(
+              profile.session.accessToken,
+              {
+                nomeCompleto,
+                email: profile.session.bootstrap.usuario.email || "",
+                telefone,
+              },
+            );
           profile.onAplicarPerfilSincronizado(perfilSincronizado);
           profile.onAplicarPerfilLocal({
             nomeCompleto: perfilSincronizado.nomeCompleto,
             nomeExibicao,
             telefone: perfilSincronizado.telefone,
           });
-          ui.onNotificarConfiguracaoConcluida("Perfil atualizado e sincronizado com a conta.");
+          ui.onNotificarConfiguracaoConcluida(
+            "Perfil atualizado e sincronizado com a conta.",
+          );
         } catch (error) {
           ui.onSetSettingsSheetLoading(false);
           ui.onSetSettingsSheetNotice(
-            error instanceof Error ? error.message : "Não foi possível atualizar o perfil agora.",
+            error instanceof Error
+              ? error.message
+              : "Não foi possível atualizar o perfil agora.",
           );
           return "return";
         }
@@ -326,7 +519,9 @@ export async function handleSettingsSheetConfirmDelegated({
           nomeExibicao,
           telefone,
         });
-        ui.onNotificarConfiguracaoConcluida("Perfil atualizado neste dispositivo.");
+        ui.onNotificarConfiguracaoConcluida(
+          "Perfil atualizado neste dispositivo.",
+        );
       }
 
       ui.onRegistrarEventoSegurancaLocal({
@@ -352,7 +547,10 @@ export async function handleSettingsSheetConfirmDelegated({
       return "continue";
     }
     case "billing": {
-      const proximoCartao = nextOptionValue(billing.current, PAYMENT_CARD_OPTIONS);
+      const proximoCartao = nextOptionValue(
+        billing.current,
+        PAYMENT_CARD_OPTIONS,
+      );
       billing.onChange(proximoCartao);
       ui.onRegistrarEventoSegurancaLocal({
         title: "Método de pagamento atualizado",
@@ -360,38 +558,65 @@ export async function handleSettingsSheetConfirmDelegated({
         status: "Agora",
         type: "data",
       });
-      ui.onNotificarConfiguracaoConcluida(`Método de pagamento atualizado para ${proximoCartao}.`);
+      ui.onNotificarConfiguracaoConcluida(
+        `Método de pagamento atualizado para ${proximoCartao}.`,
+      );
       return "continue";
     }
     case "email": {
       if (!emailEhValido(email.draft)) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Digite um e-mail válido para salvar a conta.");
+        ui.onSetSettingsSheetNotice(
+          "Digite um e-mail válido para salvar a conta.",
+        );
         return "return";
       }
       const emailAtualizado = email.draft.trim().toLowerCase();
-      if (emailAtualizado === (email.emailAtualConta || email.emailLogin || "").trim().toLowerCase()) {
+      if (
+        emailAtualizado ===
+        (email.emailAtualConta || email.emailLogin || "").trim().toLowerCase()
+      ) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Esse e-mail já está configurado como principal.");
+        ui.onSetSettingsSheetNotice(
+          "Esse e-mail já está configurado como principal.",
+        );
         return "return";
       }
       if (email.session) {
         try {
-          const perfilSincronizado = await email.onAtualizarPerfilContaNoBackend(email.session.accessToken, {
-            nomeCompleto: email.perfilNome.trim() || email.session.bootstrap.usuario.nome_completo || "Inspetor Tariel",
-            email: emailAtualizado,
-            telefone: email.telefone.trim() || email.session.bootstrap.usuario.telefone || "",
-          });
+          const perfilSincronizado =
+            await email.onAtualizarPerfilContaNoBackend(
+              email.session.accessToken,
+              {
+                nomeCompleto:
+                  email.perfilNome.trim() ||
+                  email.session.bootstrap.usuario.nome_completo ||
+                  "Inspetor Tariel",
+                email: emailAtualizado,
+                telefone:
+                  email.telefone.trim() ||
+                  email.session.bootstrap.usuario.telefone ||
+                  "",
+              },
+            );
           email.onAplicarPerfilSincronizado(perfilSincronizado);
-          ui.onNotificarConfiguracaoConcluida("E-mail atualizado e sincronizado com a conta.");
+          ui.onNotificarConfiguracaoConcluida(
+            "E-mail atualizado e sincronizado com a conta.",
+          );
         } catch (error) {
           ui.onSetSettingsSheetLoading(false);
-          ui.onSetSettingsSheetNotice(error instanceof Error ? error.message : "Não foi possível atualizar o e-mail agora.");
+          ui.onSetSettingsSheetNotice(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível atualizar o e-mail agora.",
+          );
           return "return";
         }
       } else {
         email.onSetEmailAtualConta(emailAtualizado);
-        ui.onNotificarConfiguracaoConcluida("E-mail atualizado neste dispositivo.");
+        ui.onNotificarConfiguracaoConcluida(
+          "E-mail atualizado neste dispositivo.",
+        );
       }
       ui.onRegistrarEventoSegurancaLocal({
         title: "E-mail atualizado",
@@ -421,15 +646,22 @@ export async function handleSettingsSheetConfirmDelegated({
       });
       if (password.session) {
         try {
-          const mensagem = await password.onAtualizarSenhaContaNoBackend(password.session.accessToken, {
-            senhaAtual: password.senhaAtualDraft,
-            novaSenha: password.novaSenhaDraft,
-            confirmarSenha: password.confirmarSenhaDraft,
-          });
+          const mensagem = await password.onAtualizarSenhaContaNoBackend(
+            password.session.accessToken,
+            {
+              senhaAtual: password.senhaAtualDraft,
+              novaSenha: password.novaSenhaDraft,
+              confirmarSenha: password.confirmarSenhaDraft,
+            },
+          );
           ui.onNotificarConfiguracaoConcluida(mensagem);
         } catch (error) {
           ui.onSetSettingsSheetLoading(false);
-          ui.onSetSettingsSheetNotice(error instanceof Error ? error.message : "Não foi possível atualizar a senha agora.");
+          ui.onSetSettingsSheetNotice(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível atualizar a senha agora.",
+          );
           return "return";
         }
       } else {
@@ -448,9 +680,14 @@ export async function handleSettingsSheetConfirmDelegated({
         ui.onSetSettingsSheetNotice("Descreva o problema antes de enviar.");
         return "return";
       }
-      if (support.bugEmailDraft.trim() && !emailEhValido(support.bugEmailDraft)) {
+      if (
+        support.bugEmailDraft.trim() &&
+        !emailEhValido(support.bugEmailDraft)
+      ) {
         ui.onSetSettingsSheetLoading(false);
-        ui.onSetSettingsSheetNotice("Informe um e-mail válido para retorno ou deixe o campo em branco.");
+        ui.onSetSettingsSheetNotice(
+          "Informe um e-mail válido para retorno ou deixe o campo em branco.",
+        );
         return "return";
       }
       const attachmentLabel = support.bugAttachmentDraft
@@ -468,14 +705,20 @@ export async function handleSettingsSheetConfirmDelegated({
         kind: "bug",
         title: "Relato de bug do inspetor",
         body: support.bugDescriptionDraft.trim(),
-        email: support.bugEmailDraft.trim() || support.emailAtualConta || support.emailLogin || "",
+        email:
+          support.bugEmailDraft.trim() ||
+          support.emailAtualConta ||
+          support.emailLogin ||
+          "",
         createdAt: new Date().toISOString(),
         status: "Na fila local",
         attachmentKind: support.bugAttachmentDraft?.kind,
         attachmentLabel: attachmentLabel || undefined,
         attachmentUri: attachmentUri || undefined,
       };
-      support.onSetFilaSuporteLocal((current) => [item, ...current].slice(0, 12));
+      support.onSetFilaSuporteLocal((current) =>
+        [item, ...current].slice(0, 12),
+      );
       ui.onRegistrarEventoSegurancaLocal({
         title: "Relato de bug registrado",
         meta: `${item.status} • ${item.email || "Sem email de retorno"}${item.attachmentLabel ? ` • anexo: ${item.attachmentLabel}` : ""}`,
@@ -485,20 +728,28 @@ export async function handleSettingsSheetConfirmDelegated({
       let mensagemSucesso = `Bug salvo na fila local da Tariel.ia com protocolo ${item.id.slice(-6).toUpperCase()}.`;
       if (support.session) {
         try {
-          const resposta = await support.onEnviarRelatoSuporteNoBackend(support.session.accessToken, {
-            tipo: "bug",
-            titulo: item.title,
-            mensagem: item.body,
-            emailRetorno: item.email,
-            contexto: buildSupportContext({
-              support,
-              attachmentLabel: item.attachmentLabel,
-            }),
-            anexoNome: item.attachmentLabel || "",
-          });
+          const resposta = await support.onEnviarRelatoSuporteNoBackend(
+            support.session.accessToken,
+            {
+              tipo: "bug",
+              titulo: item.title,
+              mensagem: item.body,
+              emailRetorno: item.email,
+              contexto: buildSupportContext({
+                support,
+                attachmentLabel: item.attachmentLabel,
+              }),
+              anexoNome: item.attachmentLabel || "",
+            },
+          );
           support.onSetFilaSuporteLocal((current) =>
             current.map((entry) =>
-              entry.id === item.id ? { ...entry, status: `${resposta.status} • ${resposta.protocolo}` } : entry,
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: `${resposta.status} • ${resposta.protocolo}`,
+                  }
+                : entry,
             ),
           );
           mensagemSucesso = `Bug enviado ao backend (${resposta.protocolo}) e salvo localmente para rastreio.`;
@@ -527,26 +778,37 @@ export async function handleSettingsSheetConfirmDelegated({
         createdAt: new Date().toISOString(),
         status: "Aguardando triagem",
       };
-      support.onSetFilaSuporteLocal((current) => [item, ...current].slice(0, 12));
+      support.onSetFilaSuporteLocal((current) =>
+        [item, ...current].slice(0, 12),
+      );
       ui.onRegistrarEventoSegurancaLocal({
         title: "Feedback registrado",
         meta: `${item.status} • canal interno`,
         status: "Agora",
         type: "data",
       });
-      let mensagemSucesso = "Sugestão salva na fila local. Obrigado por ajudar a evoluir o app.";
+      let mensagemSucesso =
+        "Sugestão salva na fila local. Obrigado por ajudar a evoluir o app.";
       if (support.session) {
         try {
-          const resposta = await support.onEnviarRelatoSuporteNoBackend(support.session.accessToken, {
-            tipo: "feedback",
-            titulo: item.title,
-            mensagem: item.body,
-            emailRetorno: item.email,
-            contexto: buildSupportContext({ support }),
-          });
+          const resposta = await support.onEnviarRelatoSuporteNoBackend(
+            support.session.accessToken,
+            {
+              tipo: "feedback",
+              titulo: item.title,
+              mensagem: item.body,
+              emailRetorno: item.email,
+              contexto: buildSupportContext({ support }),
+            },
+          );
           support.onSetFilaSuporteLocal((current) =>
             current.map((entry) =>
-              entry.id === item.id ? { ...entry, status: `${resposta.status} • ${resposta.protocolo}` } : entry,
+              entry.id === item.id
+                ? {
+                    ...entry,
+                    status: `${resposta.status} • ${resposta.protocolo}`,
+                  }
+                : entry,
             ),
           );
           mensagemSucesso = `Feedback enviado ao backend (${resposta.protocolo}) e salvo localmente.`;
@@ -581,7 +843,11 @@ export async function handleSettingsSheetConfirmDelegated({
         "Tariel Inspetor - Termos de uso (resumo)",
         `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
         "",
-        ...TERMS_OF_USE_SECTIONS.flatMap((item) => [`${item.title}`, item.body, ""]),
+        ...TERMS_OF_USE_SECTIONS.flatMap((item) => [
+          `${item.title}`,
+          item.body,
+          "",
+        ]),
       ].join("\n");
       const exportado = await exports.onCompartilharTextoExportado({
         extension: "txt",
@@ -589,9 +855,13 @@ export async function handleSettingsSheetConfirmDelegated({
         prefixo: "tariel-termos-uso",
       });
       if (exportado) {
-        ui.onNotificarConfiguracaoConcluida("Resumo dos termos exportado em TXT.");
+        ui.onNotificarConfiguracaoConcluida(
+          "Resumo dos termos exportado em TXT.",
+        );
       } else {
-        ui.onSetSettingsSheetNotice("Não foi possível exportar os termos agora.");
+        ui.onSetSettingsSheetNotice(
+          "Não foi possível exportar os termos agora.",
+        );
       }
       return "continue";
     }
@@ -600,7 +870,11 @@ export async function handleSettingsSheetConfirmDelegated({
         "Tariel Inspetor - Licenças",
         `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
         "",
-        ...LICENSES_CATALOG.flatMap((item) => [`${item.name} • ${item.license}`, item.source, ""]),
+        ...LICENSES_CATALOG.flatMap((item) => [
+          `${item.name} • ${item.license}`,
+          item.source,
+          "",
+        ]),
       ].join("\n");
       const exportado = await exports.onCompartilharTextoExportado({
         extension: "txt",
@@ -608,14 +882,20 @@ export async function handleSettingsSheetConfirmDelegated({
         prefixo: "tariel-licencas",
       });
       if (exportado) {
-        ui.onNotificarConfiguracaoConcluida("Catálogo de licenças exportado em TXT.");
+        ui.onNotificarConfiguracaoConcluida(
+          "Catálogo de licenças exportado em TXT.",
+        );
       } else {
-        ui.onSetSettingsSheetNotice("Não foi possível exportar as licenças agora.");
+        ui.onSetSettingsSheetNotice(
+          "Não foi possível exportar as licenças agora.",
+        );
       }
       return "continue";
     }
     default:
-      ui.onNotificarConfiguracaoConcluida("Ajuste salvo no app. Você pode continuar com a próxima revisão quando quiser.");
+      ui.onNotificarConfiguracaoConcluida(
+        "Ajuste salvo no app. Você pode continuar com a próxima revisão quando quiser.",
+      );
       return "continue";
   }
 }

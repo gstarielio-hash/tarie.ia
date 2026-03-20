@@ -19,7 +19,9 @@ async function readMicrophonePermission(): Promise<boolean> {
     return true;
   }
   try {
-    return await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+    return await PermissionsAndroid.check(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+    );
   } catch {
     return false;
   }
@@ -30,7 +32,9 @@ export async function requestMicrophonePermission(): Promise<boolean> {
     return true;
   }
   try {
-    const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+    const result = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+    );
     return result === PermissionsAndroid.RESULTS.GRANTED;
   } catch {
     return false;
@@ -44,7 +48,10 @@ export async function readDevicePermissionSnapshot(): Promise<DevicePermissionSn
       .then((value) => Boolean(value.granted))
       .catch(() => false),
     ImagePicker.getMediaLibraryPermissionsAsync()
-      .then((value) => Boolean(value.granted) || value.accessPrivileges === "limited")
+      .then(
+        (value) =>
+          Boolean(value.granted) || value.accessPrivileges === "limited",
+      )
       .catch(() => false),
     readNotificationPermissionGranted(),
   ]);
@@ -71,9 +78,11 @@ export async function requestDevicePermission(
   }
   if (permission === "files") {
     return ImagePicker.requestMediaLibraryPermissionsAsync()
-      .then((value) => Boolean(value.granted) || value.accessPrivileges === "limited")
+      .then(
+        (value) =>
+          Boolean(value.granted) || value.accessPrivileges === "limited",
+      )
       .catch(() => false);
   }
   return requestNotificationPermission();
 }
-

@@ -42,8 +42,17 @@ export function SecurityProviderCard({
   testID?: string;
 }) {
   const iconName =
-    provider.id === "google" ? "google" : provider.id === "apple" ? "apple" : "microsoft-windows";
-  const iconColor = provider.id === "google" ? "#DB4437" : provider.id === "apple" ? colors.textPrimary : "#2563EB";
+    provider.id === "google"
+      ? "google"
+      : provider.id === "apple"
+        ? "apple"
+        : "microsoft-windows";
+  const iconColor =
+    provider.id === "google"
+      ? "#DB4437"
+      : provider.id === "apple"
+        ? colors.textPrimary
+        : "#2563EB";
 
   return (
     <View style={styles.securityProviderCard} testID={testID}>
@@ -60,7 +69,9 @@ export function SecurityProviderCard({
             />
           </View>
           <Text style={styles.securityProviderMeta}>
-            {provider.connected && provider.email ? provider.email : "Nenhum email vinculado"}
+            {provider.connected && provider.email
+              ? provider.email
+              : "Nenhum email vinculado"}
           </Text>
         </View>
       </View>
@@ -110,7 +121,9 @@ export function SecuritySessionCard({
           </View>
           <Text style={styles.securitySessionMeta}>{item.meta}</Text>
           <Text style={styles.securitySessionMeta}>{item.location}</Text>
-          <Text style={styles.securitySessionMeta}>Último acesso: {item.lastSeen}</Text>
+          <Text style={styles.securitySessionMeta}>
+            Último acesso: {item.lastSeen}
+          </Text>
         </View>
       </View>
       <View style={styles.securitySessionActions}>
@@ -118,14 +131,18 @@ export function SecuritySessionCard({
           onPress={() => onReview(item)}
           style={[
             styles.securitySessionActionButton,
-            item.suspicious ? styles.securitySessionReviewButtonDanger : styles.securitySessionReviewButton,
+            item.suspicious
+              ? styles.securitySessionReviewButtonDanger
+              : styles.securitySessionReviewButton,
           ]}
           testID={testID ? `${testID}-review` : undefined}
         >
           <Text
             style={[
               styles.securitySessionActionText,
-              item.suspicious ? styles.securitySessionReviewButtonTextDanger : styles.securitySessionReviewButtonText,
+              item.suspicious
+                ? styles.securitySessionReviewButtonTextDanger
+                : styles.securitySessionReviewButtonText,
             ]}
           >
             {item.suspicious ? "Marcar segura" : "Sinalizar"}
@@ -134,10 +151,15 @@ export function SecuritySessionCard({
         <Pressable
           disabled={item.current}
           onPress={() => onClose(item)}
-          style={[styles.securitySessionActionButton, item.current ? styles.securitySessionActionButtonDisabled : null]}
+          style={[
+            styles.securitySessionActionButton,
+            item.current ? styles.securitySessionActionButtonDisabled : null,
+          ]}
           testID={testID ? `${testID}-close` : undefined}
         >
-          <Text style={styles.securitySessionActionText}>{item.current ? "Em uso" : "Encerrar sessão"}</Text>
+          <Text style={styles.securitySessionActionText}>
+            {item.current ? "Em uso" : "Encerrar sessão"}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -149,7 +171,9 @@ export function SecurityEventCard({ item }: { item: SecurityEventItemView }) {
     <View style={styles.securityEventCard}>
       <View style={styles.securityEventTop}>
         <Text style={styles.securityEventTitle}>{item.title}</Text>
-        {item.critical ? <SettingsStatusPill label="Crítico" tone="danger" /> : null}
+        {item.critical ? (
+          <SettingsStatusPill label="Crítico" tone="danger" />
+        ) : null}
       </View>
       <Text style={styles.securityEventMeta}>{item.meta}</Text>
       <Text style={styles.securityEventStatus}>{item.status}</Text>

@@ -13,7 +13,9 @@ interface SettingsSecurityEventPayload {
 interface HandleConfirmSheetActionParams {
   confirmSheet: ConfirmSheetState | null;
   confirmTextDraft: string;
-  onRegistrarEventoSegurancaLocal: (payload: SettingsSecurityEventPayload) => void;
+  onRegistrarEventoSegurancaLocal: (
+    payload: SettingsSecurityEventPayload,
+  ) => void;
   onClearHistory: () => void;
   onClearConversations: () => void;
   onDeleteAccount: () => void;
@@ -33,7 +35,11 @@ export function handleConfirmSheetAction({
     return;
   }
 
-  if (confirmSheet.confirmPhrase && confirmTextDraft.trim().toUpperCase() !== confirmSheet.confirmPhrase.toUpperCase()) {
+  if (
+    confirmSheet.confirmPhrase &&
+    confirmTextDraft.trim().toUpperCase() !==
+      confirmSheet.confirmPhrase.toUpperCase()
+  ) {
     return;
   }
 

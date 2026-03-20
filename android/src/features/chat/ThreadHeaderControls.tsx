@@ -49,27 +49,29 @@ export function ThreadHeaderControls({
     : filaOfflineTotal
       ? `${filaOfflineTotal} pendência${filaOfflineTotal === 1 ? "" : "s"} pronta${filaOfflineTotal === 1 ? "" : "s"} para sincronizar.`
       : "";
-  const statusChips = (vendoMesa
-    ? [
-        notificacoesMesaLaudoAtual
-          ? {
-              key: "mesa-novas",
-              icon: "bell-ring-outline" as const,
-              label: `${notificacoesMesaLaudoAtual} nova${notificacoesMesaLaudoAtual === 1 ? "" : "s"}`,
-              accent: true,
-            }
-          : null,
-      ].filter(Boolean)
-    : [
-        filaOfflineTotal
-          ? {
-              key: "chat-offline",
-              icon: "cloud-upload-outline" as const,
-              label: `${filaOfflineTotal} offline`,
-              accent: true,
-            }
-          : null,
-      ].filter(Boolean)) as HeaderChip[];
+  const statusChips = (
+    vendoMesa
+      ? [
+          notificacoesMesaLaudoAtual
+            ? {
+                key: "mesa-novas",
+                icon: "bell-ring-outline" as const,
+                label: `${notificacoesMesaLaudoAtual} nova${notificacoesMesaLaudoAtual === 1 ? "" : "s"}`,
+                accent: true,
+              }
+            : null,
+        ].filter(Boolean)
+      : [
+          filaOfflineTotal
+            ? {
+                key: "chat-offline",
+                icon: "cloud-upload-outline" as const,
+                label: `${filaOfflineTotal} offline`,
+                accent: true,
+              }
+            : null,
+        ].filter(Boolean)
+  ) as HeaderChip[];
 
   return (
     <>
@@ -84,38 +86,78 @@ export function ThreadHeaderControls({
           <Pressable
             hitSlop={12}
             onPress={onOpenHistory}
-            style={[styles.cleanNavButton, compactHeader ? styles.cleanNavButtonCompact : null]}
+            style={[
+              styles.cleanNavButton,
+              compactHeader ? styles.cleanNavButtonCompact : null,
+            ]}
             testID="open-history-button"
           >
-            <MaterialCommunityIcons color={colors.textPrimary} name="history" size={22} />
+            <MaterialCommunityIcons
+              color={colors.textPrimary}
+              name="history"
+              size={22}
+            />
           </Pressable>
-          <View style={[styles.cleanHeaderCopy, compactHeader ? styles.cleanHeaderCopyCompact : null]}>
+          <View
+            style={[
+              styles.cleanHeaderCopy,
+              compactHeader ? styles.cleanHeaderCopyCompact : null,
+            ]}
+          >
             {!vendoMesa ? (
               <Pressable
                 hitSlop={10}
                 onPress={onOpenNewChat}
-                style={[styles.chatHomeButton, compactHeader ? styles.chatHomeButtonCompact : null]}
+                style={[
+                  styles.chatHomeButton,
+                  compactHeader ? styles.chatHomeButtonCompact : null,
+                ]}
                 testID="open-new-chat-button"
               >
-                <Image source={TARIEL_APP_MARK} style={[styles.chatHomeIcon, compactHeader ? styles.chatHomeIconCompact : null]} />
-                <Text style={[styles.cleanHeaderTitle, compactHeader ? styles.cleanHeaderTitleCompact : null]}>
+                <Image
+                  source={TARIEL_APP_MARK}
+                  style={[
+                    styles.chatHomeIcon,
+                    compactHeader ? styles.chatHomeIconCompact : null,
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.cleanHeaderTitle,
+                    compactHeader ? styles.cleanHeaderTitleCompact : null,
+                  ]}
+                >
                   {title}
                 </Text>
               </Pressable>
             ) : (
-              <Text style={[styles.cleanHeaderTitle, compactHeader ? styles.cleanHeaderTitleCompact : null]}>
+              <Text
+                style={[
+                  styles.cleanHeaderTitle,
+                  compactHeader ? styles.cleanHeaderTitleCompact : null,
+                ]}
+              >
                 {title}
               </Text>
             )}
-            {subtitle && !compactHeader ? <Text style={styles.cleanHeaderSubtitle}>{subtitle}</Text> : null}
+            {subtitle && !compactHeader ? (
+              <Text style={styles.cleanHeaderSubtitle}>{subtitle}</Text>
+            ) : null}
           </View>
           <Pressable
             hitSlop={12}
             onPress={onOpenSettings}
-            style={[styles.cleanNavButton, compactHeader ? styles.cleanNavButtonCompact : null]}
+            style={[
+              styles.cleanNavButton,
+              compactHeader ? styles.cleanNavButtonCompact : null,
+            ]}
             testID="open-settings-button"
           >
-            <MaterialCommunityIcons color={colors.textPrimary} name="cog-outline" size={22} />
+            <MaterialCommunityIcons
+              color={colors.textPrimary}
+              name="cog-outline"
+              size={22}
+            />
             {totalBadge ? (
               <View style={styles.cleanNavBadge}>
                 <Text style={styles.cleanNavBadgeText}>
@@ -133,7 +175,10 @@ export function ThreadHeaderControls({
               {statusChips.map((item) => (
                 <View
                   key={item.key}
-                  style={[styles.cleanHeaderChip, item.accent ? styles.cleanHeaderChipAccent : null]}
+                  style={[
+                    styles.cleanHeaderChip,
+                    item.accent ? styles.cleanHeaderChipAccent : null,
+                  ]}
                 >
                   <MaterialCommunityIcons
                     color={item.accent ? colors.accent : colors.textSecondary}
@@ -155,8 +200,18 @@ export function ThreadHeaderControls({
         ) : null}
       </View>
 
-      <View style={[styles.cleanTabShell, compactHeader ? styles.cleanTabShellCompact : null]}>
-        <View style={[styles.threadTabs, compactHeader ? styles.threadTabsCompact : null]}>
+      <View
+        style={[
+          styles.cleanTabShell,
+          compactHeader ? styles.cleanTabShellCompact : null,
+        ]}
+      >
+        <View
+          style={[
+            styles.threadTabs,
+            compactHeader ? styles.threadTabsCompact : null,
+          ]}
+        >
           <Pressable
             onPress={onOpenChatTab}
             style={[
@@ -205,9 +260,21 @@ export function ThreadHeaderControls({
               Mesa
             </Text>
             {notificacoesMesaLaudoAtual ? (
-              <View style={[styles.threadTabBadge, vendoMesa ? styles.threadTabBadgeActive : null]}>
-                <Text style={[styles.threadTabBadgeText, vendoMesa ? styles.threadTabBadgeTextActive : null]}>
-                  {notificacoesMesaLaudoAtual > 9 ? "9+" : notificacoesMesaLaudoAtual}
+              <View
+                style={[
+                  styles.threadTabBadge,
+                  vendoMesa ? styles.threadTabBadgeActive : null,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.threadTabBadgeText,
+                    vendoMesa ? styles.threadTabBadgeTextActive : null,
+                  ]}
+                >
+                  {notificacoesMesaLaudoAtual > 9
+                    ? "9+"
+                    : notificacoesMesaLaudoAtual}
                 </Text>
               </View>
             ) : null}

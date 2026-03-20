@@ -1,0 +1,56 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: web-ruff
+        name: web ruff
+        entry: bash -lc 'cd web && WEB_PYTHON=$([ -x ./.venv-linux/bin/python ] && echo ./.venv-linux/bin/python || echo python); PYTHONPATH=. "$WEB_PYTHON" -m ruff check .'
+        language: system
+        pass_filenames: false
+        files: ^web/
+
+      - id: android-lint
+        name: android eslint
+        entry: bash -lc 'cd android && npm run lint'
+        language: system
+        pass_filenames: false
+        files: ^android/
+
+      - id: android-format-check
+        name: android prettier
+        entry: bash -lc 'cd android && npm run format:check'
+        language: system
+        pass_filenames: false
+        files: ^android/
+
+      - id: web-critical-tests
+        name: web critical pytest
+        entry: bash -lc 'cd web && WEB_PYTHON=$([ -x ./.venv-linux/bin/python ] && echo ./.venv-linux/bin/python || echo python); PYTHONPATH=. "$WEB_PYTHON" -m pytest -q tests/test_smoke.py tests/test_regras_rotas_criticas.py tests/test_inspetor_comandos_dominio.py tests/test_inspetor_confianca_dominio.py'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^web/
+
+      - id: android-typecheck
+        name: android typecheck
+        entry: bash -lc 'cd android && npm run typecheck'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^android/
+
+      - id: android-test
+        name: android jest
+        entry: bash -lc 'cd android && npm run test -- --runInBand'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        files: ^android/

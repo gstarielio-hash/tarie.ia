@@ -7,14 +7,18 @@ import { categoriaNotificacaoPorKind } from "./types";
 
 let initialized = false;
 
-function resolveAndroidChannelSound(soundEnabled: boolean): string | null | undefined {
+function resolveAndroidChannelSound(
+  soundEnabled: boolean,
+): string | null | undefined {
   if (!soundEnabled) {
     return null;
   }
   return undefined;
 }
 
-function resolveNotificationContentSound(soundEnabled: boolean): string | undefined {
+function resolveNotificationContentSound(
+  soundEnabled: boolean,
+): string | undefined {
   if (!soundEnabled) {
     return undefined;
   }
@@ -75,7 +79,9 @@ export async function syncNotificationChannels(
       enableVibrate: settings.vibrationEnabled,
       showBadge: true,
       sound: resolveAndroidChannelSound(settings.soundEnabled),
-      vibrationPattern: settings.vibrationEnabled ? [0, 160, 80, 160] : undefined,
+      vibrationPattern: settings.vibrationEnabled
+        ? [0, 160, 80, 160]
+        : undefined,
     }),
     Notifications.setNotificationChannelAsync("tariel-system", {
       name: "Tariel Sistema",
@@ -92,7 +98,9 @@ export async function syncNotificationChannels(
       enableVibrate: settings.vibrationEnabled,
       showBadge: true,
       sound: resolveAndroidChannelSound(settings.soundEnabled),
-      vibrationPattern: settings.vibrationEnabled ? [0, 240, 120, 240] : undefined,
+      vibrationPattern: settings.vibrationEnabled
+        ? [0, 240, 120, 240]
+        : undefined,
     }),
   ]);
 }
@@ -100,7 +108,11 @@ export async function syncNotificationChannels(
 export async function readNotificationPermissionGranted(): Promise<boolean> {
   try {
     const permissions = await Notifications.getPermissionsAsync();
-    return permissions.granted || permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    return (
+      permissions.granted ||
+      permissions.ios?.status ===
+        Notifications.IosAuthorizationStatus.PROVISIONAL
+    );
   } catch {
     return false;
   }
@@ -109,7 +121,11 @@ export async function readNotificationPermissionGranted(): Promise<boolean> {
 export async function requestNotificationPermission(): Promise<boolean> {
   try {
     const permissions = await Notifications.requestPermissionsAsync();
-    return permissions.granted || permissions.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    return (
+      permissions.granted ||
+      permissions.ios?.status ===
+        Notifications.IosAuthorizationStatus.PROVISIONAL
+    );
   } catch {
     return false;
   }
@@ -142,7 +158,9 @@ export async function scheduleLocalActivityNotification(params: {
   if (!(await readNotificationPermissionGranted())) {
     return;
   }
-  if (!shouldDispatchNotificationBySettings(params.notification, params.settings)) {
+  if (
+    !shouldDispatchNotificationBySettings(params.notification, params.settings)
+  ) {
     return;
   }
 

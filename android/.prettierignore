@@ -1,0 +1,8 @@
+.expo
+.venv
+.venv-linux
+.test-artifacts
+dist
+node_modules
+package-lock.json
+venv

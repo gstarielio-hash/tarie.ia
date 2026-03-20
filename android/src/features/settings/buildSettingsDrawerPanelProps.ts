@@ -1,9 +1,14 @@
 import type { ComponentProps } from "react";
 
-import { APP_BUILD_CHANNEL, APP_VERSION_LABEL } from "../InspectorMobileApp.constants";
+import {
+  APP_BUILD_CHANNEL,
+  APP_VERSION_LABEL,
+} from "../InspectorMobileApp.constants";
 import { SettingsDrawerPanel } from "./SettingsDrawerPanel";
 
-type SettingsDrawerPanelComponentProps = ComponentProps<typeof SettingsDrawerPanel>;
+type SettingsDrawerPanelComponentProps = ComponentProps<
+  typeof SettingsDrawerPanel
+>;
 type SettingsDrawerLooseInput = Record<string, any>;
 
 export function buildSettingsDrawerPanelProps(
@@ -68,7 +73,9 @@ export function buildSettingsDrawerPanelProps(
     mostrarGrupoExperiencia,
     mostrarGrupoSeguranca,
     mostrarGrupoSistema,
-    onCloseOrBackPress: settingsDrawerInOverview ? () => fecharConfiguracoes() : handleVoltarResumoConfiguracoes,
+    onCloseOrBackPress: settingsDrawerInOverview
+      ? () => fecharConfiguracoes()
+      : handleVoltarResumoConfiguracoes,
     overviewContentProps,
     priorityActionsContentProps,
     sectionMenuContentProps,
@@ -101,8 +108,14 @@ export function buildSettingsDrawerPanelProps(
     },
     systemSectionProps: {
       ...systemSectionProps,
-      appBuildChannel: systemSectionProps?.appBuildChannel || appBuildChannel || APP_BUILD_CHANNEL,
-      appVersionLabel: systemSectionProps?.appVersionLabel || appVersionLabel || APP_VERSION_LABEL,
+      appBuildChannel:
+        systemSectionProps?.appBuildChannel ||
+        appBuildChannel ||
+        APP_BUILD_CHANNEL,
+      appVersionLabel:
+        systemSectionProps?.appVersionLabel ||
+        appVersionLabel ||
+        APP_VERSION_LABEL,
       onAbrirFilaOffline,
     },
     totalSecoesConfiguracaoVisiveis,

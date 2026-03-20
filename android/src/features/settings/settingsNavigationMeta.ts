@@ -42,7 +42,10 @@ interface SettingsPageMeta {
   sections: SettingsSectionKey[];
 }
 
-export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSectionMeta> = {
+export const SETTINGS_DRAWER_SECTION_META: Record<
+  SettingsSectionKey,
+  SettingsSectionMeta
+> = {
   prioridades: {
     title: "Ações prioritárias",
     subtitle: "O que merece atenção primeiro nesta conta do inspetor.",
@@ -100,7 +103,8 @@ export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSe
   },
   dadosConversas: {
     title: "Controles de dados",
-    subtitle: "Histórico local, consentimentos, retenção e regras de sincronização.",
+    subtitle:
+      "Histórico local, consentimentos, retenção e regras de sincronização.",
     icon: "database-outline",
   },
   permissoes: {
@@ -140,7 +144,10 @@ export const SETTINGS_DRAWER_SECTION_META: Record<SettingsSectionKey, SettingsSe
   },
 };
 
-export const SETTINGS_DRAWER_PAGE_META: Record<Exclude<SettingsDrawerPage, "overview">, SettingsPageMeta> = {
+export const SETTINGS_DRAWER_PAGE_META: Record<
+  Exclude<SettingsDrawerPage, "overview">,
+  SettingsPageMeta
+> = {
   prioridades: {
     title: "Ações prioritárias",
     subtitle: "O que merece atenção primeiro nesta conta do inspetor.",
@@ -161,7 +168,8 @@ export const SETTINGS_DRAWER_PAGE_META: Record<Exclude<SettingsDrawerPage, "over
   },
   seguranca: {
     title: "Segurança e privacidade",
-    subtitle: "Permissões, privacidade, dados locais e proteção do dispositivo.",
+    subtitle:
+      "Permissões, privacidade, dados locais e proteção do dispositivo.",
     icon: "shield-lock-outline",
     sections: [
       "protecaoDispositivo",

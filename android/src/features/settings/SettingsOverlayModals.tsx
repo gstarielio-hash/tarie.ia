@@ -12,7 +12,10 @@ import {
 
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
-import type { ConfirmSheetState, SettingsSheetState } from "./settingsSheetTypes";
+import type {
+  ConfirmSheetState,
+  SettingsSheetState,
+} from "./settingsSheetTypes";
 
 interface AppLockModalProps {
   visible: boolean;
@@ -90,11 +93,16 @@ export function AppLockModal({
       <View style={styles.appLockBackdrop}>
         <View style={styles.appLockCard}>
           <View style={styles.appLockIconShell}>
-            <MaterialCommunityIcons color={colors.accent} name="shield-lock-outline" size={24} />
+            <MaterialCommunityIcons
+              color={colors.accent}
+              name="shield-lock-outline"
+              size={24}
+            />
           </View>
           <Text style={styles.appLockTitle}>App bloqueado</Text>
           <Text style={styles.appLockText}>
-            O aplicativo foi bloqueado por inatividade. Confirme sua identidade para continuar no fluxo do inspetor.
+            O aplicativo foi bloqueado por inatividade. Confirme sua identidade
+            para continuar no fluxo do inspetor.
           </Text>
           <Text style={styles.appLockHint}>
             {deviceBiometricsEnabled
@@ -106,8 +114,14 @@ export function AppLockModal({
             style={styles.appLockPrimaryButton}
             testID="app-lock-unlock-button"
           >
-            <MaterialCommunityIcons color={colors.white} name="lock-open-variant-outline" size={18} />
-            <Text style={styles.appLockPrimaryButtonText}>Desbloquear aplicativo</Text>
+            <MaterialCommunityIcons
+              color={colors.white}
+              name="lock-open-variant-outline"
+              size={18}
+            />
+            <Text style={styles.appLockPrimaryButtonText}>
+              Desbloquear aplicativo
+            </Text>
           </Pressable>
           <Pressable
             onPress={() => void onLogout()}
@@ -144,15 +158,23 @@ export function SettingsSheetModal({
           <View style={styles.activityModalHeader}>
             <View style={styles.activityModalCopy}>
               <Text style={styles.activityModalEyebrow}>tariel.ia</Text>
-              <Text style={styles.activityModalTitle}>{settingsSheet?.title}</Text>
-              <Text style={styles.activityModalDescription}>{settingsSheet?.subtitle}</Text>
+              <Text style={styles.activityModalTitle}>
+                {settingsSheet?.title}
+              </Text>
+              <Text style={styles.activityModalDescription}>
+                {settingsSheet?.subtitle}
+              </Text>
             </View>
             <Pressable
               onPress={onClose}
               style={styles.activityModalClose}
               testID="settings-sheet-close-button"
             >
-              <MaterialCommunityIcons name="close" size={18} color={colors.textPrimary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={colors.textPrimary}
+              />
             </Pressable>
           </View>
 
@@ -160,8 +182,19 @@ export function SettingsSheetModal({
             {renderSettingsSheetBody()}
             {settingsSheetNotice ? (
               <View style={styles.settingsSheetNotice}>
-                <MaterialCommunityIcons name={noticeTone.icon} size={18} color={noticeTone.color} />
-                <Text style={[styles.settingsSheetNoticeText, { color: noticeTone.color }]}>{settingsSheetNotice}</Text>
+                <MaterialCommunityIcons
+                  name={noticeTone.icon}
+                  size={18}
+                  color={noticeTone.color}
+                />
+                <Text
+                  style={[
+                    styles.settingsSheetNoticeText,
+                    { color: noticeTone.color },
+                  ]}
+                >
+                  {settingsSheetNotice}
+                </Text>
               </View>
             ) : null}
           </ScrollView>
@@ -180,13 +213,17 @@ export function SettingsSheetModal({
                 onPress={onConfirm}
                 style={[
                   styles.settingsSheetPrimaryButton,
-                  settingsSheetLoading ? styles.settingsSheetPrimaryButtonDisabled : null,
+                  settingsSheetLoading
+                    ? styles.settingsSheetPrimaryButtonDisabled
+                    : null,
                 ]}
               >
                 {settingsSheetLoading ? (
                   <ActivityIndicator color={colors.white} size="small" />
                 ) : (
-                  <Text style={styles.settingsSheetPrimaryButtonText}>{settingsSheet.actionLabel}</Text>
+                  <Text style={styles.settingsSheetPrimaryButtonText}>
+                    {settingsSheet.actionLabel}
+                  </Text>
                 )}
               </Pressable>
             ) : null}
@@ -206,7 +243,8 @@ export function SettingsConfirmationModal({
   onConfirm,
 }: SettingsConfirmationModalProps) {
   const confirmPhraseMatches =
-    !confirmSheet?.confirmPhrase || confirmTextDraft.trim().toUpperCase() === confirmSheet.confirmPhrase;
+    !confirmSheet?.confirmPhrase ||
+    confirmTextDraft.trim().toUpperCase() === confirmSheet.confirmPhrase;
 
   return (
     <Modal
@@ -218,15 +256,25 @@ export function SettingsConfirmationModal({
       <View style={styles.activityModalBackdrop}>
         <View style={styles.confirmSheetCard}>
           <View style={styles.confirmSheetIcon}>
-            <MaterialCommunityIcons name="alert-octagon-outline" size={20} color={colors.danger} />
+            <MaterialCommunityIcons
+              name="alert-octagon-outline"
+              size={20}
+              color={colors.danger}
+            />
           </View>
           <Text style={styles.confirmSheetTitle}>{confirmSheet?.title}</Text>
-          <Text style={styles.confirmSheetText}>{confirmSheet?.description}</Text>
+          <Text style={styles.confirmSheetText}>
+            {confirmSheet?.description}
+          </Text>
 
           {confirmSheet?.confirmPhrase ? (
             <View style={styles.settingsFieldBlockNoDivider}>
               <Text style={styles.confirmSheetHint}>
-                Digite <Text style={styles.confirmSheetHintStrong}>{confirmSheet.confirmPhrase}</Text> para continuar.
+                Digite{" "}
+                <Text style={styles.confirmSheetHintStrong}>
+                  {confirmSheet.confirmPhrase}
+                </Text>{" "}
+                para continuar.
               </Text>
               <TextInput
                 autoCapitalize="characters"
@@ -240,7 +288,10 @@ export function SettingsConfirmationModal({
           ) : null}
 
           <View style={styles.settingsSheetFooter}>
-            <Pressable onPress={onClose} style={styles.settingsSheetGhostButton}>
+            <Pressable
+              onPress={onClose}
+              style={styles.settingsSheetGhostButton}
+            >
               <Text style={styles.settingsSheetGhostButtonText}>Cancelar</Text>
             </Pressable>
             <Pressable
@@ -248,10 +299,14 @@ export function SettingsConfirmationModal({
               onPress={onConfirm}
               style={[
                 styles.confirmSheetDangerButton,
-                !confirmPhraseMatches ? styles.settingsSheetPrimaryButtonDisabled : null,
+                !confirmPhraseMatches
+                  ? styles.settingsSheetPrimaryButtonDisabled
+                  : null,
               ]}
             >
-              <Text style={styles.confirmSheetDangerButtonText}>{confirmSheet?.confirmLabel}</Text>
+              <Text style={styles.confirmSheetDangerButtonText}>
+                {confirmSheet?.confirmLabel}
+              </Text>
             </Pressable>
           </View>
         </View>

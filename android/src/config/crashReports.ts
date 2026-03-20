@@ -10,7 +10,8 @@ interface CrashReportItem {
 }
 
 const CRASH_REPORTS_FILE = `${FileSystem.documentDirectory || FileSystem.cacheDirectory || ""}tariel-mobile-crash-reports.json`;
-let originalGlobalHandler: ((error: Error, isFatal?: boolean) => void) | null = null;
+let originalGlobalHandler: ((error: Error, isFatal?: boolean) => void) | null =
+  null;
 let crashReportsEnabled = false;
 
 async function readCrashReports(): Promise<CrashReportItem[]> {
@@ -29,13 +30,19 @@ async function writeCrashReports(items: CrashReportItem[]): Promise<void> {
       await FileSystem.deleteAsync(CRASH_REPORTS_FILE, { idempotent: true });
       return;
     }
-    await FileSystem.writeAsStringAsync(CRASH_REPORTS_FILE, JSON.stringify(items.slice(-40)));
+    await FileSystem.writeAsStringAsync(
+      CRASH_REPORTS_FILE,
+      JSON.stringify(items.slice(-40)),
+    );
   } catch {
     // Crash reporting local não pode quebrar o app.
   }
 }
 
-async function persistCrashReport(error: Error, isFatal: boolean): Promise<void> {
+async function persistCrashReport(
+  error: Error,
+  isFatal: boolean,
+): Promise<void> {
   const current = await readCrashReports();
   current.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,

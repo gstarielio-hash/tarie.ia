@@ -1,4 +1,11 @@
-import { colors, componentSizes, radii, shadows, spacing, typography } from "../../theme/tokens";
+import {
+  colors,
+  componentSizes,
+  radii,
+  shadows,
+  spacing,
+  typography,
+} from "../../theme/tokens";
 
 export const loginStyles = {
   loginScrollContent: {

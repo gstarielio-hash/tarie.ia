@@ -1,4 +1,10 @@
-import { colors, radii, shadows, spacing, typography } from "../../theme/tokens";
+import {
+  colors,
+  radii,
+  shadows,
+  spacing,
+  typography,
+} from "../../theme/tokens";
 
 export const chatThreadStyles = {
   chatLayout: {

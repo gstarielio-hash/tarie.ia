@@ -16,7 +16,9 @@ export interface ExternalIntegrationCardModel {
   lastSyncAt: string;
 }
 
-export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel>({
+export function IntegrationConnectionCard<
+  T extends ExternalIntegrationCardModel,
+>({
   integration,
   syncing,
   onToggle,
@@ -35,17 +37,25 @@ export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel
     <View style={styles.securityProviderCard} testID={testID}>
       <View style={styles.securityProviderMain}>
         <View style={styles.securityProviderIconShell}>
-          <MaterialCommunityIcons color={colors.ink700} name={integration.icon} size={22} />
+          <MaterialCommunityIcons
+            color={colors.ink700}
+            name={integration.icon}
+            size={22}
+          />
         </View>
         <View style={styles.securityProviderCopy}>
           <View style={styles.securityProviderHeading}>
-            <Text style={styles.securityProviderTitle}>{integration.label}</Text>
+            <Text style={styles.securityProviderTitle}>
+              {integration.label}
+            </Text>
             <SettingsStatusPill
               label={integration.connected ? "Conectada" : "Desconectada"}
               tone={integration.connected ? "success" : "muted"}
             />
           </View>
-          <Text style={styles.securityProviderMeta}>{integration.description}</Text>
+          <Text style={styles.securityProviderMeta}>
+            {integration.description}
+          </Text>
           <Text style={styles.securityProviderMeta}>
             {integration.lastSyncAt
               ? `Última sincronização: ${formatarHorario(integration.lastSyncAt)}`
@@ -58,14 +68,18 @@ export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel
           onPress={() => onToggle(integration)}
           style={[
             styles.securityProviderActionButton,
-            integration.connected ? styles.securityProviderActionButtonDanger : null,
+            integration.connected
+              ? styles.securityProviderActionButtonDanger
+              : null,
           ]}
           testID={testID ? `${testID}-toggle` : undefined}
         >
           <Text
             style={[
               styles.securityProviderActionText,
-              integration.connected ? styles.securityProviderActionTextDanger : null,
+              integration.connected
+                ? styles.securityProviderActionTextDanger
+                : null,
             ]}
           >
             {integration.connected ? "Desconectar" : "Conectar"}
@@ -76,14 +90,18 @@ export function IntegrationConnectionCard<T extends ExternalIntegrationCardModel
           onPress={() => onSyncNow(integration)}
           style={[
             styles.securitySessionActionButton,
-            !integration.connected || syncing ? styles.securitySessionActionButtonDisabled : null,
+            !integration.connected || syncing
+              ? styles.securitySessionActionButtonDisabled
+              : null,
           ]}
           testID={testID ? `${testID}-sync` : undefined}
         >
           {syncing ? (
             <ActivityIndicator color={colors.ink700} size="small" />
           ) : (
-            <Text style={styles.securitySessionActionText}>Sincronizar agora</Text>
+            <Text style={styles.securitySessionActionText}>
+              Sincronizar agora
+            </Text>
           )}
         </Pressable>
       </View>

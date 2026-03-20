@@ -1,11 +1,11 @@
-import type { MobileBootstrapResponse, MobileLaudoCard, MobileMesaMessage } from "../../types/mobile";
+import type {
+  MobileBootstrapResponse,
+  MobileLaudoCard,
+  MobileMesaMessage,
+} from "../../types/mobile";
+import type { MobileSessionState } from "../session/sessionTypes";
 
 type BootstrapCacheState = any;
-
-interface BootstrapSessionState {
-  accessToken: string;
-  bootstrap: MobileBootstrapResponse;
-}
 
 interface RunBootstrapAppFlowParams {
   aplicarPreferenciasLaudos: (
@@ -13,16 +13,23 @@ interface RunBootstrapAppFlowParams {
     fixadosIds: number[],
     ocultosIds: number[],
   ) => MobileLaudoCard[];
-  carregarBootstrapMobile: (accessToken: string) => Promise<MobileBootstrapResponse>;
+  carregarBootstrapMobile: (
+    accessToken: string,
+  ) => Promise<MobileBootstrapResponse>;
   chaveCacheLaudo: (laudoId: number | null) => string;
   erroSugereModoOffline: (error: unknown) => boolean;
   chatHistoryEnabled: boolean;
   deviceBackupEnabled: boolean;
   lerCacheLeituraLocal: () => Promise<BootstrapCacheState>;
-  lerEstadoHistoricoLocal: () => Promise<{ laudosFixadosIds: number[]; historicoOcultoIds: number[] }>;
+  lerEstadoHistoricoLocal: () => Promise<{
+    laudosFixadosIds: number[];
+    historicoOcultoIds: number[];
+  }>;
   lerFilaOfflineLocal: () => Promise<any[]>;
   lerNotificacoesLocais: () => Promise<any[]>;
-  limparCachePorPrivacidade: (cache: BootstrapCacheState) => BootstrapCacheState;
+  limparCachePorPrivacidade: (
+    cache: BootstrapCacheState,
+  ) => BootstrapCacheState;
   obterItemSeguro: (key: string) => Promise<string | null>;
   pingApi: () => Promise<boolean>;
   removeToken: () => Promise<void>;
@@ -37,7 +44,7 @@ interface RunBootstrapAppFlowParams {
   onSetLaudosFixadosIds: (ids: number[]) => void;
   onSetHistoricoOcultoIds: (ids: number[]) => void;
   onMergeCacheBootstrap: (bootstrap: MobileBootstrapResponse) => void;
-  onSetSession: (session: BootstrapSessionState) => void;
+  onSetSession: (session: MobileSessionState) => void;
   onSetUsandoCacheOffline: (value: boolean) => void;
   onSetLaudosDisponiveis: (itens: MobileLaudoCard[]) => void;
   onSetConversa: (conversa: any) => void;
@@ -80,16 +87,23 @@ export async function runBootstrapAppFlow({
   onSetLaudoMesaCarregado,
   onSetErroLaudos,
 }: RunBootstrapAppFlowParams) {
-  const [online, savedEmail, savedToken, filaLocal, notificacoesLocais, cacheLocal, estadoHistoricoLocal] =
-    await Promise.all([
-      pingApi(),
-      obterItemSeguro(EMAIL_KEY),
-      obterItemSeguro(TOKEN_KEY),
-      lerFilaOfflineLocal(),
-      lerNotificacoesLocais(),
-      lerCacheLeituraLocal(),
-      lerEstadoHistoricoLocal(),
-    ]);
+  const [
+    online,
+    savedEmail,
+    savedToken,
+    filaLocal,
+    notificacoesLocais,
+    cacheLocal,
+    estadoHistoricoLocal,
+  ] = await Promise.all([
+    pingApi(),
+    obterItemSeguro(EMAIL_KEY),
+    obterItemSeguro(TOKEN_KEY),
+    lerFilaOfflineLocal(),
+    lerNotificacoesLocais(),
+    lerCacheLeituraLocal(),
+    lerEstadoHistoricoLocal(),
+  ]);
 
   onSetStatusApi(online ? "online" : "offline");
   if (savedEmail) {
@@ -129,7 +143,10 @@ export async function runBootstrapAppFlow({
         estadoHistoricoLocal.historicoOcultoIds,
       );
 
-      onSetSession({ accessToken: savedToken, bootstrap: cacheLocal.bootstrap });
+      onSetSession({
+        accessToken: savedToken,
+        bootstrap: cacheLocal.bootstrap,
+      });
       onSetLaudosDisponiveis(laudosCache);
       onSetConversa(conversaCache);
       onSetMensagensMesa(mesaCache);

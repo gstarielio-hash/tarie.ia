@@ -42,9 +42,15 @@ interface InspectorAuthenticatedLayoutProps {
   vendoMesa: boolean;
   mesaTemMensagens: boolean;
   threadHeaderControlsProps: ComponentProps<typeof ThreadHeaderControls>;
-  threadContextCardProps: Omit<ComponentProps<typeof ThreadContextCard>, "visible">;
+  threadContextCardProps: Omit<
+    ComponentProps<typeof ThreadContextCard>,
+    "visible"
+  >;
   threadConversationPaneProps: ComponentProps<typeof ThreadConversationPane>;
-  threadComposerPanelProps: Omit<ComponentProps<typeof ThreadComposerPanel>, "visible">;
+  threadComposerPanelProps: Omit<
+    ComponentProps<typeof ThreadComposerPanel>,
+    "visible"
+  >;
   historyDrawerPanelProps: ComponentProps<typeof HistoryDrawerPanel>;
   settingsDrawerPanelProps: ComponentProps<typeof SettingsDrawerPanel>;
   sessionModalsStackProps: Record<string, any>;
@@ -90,12 +96,29 @@ export function InspectorAuthenticatedLayout({
           <View style={styles.chatLayout}>
             <ThreadHeaderControls {...threadHeaderControlsProps} />
 
-            <View style={[styles.chatPanel, keyboardVisible ? styles.chatPanelKeyboardVisible : null]}>
-              {!!erroLaudos && <Text style={styles.errorText}>{erroLaudos}</Text>}
-              {!!erroConversa && <Text style={styles.errorText}>{erroConversa}</Text>}
+            <View
+              style={[
+                styles.chatPanel,
+                keyboardVisible ? styles.chatPanelKeyboardVisible : null,
+              ]}
+            >
+              {!!erroLaudos && (
+                <Text style={styles.errorText}>{erroLaudos}</Text>
+              )}
+              {!!erroConversa && (
+                <Text style={styles.errorText}>{erroConversa}</Text>
+              )}
 
-              <View style={[styles.threadBody, keyboardVisible ? styles.threadBodyKeyboardVisible : null]}>
-                <ThreadContextCard {...threadContextCardProps} visible={threadContextVisible && !keyboardVisible} />
+              <View
+                style={[
+                  styles.threadBody,
+                  keyboardVisible ? styles.threadBodyKeyboardVisible : null,
+                ]}
+              >
+                <ThreadContextCard
+                  {...threadContextCardProps}
+                  visible={threadContextVisible && !keyboardVisible}
+                />
                 <ThreadConversationPane {...threadConversationPaneProps} />
               </View>
 
@@ -114,9 +137,13 @@ export function InspectorAuthenticatedLayout({
             historyOpen={historyOpen}
             keyboardVisible={keyboardVisible}
             onClosePanels={onClosePanels}
-            renderHistoryDrawer={() => <HistoryDrawerPanel {...historyDrawerPanelProps} />}
+            renderHistoryDrawer={() => (
+              <HistoryDrawerPanel {...historyDrawerPanelProps} />
+            )}
             renderSettingsDrawer={() =>
-              settingsDrawerVisible ? <SettingsDrawerPanel {...settingsDrawerPanelProps} /> : null
+              settingsDrawerVisible ? (
+                <SettingsDrawerPanel {...settingsDrawerPanelProps} />
+              ) : null
             }
             settingsEdgePanHandlers={settingsEdgePanHandlers}
             settingsOpen={settingsOpen}

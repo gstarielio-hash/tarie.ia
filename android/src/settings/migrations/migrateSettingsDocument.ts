@@ -16,7 +16,10 @@ import {
   SPEECH_LANGUAGE_OPTIONS,
   THEME_OPTIONS,
 } from "../schema/options";
-import { createDefaultAppSettings, createDefaultSettingsDocument } from "../schema/defaults";
+import {
+  createDefaultAppSettings,
+  createDefaultSettingsDocument,
+} from "../schema/defaults";
 import {
   SETTINGS_SCHEMA_VERSION,
   type AppSettings,
@@ -40,7 +43,10 @@ function normalizeOption<T extends readonly string[]>(
   options: T,
   fallback: T[number],
 ): T[number] {
-  return typeof value === "string" && (options as readonly string[]).includes(value) ? value : fallback;
+  return typeof value === "string" &&
+    (options as readonly string[]).includes(value)
+    ? value
+    : fallback;
 }
 
 function normalizeTemperature(value: unknown, fallback: number): number {
@@ -65,7 +71,9 @@ function normalizeSettings(input: unknown): AppSettings {
 
   const appearance = isRecord(input.appearance) ? input.appearance : {};
   const ai = isRecord(input.ai) ? input.ai : {};
-  const notifications = isRecord(input.notifications) ? input.notifications : {};
+  const notifications = isRecord(input.notifications)
+    ? input.notifications
+    : {};
   const speech = isRecord(input.speech) ? input.speech : {};
   const dataControls = isRecord(input.dataControls) ? input.dataControls : {};
   const system = isRecord(input.system) ? input.system : {};
@@ -81,10 +89,26 @@ function normalizeSettings(input: unknown): AppSettings {
 
   return {
     appearance: {
-      theme: normalizeOption(appearance.theme, THEME_OPTIONS, fallback.appearance.theme),
-      density: normalizeOption(appearance.density, DENSITY_OPTIONS, fallback.appearance.density),
-      fontScale: normalizeOption(appearance.fontScale, FONT_SIZE_OPTIONS, fallback.appearance.fontScale),
-      accentColor: normalizeOption(appearance.accentColor, ACCENT_OPTIONS, fallback.appearance.accentColor),
+      theme: normalizeOption(
+        appearance.theme,
+        THEME_OPTIONS,
+        fallback.appearance.theme,
+      ),
+      density: normalizeOption(
+        appearance.density,
+        DENSITY_OPTIONS,
+        fallback.appearance.density,
+      ),
+      fontScale: normalizeOption(
+        appearance.fontScale,
+        FONT_SIZE_OPTIONS,
+        fallback.appearance.fontScale,
+      ),
+      accentColor: normalizeOption(
+        appearance.accentColor,
+        ACCENT_OPTIONS,
+        fallback.appearance.accentColor,
+      ),
       animationsEnabled: normalizeBoolean(
         appearance.animationsEnabled,
         fallback.appearance.animationsEnabled,
@@ -102,13 +126,29 @@ function normalizeSettings(input: unknown): AppSettings {
         RESPONSE_LANGUAGE_OPTIONS,
         fallback.ai.responseLanguage,
       ),
-      memoryEnabled: normalizeBoolean(ai.memoryEnabled, fallback.ai.memoryEnabled),
-      learningOptIn: normalizeBoolean(ai.learningOptIn, fallback.ai.learningOptIn),
-      tone: normalizeOption(ai.tone, CONVERSATION_TONE_OPTIONS, fallback.ai.tone),
-      temperature: normalizeTemperature(ai.temperature, fallback.ai.temperature),
+      memoryEnabled: normalizeBoolean(
+        ai.memoryEnabled,
+        fallback.ai.memoryEnabled,
+      ),
+      learningOptIn: normalizeBoolean(
+        ai.learningOptIn,
+        fallback.ai.learningOptIn,
+      ),
+      tone: normalizeOption(
+        ai.tone,
+        CONVERSATION_TONE_OPTIONS,
+        fallback.ai.tone,
+      ),
+      temperature: normalizeTemperature(
+        ai.temperature,
+        fallback.ai.temperature,
+      ),
     },
     notifications: {
-      pushEnabled: normalizeBoolean(notifications.pushEnabled, fallback.notifications.pushEnabled),
+      pushEnabled: normalizeBoolean(
+        notifications.pushEnabled,
+        fallback.notifications.pushEnabled,
+      ),
       responseAlertsEnabled: normalizeBoolean(
         notifications.responseAlertsEnabled,
         fallback.notifications.responseAlertsEnabled,
@@ -121,7 +161,10 @@ function normalizeSettings(input: unknown): AppSettings {
         notifications.vibrationEnabled,
         fallback.notifications.vibrationEnabled,
       ),
-      emailEnabled: normalizeBoolean(notifications.emailEnabled, fallback.notifications.emailEnabled),
+      emailEnabled: normalizeBoolean(
+        notifications.emailEnabled,
+        fallback.notifications.emailEnabled,
+      ),
       soundPreset,
       showMessageContent: normalizeBoolean(
         notifications.showMessageContent,
@@ -154,7 +197,10 @@ function normalizeSettings(input: unknown): AppSettings {
     },
     speech: {
       enabled: normalizeBoolean(speech.enabled, fallback.speech.enabled),
-      autoTranscribe: normalizeBoolean(speech.autoTranscribe, fallback.speech.autoTranscribe),
+      autoTranscribe: normalizeBoolean(
+        speech.autoTranscribe,
+        fallback.speech.autoTranscribe,
+      ),
       autoReadResponses: normalizeBoolean(
         speech.autoReadResponses,
         fallback.speech.autoReadResponses,
@@ -164,7 +210,10 @@ function normalizeSettings(input: unknown): AppSettings {
         SPEECH_LANGUAGE_OPTIONS,
         fallback.speech.voiceLanguage,
       ),
-      speechRate: normalizeSpeechRate(speech.speechRate, fallback.speech.speechRate),
+      speechRate: normalizeSpeechRate(
+        speech.speechRate,
+        fallback.speech.speechRate,
+      ),
       voiceId: normalizeString(speech.voiceId, fallback.speech.voiceId),
     },
     dataControls: {
@@ -176,7 +225,10 @@ function normalizeSettings(input: unknown): AppSettings {
         dataControls.crashReportsOptIn,
         fallback.dataControls.crashReportsOptIn,
       ),
-      wifiOnlySync: normalizeBoolean(dataControls.wifiOnlySync, fallback.dataControls.wifiOnlySync),
+      wifiOnlySync: normalizeBoolean(
+        dataControls.wifiOnlySync,
+        fallback.dataControls.wifiOnlySync,
+      ),
       chatHistoryEnabled: normalizeBoolean(
         dataControls.chatHistoryEnabled,
         fallback.dataControls.chatHistoryEnabled,
@@ -205,8 +257,16 @@ function normalizeSettings(input: unknown): AppSettings {
       ),
     },
     system: {
-      language: normalizeOption(system.language, APP_LANGUAGE_OPTIONS, fallback.system.language),
-      region: normalizeOption(system.region, REGION_OPTIONS, fallback.system.region),
+      language: normalizeOption(
+        system.language,
+        APP_LANGUAGE_OPTIONS,
+        fallback.system.language,
+      ),
+      region: normalizeOption(
+        system.region,
+        REGION_OPTIONS,
+        fallback.system.region,
+      ),
       dataSaver: normalizeBoolean(system.dataSaver, fallback.system.dataSaver),
       batteryMode: normalizeOption(
         system.batteryMode,
@@ -216,14 +276,20 @@ function normalizeSettings(input: unknown): AppSettings {
     },
     account: {
       fullName: normalizeString(account.fullName, fallback.account.fullName),
-      displayName: normalizeString(account.displayName, fallback.account.displayName),
+      displayName: normalizeString(
+        account.displayName,
+        fallback.account.displayName,
+      ),
       email: normalizeString(account.email, fallback.account.email),
       phone: normalizeString(account.phone, fallback.account.phone),
       photoUri: normalizeString(account.photoUri, fallback.account.photoUri),
       photoHint: normalizeString(account.photoHint, fallback.account.photoHint),
     },
     attachments: {
-      enabled: normalizeBoolean(attachments.enabled, fallback.attachments.enabled),
+      enabled: normalizeBoolean(
+        attachments.enabled,
+        fallback.attachments.enabled,
+      ),
     },
     security: {
       microphonePermission: normalizeBoolean(
@@ -274,26 +340,48 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
     NOTIFICATION_SOUND_OPTIONS,
     defaults.notifications.soundPreset,
   );
-  const autoTranscribe = normalizeBoolean(input.entradaPorVoz, defaults.speech.autoTranscribe);
-  const autoReadResponses = normalizeBoolean(input.respostaPorVoz, defaults.speech.autoReadResponses);
+  const autoTranscribe = normalizeBoolean(
+    input.entradaPorVoz,
+    defaults.speech.autoTranscribe,
+  );
+  const autoReadResponses = normalizeBoolean(
+    input.respostaPorVoz,
+    defaults.speech.autoReadResponses,
+  );
 
   return {
     appearance: {
-      theme: normalizeOption(input.temaApp, THEME_OPTIONS, defaults.appearance.theme),
+      theme: normalizeOption(
+        input.temaApp,
+        THEME_OPTIONS,
+        defaults.appearance.theme,
+      ),
       density: normalizeOption(
         input.densidadeInterface,
         DENSITY_OPTIONS,
         defaults.appearance.density,
       ),
-      fontScale: normalizeOption(input.tamanhoFonte, FONT_SIZE_OPTIONS, defaults.appearance.fontScale),
-      accentColor: normalizeOption(input.corDestaque, ACCENT_OPTIONS, defaults.appearance.accentColor),
+      fontScale: normalizeOption(
+        input.tamanhoFonte,
+        FONT_SIZE_OPTIONS,
+        defaults.appearance.fontScale,
+      ),
+      accentColor: normalizeOption(
+        input.corDestaque,
+        ACCENT_OPTIONS,
+        defaults.appearance.accentColor,
+      ),
       animationsEnabled: normalizeBoolean(
         input.animacoesAtivas,
         defaults.appearance.animationsEnabled,
       ),
     },
     ai: {
-      model: normalizeOption(input.modeloIa, AI_MODEL_OPTIONS, defaults.ai.model),
+      model: normalizeOption(
+        input.modeloIa,
+        AI_MODEL_OPTIONS,
+        defaults.ai.model,
+      ),
       responseStyle: normalizeOption(
         input.estiloResposta,
         RESPONSE_STYLE_OPTIONS,
@@ -304,20 +392,42 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
         RESPONSE_LANGUAGE_OPTIONS,
         defaults.ai.responseLanguage,
       ),
-      memoryEnabled: normalizeBoolean(input.memoriaIa, defaults.ai.memoryEnabled),
-      learningOptIn: normalizeBoolean(input.aprendizadoIa, defaults.ai.learningOptIn),
-      tone: normalizeOption(input.tomConversa, CONVERSATION_TONE_OPTIONS, defaults.ai.tone),
-      temperature: normalizeTemperature(input.temperaturaIa, defaults.ai.temperature),
+      memoryEnabled: normalizeBoolean(
+        input.memoriaIa,
+        defaults.ai.memoryEnabled,
+      ),
+      learningOptIn: normalizeBoolean(
+        input.aprendizadoIa,
+        defaults.ai.learningOptIn,
+      ),
+      tone: normalizeOption(
+        input.tomConversa,
+        CONVERSATION_TONE_OPTIONS,
+        defaults.ai.tone,
+      ),
+      temperature: normalizeTemperature(
+        input.temperaturaIa,
+        defaults.ai.temperature,
+      ),
     },
     notifications: {
-      pushEnabled: normalizeBoolean(input.notificaPush, defaults.notifications.pushEnabled),
+      pushEnabled: normalizeBoolean(
+        input.notificaPush,
+        defaults.notifications.pushEnabled,
+      ),
       responseAlertsEnabled: normalizeBoolean(
         input.notificaRespostas,
         defaults.notifications.responseAlertsEnabled,
       ),
       soundEnabled: soundPreset !== "Silencioso",
-      vibrationEnabled: normalizeBoolean(input.vibracaoAtiva, defaults.notifications.vibrationEnabled),
-      emailEnabled: normalizeBoolean(input.emailsAtivos, defaults.notifications.emailEnabled),
+      vibrationEnabled: normalizeBoolean(
+        input.vibracaoAtiva,
+        defaults.notifications.vibrationEnabled,
+      ),
+      emailEnabled: normalizeBoolean(
+        input.emailsAtivos,
+        defaults.notifications.emailEnabled,
+      ),
       soundPreset,
       showMessageContent: normalizeBoolean(
         input.mostrarConteudoNotificacao,
@@ -353,7 +463,10 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
         input.crashReportsOptIn,
         defaults.dataControls.crashReportsOptIn,
       ),
-      wifiOnlySync: normalizeBoolean(input.wifiOnlySync, defaults.dataControls.wifiOnlySync),
+      wifiOnlySync: normalizeBoolean(
+        input.wifiOnlySync,
+        defaults.dataControls.wifiOnlySync,
+      ),
       chatHistoryEnabled: normalizeBoolean(
         input.salvarHistoricoConversas,
         defaults.dataControls.chatHistoryEnabled,
@@ -375,10 +488,25 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
       mediaCompression: defaults.dataControls.mediaCompression,
     },
     system: {
-      language: normalizeOption(input.idiomaApp, APP_LANGUAGE_OPTIONS, defaults.system.language),
-      region: normalizeOption(input.regiaoApp, REGION_OPTIONS, defaults.system.region),
-      dataSaver: normalizeBoolean(input.economiaDados, defaults.system.dataSaver),
-      batteryMode: normalizeOption(input.usoBateria, BATTERY_OPTIONS, defaults.system.batteryMode),
+      language: normalizeOption(
+        input.idiomaApp,
+        APP_LANGUAGE_OPTIONS,
+        defaults.system.language,
+      ),
+      region: normalizeOption(
+        input.regiaoApp,
+        REGION_OPTIONS,
+        defaults.system.region,
+      ),
+      dataSaver: normalizeBoolean(
+        input.economiaDados,
+        defaults.system.dataSaver,
+      ),
+      batteryMode: normalizeOption(
+        input.usoBateria,
+        BATTERY_OPTIONS,
+        defaults.system.batteryMode,
+      ),
     },
     account: {
       fullName: normalizeString(input.perfilNome),
@@ -386,10 +514,16 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
       email: normalizeString(input.emailAtualConta),
       phone: normalizeString(input.accountPhone),
       photoUri: normalizeString(input.perfilFotoUri),
-      photoHint: normalizeString(input.perfilFotoHint, defaults.account.photoHint),
+      photoHint: normalizeString(
+        input.perfilFotoHint,
+        defaults.account.photoHint,
+      ),
     },
     attachments: {
-      enabled: normalizeBoolean(input.uploadArquivosAtivo, defaults.attachments.enabled),
+      enabled: normalizeBoolean(
+        input.uploadArquivosAtivo,
+        defaults.attachments.enabled,
+      ),
     },
     security: {
       microphonePermission: normalizeBoolean(
@@ -433,7 +567,9 @@ function migrateLegacySettings(input: Record<string, unknown>): AppSettings {
   };
 }
 
-export function migrateSettingsDocument(raw: unknown): PersistedSettingsDocument {
+export function migrateSettingsDocument(
+  raw: unknown,
+): PersistedSettingsDocument {
   const baseDocument = createDefaultSettingsDocument();
   if (!isRecord(raw)) {
     return baseDocument;

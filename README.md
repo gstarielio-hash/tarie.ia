@@ -20,3 +20,21 @@ Esse blueprint aponta para `web/` via `rootDir: web`, então:
 
 - Web: `web/README.md`
 - Mobile: `android/README.md`
+
+## Qualidade Local
+
+Comandos úteis na raiz:
+
+```bash
+make help
+make web-ci
+make mobile-ci
+make ci
+```
+
+Hooks opcionais:
+
+```bash
+python -m pip install -r web/requirements.txt
+make hooks-install
+```

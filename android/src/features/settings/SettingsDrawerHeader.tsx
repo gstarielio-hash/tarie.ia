@@ -16,7 +16,7 @@ export function SettingsDrawerHeader({
   settingsDrawerInOverview,
   settingsPrintDarkMode,
   settingsDrawerTitle,
-  settingsDrawerSubtitle,
+  settingsDrawerSubtitle: _settingsDrawerSubtitle,
   onCloseOrBackPress,
 }: SettingsDrawerHeaderProps) {
   return (
@@ -26,10 +26,16 @@ export function SettingsDrawerHeader({
           style={[
             styles.activityModalEyebrow,
             settingsDrawerInOverview ? styles.activityModalEyebrowPrint : null,
-            settingsDrawerInOverview && settingsPrintDarkMode ? styles.activityModalEyebrowPrintDark : null,
+            settingsDrawerInOverview && settingsPrintDarkMode
+              ? styles.activityModalEyebrowPrintDark
+              : null,
             styles.settingsDrawerWordmark,
-            settingsDrawerInOverview ? styles.settingsDrawerWordmarkPrint : null,
-            settingsDrawerInOverview && settingsPrintDarkMode ? styles.settingsDrawerWordmarkPrintDark : null,
+            settingsDrawerInOverview
+              ? styles.settingsDrawerWordmarkPrint
+              : null,
+            settingsDrawerInOverview && settingsPrintDarkMode
+              ? styles.settingsDrawerWordmarkPrintDark
+              : null,
           ]}
         >
           tariel.ia
@@ -38,7 +44,9 @@ export function SettingsDrawerHeader({
           style={[
             styles.sidePanelTitle,
             settingsDrawerInOverview ? styles.sidePanelTitlePrint : null,
-            settingsDrawerInOverview && settingsPrintDarkMode ? styles.sidePanelTitlePrintDark : null,
+            settingsDrawerInOverview && settingsPrintDarkMode
+              ? styles.sidePanelTitlePrintDark
+              : null,
           ]}
         >
           {settingsDrawerTitle}
@@ -49,9 +57,15 @@ export function SettingsDrawerHeader({
         style={[
           styles.sidePanelCloseButton,
           settingsDrawerInOverview ? styles.sidePanelCloseButtonPrint : null,
-          settingsDrawerInOverview && settingsPrintDarkMode ? styles.sidePanelCloseButtonPrintDark : null,
+          settingsDrawerInOverview && settingsPrintDarkMode
+            ? styles.sidePanelCloseButtonPrintDark
+            : null,
         ]}
-        testID={settingsDrawerInOverview ? "close-settings-drawer-button" : "settings-drawer-back-button"}
+        testID={
+          settingsDrawerInOverview
+            ? "close-settings-drawer-button"
+            : "settings-drawer-back-button"
+        }
       >
         <MaterialCommunityIcons
           name={settingsDrawerInOverview ? "close" : "chevron-left"}

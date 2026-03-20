@@ -94,7 +94,10 @@ function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
 
   return (
     <View style={styles.historyItemShell}>
-      <Animated.View pointerEvents="none" style={[styles.historyItemDeleteRail, { opacity: swipeProgress }]}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.historyItemDeleteRail, { opacity: swipeProgress }]}
+      >
         <Animated.View
           style={[
             styles.historyItemDeleteRailBadge,
@@ -110,12 +113,19 @@ function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
             },
           ]}
         >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger} />
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={18}
+            color={colors.danger}
+          />
           <Text style={styles.historyItemDeleteRailText}>Excluir</Text>
         </Animated.View>
       </Animated.View>
 
-      <Animated.View {...panResponder.panHandlers} style={{ transform: [{ translateX }] }}>
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={{ transform: [{ translateX }] }}
+      >
         <Pressable
           onPress={onSelecionar}
           style={[
@@ -156,18 +166,20 @@ function HistoryDrawerListItem<TItem extends HistoryDrawerItemRecord>({
   );
 }
 
-export function HistoryDrawerPanel<TItem extends {
-  id: number;
-  titulo: string;
-  data_iso: string;
-  status_card: string;
-  status_card_label: string;
-  pinado: boolean;
-  tipo_template: string | null;
-  permite_edicao: boolean;
-  permite_reabrir: boolean;
-  preview: string;
-}>({
+export function HistoryDrawerPanel<
+  TItem extends {
+    id: number;
+    titulo: string;
+    data_iso: string;
+    status_card: string;
+    status_card_label: string;
+    pinado: boolean;
+    tipo_template: string | null;
+    permite_edicao: boolean;
+    permite_reabrir: boolean;
+    preview: string;
+  },
+>({
   historyDrawerPanResponder,
   historicoDrawerX,
   onCloseHistory,
@@ -196,7 +208,11 @@ export function HistoryDrawerPanel<TItem extends {
   historicoVazioTexto: string;
   brandMarkSource: ImageSourcePropType;
 }) {
-  const totalHistorico = historicoAgrupadoFinal.reduce((total, section) => total + section.items.length, 0) + conversasOcultasTotal;
+  const totalHistorico =
+    historicoAgrupadoFinal.reduce(
+      (total, section) => total + section.items.length,
+      0,
+    ) + conversasOcultasTotal;
   const exibirBusca = totalHistorico > 0 || Boolean(buscaHistorico.trim());
 
   return (
@@ -222,13 +238,21 @@ export function HistoryDrawerPanel<TItem extends {
           style={styles.sidePanelCloseButton}
           testID="close-history-drawer-button"
         >
-          <MaterialCommunityIcons name="chevron-left" size={22} color={colors.textPrimary} />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={22}
+            color={colors.textPrimary}
+          />
         </Pressable>
       </View>
 
       {exibirBusca ? (
         <View style={styles.historySearchShell}>
-          <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={colors.textSecondary}
+          />
           <TextInput
             onChangeText={onBuscaHistoricoChange}
             placeholder="Buscar histórico"
@@ -247,13 +271,16 @@ export function HistoryDrawerPanel<TItem extends {
               <View style={styles.historySectionHeader}>
                 <Text style={styles.historySectionTitle}>{section.title}</Text>
                 <View style={styles.historySectionCountBadge}>
-                  <Text style={styles.historySectionCountText}>{section.items.length}</Text>
+                  <Text style={styles.historySectionCountText}>
+                    {section.items.length}
+                  </Text>
                 </View>
               </View>
               <View style={styles.historySectionItems}>
                 {section.items.map((item, itemIndex) => {
                   const ativo = item.id === laudoSelecionadoId;
-                  const isFirstHistoryItem = sectionIndex === 0 && itemIndex === 0;
+                  const isFirstHistoryItem =
+                    sectionIndex === 0 && itemIndex === 0;
                   return (
                     <HistoryDrawerListItem
                       key={`history-${section.key}-${item.id}`}
@@ -261,7 +288,11 @@ export function HistoryDrawerPanel<TItem extends {
                       item={item}
                       onExcluir={() => onExcluirConversaHistorico(item)}
                       onSelecionar={() => onSelecionarHistorico(item)}
-                        testID={isFirstHistoryItem ? "history-first-item-button" : `history-item-${item.id}`}
+                      testID={
+                        isFirstHistoryItem
+                          ? "history-first-item-button"
+                          : `history-item-${item.id}`
+                      }
                     />
                   );
                 })}

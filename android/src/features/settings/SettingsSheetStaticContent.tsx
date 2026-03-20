@@ -2,7 +2,13 @@ import { Text, View } from "react-native";
 
 import { styles } from "../InspectorMobileApp.styles";
 
-type StaticSheetKind = "privacy" | "updates" | "terms" | "licenses" | "legal" | "about";
+type StaticSheetKind =
+  | "privacy"
+  | "updates"
+  | "terms"
+  | "licenses"
+  | "legal"
+  | "about";
 
 interface UpdateChangelogItem {
   id: string;
@@ -74,7 +80,8 @@ export function renderStaticSettingsSheetBody({
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>{appName}</Text>
           <Text style={styles.settingsInfoText}>
-            Build operacional do inspetor para chat, mesa, fila offline, atividade e suporte.
+            Build operacional do inspetor para chat, mesa, fila offline,
+            atividade e suporte.
           </Text>
         </View>
         <View style={styles.settingsInfoGrid}>
@@ -92,7 +99,9 @@ export function renderStaticSettingsSheetBody({
         <View style={styles.settingsMiniList}>
           <View style={styles.settingsMiniListItem}>
             <Text style={styles.settingsMiniListTitle}>Ambiente da API</Text>
-            <Text style={styles.settingsMiniListMeta}>{apiEnvironmentLabel}</Text>
+            <Text style={styles.settingsMiniListMeta}>
+              {apiEnvironmentLabel}
+            </Text>
           </View>
           <View style={styles.settingsMiniListItem}>
             <Text style={styles.settingsMiniListTitle}>Workspace atual</Text>
@@ -100,11 +109,17 @@ export function renderStaticSettingsSheetBody({
           </View>
           <View style={styles.settingsMiniListItem}>
             <Text style={styles.settingsMiniListTitle}>Canal de suporte</Text>
-            <Text style={styles.settingsMiniListMeta}>{supportChannelLabel}</Text>
+            <Text style={styles.settingsMiniListMeta}>
+              {supportChannelLabel}
+            </Text>
           </View>
           <View style={styles.settingsMiniListItem}>
-            <Text style={styles.settingsMiniListTitle}>Documentos disponíveis</Text>
-            <Text style={styles.settingsMiniListMeta}>Política de privacidade, termos de uso e licenças.</Text>
+            <Text style={styles.settingsMiniListTitle}>
+              Documentos disponíveis
+            </Text>
+            <Text style={styles.settingsMiniListMeta}>
+              Política de privacidade, termos de uso e licenças.
+            </Text>
           </View>
         </View>
       </View>
@@ -117,16 +132,19 @@ export function renderStaticSettingsSheetBody({
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>Resumo</Text>
           <Text style={styles.settingsInfoText}>
-            O app guarda apenas os dados necessários para sessão, histórico, fila offline e operação do inspetor.
-            Preferências sensíveis exigem confirmação e podem ser exportadas ou removidas conforme a política do
-            sistema.
+            O app guarda apenas os dados necessários para sessão, histórico,
+            fila offline e operação do inspetor. Preferências sensíveis exigem
+            confirmação e podem ser exportadas ou removidas conforme a política
+            do sistema.
           </Text>
         </View>
         <View style={styles.settingsInfoGrid}>
           <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
             <Text style={styles.settingsInfoTitle}>Histórico</Text>
             <Text style={styles.settingsInfoText}>
-              {salvarHistoricoConversas ? "Salvamento ativo" : "Novas conversas não serão persistidas"}
+              {salvarHistoricoConversas
+                ? "Salvamento ativo"
+                : "Novas conversas não serão persistidas"}
             </Text>
           </View>
           <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
@@ -149,8 +167,12 @@ export function renderStaticSettingsSheetBody({
           </View>
           <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
             <Text style={styles.settingsInfoTitle}>Última verificação</Text>
-            <Text style={styles.settingsInfoText}>{ultimaVerificacaoAtualizacaoLabel}</Text>
-            <Text style={styles.settingsInfoSubtle}>{statusAtualizacaoApp}</Text>
+            <Text style={styles.settingsInfoText}>
+              {ultimaVerificacaoAtualizacaoLabel}
+            </Text>
+            <Text style={styles.settingsInfoSubtle}>
+              {statusAtualizacaoApp}
+            </Text>
           </View>
         </View>
         <View style={styles.settingsInfoCard}>
@@ -175,7 +197,8 @@ export function renderStaticSettingsSheetBody({
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>Termos de uso</Text>
           <Text style={styles.settingsInfoText}>
-            Resumo operacional das regras de uso aplicadas à versão móvel do inspetor.
+            Resumo operacional das regras de uso aplicadas à versão móvel do
+            inspetor.
           </Text>
         </View>
         <View style={styles.settingsMiniList}>
@@ -218,7 +241,8 @@ export function renderStaticSettingsSheetBody({
       <View style={styles.settingsInfoCard}>
         <Text style={styles.settingsInfoTitle}>{title}</Text>
         <Text style={styles.settingsInfoText}>
-          Documento legal disponível nesta build para consulta rápida dentro do painel de suporte.
+          Documento legal disponível nesta build para consulta rápida dentro do
+          painel de suporte.
         </Text>
       </View>
       <View style={styles.settingsMiniList}>

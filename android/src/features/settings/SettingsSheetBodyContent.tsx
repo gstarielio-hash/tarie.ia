@@ -68,7 +68,9 @@ interface HelpArticleItem {
   body: string;
 }
 
-interface SettingsSheetBodyContentParams<TIntegration extends ExternalIntegrationCardModel> {
+interface SettingsSheetBodyContentParams<
+  TIntegration extends ExternalIntegrationCardModel,
+> {
   settingsSheet: SettingsSheetState | null;
   appName: string;
   appBuildLabel: string;
@@ -139,7 +141,9 @@ interface SettingsSheetBodyContentParams<TIntegration extends ExternalIntegratio
   onSelecionarModeloIa: (value: (typeof AI_MODEL_OPTIONS)[number]) => void;
 }
 
-export function renderSettingsSheetBodyContent<TIntegration extends ExternalIntegrationCardModel>({
+export function renderSettingsSheetBodyContent<
+  TIntegration extends ExternalIntegrationCardModel,
+>({
   settingsSheet,
   appName,
   appBuildLabel,

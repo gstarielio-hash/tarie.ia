@@ -39,11 +39,18 @@ export interface CriticalSettingsSnapshot {
 }
 
 function ehRegistro(payload: unknown): payload is Record<string, unknown> {
-  return Boolean(payload) && typeof payload === "object" && !Array.isArray(payload);
+  return (
+    Boolean(payload) && typeof payload === "object" && !Array.isArray(payload)
+  );
 }
 
-function ehOpcaoValida<T extends readonly string[]>(valor: unknown, opcoes: T): valor is T[number] {
-  return typeof valor === "string" && (opcoes as readonly string[]).includes(valor);
+function ehOpcaoValida<T extends readonly string[]>(
+  valor: unknown,
+  opcoes: T,
+): valor is T[number] {
+  return (
+    typeof valor === "string" && (opcoes as readonly string[]).includes(valor)
+  );
 }
 
 function normalizarBool(valor: unknown, padrao: boolean): boolean {
@@ -80,7 +87,9 @@ export function criarSnapshotCriticoPadrao(): CriticalSettingsSnapshot {
   };
 }
 
-export function snapshotCriticoParaPayloadRemoto(snapshot: CriticalSettingsSnapshot): MobileCriticalSettings {
+export function snapshotCriticoParaPayloadRemoto(
+  snapshot: CriticalSettingsSnapshot,
+): MobileCriticalSettings {
   return {
     notificacoes: {
       notifica_respostas: snapshot.notificacoes.notificaRespostas,
@@ -90,9 +99,11 @@ export function snapshotCriticoParaPayloadRemoto(snapshot: CriticalSettingsSnaps
       emails_ativos: snapshot.notificacoes.emailsAtivos,
     },
     privacidade: {
-      mostrar_conteudo_notificacao: snapshot.privacidade.mostrarConteudoNotificacao,
+      mostrar_conteudo_notificacao:
+        snapshot.privacidade.mostrarConteudoNotificacao,
       ocultar_conteudo_bloqueado: snapshot.privacidade.ocultarConteudoBloqueado,
-      mostrar_somente_nova_mensagem: snapshot.privacidade.mostrarSomenteNovaMensagem,
+      mostrar_somente_nova_mensagem:
+        snapshot.privacidade.mostrarSomenteNovaMensagem,
       salvar_historico_conversas: snapshot.privacidade.salvarHistoricoConversas,
       compartilhar_melhoria_ia: snapshot.privacidade.compartilharMelhoriaIa,
       retencao_dados: snapshot.privacidade.retencaoDados,
@@ -114,7 +125,10 @@ export function payloadRemotoParaSnapshotCritico(
   payload: MobileCriticalSettingsResponse | MobileCriticalSettings | unknown,
 ): CriticalSettingsSnapshot {
   const padrao = criarSnapshotCriticoPadrao();
-  const raw = ehRegistro(payload) && ehRegistro(payload.settings) ? payload.settings : payload;
+  const raw =
+    ehRegistro(payload) && ehRegistro(payload.settings)
+      ? payload.settings
+      : payload;
   if (!ehRegistro(raw)) {
     return padrao;
   }
@@ -122,7 +136,9 @@ export function payloadRemotoParaSnapshotCritico(
   const notificacoes = ehRegistro(raw.notificacoes) ? raw.notificacoes : {};
   const privacidade = ehRegistro(raw.privacidade) ? raw.privacidade : {};
   const permissoes = ehRegistro(raw.permissoes) ? raw.permissoes : {};
-  const experienciaIa = ehRegistro(raw.experiencia_ia) ? raw.experiencia_ia : {};
+  const experienciaIa = ehRegistro(raw.experiencia_ia)
+    ? raw.experiencia_ia
+    : {};
 
   return {
     notificacoes: {
@@ -200,16 +216,15 @@ export function payloadRemotoParaSnapshotCritico(
       ),
     },
     experienciaIa: {
-      modeloIa: ehOpcaoValida(
-        experienciaIa.modelo_ia,
-        AI_MODEL_OPTIONS,
-      )
+      modeloIa: ehOpcaoValida(experienciaIa.modelo_ia, AI_MODEL_OPTIONS)
         ? experienciaIa.modelo_ia
         : padrao.experienciaIa.modeloIa,
     },
   };
 }
 
-export function hashSnapshotCritico(snapshot: CriticalSettingsSnapshot): string {
+export function hashSnapshotCritico(
+  snapshot: CriticalSettingsSnapshot,
+): string {
   return JSON.stringify(snapshotCriticoParaPayloadRemoto(snapshot));
 }

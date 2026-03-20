@@ -4,7 +4,10 @@ import {
   carregarConfiguracoesCriticasNoBackend,
   salvarConfiguracoesCriticasNoBackend,
 } from "./settingsBackend";
-import { hashSnapshotCritico, type CriticalSettingsSnapshot } from "./criticalSettings";
+import {
+  hashSnapshotCritico,
+  type CriticalSettingsSnapshot,
+} from "./criticalSettings";
 
 interface UseCriticalSettingsSyncArgs {
   accessToken?: string | null;
@@ -25,7 +28,9 @@ export function useCriticalSettingsSync({
   onLoadError,
   onSaveError,
 }: UseCriticalSettingsSyncArgs): void {
-  const sincronizacaoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sincronizacaoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hidratandoRef = useRef(false);
   const ultimoHashRef = useRef("");
   const snapshotAtualRef = useRef(snapshotAtual);
@@ -68,7 +73,8 @@ export function useCriticalSettingsSync({
     const hashAntesDaCarga = hashSnapshotCritico(snapshotAtualRef.current);
     void (async () => {
       try {
-        const snapshotRemoto = await carregarConfiguracoesCriticasNoBackend(accessToken);
+        const snapshotRemoto =
+          await carregarConfiguracoesCriticasNoBackend(accessToken);
         if (!ativo) {
           return;
         }
@@ -121,7 +127,10 @@ export function useCriticalSettingsSync({
     sincronizacaoTimerRef.current = setTimeout(() => {
       void (async () => {
         try {
-          const snapshotSalvo = await salvarConfiguracoesCriticasNoBackend(accessToken, snapshotAtual);
+          const snapshotSalvo = await salvarConfiguracoesCriticasNoBackend(
+            accessToken,
+            snapshotAtual,
+          );
           if (!ativo) {
             return;
           }

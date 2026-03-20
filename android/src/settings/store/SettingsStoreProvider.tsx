@@ -38,10 +38,14 @@ interface SettingsStoreContextValue {
   actions: SettingsStoreActions;
 }
 
-const SettingsStoreContext = createContext<SettingsStoreContextValue | null>(null);
+const SettingsStoreContext = createContext<SettingsStoreContextValue | null>(
+  null,
+);
 
 export function SettingsStoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppSettings>(() => createDefaultAppSettings());
+  const [state, setState] = useState<AppSettings>(() =>
+    createDefaultAppSettings(),
+  );
   const [hydrated, setHydrated] = useState(false);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,9 +82,12 @@ export function SettingsStoreProvider({ children }: { children: ReactNode }) {
     }, 250);
   }, [hydrated, state]);
 
-  const updateWith = useCallback((updater: (current: AppSettings) => AppSettings) => {
-    setState((current) => updater(current));
-  }, []);
+  const updateWith = useCallback(
+    (updater: (current: AppSettings) => AppSettings) => {
+      setState((current) => updater(current));
+    },
+    [],
+  );
 
   const actions = useMemo<SettingsStoreActions>(
     () => ({
@@ -92,31 +99,58 @@ export function SettingsStoreProvider({ children }: { children: ReactNode }) {
         setState(document.settings);
       },
       updateAppearance: (patch) => {
-        updateWith((current) => ({ ...current, appearance: { ...current.appearance, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          appearance: { ...current.appearance, ...patch },
+        }));
       },
       updateAi: (patch) => {
-        updateWith((current) => ({ ...current, ai: { ...current.ai, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          ai: { ...current.ai, ...patch },
+        }));
       },
       updateNotifications: (patch) => {
-        updateWith((current) => ({ ...current, notifications: { ...current.notifications, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          notifications: { ...current.notifications, ...patch },
+        }));
       },
       updateSpeech: (patch) => {
-        updateWith((current) => ({ ...current, speech: { ...current.speech, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          speech: { ...current.speech, ...patch },
+        }));
       },
       updateDataControls: (patch) => {
-        updateWith((current) => ({ ...current, dataControls: { ...current.dataControls, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          dataControls: { ...current.dataControls, ...patch },
+        }));
       },
       updateSystem: (patch) => {
-        updateWith((current) => ({ ...current, system: { ...current.system, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          system: { ...current.system, ...patch },
+        }));
       },
       updateAccount: (patch) => {
-        updateWith((current) => ({ ...current, account: { ...current.account, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          account: { ...current.account, ...patch },
+        }));
       },
       updateAttachments: (patch) => {
-        updateWith((current) => ({ ...current, attachments: { ...current.attachments, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          attachments: { ...current.attachments, ...patch },
+        }));
       },
       updateSecurity: (patch) => {
-        updateWith((current) => ({ ...current, security: { ...current.security, ...patch } }));
+        updateWith((current) => ({
+          ...current,
+          security: { ...current.security, ...patch },
+        }));
       },
       updateWith,
     }),
@@ -132,13 +166,19 @@ export function SettingsStoreProvider({ children }: { children: ReactNode }) {
     [actions, hydrated, state],
   );
 
-  return <SettingsStoreContext.Provider value={value}>{children}</SettingsStoreContext.Provider>;
+  return (
+    <SettingsStoreContext.Provider value={value}>
+      {children}
+    </SettingsStoreContext.Provider>
+  );
 }
 
 export function useSettingsStoreContext(): SettingsStoreContextValue {
   const context = useContext(SettingsStoreContext);
   if (!context) {
-    throw new Error("useSettingsStoreContext deve ser usado dentro de SettingsStoreProvider.");
+    throw new Error(
+      "useSettingsStoreContext deve ser usado dentro de SettingsStoreProvider.",
+    );
   }
   return context;
 }

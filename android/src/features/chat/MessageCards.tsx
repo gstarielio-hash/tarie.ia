@@ -4,7 +4,12 @@ import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { colors } from "../../theme/tokens";
 import type { MobileAttachment } from "../../types/mobile";
 import { styles } from "../InspectorMobileApp.styles";
-import { ehImagemAnexo, nomeExibicaoAnexo, tamanhoHumanoAnexo, urlAnexoAbsoluta } from "./attachmentUtils";
+import {
+  ehImagemAnexo,
+  nomeExibicaoAnexo,
+  tamanhoHumanoAnexo,
+  urlAnexoAbsoluta,
+} from "./attachmentUtils";
 
 interface MessageAttachmentCardProps {
   attachment: MobileAttachment;
@@ -23,13 +28,19 @@ export function MessageAttachmentCard({
   const absoluteUrl = urlAnexoAbsoluta(attachment.url);
   const disabled = !absoluteUrl || !accessToken || opening;
   const tamanho = tamanhoHumanoAnexo(attachment.tamanho_bytes);
-  const titulo = nomeExibicaoAnexo(attachment, imageAttachment ? "Imagem" : "Documento");
+  const titulo = nomeExibicaoAnexo(
+    attachment,
+    imageAttachment ? "Imagem" : "Documento",
+  );
 
   return (
     <Pressable
       disabled={disabled}
       onPress={() => onPress(attachment)}
-      style={[styles.messageAttachmentCard, disabled ? styles.messageAttachmentCardDisabled : null]}
+      style={[
+        styles.messageAttachmentCard,
+        disabled ? styles.messageAttachmentCardDisabled : null,
+      ]}
     >
       {imageAttachment && absoluteUrl && accessToken ? (
         <Image
@@ -66,7 +77,13 @@ export function MessageAttachmentCard({
           <ActivityIndicator size="small" color={colors.accent} />
         ) : (
           <MaterialCommunityIcons
-            name={disabled ? "lock-outline" : imageAttachment ? "image-search-outline" : "download-outline"}
+            name={
+              disabled
+                ? "lock-outline"
+                : imageAttachment
+                  ? "image-search-outline"
+                  : "download-outline"
+            }
             size={18}
             color={disabled ? colors.textSecondary : colors.accent}
           />

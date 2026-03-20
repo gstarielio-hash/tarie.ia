@@ -2,7 +2,14 @@ const { existsSync, readFileSync, writeFileSync } = require("fs");
 const path = require("path");
 
 function fixAndroidLauncherIcon(projectRoot) {
-  const manifestPath = path.join(projectRoot, "android", "app", "src", "main", "AndroidManifest.xml");
+  const manifestPath = path.join(
+    projectRoot,
+    "android",
+    "app",
+    "src",
+    "main",
+    "AndroidManifest.xml",
+  );
 
   if (!existsSync(manifestPath)) {
     return false;

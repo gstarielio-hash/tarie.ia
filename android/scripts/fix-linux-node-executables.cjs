@@ -38,10 +38,21 @@ function fixLinuxNodeExecutables(projectRoot) {
     }
   }
 
-  appendIfFile(candidates, path.join(projectRoot, "node_modules", "typescript", "bin", "tsc"));
-  appendIfFile(candidates, path.join(projectRoot, "node_modules", "typescript", "bin", "tsserver"));
+  appendIfFile(
+    candidates,
+    path.join(projectRoot, "node_modules", "typescript", "bin", "tsc"),
+  );
+  appendIfFile(
+    candidates,
+    path.join(projectRoot, "node_modules", "typescript", "bin", "tsserver"),
+  );
 
-  const dotslashRoot = path.join(projectRoot, "node_modules", "fb-dotslash", "bin");
+  const dotslashRoot = path.join(
+    projectRoot,
+    "node_modules",
+    "fb-dotslash",
+    "bin",
+  );
   appendIfFile(candidates, path.join(dotslashRoot, "dotslash"));
   if (existsSync(dotslashRoot)) {
     for (const entry of readdirSync(dotslashRoot)) {

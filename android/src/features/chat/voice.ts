@@ -30,7 +30,11 @@ export async function loadVoiceRuntimeState(
     const voices = await Speech.getAvailableVoicesAsync();
     const locale = mapSpeechLanguageToLocale(preferredLanguage);
     const filteredVoices = locale
-      ? voices.filter((voice) => String(voice.language || "").toLowerCase().startsWith(locale.slice(0, 2).toLowerCase()))
+      ? voices.filter((voice) =>
+          String(voice.language || "")
+            .toLowerCase()
+            .startsWith(locale.slice(0, 2).toLowerCase()),
+        )
       : voices;
     return {
       voices: filteredVoices,
@@ -83,7 +87,8 @@ export function buildVoiceInputUnavailableMessage(
   language: AppSettings["speech"]["voiceLanguage"],
 ): string {
   const idioma =
-    language === "Sistema" ? "o idioma atual do sistema" : `o idioma ${language}`;
+    language === "Sistema"
+      ? "o idioma atual do sistema"
+      : `o idioma ${language}`;
   return `Ditado nativo ainda depende de um módulo de STT nesta build. Use o teclado por voz do sistema com ${idioma}.`;
 }
-

@@ -1,5 +1,11 @@
 import type { ComponentProps } from "react";
-import { Animated, ScrollView, Text, View, type GestureResponderHandlers } from "react-native";
+import {
+  Animated,
+  ScrollView,
+  Text,
+  View,
+  type GestureResponderHandlers,
+} from "react-native";
 
 import { styles } from "../InspectorMobileApp.styles";
 import { SettingsAccountSectionContent } from "./SettingsAccountSectionContent";
@@ -35,7 +41,10 @@ import {
   SettingsSupportSection,
   SettingsSystemSection,
 } from "./SettingsSystemSupportSections";
-import type { SettingsDrawerPage, SettingsSectionKey } from "./settingsNavigationMeta";
+import type {
+  SettingsDrawerPage,
+  SettingsSectionKey,
+} from "./settingsNavigationMeta";
 
 export interface SettingsDrawerPanelProps {
   settingsDrawerPanHandlers: GestureResponderHandlers;
@@ -48,8 +57,13 @@ export interface SettingsDrawerPanelProps {
   settingsDrawerPage: SettingsDrawerPage;
   settingsDrawerPageSections: readonly SettingsSectionKey[];
   settingsDrawerSectionMenuAtiva: boolean;
-  settingsDrawerMatchesPage: (page: Exclude<SettingsDrawerPage, "overview">) => boolean;
-  settingsDrawerMatchesSection: (page: Exclude<SettingsDrawerPage, "overview">, section: SettingsSectionKey) => boolean;
+  settingsDrawerMatchesPage: (
+    page: Exclude<SettingsDrawerPage, "overview">,
+  ) => boolean;
+  settingsDrawerMatchesSection: (
+    page: Exclude<SettingsDrawerPage, "overview">,
+    section: SettingsSectionKey,
+  ) => boolean;
   mostrarGrupoContaAcesso: boolean;
   mostrarGrupoExperiencia: boolean;
   mostrarGrupoSeguranca: boolean;
@@ -60,23 +74,55 @@ export interface SettingsDrawerPanelProps {
     ComponentProps<typeof SettingsSectionMenuContent>,
     "settingsDrawerPage" | "settingsDrawerPageSections"
   >;
-  priorityActionsContentProps: ComponentProps<typeof SettingsPriorityActionsContent>;
-  accountSectionContentProps: ComponentProps<typeof SettingsAccountSectionContent>;
+  priorityActionsContentProps: ComponentProps<
+    typeof SettingsPriorityActionsContent
+  >;
+  accountSectionContentProps: ComponentProps<
+    typeof SettingsAccountSectionContent
+  >;
   experienceAiSectionProps: ComponentProps<typeof SettingsExperienceAiSection>;
-  experienceAppearanceSectionProps: ComponentProps<typeof SettingsExperienceAppearanceSection>;
-  experienceNotificationsSectionProps: ComponentProps<typeof SettingsExperienceNotificationsSection>;
-  securityConnectedAccountsSectionProps: ComponentProps<typeof SettingsSecurityConnectedAccountsSection>;
-  securitySessionsSectionProps: ComponentProps<typeof SettingsSecuritySessionsSection>;
-  securityTwoFactorSectionProps: ComponentProps<typeof SettingsSecurityTwoFactorSection>;
-  securityDeviceProtectionSectionProps: ComponentProps<typeof SettingsSecurityDeviceProtectionSection>;
-  securityIdentityVerificationSectionProps: ComponentProps<typeof SettingsSecurityIdentityVerificationSection>;
-  securityActivitySectionProps: ComponentProps<typeof SettingsSecurityActivitySection>;
-  securityDataConversationsSectionProps: ComponentProps<typeof SettingsSecurityDataConversationsSection>;
-  securityPermissionsSectionProps: ComponentProps<typeof SettingsSecurityPermissionsSection>;
-  securityFileUploadSectionProps: ComponentProps<typeof SettingsSecurityFileUploadSection>;
-  securityNotificationPrivacySectionProps: ComponentProps<typeof SettingsSecurityNotificationPrivacySection>;
-  securityDeleteAccountSectionProps: ComponentProps<typeof SettingsSecurityDeleteAccountSection>;
-  advancedResourcesSectionProps: ComponentProps<typeof SettingsAdvancedResourcesSection>;
+  experienceAppearanceSectionProps: ComponentProps<
+    typeof SettingsExperienceAppearanceSection
+  >;
+  experienceNotificationsSectionProps: ComponentProps<
+    typeof SettingsExperienceNotificationsSection
+  >;
+  securityConnectedAccountsSectionProps: ComponentProps<
+    typeof SettingsSecurityConnectedAccountsSection
+  >;
+  securitySessionsSectionProps: ComponentProps<
+    typeof SettingsSecuritySessionsSection
+  >;
+  securityTwoFactorSectionProps: ComponentProps<
+    typeof SettingsSecurityTwoFactorSection
+  >;
+  securityDeviceProtectionSectionProps: ComponentProps<
+    typeof SettingsSecurityDeviceProtectionSection
+  >;
+  securityIdentityVerificationSectionProps: ComponentProps<
+    typeof SettingsSecurityIdentityVerificationSection
+  >;
+  securityActivitySectionProps: ComponentProps<
+    typeof SettingsSecurityActivitySection
+  >;
+  securityDataConversationsSectionProps: ComponentProps<
+    typeof SettingsSecurityDataConversationsSection
+  >;
+  securityPermissionsSectionProps: ComponentProps<
+    typeof SettingsSecurityPermissionsSection
+  >;
+  securityFileUploadSectionProps: ComponentProps<
+    typeof SettingsSecurityFileUploadSection
+  >;
+  securityNotificationPrivacySectionProps: ComponentProps<
+    typeof SettingsSecurityNotificationPrivacySection
+  >;
+  securityDeleteAccountSectionProps: ComponentProps<
+    typeof SettingsSecurityDeleteAccountSection
+  >;
+  advancedResourcesSectionProps: ComponentProps<
+    typeof SettingsAdvancedResourcesSection
+  >;
   systemSectionProps: ComponentProps<typeof SettingsSystemSection>;
   supportSectionProps: ComponentProps<typeof SettingsSupportSection>;
 }
@@ -92,12 +138,7 @@ export function SettingsDrawerPanel({
   settingsDrawerPage,
   settingsDrawerPageSections,
   settingsDrawerSectionMenuAtiva,
-  settingsDrawerMatchesPage,
   settingsDrawerMatchesSection,
-  mostrarGrupoContaAcesso,
-  mostrarGrupoExperiencia,
-  mostrarGrupoSeguranca,
-  mostrarGrupoSistema,
   totalSecoesConfiguracaoVisiveis,
   overviewContentProps,
   sectionMenuContentProps,
@@ -121,7 +162,8 @@ export function SettingsDrawerPanel({
   systemSectionProps,
   supportSectionProps,
 }: SettingsDrawerPanelProps) {
-  const hideInnerSectionHeaders = !settingsDrawerInOverview && !settingsDrawerSectionMenuAtiva;
+  const hideInnerSectionHeaders =
+    !settingsDrawerInOverview && !settingsDrawerSectionMenuAtiva;
   return (
     <Animated.View
       {...settingsDrawerPanHandlers}
@@ -129,7 +171,9 @@ export function SettingsDrawerPanel({
         styles.sidePanelDrawer,
         styles.sidePanelDrawerRight,
         settingsDrawerInOverview ? styles.sidePanelDrawerPrint : null,
-        settingsDrawerInOverview && settingsPrintDarkMode ? styles.sidePanelDrawerPrintDark : null,
+        settingsDrawerInOverview && settingsPrintDarkMode
+          ? styles.sidePanelDrawerPrintDark
+          : null,
         { transform: [{ translateX: configuracoesDrawerX }] },
       ]}
       testID="settings-drawer"
@@ -147,7 +191,9 @@ export function SettingsDrawerPanel({
         showsVerticalScrollIndicator={false}
       >
         <SettingsSectionLayoutProvider hideHeader={hideInnerSectionHeaders}>
-          {settingsDrawerInOverview ? <SettingsOverviewContent {...overviewContentProps} /> : null}
+          {settingsDrawerInOverview ? (
+            <SettingsOverviewContent {...overviewContentProps} />
+          ) : null}
 
           {!settingsDrawerInOverview && settingsDrawerSectionMenuAtiva ? (
             <SettingsSectionMenuContent
@@ -170,59 +216,96 @@ export function SettingsDrawerPanel({
           ) : null}
 
           {settingsDrawerMatchesSection("experiencia", "aparencia") ? (
-            <SettingsExperienceAppearanceSection {...experienceAppearanceSectionProps} />
+            <SettingsExperienceAppearanceSection
+              {...experienceAppearanceSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("experiencia", "notificacoes") ? (
-            <SettingsExperienceNotificationsSection {...experienceNotificationsSectionProps} />
+            <SettingsExperienceNotificationsSection
+              {...experienceNotificationsSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "contasConectadas") ? (
-            <SettingsSecurityConnectedAccountsSection {...securityConnectedAccountsSectionProps} />
+            <SettingsSecurityConnectedAccountsSection
+              {...securityConnectedAccountsSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "sessoes") ? (
-            <SettingsSecuritySessionsSection {...securitySessionsSectionProps} />
+            <SettingsSecuritySessionsSection
+              {...securitySessionsSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "twofa") ? (
-            <SettingsSecurityTwoFactorSection {...securityTwoFactorSectionProps} />
+            <SettingsSecurityTwoFactorSection
+              {...securityTwoFactorSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "protecaoDispositivo") ? (
-            <SettingsSecurityDeviceProtectionSection {...securityDeviceProtectionSectionProps} />
+            <SettingsSecurityDeviceProtectionSection
+              {...securityDeviceProtectionSectionProps}
+            />
           ) : null}
 
-          {settingsDrawerMatchesSection("seguranca", "verificacaoIdentidade") ? (
-            <SettingsSecurityIdentityVerificationSection {...securityIdentityVerificationSectionProps} />
+          {settingsDrawerMatchesSection(
+            "seguranca",
+            "verificacaoIdentidade",
+          ) ? (
+            <SettingsSecurityIdentityVerificationSection
+              {...securityIdentityVerificationSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "atividadeSeguranca") ? (
-            <SettingsSecurityActivitySection {...securityActivitySectionProps} />
+            <SettingsSecurityActivitySection
+              {...securityActivitySectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "dadosConversas") ? (
-            <SettingsSecurityDataConversationsSection {...securityDataConversationsSectionProps} />
+            <SettingsSecurityDataConversationsSection
+              {...securityDataConversationsSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "permissoes") ? (
-            <SettingsSecurityPermissionsSection {...securityPermissionsSectionProps} />
+            <SettingsSecurityPermissionsSection
+              {...securityPermissionsSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "segurancaArquivos") ? (
-            <SettingsSecurityFileUploadSection {...securityFileUploadSectionProps} />
+            <SettingsSecurityFileUploadSection
+              {...securityFileUploadSectionProps}
+            />
           ) : null}
 
-          {settingsDrawerMatchesSection("seguranca", "privacidadeNotificacoes") ? (
-            <SettingsSecurityNotificationPrivacySection {...securityNotificationPrivacySectionProps} />
+          {settingsDrawerMatchesSection(
+            "seguranca",
+            "privacidadeNotificacoes",
+          ) ? (
+            <SettingsSecurityNotificationPrivacySection
+              {...securityNotificationPrivacySectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("seguranca", "excluirConta") ? (
-            <SettingsSecurityDeleteAccountSection {...securityDeleteAccountSectionProps} />
+            <SettingsSecurityDeleteAccountSection
+              {...securityDeleteAccountSectionProps}
+            />
           ) : null}
 
-          {settingsDrawerMatchesSection("sistemaSuporte", "recursosAvancados") ? (
-            <SettingsAdvancedResourcesSection {...advancedResourcesSectionProps} />
+          {settingsDrawerMatchesSection(
+            "sistemaSuporte",
+            "recursosAvancados",
+          ) ? (
+            <SettingsAdvancedResourcesSection
+              {...advancedResourcesSectionProps}
+            />
           ) : null}
 
           {settingsDrawerMatchesSection("sistemaSuporte", "sistema") ? (
@@ -235,9 +318,12 @@ export function SettingsDrawerPanel({
 
           {!totalSecoesConfiguracaoVisiveis ? (
             <View style={styles.settingsInfoCard}>
-              <Text style={styles.settingsInfoTitle}>Nenhuma seção encontrada</Text>
+              <Text style={styles.settingsInfoTitle}>
+                Nenhuma seção encontrada
+              </Text>
               <Text style={styles.settingsInfoText}>
-                Ajuste a busca ou troque o filtro para localizar o bloco certo mais rápido.
+                Ajuste a busca ou troque o filtro para localizar o bloco certo
+                mais rápido.
               </Text>
             </View>
           ) : null}

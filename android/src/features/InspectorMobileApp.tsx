@@ -1,57 +1,23 @@
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
-import * as SecureStore from "expo-secure-store";
 import * as Sharing from "expo-sharing";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
-  Animated,
-  AppState,
-  type AppStateStatus,
-  Easing,
   Keyboard,
   Linking,
-  PanResponder,
   Platform,
-  Pressable,
   ScrollView,
-  Text,
   TextInput,
   useColorScheme,
-  Vibration,
-  View,
 } from "react-native";
 
-import {
-  API_BASE_URL,
-  carregarBootstrapMobile,
-  carregarLaudosMobile,
-  carregarMensagensLaudo,
-  carregarMensagensMesaMobile,
-  carregarStatusLaudo,
-  enviarAnexoMesaMobile,
-  enviarMensagemMesaMobile,
-  enviarMensagemChatMobile,
-  loginInspectorMobile,
-  logoutInspectorMobile,
-  obterUrlLoginSocialMobile,
-  obterUrlRecuperacaoSenhaMobile,
-  pingApi,
-  reabrirLaudoMobile,
-  uploadDocumentoChatMobile,
-} from "../config/api";
-import {
-  configureObservability,
-  listarEventosObservabilidade,
-  registrarEventoObservabilidade,
-  resumirEventosObservabilidade,
-} from "../config/observability";
+import { API_BASE_URL, pingApi } from "../config/api";
+import { configureObservability } from "../config/observability";
 import { configureCrashReports } from "../config/crashReports";
 import type {
-  ApiHealthStatus,
   MobileAttachment,
   MobileBootstrapResponse,
   MobileChatMessage,
@@ -68,102 +34,82 @@ import {
   AI_MODEL_OPTIONS,
   APP_BUILD_CHANNEL,
   APP_LANGUAGE_OPTIONS,
-  APP_PREFERENCES_FILE,
-  APP_VERSION_LABEL,
   BATTERY_OPTIONS,
   CONVERSATION_TONE_OPTIONS,
   DATA_RETENTION_OPTIONS,
   DENSITY_OPTIONS,
-  EMAIL_KEY,
-  EXTERNAL_INTEGRATION_OPTIONS,
   FONT_SIZE_OPTIONS,
-  HELP_CENTER_ARTICLES,
   HISTORY_UI_STATE_FILE,
   HISTORY_DRAWER_FILTERS,
-  HISTORY_PANEL_CLOSED_X,
-  LICENSES_CATALOG,
   LOCK_TIMEOUT_OPTIONS,
   MAX_NOTIFICATIONS,
   NOTIFICATIONS_FILE,
   NOTIFICATION_SOUND_OPTIONS,
   OFFLINE_QUEUE_FILE,
-  PANEL_ANIMATION_DURATION,
-  PANEL_CLOSE_SWIPE_THRESHOLD,
-  PANEL_EDGE_GESTURE_WIDTH,
-  PANEL_OPEN_SWIPE_THRESHOLD,
-  PAYMENT_CARD_OPTIONS,
-  PLAN_OPTIONS,
   READ_CACHE_FILE,
   REGION_OPTIONS,
   RESPONSE_LANGUAGE_OPTIONS,
   RESPONSE_STYLE_OPTIONS,
-  SCREEN_WIDTH,
-  SECURITY_EVENT_FILTERS,
   SETTINGS_DRAWER_FILTERS,
-  SETTINGS_PANEL_CLOSED_X,
-  TARIEL_APP_MARK,
-  TEMPERATURE_STEPS,
-  TERMS_OF_USE_SECTIONS,
   THEME_OPTIONS,
-  TOKEN_KEY,
-  TWO_FACTOR_METHOD_OPTIONS,
-  UPDATE_CHANGELOG,
 } from "./InspectorMobileApp.constants";
-import { styles } from "./InspectorMobileApp.styles";
-import { runMonitorActivityFlow } from "./activity/monitorActivityFlow";
+import { useActivityCenterController } from "./activity/useActivityCenterController";
 import { buildLoginScreenProps } from "./auth/buildLoginScreenProps";
 import { LoginScreen } from "./auth/LoginScreen";
-import {
-  capturarImagemRascunhoFlow,
-  selecionarDocumentoRascunhoFlow,
-  selecionarImagemRascunhoFlow,
-} from "./chat/attachmentDraftFlows";
+import { useExternalAccessActions } from "./auth/useExternalAccessActions";
 import { buildAttachmentHandlingPolicy } from "./chat/attachments";
 import { buildThreadContextState } from "./chat/buildThreadContextState";
-import { ehImagemAnexo, nomeExibicaoAnexo, urlAnexoAbsoluta } from "./chat/attachmentUtils";
-import { sendInspectorMessageFlow, sendMesaMessageFlow } from "./chat/messageSendFlows";
-import {
-  initializeNotificationsRuntime,
-  scheduleLocalActivityNotification,
-  syncNotificationChannels,
-} from "./chat/notifications";
+import { nomeExibicaoAnexo } from "./chat/attachmentUtils";
 import {
   buildChatAiRequestConfig,
   describeChatAiBehaviorChange,
 } from "./chat/preferences";
-import { canSyncOnCurrentNetwork, gateHeavyTransfer, readNetworkSnapshot } from "./chat/network";
+import { canSyncOnCurrentNetwork } from "./chat/network";
+import { useAttachmentController } from "./chat/useAttachmentController";
+import { useVoiceInputController } from "./chat/useVoiceInputController";
 import {
   buildVoiceInputUnavailableMessage,
   loadVoiceRuntimeState,
-  speakAssistantResponse,
-  stopSpeechPlayback,
 } from "./chat/voice";
-import { runBootstrapAppFlow } from "./bootstrap/runBootstrapAppFlow";
+import { useInspectorChatController } from "./chat/useInspectorChatController";
+import type { MessageReferenceState } from "./chat/types";
+import { buildAuthenticatedLayoutInput } from "./common/buildAuthenticatedLayoutInput";
 import { buildAuthenticatedLayoutProps } from "./common/buildAuthenticatedLayoutProps";
 import { buildInspectorBaseDerivedState } from "./common/buildInspectorBaseDerivedState";
+import { buildInspectorBaseDerivedStateInput } from "./common/buildInspectorBaseDerivedStateInput";
+import { buildInspectorSessionModalsInput } from "./common/buildInspectorSessionModalsInput";
 import { buildInspectorSessionModalsStackProps } from "./common/buildInspectorSessionModalsStackProps";
+import { buildRefreshAction } from "./common/buildRefreshAction";
+import { useSidePanelsController } from "./common/useSidePanelsController";
+import { useHistoryController } from "./history/useHistoryController";
+import { useMesaController } from "./mesa/useMesaController";
+import { useOfflineQueueController } from "./offline/useOfflineQueueController";
+import { useAppLockController } from "./security/useAppLockController";
+import { useSecurityEventLog } from "./security/useSecurityEventLog";
 import {
   atualizarPerfilContaNoBackend,
   atualizarSenhaContaNoBackend,
   enviarFotoPerfilNoBackend,
   enviarRelatoSuporteNoBackend,
-  mapearUsuarioParaPerfilConta,
 } from "./settings/settingsBackend";
-import type { PerfilContaSincronizado } from "./settings/settingsBackend";
-import type { CriticalSettingsSnapshot } from "./settings/criticalSettings";
-import { renderSettingsSheetBodyContent } from "./settings/SettingsSheetBodyContent";
+import { buildAccountDeletionAction } from "./settings/buildAccountDeletionAction";
+import { buildSettingsConfirmAndExportActions } from "./settings/buildSettingsConfirmAndExportActions";
+import { buildInspectorSettingsDrawerInput } from "./settings/buildInspectorSettingsDrawerInput";
 import { buildInspectorSettingsDrawerPanelProps } from "./settings/buildInspectorSettingsDrawerPanelProps";
-import { runExportDataFlow } from "./settings/exportDataFlow";
-import { handleConfirmSheetAction } from "./settings/settingsConfirmActions";
-import { handleSettingsSheetConfirmDelegated } from "./settings/settingsSheetConfirmActions";
-import type { ConfirmSheetState, SettingsSheetState } from "./settings/settingsSheetTypes";
+import { buildSettingsSheetBodyRenderer } from "./settings/buildSettingsSheetBodyRenderer";
+import { buildSettingsSheetConfirmAction } from "./settings/buildSettingsSheetConfirmAction";
 import {
-  type SettingsDrawerPage,
-  type SettingsSectionKey,
-} from "./settings/settingsNavigationMeta";
+  formatarStatusReautenticacao,
+  reautenticacaoAindaValida,
+} from "./settings/reauth";
+import { useSettingsEntryActions } from "./settings/useSettingsEntryActions";
+import { useSettingsNavigation } from "./settings/useSettingsNavigation";
+import { useSettingsOperationsActions } from "./settings/useSettingsOperationsActions";
+import { useSettingsPresentation } from "./settings/useSettingsPresentation";
+import { useSettingsReauthActions } from "./settings/useSettingsReauthActions";
+import { useSettingsSecurityActions } from "./settings/useSettingsSecurityActions";
+import { useSettingsToggleActions } from "./settings/useSettingsToggleActions";
 import { useCriticalSettingsSync } from "./settings/useCriticalSettingsSync";
-import { clearLocalCache } from "./system/cacheControl";
-import { readDevicePermissionSnapshot, requestDevicePermission } from "./system/permissions";
 import { getInstalledAppRuntimeInfo } from "./system/runtime";
 import { InspectorAuthenticatedLayout } from "./InspectorAuthenticatedLayout";
 import {
@@ -172,23 +118,7 @@ import {
   settingsToCriticalSnapshot,
   useSettingsStore,
 } from "../settings";
-
-function pushSettingsNavigationState(
-  historyRef: { current: SettingsNavigationState[] },
-  state: SettingsNavigationState,
-): void {
-  const history = historyRef.current;
-  const last = history[history.length - 1];
-  if (last && last.page === state.page && last.section === state.section) {
-    return;
-  }
-  history.push(state);
-}
-
-interface MobileSessionState {
-  accessToken: string;
-  bootstrap: MobileBootstrapResponse;
-}
+import { useInspectorSession } from "./session/useInspectorSession";
 
 interface ChatState {
   laudoId: number | null;
@@ -240,11 +170,6 @@ interface AttachmentPreviewState {
   uri: string;
 }
 
-interface MessageReferenceState {
-  id: number;
-  texto: string;
-}
-
 interface OfflinePendingMessage {
   id: string;
   channel: "chat" | "mesa";
@@ -265,7 +190,13 @@ interface OfflinePendingMessage {
 
 interface MobileActivityNotification {
   id: string;
-  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta" | "system" | "alerta_critico";
+  kind:
+    | "status"
+    | "mesa_nova"
+    | "mesa_resolvida"
+    | "mesa_reaberta"
+    | "system"
+    | "alerta_critico";
   laudoId: number | null;
   title: string;
   body: string;
@@ -287,68 +218,11 @@ interface MobileReadCache {
   updatedAt: string;
 }
 
-type ConnectedProviderId = "google" | "apple" | "microsoft";
-type ExternalIntegrationId = (typeof EXTERNAL_INTEGRATION_OPTIONS)[number]["id"];
-type SecurityEventFilter = (typeof SECURITY_EVENT_FILTERS)[number];
 type SettingsDrawerFilter = (typeof SETTINGS_DRAWER_FILTERS)[number]["key"];
-
-interface ConnectedProvider {
-  id: ConnectedProviderId;
-  label: string;
-  email: string;
-  connected: boolean;
-  requiresReauth: boolean;
-}
-
-interface ExternalIntegration {
-  id: ExternalIntegrationId;
-  label: string;
-  description: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  connected: boolean;
-  lastSyncAt: string;
-}
-
-interface SessionDevice {
-  id: string;
-  title: string;
-  meta: string;
-  location: string;
-  lastSeen: string;
-  current: boolean;
-  suspicious?: boolean;
-}
-
-interface SecurityEventItem {
-  id: string;
-  title: string;
-  meta: string;
-  status: string;
-  type: "login" | "provider" | "2fa" | "data" | "session";
-  critical?: boolean;
-}
-
-interface SupportQueueItem {
-  id: string;
-  kind: "bug" | "feedback";
-  title: string;
-  body: string;
-  email: string;
-  createdAt: string;
-  status: string;
-  attachmentLabel?: string;
-  attachmentUri?: string;
-  attachmentKind?: "image" | "document";
-}
 
 interface LocalHistoryUiState {
   laudosFixadosIds: number[];
   historicoOcultoIds: number[];
-}
-
-interface SettingsNavigationState {
-  page: SettingsDrawerPage;
-  section: SettingsSectionKey | "all";
 }
 
 const CACHE_LEITURA_VAZIO: MobileReadCache = {
@@ -372,15 +246,9 @@ interface HistorySection {
 
 const historySectionOrder = ["today", "yesterday", "week", "older"] as const;
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
-  const currentIndex = options.indexOf(current);
-  if (currentIndex === -1) {
-    return options[0];
-  }
-  return options[(currentIndex + 1) % options.length];
-}
-
-function filtrarThreadContextChips(items: Array<ThreadContextChipItem | null>): ThreadContextChipItem[] {
+function filtrarThreadContextChips(
+  items: Array<ThreadContextChipItem | null>,
+): ThreadContextChipItem[] {
   return items.filter((item): item is ThreadContextChipItem => item !== null);
 }
 
@@ -390,13 +258,18 @@ function startOfDay(date: Date): number {
   return clone.getTime();
 }
 
-function getHistorySectionKey(dataIso: string, referencia = new Date()): (typeof historySectionOrder)[number] {
+function getHistorySectionKey(
+  dataIso: string,
+  referencia = new Date(),
+): (typeof historySectionOrder)[number] {
   const alvo = new Date(dataIso);
   if (Number.isNaN(alvo.getTime())) {
     return "older";
   }
 
-  const diffDays = Math.floor((startOfDay(referencia) - startOfDay(alvo)) / 86_400_000);
+  const diffDays = Math.floor(
+    (startOfDay(referencia) - startOfDay(alvo)) / 86_400_000,
+  );
 
   if (diffDays <= 0) {
     return "today";
@@ -410,7 +283,9 @@ function getHistorySectionKey(dataIso: string, referencia = new Date()): (typeof
   return "older";
 }
 
-function getHistorySectionLabel(key: (typeof historySectionOrder)[number]): string {
+function getHistorySectionLabel(
+  key: (typeof historySectionOrder)[number],
+): string {
   switch (key) {
     case "today":
       return "Hoje";
@@ -426,7 +301,10 @@ function getHistorySectionLabel(key: (typeof historySectionOrder)[number]): stri
 function buildHistorySections(items: MobileLaudoCard[]): HistorySection[] {
   const fixados = items.filter((item) => item.pinado);
   const restantes = items.filter((item) => !item.pinado);
-  const buckets = new Map<(typeof historySectionOrder)[number], MobileLaudoCard[]>();
+  const buckets = new Map<
+    (typeof historySectionOrder)[number],
+    MobileLaudoCard[]
+  >();
   for (const item of restantes) {
     const key = getHistorySectionKey(item.data_iso);
     const current = buckets.get(key) || [];
@@ -443,7 +321,10 @@ function buildHistorySections(items: MobileLaudoCard[]): HistorySection[] {
     .filter((section) => section.items.length > 0);
 
   return fixados.length
-    ? [{ key: "pinned", title: "Fixadas", items: fixados }, ...secoesCronologicas]
+    ? [
+        { key: "pinned", title: "Fixadas", items: fixados },
+        ...secoesCronologicas,
+      ]
     : secoesCronologicas;
 }
 
@@ -463,16 +344,15 @@ function aplicarPreferenciasLaudos(
     }));
 }
 
-function atualizarResumoLaudoAtual<T extends {
-  estado: MobileEstadoLaudo | string;
-  permite_edicao: boolean;
-  permite_reabrir: boolean;
-  laudo_card: MobileLaudoCard | null;
-  modo?: MobileChatMode | string;
-}>(
-  estadoAtual: ChatState | null,
-  payload: T,
-): ChatState | null {
+function atualizarResumoLaudoAtual<
+  T extends {
+    estado: MobileEstadoLaudo | string;
+    permite_edicao: boolean;
+    permite_reabrir: boolean;
+    laudo_card: MobileLaudoCard | null;
+    modo?: MobileChatMode | string;
+  },
+>(estadoAtual: ChatState | null, payload: T): ChatState | null {
   if (!estadoAtual) {
     return estadoAtual;
   }
@@ -484,33 +364,11 @@ function atualizarResumoLaudoAtual<T extends {
     permiteEdicao: Boolean(payload.permite_edicao),
     permiteReabrir: Boolean(payload.permite_reabrir),
     laudoCard: payload.laudo_card || estadoAtual.laudoCard,
-    modo: normalizarModoChat(payload.modo, normalizarModoChat(estadoAtual.modo)),
+    modo: normalizarModoChat(
+      payload.modo,
+      normalizarModoChat(estadoAtual.modo),
+    ),
   };
-}
-
-async function obterItemSeguro(chave: string): Promise<string | null> {
-  try {
-    return await SecureStore.getItemAsync(chave);
-  } catch (error) {
-    console.warn(`Falha ao ler SecureStore (${chave})`, error);
-    return null;
-  }
-}
-
-async function salvarItemSeguro(chave: string, valor: string): Promise<void> {
-  try {
-    await SecureStore.setItemAsync(chave, valor);
-  } catch (error) {
-    console.warn(`Falha ao salvar SecureStore (${chave})`, error);
-  }
-}
-
-async function removerItemSeguro(chave: string): Promise<void> {
-  try {
-    await SecureStore.deleteItemAsync(chave);
-  } catch (error) {
-    console.warn(`Falha ao remover SecureStore (${chave})`, error);
-  }
 }
 
 async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
@@ -524,17 +382,25 @@ async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
       .filter((item) => item && typeof item === "object")
       .map((item) => {
         const registro = item as Record<string, unknown>;
-        const channel: OfflinePendingMessage["channel"] = registro.channel === "mesa" ? "mesa" : "chat";
+        const channel: OfflinePendingMessage["channel"] =
+          registro.channel === "mesa" ? "mesa" : "chat";
         return {
           id: String(registro.id || ""),
           channel,
-          laudoId: typeof registro.laudoId === "number" ? registro.laudoId : null,
+          laudoId:
+            typeof registro.laudoId === "number" ? registro.laudoId : null,
           text: String(registro.text || "").trim(),
           createdAt: String(registro.createdAt || ""),
           title: String(registro.title || "").trim() || "Mensagem pendente",
           attachment: normalizarComposerAttachment(registro.attachment),
-          referenceMessageId: typeof registro.referenceMessageId === "number" ? registro.referenceMessageId : null,
-          attempts: typeof registro.attempts === "number" ? Math.max(0, registro.attempts) : 0,
+          referenceMessageId:
+            typeof registro.referenceMessageId === "number"
+              ? registro.referenceMessageId
+              : null,
+          attempts:
+            typeof registro.attempts === "number"
+              ? Math.max(0, registro.attempts)
+              : 0,
           lastAttemptAt: String(registro.lastAttemptAt || ""),
           lastError: String(registro.lastError || "").trim(),
           nextRetryAt: String(registro.nextRetryAt || ""),
@@ -549,13 +415,18 @@ async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
   }
 }
 
-async function salvarFilaOfflineLocal(fila: OfflinePendingMessage[]): Promise<void> {
+async function salvarFilaOfflineLocal(
+  fila: OfflinePendingMessage[],
+): Promise<void> {
   try {
     if (!fila.length) {
       await FileSystem.deleteAsync(OFFLINE_QUEUE_FILE, { idempotent: true });
       return;
     }
-    await FileSystem.writeAsStringAsync(OFFLINE_QUEUE_FILE, JSON.stringify(fila));
+    await FileSystem.writeAsStringAsync(
+      OFFLINE_QUEUE_FILE,
+      JSON.stringify(fila),
+    );
   } catch (error) {
     console.warn("Falha ao salvar fila offline local.", error);
   }
@@ -580,10 +451,12 @@ async function lerNotificacoesLocais(): Promise<MobileActivityNotification[]> {
             registro.kind === "mesa_reaberta"
               ? registro.kind
               : "status",
-          laudoId: typeof registro.laudoId === "number" ? registro.laudoId : null,
+          laudoId:
+            typeof registro.laudoId === "number" ? registro.laudoId : null,
           title: String(registro.title || "").trim() || "Atividade do inspetor",
           body: String(registro.body || "").trim(),
-          createdAt: String(registro.createdAt || "") || new Date().toISOString(),
+          createdAt:
+            String(registro.createdAt || "") || new Date().toISOString(),
           unread: Boolean(registro.unread),
           targetThread: registro.targetThread === "mesa" ? "mesa" : "chat",
         } as MobileActivityNotification;
@@ -594,13 +467,18 @@ async function lerNotificacoesLocais(): Promise<MobileActivityNotification[]> {
   }
 }
 
-async function salvarNotificacoesLocais(notificacoes: MobileActivityNotification[]): Promise<void> {
+async function salvarNotificacoesLocais(
+  notificacoes: MobileActivityNotification[],
+): Promise<void> {
   try {
     if (!notificacoes.length) {
       await FileSystem.deleteAsync(NOTIFICATIONS_FILE, { idempotent: true });
       return;
     }
-    await FileSystem.writeAsStringAsync(NOTIFICATIONS_FILE, JSON.stringify(notificacoes));
+    await FileSystem.writeAsStringAsync(
+      NOTIFICATIONS_FILE,
+      JSON.stringify(notificacoes),
+    );
   } catch (error) {
     console.warn("Falha ao salvar a central de atividade local.", error);
   }
@@ -614,17 +492,23 @@ function chaveRascunho(thread: ActiveThread, laudoId: number | null): string {
   return `${thread}:${chaveCacheLaudo(laudoId)}`;
 }
 
-function normalizarComposerAttachment(payload: unknown): ComposerAttachment | null {
+function normalizarComposerAttachment(
+  payload: unknown,
+): ComposerAttachment | null {
   if (!payload || typeof payload !== "object") {
     return null;
   }
 
   const registro = payload as Record<string, unknown>;
   if (registro.kind === "image") {
-    const dadosImagem = typeof registro.dadosImagem === "string" ? registro.dadosImagem : "";
-    const previewUri = typeof registro.previewUri === "string" ? registro.previewUri : "";
-    const fileUri = typeof registro.fileUri === "string" ? registro.fileUri : "";
-    const mimeType = typeof registro.mimeType === "string" ? registro.mimeType : "image/jpeg";
+    const dadosImagem =
+      typeof registro.dadosImagem === "string" ? registro.dadosImagem : "";
+    const previewUri =
+      typeof registro.previewUri === "string" ? registro.previewUri : "";
+    const fileUri =
+      typeof registro.fileUri === "string" ? registro.fileUri : "";
+    const mimeType =
+      typeof registro.mimeType === "string" ? registro.mimeType : "image/jpeg";
     const label = typeof registro.label === "string" ? registro.label : "";
     const resumo = typeof registro.resumo === "string" ? registro.resumo : "";
     if (!dadosImagem || !previewUri || !fileUri || !label) {
@@ -644,10 +528,18 @@ function normalizarComposerAttachment(payload: unknown): ComposerAttachment | nu
   if (registro.kind === "document") {
     const label = typeof registro.label === "string" ? registro.label : "";
     const resumo = typeof registro.resumo === "string" ? registro.resumo : "";
-    const textoDocumento = typeof registro.textoDocumento === "string" ? registro.textoDocumento : "";
-    const nomeDocumento = typeof registro.nomeDocumento === "string" ? registro.nomeDocumento : "";
-    const fileUri = typeof registro.fileUri === "string" ? registro.fileUri : "";
-    const mimeType = typeof registro.mimeType === "string" ? registro.mimeType : "application/octet-stream";
+    const textoDocumento =
+      typeof registro.textoDocumento === "string"
+        ? registro.textoDocumento
+        : "";
+    const nomeDocumento =
+      typeof registro.nomeDocumento === "string" ? registro.nomeDocumento : "";
+    const fileUri =
+      typeof registro.fileUri === "string" ? registro.fileUri : "";
+    const mimeType =
+      typeof registro.mimeType === "string"
+        ? registro.mimeType
+        : "application/octet-stream";
     if (!label || !nomeDocumento || !fileUri) {
       return null;
     }
@@ -667,21 +559,27 @@ function normalizarComposerAttachment(payload: unknown): ComposerAttachment | nu
   return null;
 }
 
-function duplicarComposerAttachment(anexo: ComposerAttachment | null): ComposerAttachment | null {
+function duplicarComposerAttachment(
+  anexo: ComposerAttachment | null,
+): ComposerAttachment | null {
   if (!anexo) {
     return null;
   }
   return anexo.kind === "image" ? { ...anexo } : { ...anexo };
 }
 
-function resumoPendenciaOffline(item: Pick<OfflinePendingMessage, "text" | "attachment">): string {
+function resumoPendenciaOffline(
+  item: Pick<OfflinePendingMessage, "text" | "attachment">,
+): string {
   if (item.text.trim()) {
     return item.text.trim();
   }
   return textoFallbackAnexo(item.attachment);
 }
 
-function iconePendenciaOffline(item: OfflinePendingMessage): keyof typeof MaterialCommunityIcons.glyphMap {
+function iconePendenciaOffline(
+  item: OfflinePendingMessage,
+): keyof typeof MaterialCommunityIcons.glyphMap {
   if (item.channel === "mesa") {
     return item.attachment ? "paperclip" : "clipboard-text-outline";
   }
@@ -725,7 +623,10 @@ function calcularBackoffPendenciaOfflineMs(tentativas: number): number {
   return 600_000;
 }
 
-function pendenciaFilaProntaParaReenvio(item: OfflinePendingMessage, referencia = Date.now()): boolean {
+function pendenciaFilaProntaParaReenvio(
+  item: OfflinePendingMessage,
+  referencia = Date.now(),
+): boolean {
   if (!item.nextRetryAt) {
     return true;
   }
@@ -769,7 +670,8 @@ function rotuloStatusPendenciaOffline(item: OfflinePendingMessage): string {
 
 function detalheStatusPendenciaOffline(item: OfflinePendingMessage): string {
   if (item.lastError) {
-    const tentativas = item.attempts <= 1 ? "1 tentativa" : `${item.attempts} tentativas`;
+    const tentativas =
+      item.attempts <= 1 ? "1 tentativa" : `${item.attempts} tentativas`;
     const backoff = detalheBackoffPendenciaOffline(item);
     return `${tentativas} · ${resumirErroPendenciaOffline(item.lastError)}${backoff ? ` · ${backoff}` : ""}`;
   }
@@ -815,7 +717,9 @@ function normalizarCacheLeitura(payload: unknown): MobileReadCache {
   }
 
   const registro = payload as Record<string, unknown>;
-  const laudos = Array.isArray(registro.laudos) ? (registro.laudos as MobileLaudoCard[]) : [];
+  const laudos = Array.isArray(registro.laudos)
+    ? (registro.laudos as MobileLaudoCard[])
+    : [];
   const conversaAtual =
     registro.conversaAtual && typeof registro.conversaAtual === "object"
       ? (registro.conversaAtual as ChatState)
@@ -824,9 +728,13 @@ function normalizarCacheLeitura(payload: unknown): MobileReadCache {
   const conversasPorLaudo =
     registro.conversasPorLaudo && typeof registro.conversasPorLaudo === "object"
       ? Object.fromEntries(
-          Object.entries(registro.conversasPorLaudo as Record<string, unknown>).map(([chave, valor]) => [
+          Object.entries(
+            registro.conversasPorLaudo as Record<string, unknown>,
+          ).map(([chave, valor]) => [
             chave,
-            valor && typeof valor === "object" ? (valor as ChatState) : criarConversaNova(),
+            valor && typeof valor === "object"
+              ? (valor as ChatState)
+              : criarConversaNova(),
           ]),
         )
       : {};
@@ -834,47 +742,59 @@ function normalizarCacheLeitura(payload: unknown): MobileReadCache {
   const mesaPorLaudo =
     registro.mesaPorLaudo && typeof registro.mesaPorLaudo === "object"
       ? Object.fromEntries(
-          Object.entries(registro.mesaPorLaudo as Record<string, unknown>).map(([chave, valor]) => [
-            chave,
-            Array.isArray(valor) ? (valor as MobileMesaMessage[]) : [],
-          ]),
+          Object.entries(registro.mesaPorLaudo as Record<string, unknown>).map(
+            ([chave, valor]) => [
+              chave,
+              Array.isArray(valor) ? (valor as MobileMesaMessage[]) : [],
+            ],
+          ),
         )
       : {};
 
   const chatDrafts =
     registro.chatDrafts && typeof registro.chatDrafts === "object"
       ? Object.fromEntries(
-          Object.entries(registro.chatDrafts as Record<string, unknown>).map(([chave, valor]) => [
-            chave,
-            typeof valor === "string" ? valor : "",
-          ]),
+          Object.entries(registro.chatDrafts as Record<string, unknown>).map(
+            ([chave, valor]) => [chave, typeof valor === "string" ? valor : ""],
+          ),
         )
       : {};
 
   const mesaDrafts =
     registro.mesaDrafts && typeof registro.mesaDrafts === "object"
       ? Object.fromEntries(
-          Object.entries(registro.mesaDrafts as Record<string, unknown>).map(([chave, valor]) => [
-            chave,
-            typeof valor === "string" ? valor : "",
-          ]),
+          Object.entries(registro.mesaDrafts as Record<string, unknown>).map(
+            ([chave, valor]) => [chave, typeof valor === "string" ? valor : ""],
+          ),
         )
       : {};
 
   const chatAttachmentDrafts =
-    registro.chatAttachmentDrafts && typeof registro.chatAttachmentDrafts === "object"
+    registro.chatAttachmentDrafts &&
+    typeof registro.chatAttachmentDrafts === "object"
       ? Object.fromEntries(
-          Object.entries(registro.chatAttachmentDrafts as Record<string, unknown>)
-            .map(([chave, valor]) => [chave, normalizarComposerAttachment(valor)])
+          Object.entries(
+            registro.chatAttachmentDrafts as Record<string, unknown>,
+          )
+            .map(([chave, valor]) => [
+              chave,
+              normalizarComposerAttachment(valor),
+            ])
             .filter(([, valor]) => Boolean(valor)),
         )
       : {};
 
   const mesaAttachmentDrafts =
-    registro.mesaAttachmentDrafts && typeof registro.mesaAttachmentDrafts === "object"
+    registro.mesaAttachmentDrafts &&
+    typeof registro.mesaAttachmentDrafts === "object"
       ? Object.fromEntries(
-          Object.entries(registro.mesaAttachmentDrafts as Record<string, unknown>)
-            .map(([chave, valor]) => [chave, normalizarComposerAttachment(valor)])
+          Object.entries(
+            registro.mesaAttachmentDrafts as Record<string, unknown>,
+          )
+            .map(([chave, valor]) => [
+              chave,
+              normalizarComposerAttachment(valor),
+            ])
             .filter(([, valor]) => Boolean(valor)),
         )
       : {};
@@ -890,8 +810,14 @@ function normalizarCacheLeitura(payload: unknown): MobileReadCache {
     mesaPorLaudo,
     chatDrafts,
     mesaDrafts,
-    chatAttachmentDrafts: chatAttachmentDrafts as Record<string, ComposerAttachment>,
-    mesaAttachmentDrafts: mesaAttachmentDrafts as Record<string, ComposerAttachment>,
+    chatAttachmentDrafts: chatAttachmentDrafts as Record<
+      string,
+      ComposerAttachment
+    >,
+    mesaAttachmentDrafts: mesaAttachmentDrafts as Record<
+      string,
+      ComposerAttachment
+    >,
     updatedAt: typeof registro.updatedAt === "string" ? registro.updatedAt : "",
   };
 }
@@ -945,21 +871,13 @@ function normalizarIdsEstadoHistoricoLocal(valor: unknown): number[] {
   return Array.from(new Set(ids));
 }
 
-function ehOpcaoValida<T extends readonly string[]>(valor: unknown, opcoes: T): valor is T[number] {
-  return typeof valor === "string" && (opcoes as readonly string[]).includes(valor);
-}
-
-function invalidarCacheImagemUri(uri: string): string {
-  const value = String(uri || "").trim();
-  if (!value) {
-    return "";
-  }
-  const separador = value.includes("?") ? "&" : "?";
-  return `${value}${separador}v=${Date.now()}`;
-}
-
-function normalizarTelefoneConta(value: string): string {
-  return String(value || "").replace(/\s+/g, " ").trim();
+function ehOpcaoValida<T extends readonly string[]>(
+  valor: unknown,
+  opcoes: T,
+): valor is T[number] {
+  return (
+    typeof valor === "string" && (opcoes as readonly string[]).includes(valor)
+  );
 }
 
 function construirUrlCanalSuporte(rawValue: string): string {
@@ -974,189 +892,6 @@ function construirUrlCanalSuporte(rawValue: string): string {
   return digits ? `https://wa.me/${digits}` : "";
 }
 
-function criarProvedoresConectadosPadrao(emailConta = ""): ConnectedProvider[] {
-  return [
-    { id: "google", label: "Google", email: "", connected: false, requiresReauth: true },
-    { id: "apple", label: "Apple", email: "", connected: false, requiresReauth: true },
-    { id: "microsoft", label: "Microsoft", email: emailConta, connected: true, requiresReauth: true },
-  ];
-}
-
-function criarSessoesAtivasPadrao(): SessionDevice[] {
-  return [
-    {
-      id: "current-device",
-      title: "Pixel 7a • Android 14",
-      meta: "Tariel Inspetor • App móvel",
-      location: "Este dispositivo",
-      lastSeen: "Agora",
-      current: true,
-    },
-    {
-      id: "chrome-office",
-      title: "Chrome • Windows 11",
-      meta: "Portal do inspetor",
-      location: "São Paulo, BR",
-      lastSeen: "Hoje às 09:41",
-      current: false,
-    },
-    {
-      id: "tablet-review",
-      title: "Galaxy Tab • Android",
-      meta: "Teste interno",
-      location: "Campinas, BR",
-      lastSeen: "Ontem às 18:12",
-      current: false,
-      suspicious: true,
-    },
-  ];
-}
-
-function normalizarProviderConectado(payload: unknown): ConnectedProvider | null {
-  if (!ehRegistro(payload)) {
-    return null;
-  }
-  if (payload.id !== "google" && payload.id !== "apple" && payload.id !== "microsoft") {
-    return null;
-  }
-  return {
-    id: payload.id,
-    label: typeof payload.label === "string" && payload.label.trim() ? payload.label : payload.id,
-    email: typeof payload.email === "string" ? payload.email : "",
-    connected: Boolean(payload.connected),
-    requiresReauth: payload.requiresReauth !== false,
-  };
-}
-
-function criarIntegracoesExternasPadrao(): ExternalIntegration[] {
-  return EXTERNAL_INTEGRATION_OPTIONS.map((item) => ({
-    id: item.id,
-    label: item.label,
-    description: item.description,
-    icon: item.icon as keyof typeof MaterialCommunityIcons.glyphMap,
-    connected: false,
-    lastSyncAt: "",
-  }));
-}
-
-function normalizarIntegracaoExterna(payload: unknown): ExternalIntegration | null {
-  if (!ehRegistro(payload)) {
-    return null;
-  }
-  const id = typeof payload.id === "string" ? payload.id : "";
-  const meta = EXTERNAL_INTEGRATION_OPTIONS.find((item) => item.id === id);
-  if (!meta) {
-    return null;
-  }
-  return {
-    id: meta.id,
-    label: meta.label,
-    description: meta.description,
-    icon: meta.icon as keyof typeof MaterialCommunityIcons.glyphMap,
-    connected: Boolean(payload.connected),
-    lastSyncAt: typeof payload.lastSyncAt === "string" ? payload.lastSyncAt : "",
-  };
-}
-
-function reconciliarIntegracoesExternas(integracoes: ExternalIntegration[]): ExternalIntegration[] {
-  const mapaEstado = new Map(
-    integracoes.map((item) => [
-      item.id,
-      {
-        connected: item.connected,
-        lastSyncAt: item.lastSyncAt,
-      },
-    ]),
-  );
-
-  return criarIntegracoesExternasPadrao().map((item) => {
-    const estadoAtual = mapaEstado.get(item.id);
-    if (!estadoAtual) {
-      return item;
-    }
-    return {
-      ...item,
-      connected: estadoAtual.connected,
-      lastSyncAt: estadoAtual.lastSyncAt,
-    };
-  });
-}
-
-function normalizarSessaoAtiva(payload: unknown): SessionDevice | null {
-  if (!ehRegistro(payload)) {
-    return null;
-  }
-  const id = typeof payload.id === "string" ? payload.id : "";
-  const title = typeof payload.title === "string" ? payload.title : "";
-  if (!id || !title) {
-    return null;
-  }
-  return {
-    id,
-    title,
-    meta: typeof payload.meta === "string" ? payload.meta : "",
-    location: typeof payload.location === "string" ? payload.location : "",
-    lastSeen: typeof payload.lastSeen === "string" ? payload.lastSeen : "",
-    current: Boolean(payload.current),
-    suspicious: Boolean(payload.suspicious),
-  };
-}
-
-function normalizarEventoSeguranca(payload: unknown): SecurityEventItem | null {
-  if (!ehRegistro(payload)) {
-    return null;
-  }
-  if (
-    payload.type !== "login" &&
-    payload.type !== "provider" &&
-    payload.type !== "2fa" &&
-    payload.type !== "data" &&
-    payload.type !== "session"
-  ) {
-    return null;
-  }
-  const id = typeof payload.id === "string" ? payload.id : "";
-  const title = typeof payload.title === "string" ? payload.title : "";
-  if (!id || !title) {
-    return null;
-  }
-  return {
-    id,
-    title,
-    meta: typeof payload.meta === "string" ? payload.meta : "",
-    status: typeof payload.status === "string" ? payload.status : "",
-    type: payload.type,
-    critical: Boolean(payload.critical),
-  };
-}
-
-function normalizarItemSuporte(payload: unknown): SupportQueueItem | null {
-  if (!ehRegistro(payload)) {
-    return null;
-  }
-  const id = typeof payload.id === "string" ? payload.id : "";
-  const title = typeof payload.title === "string" ? payload.title : "";
-  const body = typeof payload.body === "string" ? payload.body : "";
-  if (!id || !title || !body) {
-    return null;
-  }
-  return {
-    id,
-    kind: payload.kind === "feedback" ? "feedback" : "bug",
-    title,
-    body,
-    email: typeof payload.email === "string" ? payload.email : "",
-    createdAt: typeof payload.createdAt === "string" ? payload.createdAt : new Date().toISOString(),
-    status: typeof payload.status === "string" && payload.status.trim() ? payload.status : "Na fila",
-    attachmentLabel: typeof payload.attachmentLabel === "string" ? payload.attachmentLabel : undefined,
-    attachmentUri: typeof payload.attachmentUri === "string" ? payload.attachmentUri : undefined,
-    attachmentKind:
-      payload.attachmentKind === "image" || payload.attachmentKind === "document"
-        ? payload.attachmentKind
-        : undefined,
-  };
-}
-
 async function lerEstadoHistoricoLocal(): Promise<LocalHistoryUiState> {
   try {
     const valor = await FileSystem.readAsStringAsync(HISTORY_UI_STATE_FILE);
@@ -1165,15 +900,21 @@ async function lerEstadoHistoricoLocal(): Promise<LocalHistoryUiState> {
       return { laudosFixadosIds: [], historicoOcultoIds: [] };
     }
     return {
-      laudosFixadosIds: normalizarIdsEstadoHistoricoLocal(payload.laudosFixadosIds),
-      historicoOcultoIds: normalizarIdsEstadoHistoricoLocal(payload.historicoOcultoIds),
+      laudosFixadosIds: normalizarIdsEstadoHistoricoLocal(
+        payload.laudosFixadosIds,
+      ),
+      historicoOcultoIds: normalizarIdsEstadoHistoricoLocal(
+        payload.historicoOcultoIds,
+      ),
     };
   } catch {
     return { laudosFixadosIds: [], historicoOcultoIds: [] };
   }
 }
 
-async function salvarEstadoHistoricoLocal(estado: LocalHistoryUiState): Promise<void> {
+async function salvarEstadoHistoricoLocal(
+  estado: LocalHistoryUiState,
+): Promise<void> {
   try {
     await FileSystem.writeAsStringAsync(
       HISTORY_UI_STATE_FILE,
@@ -1214,7 +955,8 @@ async function compartilharTextoExportado(params: {
     if (podeCompartilhar) {
       await Sharing.shareAsync(uri, {
         dialogTitle: "Exportar dados do Tariel Inspetor",
-        mimeType: params.extension === "json" ? "application/json" : "text/plain",
+        mimeType:
+          params.extension === "json" ? "application/json" : "text/plain",
       });
     }
     return true;
@@ -1237,7 +979,9 @@ function obterIntervaloMonitoramentoMs(
   return 25_000;
 }
 
-async function podeSincronizarNaRedeAtual(wifiOnlySync: boolean): Promise<boolean> {
+async function podeSincronizarNaRedeAtual(
+  wifiOnlySync: boolean,
+): Promise<boolean> {
   return canSyncOnCurrentNetwork(wifiOnlySync);
 }
 
@@ -1253,12 +997,10 @@ function obterEscalaFonte(tamanho: (typeof FONT_SIZE_OPTIONS)[number]): number {
   return 1;
 }
 
-function obterEscalaDensidade(densidade: (typeof DENSITY_OPTIONS)[number]): number {
+function obterEscalaDensidade(
+  densidade: (typeof DENSITY_OPTIONS)[number],
+): number {
   return densidade === "compacta" ? 0.9 : 1;
-}
-
-function obterNomeCurto(nomeCompleto: string): string {
-  return (nomeCompleto || "").trim().split(/\s+/)[0] || "Inspetor";
 }
 
 function montarHistoricoParaEnvio(
@@ -1278,8 +1020,13 @@ function montarHistoricoParaEnvio(
     }));
 }
 
-function normalizarModoChat(modo: unknown, fallback: MobileChatMode = "detalhado"): MobileChatMode {
-  const valor = String(modo || "").trim().toLowerCase();
+function normalizarModoChat(
+  modo: unknown,
+  fallback: MobileChatMode = "detalhado",
+): MobileChatMode {
+  const valor = String(modo || "")
+    .trim()
+    .toLowerCase();
   if (valor === "curto") {
     return "curto";
   }
@@ -1322,7 +1069,9 @@ function inferirSetorConversa(conversa: ChatState | null | undefined): string {
   }
 }
 
-function extrairModoConversaDasMensagens(mensagens: MobileChatMessage[]): MobileChatMode {
+function extrairModoConversaDasMensagens(
+  mensagens: MobileChatMessage[],
+): MobileChatMode {
   for (let index = mensagens.length - 1; index >= 0; index -= 1) {
     const mensagem = mensagens[index];
     if (typeof mensagem?.modo === "string" && mensagem.modo.trim()) {
@@ -1332,7 +1081,9 @@ function extrairModoConversaDasMensagens(mensagens: MobileChatMessage[]): Mobile
   return "detalhado";
 }
 
-function criarMensagemAssistenteServidor(resposta: MobileChatSendResult): MobileChatMessage | null {
+function criarMensagemAssistenteServidor(
+  resposta: MobileChatSendResult,
+): MobileChatMessage | null {
   const texto = resposta.assistantText.trim();
   if (!texto) {
     return null;
@@ -1360,7 +1111,10 @@ function normalizarConversa(
     permiteEdicao: Boolean(payload.permite_edicao),
     permiteReabrir: Boolean(payload.permite_reabrir),
     laudoCard: payload.laudo_card || null,
-    modo: normalizarModoChat(payload.modo, extrairModoConversaDasMensagens(mensagens)),
+    modo: normalizarModoChat(
+      payload.modo,
+      extrairModoConversaDasMensagens(mensagens),
+    ),
     mensagens,
   };
 }
@@ -1378,23 +1132,24 @@ function criarConversaNova(): ChatState {
   };
 }
 
-function previewChatLiberadoParaConversa(conversa: ChatState | null | undefined): boolean {
-  return Boolean(conversa && (!conversa.laudoId || (!conversa.permiteEdicao && !conversa.mensagens.length)));
+function previewChatLiberadoParaConversa(
+  conversa: ChatState | null | undefined,
+): boolean {
+  return Boolean(
+    conversa &&
+    (!conversa.laudoId ||
+      (!conversa.permiteEdicao && !conversa.mensagens.length)),
+  );
 }
 
-function podeEditarConversaNoComposer(conversa: ChatState | null | undefined): boolean {
-  return !conversa || conversa.permiteEdicao || previewChatLiberadoParaConversa(conversa);
-}
-
-function obterTonsStatusLaudo(statusCard: string): { fundo: string; texto: string } {
-  const mapa: Record<string, { fundo: string; texto: string }> = {
-    aberto: { fundo: "#E8F4EC", texto: "#1F7A4C" },
-    aguardando: { fundo: "#EEF2F6", texto: "#3D556F" },
-    ajustes: { fundo: "#FFF0E5", texto: "#B85A11" },
-    aprovado: { fundo: "#EAF7F1", texto: "#187048" },
-  };
-
-  return mapa[statusCard] || { fundo: "#EEF2F6", texto: "#3D556F" };
+function podeEditarConversaNoComposer(
+  conversa: ChatState | null | undefined,
+): boolean {
+  return (
+    !conversa ||
+    conversa.permiteEdicao ||
+    previewChatLiberadoParaConversa(conversa)
+  );
 }
 
 function textoFallbackAnexo(anexo: ComposerAttachment | null): string {
@@ -1409,7 +1164,10 @@ function textoFallbackAnexo(anexo: ComposerAttachment | null): string {
 
 function nomeArquivoSeguro(nome: string, fallback: string): string {
   const base = String(nome || "").trim();
-  const semSeparadores = base.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
+  const semSeparadores = base
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
   return semSeparadores || fallback;
 }
 
@@ -1508,7 +1266,9 @@ function assinaturaMensagemMesa(item: MobileMesaMessage): string {
 }
 
 function resumoMensagemAtividade(texto: string, fallback: string): string {
-  const valor = String(texto || "").trim().replace(/\s+/g, " ");
+  const valor = String(texto || "")
+    .trim()
+    .replace(/\s+/g, " ");
   if (!valor) {
     return fallback;
   }
@@ -1525,12 +1285,16 @@ function obterResumoReferenciaMensagem(
     return "";
   }
 
-  const mensagemChat = mensagensChat.find((item) => Number(item.id || 0) === alvo);
+  const mensagemChat = mensagensChat.find(
+    (item) => Number(item.id || 0) === alvo,
+  );
   if (mensagemChat?.texto?.trim()) {
     return resumoMensagemAtividade(mensagemChat.texto, `Mensagem #${alvo}`);
   }
 
-  const mensagemMesa = mensagensMesa.find((item) => Number(item.id || 0) === alvo);
+  const mensagemMesa = mensagensMesa.find(
+    (item) => Number(item.id || 0) === alvo,
+  );
   if (mensagemMesa?.texto?.trim()) {
     return resumoMensagemAtividade(mensagemMesa.texto, `Mensagem #${alvo}`);
   }
@@ -1548,11 +1312,15 @@ function formatarTipoTemplateLaudo(value: string | null | undefined): string {
     .replace(/[_-]+/g, " ")
     .split(/\s+/)
     .filter(Boolean)
-    .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1).toLowerCase())
+    .map(
+      (parte) => parte.charAt(0).toUpperCase() + parte.slice(1).toLowerCase(),
+    )
     .join(" ");
 }
 
-function criarNotificacaoStatusLaudo(item: MobileLaudoCard): MobileActivityNotification {
+function criarNotificacaoStatusLaudo(
+  item: MobileLaudoCard,
+): MobileActivityNotification {
   const mapaTitulo: Record<string, string> = {
     aprovado: "Laudo aprovado",
     ajustes: "Mesa pediu ajustes",
@@ -1571,7 +1339,9 @@ function criarNotificacaoStatusLaudo(item: MobileLaudoCard): MobileActivityNotif
     kind: "status",
     laudoId: item.id,
     title: mapaTitulo[item.status_card] || "Status do laudo atualizado",
-    body: mapaDescricao[item.status_card] || `${item.titulo} mudou para ${item.status_card_label}.`,
+    body:
+      mapaDescricao[item.status_card] ||
+      `${item.titulo} mudou para ${item.status_card_label}.`,
     createdAt: new Date().toISOString(),
     unread: true,
     targetThread: item.status_card === "ajustes" ? "mesa" : "chat",
@@ -1583,7 +1353,10 @@ function criarNotificacaoMesa(
   mensagemMesa: MobileMesaMessage,
   tituloLaudo: string,
 ): MobileActivityNotification {
-  const mapaTitulo: Record<"status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta", string> = {
+  const mapaTitulo: Record<
+    "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta",
+    string
+  > = {
     status: "Atividade da mesa",
     mesa_nova: "Nova mensagem da mesa",
     mesa_resolvida: "Pendência marcada como resolvida",
@@ -1694,27 +1467,9 @@ function formatarHorarioAtividade(dataIso: string): string {
   });
 }
 
-function reautenticacaoAindaValida(dataIso: string): boolean {
-  if (!dataIso) {
-    return false;
-  }
-  const data = new Date(dataIso);
-  return !Number.isNaN(data.getTime()) && data.getTime() > Date.now();
-}
-
-function formatarStatusReautenticacao(dataIso: string): string {
-  if (!reautenticacaoAindaValida(dataIso)) {
-    return "Não confirmada";
-  }
-
-  const data = new Date(dataIso);
-  return `Confirmada até ${data.toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
-}
-
-function obterTimeoutBloqueioMs(value: (typeof LOCK_TIMEOUT_OPTIONS)[number]): number | null {
+function obterTimeoutBloqueioMs(
+  value: (typeof LOCK_TIMEOUT_OPTIONS)[number],
+): number | null {
   if (value === "imediatamente") {
     return 0;
   }
@@ -1730,7 +1485,9 @@ function obterTimeoutBloqueioMs(value: (typeof LOCK_TIMEOUT_OPTIONS)[number]): n
   return null;
 }
 
-function obterJanelaRetencaoMs(value: (typeof DATA_RETENTION_OPTIONS)[number]): number | null {
+function obterJanelaRetencaoMs(
+  value: (typeof DATA_RETENTION_OPTIONS)[number],
+): number | null {
   if (value === "30 dias") {
     return 30 * 24 * 60 * 60 * 1000;
   }
@@ -1769,7 +1526,10 @@ function montarAnexoImagem(
     throw new Error("Não foi possível preparar a imagem selecionada.");
   }
 
-  const mimeType = (asset.mimeType || "image/jpeg").replace("image/jpg", "image/jpeg");
+  const mimeType = (asset.mimeType || "image/jpeg").replace(
+    "image/jpg",
+    "image/jpeg",
+  );
   const nomeArquivo =
     asset.fileName?.trim() ||
     `evidencia-${Date.now()}.${mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg"}`;
@@ -1802,62 +1562,73 @@ function montarAnexoDocumentoLocal(
   };
 }
 
-function montarAnexoDocumentoMesa(asset: DocumentPicker.DocumentPickerAsset): ComposerAttachment {
-  return montarAnexoDocumentoLocal(asset, "Documento pronto para seguir direto para a mesa avaliadora.");
+function montarAnexoDocumentoMesa(
+  asset: DocumentPicker.DocumentPickerAsset,
+): ComposerAttachment {
+  return montarAnexoDocumentoLocal(
+    asset,
+    "Documento pronto para seguir direto para a mesa avaliadora.",
+  );
 }
 
 export function InspectorMobileApp() {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [lembrar, setLembrar] = useState(true);
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [statusApi, setStatusApi] = useState<ApiHealthStatus>("checking");
-  const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(true);
-  const [entrando, setEntrando] = useState(false);
-  const [session, setSession] = useState<MobileSessionState | null>(null);
   const [conversa, setConversa] = useState<ChatState | null>(null);
   const [abaAtiva, setAbaAtiva] = useState<ActiveThread>("chat");
-  const [laudosDisponiveis, setLaudosDisponiveis] = useState<MobileLaudoCard[]>([]);
+  const [laudosDisponiveis, setLaudosDisponiveis] = useState<MobileLaudoCard[]>(
+    [],
+  );
   const [carregandoLaudos, setCarregandoLaudos] = useState(false);
   const [erroLaudos, setErroLaudos] = useState("");
   const [carregandoConversa, setCarregandoConversa] = useState(false);
   const [sincronizandoConversa, setSincronizandoConversa] = useState(false);
   const [mensagem, setMensagem] = useState("");
-  const [anexoRascunho, setAnexoRascunho] = useState<ComposerAttachment | null>(null);
+  const [anexoRascunho, setAnexoRascunho] = useState<ComposerAttachment | null>(
+    null,
+  );
   const [erroConversa, setErroConversa] = useState("");
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
   const [preparandoAnexo, setPreparandoAnexo] = useState(false);
   const [mensagensMesa, setMensagensMesa] = useState<MobileMesaMessage[]>([]);
   const [erroMesa, setErroMesa] = useState("");
   const [mensagemMesa, setMensagemMesa] = useState("");
-  const [anexoMesaRascunho, setAnexoMesaRascunho] = useState<ComposerAttachment | null>(null);
-  const [mensagemMesaReferenciaAtiva, setMensagemMesaReferenciaAtiva] = useState<MessageReferenceState | null>(null);
+  const [anexoMesaRascunho, setAnexoMesaRascunho] =
+    useState<ComposerAttachment | null>(null);
+  const [mensagemMesaReferenciaAtiva, setMensagemMesaReferenciaAtiva] =
+    useState<MessageReferenceState | null>(null);
   const [carregandoMesa, setCarregandoMesa] = useState(false);
   const [sincronizandoMesa, setSincronizandoMesa] = useState(false);
   const [enviandoMesa, setEnviandoMesa] = useState(false);
-  const [laudoMesaCarregado, setLaudoMesaCarregado] = useState<number | null>(null);
+  const [laudoMesaCarregado, setLaudoMesaCarregado] = useState<number | null>(
+    null,
+  );
   const [anexoAbrindoChave, setAnexoAbrindoChave] = useState("");
-  const [previewAnexoImagem, setPreviewAnexoImagem] = useState<AttachmentPreviewState | null>(null);
-  const [mensagemChatDestacadaId, setMensagemChatDestacadaId] = useState<number | null>(null);
+  const [previewAnexoImagem, setPreviewAnexoImagem] =
+    useState<AttachmentPreviewState | null>(null);
+  const [mensagemChatDestacadaId, setMensagemChatDestacadaId] = useState<
+    number | null
+  >(null);
   const [layoutMensagensChatVersao, setLayoutMensagensChatVersao] = useState(0);
   const [filaOffline, setFilaOffline] = useState<OfflinePendingMessage[]>([]);
-  const [sincronizandoFilaOffline, setSincronizandoFilaOffline] = useState(false);
+  const [sincronizandoFilaOffline, setSincronizandoFilaOffline] =
+    useState(false);
   const [sincronizandoItemFilaId, setSincronizandoItemFilaId] = useState("");
-  const [notificacoes, setNotificacoes] = useState<MobileActivityNotification[]>([]);
-  const [cacheLeitura, setCacheLeitura] = useState<MobileReadCache>(CACHE_LEITURA_VAZIO);
-  const [usandoCacheOffline, setUsandoCacheOffline] = useState(false);
+  const [notificacoes, setNotificacoes] = useState<
+    MobileActivityNotification[]
+  >([]);
+  const [cacheLeitura, setCacheLeitura] =
+    useState<MobileReadCache>(CACHE_LEITURA_VAZIO);
+  const [, setUsandoCacheOffline] = useState(false);
   const [centralAtividadeAberta, setCentralAtividadeAberta] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
   const [buscaHistorico, setBuscaHistorico] = useState("");
-  const [filtroHistorico, setFiltroHistorico] = useState<HistoryDrawerFilter>("todos");
+  const [filtroHistorico] = useState<HistoryDrawerFilter>("todos");
   const [filaOfflineAberta, setFilaOfflineAberta] = useState(false);
   const [configuracoesAberta, setConfiguracoesAberta] = useState(false);
   const [anexosAberto, setAnexosAberto] = useState(false);
   const [introVisivel, setIntroVisivel] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [filtroFilaOffline, setFiltroFilaOffline] = useState<OfflineQueueFilter>("all");
-  const [monitorandoAtividade, setMonitorandoAtividade] = useState(false);
+  const [filtroFilaOffline, setFiltroFilaOffline] =
+    useState<OfflineQueueFilter>("all");
   const [voiceRuntimeState, setVoiceRuntimeState] = useState({
     voices: [] as Array<{
       identifier?: string;
@@ -1872,49 +1643,55 @@ export function InspectorMobileApp() {
   const [sincronizandoAgora, setSincronizandoAgora] = useState(false);
   const [limpandoCache, setLimpandoCache] = useState(false);
   const [ultimaLimpezaCacheEm, setUltimaLimpezaCacheEm] = useState("");
-  const { state: settingsState, hydrated: settingsHydrated, actions: settingsActions } = useSettingsStore();
+  const {
+    state: settingsState,
+    hydrated: settingsHydrated,
+    actions: settingsActions,
+  } = useSettingsStore();
   const appRuntime = useMemo(() => getInstalledAppRuntimeInfo(), []);
   const perfilNome = settingsState.account.fullName;
-  const setPerfilNome = (value: string) => settingsActions.updateAccount({ fullName: value });
+  const setPerfilNome = (value: string) =>
+    settingsActions.updateAccount({ fullName: value });
   const perfilExibicao = settingsState.account.displayName;
-  const setPerfilExibicao = (value: string) => settingsActions.updateAccount({ displayName: value });
+  const setPerfilExibicao = (value: string) =>
+    settingsActions.updateAccount({ displayName: value });
   const perfilFotoUri = settingsState.account.photoUri;
-  const setPerfilFotoUri = (value: string) => settingsActions.updateAccount({ photoUri: value });
+  const setPerfilFotoUri = (value: string) =>
+    settingsActions.updateAccount({ photoUri: value });
   const perfilFotoHint = settingsState.account.photoHint;
-  const setPerfilFotoHint = (value: string) => settingsActions.updateAccount({ photoHint: value });
+  const setPerfilFotoHint = (value: string) =>
+    settingsActions.updateAccount({ photoHint: value });
   const [laudosFixadosIds, setLaudosFixadosIds] = useState<number[]>([]);
   const [historicoOcultoIds, setHistoricoOcultoIds] = useState<number[]>([]);
   const emailAtualConta = settingsState.account.email;
-  const setEmailAtualConta = (value: string) => settingsActions.updateAccount({ email: value });
+  const setEmailAtualConta = (value: string) =>
+    settingsActions.updateAccount({ email: value });
   const contaTelefone = settingsState.account.phone;
-  const [nomeCompletoDraft, setNomeCompletoDraft] = useState("");
-  const [nomeExibicaoDraft, setNomeExibicaoDraft] = useState("");
-  const [telefoneDraft, setTelefoneDraft] = useState("");
-  const [novoEmailDraft, setNovoEmailDraft] = useState("");
-  const [senhaAtualDraft, setSenhaAtualDraft] = useState("");
-  const [novaSenhaDraft, setNovaSenhaDraft] = useState("");
-  const [confirmarSenhaDraft, setConfirmarSenhaDraft] = useState("");
-  const [planoAtual, setPlanoAtual] = useState<(typeof PLAN_OPTIONS)[number]>("Pro");
-  const [cartaoAtual, setCartaoAtual] = useState<(typeof PAYMENT_CARD_OPTIONS)[number]>("Visa final 4242");
   const modeloIa = settingsState.ai.model;
-  const setModeloIa = (value: (typeof AI_MODEL_OPTIONS)[number]) => settingsActions.updateAi({ model: value });
+  const setModeloIa = (value: (typeof AI_MODEL_OPTIONS)[number]) =>
+    settingsActions.updateAi({ model: value });
   const estiloResposta = settingsState.ai.responseStyle;
   const setEstiloResposta = (value: (typeof RESPONSE_STYLE_OPTIONS)[number]) =>
     settingsActions.updateAi({ responseStyle: value });
   const idiomaResposta = settingsState.ai.responseLanguage;
-  const setIdiomaResposta = (value: (typeof RESPONSE_LANGUAGE_OPTIONS)[number]) =>
-    settingsActions.updateAi({ responseLanguage: value });
+  const setIdiomaResposta = (
+    value: (typeof RESPONSE_LANGUAGE_OPTIONS)[number],
+  ) => settingsActions.updateAi({ responseLanguage: value });
   const memoriaIa = settingsState.ai.memoryEnabled;
-  const setMemoriaIa = (value: boolean) => settingsActions.updateAi({ memoryEnabled: value });
+  const setMemoriaIa = (value: boolean) =>
+    settingsActions.updateAi({ memoryEnabled: value });
   const aprendizadoIa = settingsState.ai.learningOptIn;
-  const setAprendizadoIa = (value: boolean) => settingsActions.updateAi({ learningOptIn: value });
+  const setAprendizadoIa = (value: boolean) =>
+    settingsActions.updateAi({ learningOptIn: value });
   const tomConversa = settingsState.ai.tone;
   const setTomConversa = (value: (typeof CONVERSATION_TONE_OPTIONS)[number]) =>
     settingsActions.updateAi({ tone: value });
   const temperaturaIa = settingsState.ai.temperature;
-  const setTemperaturaIa = (value: number) => settingsActions.updateAi({ temperature: value });
+  const setTemperaturaIa = (value: number) =>
+    settingsActions.updateAi({ temperature: value });
   const temaApp = settingsState.appearance.theme;
-  const setTemaApp = (value: (typeof THEME_OPTIONS)[number]) => settingsActions.updateAppearance({ theme: value });
+  const setTemaApp = (value: (typeof THEME_OPTIONS)[number]) =>
+    settingsActions.updateAppearance({ theme: value });
   const tamanhoFonte = settingsState.appearance.fontScale;
   const setTamanhoFonte = (value: (typeof FONT_SIZE_OPTIONS)[number]) =>
     settingsActions.updateAppearance({ fontScale: value });
@@ -1925,60 +1702,73 @@ export function InspectorMobileApp() {
   const setCorDestaque = (value: (typeof ACCENT_OPTIONS)[number]) =>
     settingsActions.updateAppearance({ accentColor: value });
   const animacoesAtivas = settingsState.appearance.animationsEnabled;
-  const setAnimacoesAtivas = (value: boolean) => settingsActions.updateAppearance({ animationsEnabled: value });
+  const setAnimacoesAtivas = (value: boolean) =>
+    settingsActions.updateAppearance({ animationsEnabled: value });
   const notificaRespostas = settingsState.notifications.responseAlertsEnabled;
   const setNotificaRespostas = (value: boolean) =>
     settingsActions.updateNotifications({ responseAlertsEnabled: value });
   const notificaPush = settingsState.notifications.pushEnabled;
-  const setNotificaPush = (value: boolean) => settingsActions.updateNotifications({ pushEnabled: value });
+  const setNotificaPush = (value: boolean) =>
+    settingsActions.updateNotifications({ pushEnabled: value });
   const chatCategoryEnabled = settingsState.notifications.chatCategoryEnabled;
   const setChatCategoryEnabled = (value: boolean) =>
     settingsActions.updateNotifications({ chatCategoryEnabled: value });
   const mesaCategoryEnabled = settingsState.notifications.mesaCategoryEnabled;
   const setMesaCategoryEnabled = (value: boolean) =>
     settingsActions.updateNotifications({ mesaCategoryEnabled: value });
-  const systemCategoryEnabled = settingsState.notifications.systemCategoryEnabled;
+  const systemCategoryEnabled =
+    settingsState.notifications.systemCategoryEnabled;
   const setSystemCategoryEnabled = (value: boolean) =>
     settingsActions.updateNotifications({ systemCategoryEnabled: value });
-  const criticalAlertsEnabled = settingsState.notifications.criticalAlertsEnabled;
+  const criticalAlertsEnabled =
+    settingsState.notifications.criticalAlertsEnabled;
   const setCriticalAlertsEnabled = (value: boolean) =>
     settingsActions.updateNotifications({ criticalAlertsEnabled: value });
   const somNotificacao = settingsState.notifications.soundPreset;
-  const setSomNotificacao = (value: (typeof NOTIFICATION_SOUND_OPTIONS)[number]) =>
+  const setSomNotificacao = (
+    value: (typeof NOTIFICATION_SOUND_OPTIONS)[number],
+  ) =>
     settingsActions.updateNotifications({
       soundPreset: value,
       soundEnabled: value !== "Silencioso",
     });
   const vibracaoAtiva = settingsState.notifications.vibrationEnabled;
-  const setVibracaoAtiva = (value: boolean) => settingsActions.updateNotifications({ vibrationEnabled: value });
+  const setVibracaoAtiva = (value: boolean) =>
+    settingsActions.updateNotifications({ vibrationEnabled: value });
   const emailsAtivos = settingsState.notifications.emailEnabled;
-  const setEmailsAtivos = (value: boolean) => settingsActions.updateNotifications({ emailEnabled: value });
-  const salvarHistoricoConversas = settingsState.dataControls.chatHistoryEnabled;
+  const setEmailsAtivos = (value: boolean) =>
+    settingsActions.updateNotifications({ emailEnabled: value });
+  const salvarHistoricoConversas =
+    settingsState.dataControls.chatHistoryEnabled;
   const setSalvarHistoricoConversas = (value: boolean) =>
     settingsActions.updateDataControls({ chatHistoryEnabled: value });
   const compartilharMelhoriaIa = settingsState.ai.learningOptIn;
-  const setCompartilharMelhoriaIa = (value: boolean) => settingsActions.updateAi({ learningOptIn: value });
+  const setCompartilharMelhoriaIa = (value: boolean) =>
+    settingsActions.updateAi({ learningOptIn: value });
   const backupAutomatico = settingsState.dataControls.deviceBackupEnabled;
   const setBackupAutomatico = (value: boolean) =>
     settingsActions.updateDataControls({ deviceBackupEnabled: value });
-  const sincronizacaoDispositivos = settingsState.dataControls.crossDeviceSyncEnabled;
+  const sincronizacaoDispositivos =
+    settingsState.dataControls.crossDeviceSyncEnabled;
   const setSincronizacaoDispositivos = (value: boolean) =>
     settingsActions.updateDataControls({ crossDeviceSyncEnabled: value });
   const analyticsOptIn = settingsState.dataControls.analyticsOptIn;
-  const setAnalyticsOptIn = (value: boolean) => settingsActions.updateDataControls({ analyticsOptIn: value });
+  const setAnalyticsOptIn = (value: boolean) =>
+    settingsActions.updateDataControls({ analyticsOptIn: value });
   const crashReportsOptIn = settingsState.dataControls.crashReportsOptIn;
   const setCrashReportsOptIn = (value: boolean) =>
     settingsActions.updateDataControls({ crashReportsOptIn: value });
   const wifiOnlySync = settingsState.dataControls.wifiOnlySync;
-  const setWifiOnlySync = (value: boolean) => settingsActions.updateDataControls({ wifiOnlySync: value });
-  const autoUploadAttachments = settingsState.dataControls.autoUploadAttachments;
+  const setWifiOnlySync = (value: boolean) =>
+    settingsActions.updateDataControls({ wifiOnlySync: value });
+  const autoUploadAttachments =
+    settingsState.dataControls.autoUploadAttachments;
   const setAutoUploadAttachments = (value: boolean) =>
     settingsActions.updateDataControls({ autoUploadAttachments: value });
   const mediaCompression = settingsState.dataControls.mediaCompression;
-  const setMediaCompression = (value: typeof settingsState.dataControls.mediaCompression) =>
-    settingsActions.updateDataControls({ mediaCompression: value });
-  const [nomeAutomaticoConversas, setNomeAutomaticoConversas] = useState(true);
-  const [fixarConversas, setFixarConversas] = useState(true);
+  const setMediaCompression = (
+    value: typeof settingsState.dataControls.mediaCompression,
+  ) => settingsActions.updateDataControls({ mediaCompression: value });
   const speechEnabled = settingsState.speech.enabled;
   const setSpeechEnabled = (value: boolean) =>
     settingsActions.updateSpeech({
@@ -2002,13 +1792,17 @@ export function InspectorMobileApp() {
   const setVoiceLanguage = (value: typeof settingsState.speech.voiceLanguage) =>
     settingsActions.updateSpeech({ voiceLanguage: value });
   const speechRate = settingsState.speech.speechRate;
-  const setSpeechRate = (value: number) => settingsActions.updateSpeech({ speechRate: value });
+  const setSpeechRate = (value: number) =>
+    settingsActions.updateSpeech({ speechRate: value });
   const preferredVoiceId = settingsState.speech.voiceId;
-  const setPreferredVoiceId = (value: string) => settingsActions.updateSpeech({ voiceId: value });
+  const setPreferredVoiceId = (value: string) =>
+    settingsActions.updateSpeech({ voiceId: value });
   const uploadArquivosAtivo = settingsState.attachments.enabled;
-  const setUploadArquivosAtivo = (value: boolean) => settingsActions.updateAttachments({ enabled: value });
+  const setUploadArquivosAtivo = (value: boolean) =>
+    settingsActions.updateAttachments({ enabled: value });
   const economiaDados = settingsState.system.dataSaver;
-  const setEconomiaDados = (value: boolean) => settingsActions.updateSystem({ dataSaver: value });
+  const setEconomiaDados = (value: boolean) =>
+    settingsActions.updateSystem({ dataSaver: value });
   const usoBateria = settingsState.system.batteryMode;
   const setUsoBateria = (value: (typeof BATTERY_OPTIONS)[number]) =>
     settingsActions.updateSystem({ batteryMode: value });
@@ -2018,97 +1812,47 @@ export function InspectorMobileApp() {
   const regiaoApp = settingsState.system.region;
   const setRegiaoApp = (value: (typeof REGION_OPTIONS)[number]) =>
     settingsActions.updateSystem({ region: value });
-  const [provedoresConectados, setProvedoresConectados] = useState<ConnectedProvider[]>(() =>
-    criarProvedoresConectadosPadrao(),
-  );
-  const [integracoesExternas, setIntegracoesExternas] = useState<ExternalIntegration[]>(() =>
-    criarIntegracoesExternasPadrao(),
-  );
-  const [sessoesAtivas, setSessoesAtivas] = useState<SessionDevice[]>(() => criarSessoesAtivasPadrao());
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [twoFactorMethod, setTwoFactorMethod] = useState<(typeof TWO_FACTOR_METHOD_OPTIONS)[number]>("App autenticador");
-  const [recoveryCodesEnabled, setRecoveryCodesEnabled] = useState(true);
   const biometriaLocalSuportada = false;
-  const deviceBiometricsEnabled = biometriaLocalSuportada && settingsState.security.deviceBiometricsEnabled;
+  const deviceBiometricsEnabled =
+    biometriaLocalSuportada && settingsState.security.deviceBiometricsEnabled;
   const setDeviceBiometricsEnabled = (value: boolean) =>
     settingsActions.updateSecurity({ deviceBiometricsEnabled: value });
   const requireAuthOnOpen = settingsState.security.requireAuthOnOpen;
-  const setRequireAuthOnOpen = (value: boolean) => settingsActions.updateSecurity({ requireAuthOnOpen: value });
+  const setRequireAuthOnOpen = (value: boolean) =>
+    settingsActions.updateSecurity({ requireAuthOnOpen: value });
   const hideInMultitask = settingsState.security.hideInMultitask;
-  const setHideInMultitask = (value: boolean) => settingsActions.updateSecurity({ hideInMultitask: value });
+  const setHideInMultitask = (value: boolean) =>
+    settingsActions.updateSecurity({ hideInMultitask: value });
   const lockTimeout = settingsState.security.lockTimeout;
   const setLockTimeout = (value: (typeof LOCK_TIMEOUT_OPTIONS)[number]) =>
     settingsActions.updateSecurity({ lockTimeout: value });
   const retencaoDados = settingsState.dataControls.retention;
   const setRetencaoDados = (value: (typeof DATA_RETENTION_OPTIONS)[number]) =>
     settingsActions.updateDataControls({ retention: value });
-  const [codigo2FA, setCodigo2FA] = useState("");
-  const [codigosRecuperacao, setCodigosRecuperacao] = useState<string[]>([]);
-  const [reautenticacaoStatus, setReautenticacaoStatus] = useState("Não confirmada");
-  const [reautenticacaoExpiraEm, setReautenticacaoExpiraEm] = useState("");
-  const [reauthReason, setReauthReason] = useState(
-    "Confirme sua identidade para liberar ações críticas no app do inspetor.",
-  );
-  const [filtroEventosSeguranca, setFiltroEventosSeguranca] = useState<SecurityEventFilter>("todos");
-  const [eventosSeguranca, setEventosSeguranca] = useState<SecurityEventItem[]>([
-    {
-      id: "sec-1",
-      title: "Novo login autorizado",
-      meta: "Pixel 7a • São Paulo, BR",
-      status: "Hoje às 12:07",
-      type: "login",
-    },
-    {
-      id: "sec-2",
-      title: "Conta Microsoft conectada",
-      meta: "Conta corporativa vinculada",
-      status: "Ontem às 18:41",
-      type: "provider",
-    },
-    {
-      id: "sec-3",
-      title: "Tentativa sensível pendente de reautenticação",
-      meta: "Exportação de dados solicitada",
-      status: "Hoje às 10:18",
-      type: "data",
-      critical: true,
-    },
-  ]);
-  const mostrarConteudoNotificacao = settingsState.notifications.showMessageContent;
+  const mostrarConteudoNotificacao =
+    settingsState.notifications.showMessageContent;
   const setMostrarConteudoNotificacao = (value: boolean) =>
     settingsActions.updateNotifications({ showMessageContent: value });
-  const ocultarConteudoBloqueado = settingsState.notifications.hideContentOnLockScreen;
+  const ocultarConteudoBloqueado =
+    settingsState.notifications.hideContentOnLockScreen;
   const setOcultarConteudoBloqueado = (value: boolean) =>
     settingsActions.updateNotifications({ hideContentOnLockScreen: value });
-  const mostrarSomenteNovaMensagem = settingsState.notifications.onlyShowNewMessage;
+  const mostrarSomenteNovaMensagem =
+    settingsState.notifications.onlyShowNewMessage;
   const setMostrarSomenteNovaMensagem = (value: boolean) =>
     settingsActions.updateNotifications({ onlyShowNewMessage: value });
-  const [buscaAjuda, setBuscaAjuda] = useState("");
-  const [artigoAjudaExpandidoId, setArtigoAjudaExpandidoId] = useState<string>(HELP_CENTER_ARTICLES[0]?.id ?? "");
-  const [filaSuporteLocal, setFilaSuporteLocal] = useState<SupportQueueItem[]>([]);
-  const [ultimaVerificacaoAtualizacao, setUltimaVerificacaoAtualizacao] = useState("");
-  const [statusAtualizacaoApp, setStatusAtualizacaoApp] = useState("Nenhuma verificação recente");
-  const [feedbackDraft, setFeedbackDraft] = useState("");
-  const [bugDescriptionDraft, setBugDescriptionDraft] = useState("");
-  const [bugEmailDraft, setBugEmailDraft] = useState("");
-  const [bugAttachmentDraft, setBugAttachmentDraft] = useState<ComposerAttachment | null>(null);
-  const [integracaoSincronizandoId, setIntegracaoSincronizandoId] = useState<ExternalIntegrationId | "">("");
-  const [buscaConfiguracoes, setBuscaConfiguracoes] = useState("");
+  const [buscaConfiguracoes] = useState("");
   const filtroConfiguracoes: SettingsDrawerFilter = "todos";
-  const [settingsDrawerPage, setSettingsDrawerPage] = useState<SettingsDrawerPage>("overview");
-  const [settingsDrawerSection, setSettingsDrawerSection] = useState<SettingsSectionKey | "all">("all");
-  const [settingsSheet, setSettingsSheet] = useState<SettingsSheetState | null>(null);
-  const [settingsSheetLoading, setSettingsSheetLoading] = useState(false);
-  const [settingsSheetNotice, setSettingsSheetNotice] = useState("");
-  const [confirmSheet, setConfirmSheet] = useState<ConfirmSheetState | null>(null);
-  const [confirmTextDraft, setConfirmTextDraft] = useState("");
   const [bloqueioAppAtivo, setBloqueioAppAtivo] = useState(false);
   const microfonePermitido = settingsState.security.microphonePermission;
-  const setMicrofonePermitido = (value: boolean) => settingsActions.updateSecurity({ microphonePermission: value });
+  const setMicrofonePermitido = (value: boolean) =>
+    settingsActions.updateSecurity({ microphonePermission: value });
   const cameraPermitida = settingsState.security.cameraPermission;
-  const setCameraPermitida = (value: boolean) => settingsActions.updateSecurity({ cameraPermission: value });
+  const setCameraPermitida = (value: boolean) =>
+    settingsActions.updateSecurity({ cameraPermission: value });
   const arquivosPermitidos = settingsState.security.filesPermission;
-  const setArquivosPermitidos = (value: boolean) => settingsActions.updateSecurity({ filesPermission: value });
+  const setArquivosPermitidos = (value: boolean) =>
+    settingsActions.updateSecurity({ filesPermission: value });
   const notificacoesPermitidas = settingsState.security.notificationsPermission;
   const setNotificacoesPermitidas = (value: boolean) =>
     settingsActions.updateSecurity({ notificationsPermission: value });
@@ -2119,164 +1863,754 @@ export function InspectorMobileApp() {
     () => buildAttachmentHandlingPolicy(settingsState),
     [settingsState],
   );
-  const aiRequestConfig = useMemo(() => buildChatAiRequestConfig(settingsState.ai), [settingsState.ai]);
+  const aiRequestConfig = useMemo(
+    () => buildChatAiRequestConfig(settingsState.ai),
+    [settingsState.ai],
+  );
   const scrollRef = useRef<ScrollView | null>(null);
+  const carregarListaLaudosRef = useRef<
+    (accessToken: string, silencioso?: boolean) => Promise<MobileLaudoCard[]>
+  >(async () => []);
   const emailInputRef = useRef<TextInput | null>(null);
   const senhaInputRef = useRef<TextInput | null>(null);
-  const chatMessageOffsetsRef = useRef<Record<number, number>>({});
-  const chatHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const statusSnapshotRef = useRef<Record<number, string>>({});
-  const mesaSnapshotRef = useRef<Record<number, Record<number, string>>>({});
-  const pendingSensitiveActionRef = useRef<(() => void) | null>(null);
-  const chatDraftKeyRef = useRef("");
-  const mesaDraftKeyRef = useRef("");
-  const chatAttachmentDraftKeyRef = useRef("");
-  const mesaAttachmentDraftKeyRef = useRef("");
-  const historicoDrawerX = useRef(new Animated.Value(HISTORY_PANEL_CLOSED_X)).current;
-  const configuracoesDrawerX = useRef(new Animated.Value(SETTINGS_PANEL_CLOSED_X)).current;
-  const drawerOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const historicoAbertoRef = useRef(false);
-  const configuracoesAbertaRef = useRef(false);
-  const keyboardAbertoRef = useRef(false);
-  const settingsNavigationHistoryRef = useRef<SettingsNavigationState[]>([]);
   const aiBehaviorByThreadRef = useRef<Record<string, string>>({});
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
-  const backgroundAtRef = useRef<number | null>(null);
+  const registrarNotificacoesRef = useRef<
+    (items: MobileActivityNotification[]) => void
+  >(() => undefined);
   const colorScheme = useColorScheme();
-
-  function limparReferenciaMesaAtiva() {
-    setMensagemMesaReferenciaAtiva(null);
-  }
-
-  function definirReferenciaMesaAtiva(mensagemAtual: MobileMesaMessage) {
-    const referenciaId = Number(mensagemAtual.id || 0) || null;
-    if (!referenciaId) {
-      limparReferenciaMesaAtiva();
-      return;
-    }
-
-    setMensagemMesaReferenciaAtiva({
-      id: referenciaId,
-      texto: resumoMensagemAtividade(mensagemAtual.texto, `Mensagem #${referenciaId}`),
+  const {
+    state: {
+      nomeCompletoDraft,
+      nomeExibicaoDraft,
+      telefoneDraft,
+      novoEmailDraft,
+      senhaAtualDraft,
+      novaSenhaDraft,
+      confirmarSenhaDraft,
+      planoAtual,
+      cartaoAtual,
+      nomeAutomaticoConversas,
+      fixarConversas,
+      provedoresConectados,
+      integracoesExternas,
+      sessoesAtivas,
+      twoFactorEnabled,
+      twoFactorMethod,
+      recoveryCodesEnabled,
+      codigo2FA,
+      codigosRecuperacao,
+      reautenticacaoStatus,
+      reautenticacaoExpiraEm,
+      reauthReason,
+      filtroEventosSeguranca,
+      eventosSeguranca,
+      buscaAjuda,
+      artigoAjudaExpandidoId,
+      filaSuporteLocal,
+      ultimaVerificacaoAtualizacao,
+      statusAtualizacaoApp,
+      feedbackDraft,
+      bugDescriptionDraft,
+      bugEmailDraft,
+      bugAttachmentDraft,
+      integracaoSincronizandoId,
+    },
+    actions: {
+      setNomeCompletoDraft,
+      setNomeExibicaoDraft,
+      setTelefoneDraft,
+      setNovoEmailDraft,
+      setSenhaAtualDraft,
+      setNovaSenhaDraft,
+      setConfirmarSenhaDraft,
+      setPlanoAtual,
+      setCartaoAtual,
+      setNomeAutomaticoConversas,
+      setFixarConversas,
+      setProvedoresConectados,
+      setIntegracoesExternas,
+      setSessoesAtivas,
+      setTwoFactorEnabled,
+      setTwoFactorMethod,
+      setRecoveryCodesEnabled,
+      setCodigo2FA,
+      setCodigosRecuperacao,
+      setReautenticacaoStatus,
+      setReautenticacaoExpiraEm,
+      setReauthReason,
+      setFiltroEventosSeguranca,
+      setEventosSeguranca,
+      setBuscaAjuda,
+      setArtigoAjudaExpandidoId,
+      setFilaSuporteLocal,
+      setUltimaVerificacaoAtualizacao,
+      setStatusAtualizacaoApp,
+      setFeedbackDraft,
+      setBugDescriptionDraft,
+      setBugEmailDraft,
+      setBugAttachmentDraft,
+      setIntegracaoSincronizandoId,
+      clearTransientSettingsPresentationState,
+      resetSessionBoundSettingsPresentationState,
+      resetSettingsPresentationAfterAccountDeletion,
+    },
+  } = useSettingsPresentation();
+  const { registrarEventoSegurancaLocal } = useSecurityEventLog({
+    setEventosSeguranca,
+  });
+  const {
+    state: {
+      settingsDrawerPage,
+      settingsDrawerSection,
+      settingsSheet,
+      settingsSheetLoading,
+      settingsSheetNotice,
+      confirmSheet,
+      confirmTextDraft,
+    },
+    actions: {
+      setConfirmTextDraft,
+      setSettingsSheetLoading,
+      setSettingsSheetNotice,
+      handleAbrirPaginaConfiguracoes,
+      handleAbrirSecaoConfiguracoes,
+      handleVoltarResumoConfiguracoes,
+      abrirSheetConfiguracao,
+      fecharSheetConfiguracao,
+      abrirConfirmacaoConfiguracao,
+      fecharConfirmacaoConfiguracao,
+      notificarConfiguracaoConcluida,
+      resetSettingsNavigation,
+      resetSettingsUi,
+      clearTransientSettingsUiPreservingReauth,
+    },
+  } = useSettingsNavigation();
+  const {
+    abrirHistorico,
+    configuracoesDrawerX,
+    drawerOverlayOpacity,
+    fecharConfiguracoes,
+    fecharHistorico,
+    fecharPaineisLaterais,
+    handleAbrirConfiguracoes,
+    historyDrawerPanResponder,
+    historyEdgePanResponder,
+    historicoAbertoRef,
+    historicoDrawerX,
+    resetPainelLateralState,
+    settingsDrawerPanResponder,
+    settingsEdgePanResponder,
+  } = useSidePanelsController({
+    configuracoesAberta,
+    historicoAberto,
+    keyboardHeight,
+    resetSettingsNavigation,
+    setBuscaHistorico,
+    setConfiguracoesAberta,
+    setHistoricoAberto,
+  });
+  const {
+    abrirFluxoReautenticacao,
+    clearPendingSensitiveAction,
+    executarComReautenticacao,
+    handleConfirmarSettingsSheetReauth,
+    handleExcluirConta,
+  } = useSettingsReauthActions({
+    abrirConfirmacaoConfiguracao,
+    abrirSheetConfiguracao,
+    fecharSheetConfiguracao,
+    notificarConfiguracaoConcluida,
+    registrarEventoSegurancaLocal,
+    reautenticacaoExpiraEm,
+    settingsSheet,
+    reautenticacaoAindaValida,
+    setReauthReason,
+    setReautenticacaoExpiraEm,
+    setReautenticacaoStatus,
+    setSettingsSheetLoading,
+    setSettingsSheetNotice,
+  });
+  const {
+    state: {
+      carregando,
+      email,
+      entrando,
+      erro,
+      mostrarSenha,
+      senha,
+      session,
+      statusApi,
+    },
+    actions: {
+      handleLogin,
+      handleLogout,
+      setCarregando,
+      setEmail,
+      setMostrarSenha,
+      setSenha,
+      setSession,
+      setStatusApi,
+    },
+  } = useInspectorSession<
+    OfflinePendingMessage,
+    MobileActivityNotification,
+    MobileReadCache,
+    ChatState | null
+  >({
+    settingsHydrated,
+    chatHistoryEnabled: settingsState.dataControls.chatHistoryEnabled,
+    deviceBackupEnabled: settingsState.dataControls.deviceBackupEnabled,
+    aplicarPreferenciasLaudos,
+    chaveCacheLaudo,
+    erroSugereModoOffline,
+    lerCacheLeituraLocal,
+    lerEstadoHistoricoLocal,
+    lerFilaOfflineLocal,
+    lerNotificacoesLocais,
+    limparCachePorPrivacidade,
+    cacheLeituraVazio: CACHE_LEITURA_VAZIO,
+    onSetFilaOffline: setFilaOffline,
+    onSetNotificacoes: setNotificacoes,
+    onSetCacheLeitura: setCacheLeitura,
+    onSetLaudosFixadosIds: setLaudosFixadosIds,
+    onSetHistoricoOcultoIds: setHistoricoOcultoIds,
+    onSetUsandoCacheOffline: setUsandoCacheOffline,
+    onSetLaudosDisponiveis: setLaudosDisponiveis,
+    onSetConversa: setConversa,
+    onSetMensagensMesa: setMensagensMesa,
+    onSetLaudoMesaCarregado: setLaudoMesaCarregado,
+    onSetErroLaudos: setErroLaudos,
+    onApplyBootstrapCache: (bootstrap) => {
+      setCacheLeitura((estadoAtual) => ({
+        ...estadoAtual,
+        bootstrap,
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    onAfterLoginSuccess: () => {
+      setBloqueioAppAtivo(false);
+    },
+    onResetAfterLogout: () => {
+      setCacheLeitura(CACHE_LEITURA_VAZIO);
+      setConversa(null);
+      setMensagem("");
+      setAnexoRascunho(null);
+      setSenha("");
+      setAbaAtiva("chat");
+      setLaudosDisponiveis([]);
+      setErroLaudos("");
+      setMensagensMesa([]);
+      setErroMesa("");
+      setMensagemMesa("");
+      setAnexoMesaRascunho(null);
+      setFilaOffline([]);
+      setSincronizandoFilaOffline(false);
+      setSincronizandoItemFilaId("");
+      setLaudoMesaCarregado(null);
+      setNotificacoes([]);
+      setAnexoAbrindoChave("");
+      setPreviewAnexoImagem(null);
+      resetSessionBoundSettingsPresentationState();
+      setBloqueioAppAtivo(false);
+      resetSettingsUi();
+      clearPendingSensitiveAction();
+    },
+  });
+  const { handleEsqueciSenha, handleLoginSocial, tentarAbrirUrlExterna } =
+    useExternalAccessActions({
+      email,
+      onCanOpenUrl: Linking.canOpenURL,
+      onOpenUrl: Linking.openURL,
+      onShowAlert: Alert.alert,
     });
-  }
+  const {
+    handleUploadFotoPerfil,
+    handleEditarPerfil,
+    handleAlterarEmail,
+    handleAlterarSenha,
+    handleGerenciarPlano,
+    handleHistoricoPagamentos,
+    handleGerenciarPagamento,
+    handleAbrirModeloIa,
+    handlePluginsIa,
+    handlePermissoes,
+    handlePoliticaPrivacidade,
+    handleCentralAjuda,
+    handleReportarProblema,
+    handleEnviarFeedback,
+    handleAbrirSobreApp,
+    handleAlternarArtigoAjuda,
+    handleTermosUso,
+    handleLicencas,
+  } = useSettingsEntryActions({
+    perfilNome,
+    perfilExibicao,
+    contaTelefone,
+    emailAtualConta,
+    fallbackEmail: email,
+    abrirSheetConfiguracao,
+    handleAbrirPaginaConfiguracoes,
+    setNomeCompletoDraft,
+    setNomeExibicaoDraft,
+    setTelefoneDraft,
+    setNovoEmailDraft,
+    setSenhaAtualDraft,
+    setNovaSenhaDraft,
+    setConfirmarSenhaDraft,
+    setBuscaAjuda,
+    setArtigoAjudaExpandidoId,
+    setBugDescriptionDraft,
+    setBugEmailDraft,
+    setBugAttachmentDraft,
+    setFeedbackDraft,
+  });
+  const {
+    handleAbrirAjustesDoSistema,
+    handleCompartilharCodigosRecuperacao,
+    handleConectarProximoProvedorDisponivel,
+    handleConfirmarCodigo2FA,
+    handleEncerrarOutrasSessoes,
+    handleEncerrarSessao,
+    handleEncerrarSessaoAtual,
+    handleEncerrarSessoesSuspeitas,
+    handleGerarCodigosRecuperacao,
+    handleMudarMetodo2FA,
+    handleReautenticacaoSensivel,
+    handleRevisarSessao,
+    handleToggle2FA,
+    handleToggleBiometriaNoDispositivo,
+    handleToggleProviderConnection,
+  } = useSettingsSecurityActions({
+    biometriaLocalSuportada,
+    biometriaPermitida,
+    codigosRecuperacao,
+    codigo2FA,
+    emailAtualConta,
+    fallbackEmail: email,
+    fecharConfiguracoes,
+    handleLogout,
+    provedoresConectados,
+    reautenticacaoExpiraEm,
+    requireAuthOnOpen,
+    sessoesAtivas,
+    twoFactorEnabled,
+    twoFactorMethod,
+    abrirConfirmacaoConfiguracao,
+    abrirFluxoReautenticacao,
+    abrirSheetConfiguracao,
+    compartilharTextoExportado,
+    executarComReautenticacao,
+    openSystemSettings: () => {
+      void Linking.openSettings();
+    },
+    registrarEventoSegurancaLocal,
+    reautenticacaoAindaValida,
+    setCodigo2FA,
+    setCodigosRecuperacao,
+    setDeviceBiometricsEnabled,
+    setProvedoresConectados,
+    setRequireAuthOnOpen,
+    setSessoesAtivas,
+    setSettingsSheetNotice,
+    setTwoFactorEnabled,
+    setTwoFactorMethod,
+    showAlert: Alert.alert,
+  });
 
-  async function atualizarPermissoesDoSistema() {
-    const snapshot = await readDevicePermissionSnapshot();
-    setMicrofonePermitido(snapshot.microphone);
-    setCameraPermitida(snapshot.camera);
-    setArquivosPermitidos(snapshot.files);
-    setNotificacoesPermitidas(snapshot.notifications);
-    setBiometriaPermitida(snapshot.biometrics);
-  }
+  const {
+    actions: {
+      carregarMesaAtual,
+      definirReferenciaMesaAtiva,
+      handleEnviarMensagemMesa,
+      limparReferenciaMesaAtiva,
+      resetMesaState,
+    },
+  } = useMesaController<OfflinePendingMessage, MobileReadCache>({
+    session,
+    activeThread: abaAtiva,
+    conversation: conversa,
+    statusApi,
+    wifiOnlySync,
+    messageMesa: mensagemMesa,
+    attachmentDraft: anexoMesaRascunho,
+    activeReference: mensagemMesaReferenciaAtiva,
+    messagesMesa: mensagensMesa,
+    setMessagesMesa: setMensagensMesa,
+    setErrorMesa: setErroMesa,
+    setMessageMesa: setMensagemMesa,
+    setAttachmentDraft: setAnexoMesaRascunho,
+    setActiveReference: setMensagemMesaReferenciaAtiva,
+    setLoadingMesa: setCarregandoMesa,
+    setSyncMesa: setSincronizandoMesa,
+    setSendingMesa: setEnviandoMesa,
+    laudoMesaCarregado,
+    setLaudoMesaCarregado,
+    scrollRef,
+    carregarListaLaudosRef,
+    setFilaOffline,
+    setStatusApi,
+    cacheLeitura,
+    setCacheLeitura,
+    setUsandoCacheOffline,
+    setConversation: setConversa,
+    chaveCacheLaudo,
+    chaveRascunho,
+    erroSugereModoOffline,
+    textoFallbackAnexo,
+    criarItemFilaOffline,
+    atualizarResumoLaudoAtual,
+  });
 
-  function handleAbrirPermissaoNotificacoes() {
-    void handleGerenciarPermissao("Notificações", notificacoesPermitidas ? "permitido" : "negado");
-  }
+  const {
+    actions: {
+      abrirLaudoPorId,
+      abrirReferenciaNoChat,
+      carregarConversaAtual,
+      carregarListaLaudos,
+      handleAbrirNovoChat,
+      handleEnviarMensagem,
+      handleReabrir,
+      handleSelecionarLaudo,
+      registrarLayoutMensagemChat,
+    },
+  } = useInspectorChatController<OfflinePendingMessage, MobileReadCache>({
+    session,
+    sessionLoading: carregando,
+    activeThread: abaAtiva,
+    statusApi,
+    wifiOnlySync,
+    aiRequestConfig,
+    speechSettings: settingsState.speech,
+    cacheLeitura,
+    conversation: conversa,
+    setConversation: setConversa,
+    laudosDisponiveis,
+    setLaudosDisponiveis,
+    laudosFixadosIds,
+    historicoOcultoIds,
+    laudoMesaCarregado,
+    setLaudoMesaCarregado,
+    setMensagensMesa,
+    setErroMesa,
+    setMensagemMesa,
+    setAnexoMesaRascunho,
+    clearMesaReference: limparReferenciaMesaAtiva,
+    onSetActiveThread: setAbaAtiva,
+    message: mensagem,
+    setMessage: setMensagem,
+    attachmentDraft: anexoRascunho,
+    setAttachmentDraft: setAnexoRascunho,
+    setErrorConversation: setErroConversa,
+    setSendingMessage: setEnviandoMensagem,
+    setLoadingConversation: setCarregandoConversa,
+    setSyncConversation: setSincronizandoConversa,
+    setLoadingLaudos: setCarregandoLaudos,
+    setErrorLaudos: setErroLaudos,
+    highlightedMessageId: mensagemChatDestacadaId,
+    setHighlightedMessageId: setMensagemChatDestacadaId,
+    layoutVersion: layoutMensagensChatVersao,
+    setLayoutVersion: setLayoutMensagensChatVersao,
+    scrollRef,
+    setFilaOffline,
+    setStatusApi,
+    setUsandoCacheOffline,
+    setCacheLeitura,
+    carregarMesaAtual,
+    aplicarPreferenciasLaudos,
+    chaveCacheLaudo,
+    chaveRascunho,
+    erroSugereModoOffline,
+    normalizarConversa,
+    atualizarResumoLaudoAtual,
+    criarConversaNova,
+    podeEditarConversaNoComposer,
+    textoFallbackAnexo,
+    normalizarModoChat,
+    inferirSetorConversa,
+    montarHistoricoParaEnvio,
+    criarMensagemAssistenteServidor,
+    criarItemFilaOffline,
+  });
+  carregarListaLaudosRef.current = carregarListaLaudos;
+  const { handleAbrirAnexo, handleAbrirSeletorAnexo, handleEscolherAnexo } =
+    useAttachmentController({
+      abaAtiva,
+      arquivosPermitidos,
+      autoUploadAttachments,
+      cameraPermitida,
+      preparandoAnexo,
+      sessionAccessToken: session?.accessToken || null,
+      statusApi,
+      uploadArquivosAtivo,
+      wifiOnlySync,
+      imageQuality: attachmentHandlingPolicy.imageQuality,
+      disableAggressiveDownloads:
+        attachmentHandlingPolicy.disableAggressiveDownloads,
+      erroSugereModoOffline,
+      inferirExtensaoAnexo,
+      montarAnexoDocumentoLocal,
+      montarAnexoDocumentoMesa,
+      montarAnexoImagem,
+      nomeArquivoSeguro,
+      onBuildAttachmentKey: chaveAnexo,
+      onShowAlert: Alert.alert,
+      setAnexosAberto,
+      setAnexoAbrindoChave,
+      setAnexoMesaRascunho,
+      setAnexoRascunho,
+      setErroConversa,
+      setPreparandoAnexo,
+      setPreviewAnexoImagem,
+      setStatusApi,
+    });
+  const {
+    handleAbrirAjudaDitado,
+    handleVoiceInputPress,
+    onCyclePreferredVoice,
+  } = useVoiceInputController({
+    entradaPorVoz,
+    microfonePermitido,
+    preferredVoiceId,
+    speechEnabled,
+    voiceInputUnavailableMessage:
+      buildVoiceInputUnavailableMessage(voiceLanguage),
+    voiceRuntimeSupported: voiceRuntimeState.sttSupported,
+    voices: voiceRuntimeState.voices,
+    onOpenSystemSettings: () => {
+      void Linking.openSettings();
+    },
+    onSetMicrofonePermitido: setMicrofonePermitido,
+    onSetPreferredVoiceId: setPreferredVoiceId,
+    onShowAlert: Alert.alert,
+  });
+  const {
+    handleAbrirHistorico,
+    handleExcluirConversaHistorico,
+    handleGerenciarConversasIndividuais,
+    handleSelecionarHistorico,
+  } = useHistoryController<
+    ChatState,
+    MobileReadCache,
+    MobileMesaMessage,
+    MobileActivityNotification
+  >({
+    keyboardHeight,
+    historicoAberto,
+    historicoAbertoRefAtual: historicoAbertoRef.current,
+    conversaAtualLaudoId: conversa?.laudoId ?? null,
+    fecharHistorico,
+    abrirHistorico,
+    fecharConfiguracoes,
+    handleSelecionarLaudo,
+    onCreateNewConversation: criarConversaNova,
+    onDismissKeyboard: Keyboard.dismiss,
+    onGetCacheKeyForLaudo: chaveCacheLaudo,
+    onSchedule: (callback, delayMs) => {
+      setTimeout(callback, delayMs);
+    },
+    setAbaAtiva,
+    setAnexoMesaRascunho,
+    setAnexoRascunho,
+    setCacheLeitura,
+    setConversa,
+    setErroConversa,
+    setErroMesa,
+    setHistoricoOcultoIds,
+    setLaudoMesaCarregado,
+    setLaudosDisponiveis,
+    setLaudosFixadosIds,
+    setMensagem,
+    setMensagemMesa,
+    setMensagensMesa,
+    setNotificacoes,
+  });
 
-  function handleAbrirAjudaDitado() {
-    Alert.alert("Ditado no composer", buildVoiceInputUnavailableMessage(voiceLanguage), [
-      { text: "Fechar", style: "cancel" },
-      {
-        text: "Abrir ajustes",
-        onPress: () => {
-          void Linking.openSettings();
+  const {
+    actions: {
+      handleRetomarItemFilaOffline,
+      removerItemFilaOffline,
+      sincronizarFilaOffline,
+      sincronizarItemFilaOffline,
+    },
+  } = useOfflineQueueController<ChatState, OfflinePendingMessage>({
+    session,
+    sessionLoading: carregando,
+    statusApi,
+    wifiOnlySync,
+    syncEnabled: sincronizacaoDispositivos,
+    activeThread: abaAtiva,
+    conversation: conversa,
+    messagesMesa: mensagensMesa,
+    offlineQueue: filaOffline,
+    syncingQueue: sincronizandoFilaOffline,
+    syncingItemId: sincronizandoItemFilaId,
+    setOfflineQueue: setFilaOffline,
+    setSyncingQueue: setSincronizandoFilaOffline,
+    setSyncingItemId: setSincronizandoItemFilaId,
+    setOfflineQueueVisible: setFilaOfflineAberta,
+    setActiveThread: setAbaAtiva,
+    setMessage: setMensagem,
+    setAttachmentDraft: setAnexoRascunho,
+    setMessageMesa: setMensagemMesa,
+    setAttachmentMesaDraft: setAnexoMesaRascunho,
+    setMesaActiveReference: setMensagemMesaReferenciaAtiva,
+    setErrorConversation: setErroConversa,
+    setErrorMesa: setErroMesa,
+    setStatusApi,
+    saveQueueLocally: salvarFilaOfflineLocal,
+    carregarListaLaudos,
+    carregarConversaAtual,
+    abrirLaudoPorId,
+    handleSelecionarLaudo,
+    carregarMesaAtual,
+    inferirSetorConversa,
+    montarHistoricoParaEnvio,
+    normalizarModoChat,
+    obterResumoReferenciaMensagem,
+    erroSugereModoOffline,
+    duplicarComposerAttachment,
+    calcularBackoffMs: calcularBackoffPendenciaOfflineMs,
+    isItemReadyForRetry: pendenciaFilaProntaParaReenvio,
+  });
+  const handleRefresh = buildRefreshAction({
+    abaAtiva,
+    carregarConversaAtual,
+    carregarListaLaudos,
+    carregarMesaAtual,
+    conversa,
+    criarNotificacaoSistema,
+    filaOffline,
+    onCanSyncOnCurrentNetwork: podeSincronizarNaRedeAtual,
+    onIsOfflineItemReadyForRetry: pendenciaFilaProntaParaReenvio,
+    onPingApi: pingApi,
+    onRegistrarNotificacoes: (items) => {
+      registrarNotificacoesRef.current(items);
+    },
+    onSetErroConversa: setErroConversa,
+    onSetErroMesa: setErroMesa,
+    onSetSincronizandoAgora: setSincronizandoAgora,
+    onSetStatusApi: setStatusApi,
+    onSetUsandoCacheOffline: setUsandoCacheOffline,
+    session,
+    sincronizacaoDispositivos,
+    sincronizarFilaOffline,
+    wifiOnlySync,
+  });
+
+  const {
+    state: { monitorandoAtividade },
+    actions: {
+      handleAbrirCentralAtividade,
+      handleAbrirNotificacao,
+      registrarNotificacoes,
+    },
+  } = useActivityCenterController<ChatState, MobileActivityNotification>({
+    session,
+    sessionLoading: carregando,
+    statusApi,
+    wifiOnlySync,
+    syncEnabled: sincronizacaoDispositivos,
+    activeThread: abaAtiva,
+    conversation: conversa,
+    laudosDisponiveis,
+    laudoMesaCarregado,
+    messagesMesa: mensagensMesa,
+    monitorIntervalMs: obterIntervaloMonitoramentoMs(economiaDados, usoBateria),
+    notifications: notificacoes,
+    notificationSettings: settingsState.notifications,
+    notificationsPermissionGranted: notificacoesPermitidas,
+    setNotifications: setNotificacoes,
+    setActivityCenterVisible: setCentralAtividadeAberta,
+    openLaudoById: abrirLaudoPorId,
+    setActiveThread: setAbaAtiva,
+    carregarMesaAtual,
+    onRecoverOnline: handleRefresh,
+    saveNotificationsLocally: salvarNotificacoesLocais,
+    assinaturaStatusLaudo,
+    assinaturaMensagemMesa,
+    selecionarLaudosParaMonitoramentoMesa,
+    criarNotificacaoStatusLaudo,
+    criarNotificacaoMesa,
+    erroSugereModoOffline,
+    chaveCacheLaudo,
+    onUpdateCurrentConversationSummary: (payload) => {
+      setConversa((estadoAtual) =>
+        atualizarResumoLaudoAtual(estadoAtual, payload as any),
+      );
+    },
+    onSetLaudosDisponiveis: setLaudosDisponiveis,
+    onSetCacheLaudos: (proximosLaudos) => {
+      setCacheLeitura((estadoAtual) => ({
+        ...estadoAtual,
+        laudos: proximosLaudos,
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    onSetErroLaudos: setErroLaudos,
+    onSetMensagensMesa: setMensagensMesa,
+    onSetLaudoMesaCarregado: setLaudoMesaCarregado,
+    onSetCacheMesa: (cacheMesaAtualizado) => {
+      setCacheLeitura((estadoAtual) => ({
+        ...estadoAtual,
+        mesaPorLaudo: {
+          ...estadoAtual.mesaPorLaudo,
+          ...cacheMesaAtualizado,
         },
-      },
-    ]);
-  }
-
-  function onCyclePreferredVoice() {
-    const voices = voiceRuntimeState.voices;
-    if (!voices.length) {
-      return;
-    }
-
-    const currentIndex = voices.findIndex((voice) => voice.identifier === preferredVoiceId);
-    const nextVoice = voices[(currentIndex + 1 + voices.length) % voices.length] || voices[0];
-    setPreferredVoiceId(nextVoice.identifier || "");
-  }
-
-  async function handleVoiceInputPress() {
-    if (!speechEnabled || !entradaPorVoz) {
-      Alert.alert("Entrada por voz desativada", "Ative a fala e a transcrição automática nas configurações.");
-      return;
-    }
-
-    const permitido = microfonePermitido || (await requestDevicePermission("microphone"));
-    setMicrofonePermitido(permitido);
-    if (!permitido) {
-      Alert.alert("Microfone bloqueado", "Conceda acesso ao microfone para usar recursos de voz.", [
-        { text: "Agora não", style: "cancel" },
-        {
-          text: "Abrir ajustes",
-          onPress: () => {
-            void Linking.openSettings();
-          },
-        },
-      ]);
-      return;
-    }
-
-    if (!voiceRuntimeState.sttSupported) {
-      handleAbrirAjudaDitado();
-      return;
-    }
-  }
-
-  function registrarLayoutMensagemChat(mensagemId: number | null, offsetY: number) {
-    const alvo = Number(mensagemId || 0) || null;
-    if (!alvo) {
-      return;
-    }
-
-    if (chatMessageOffsetsRef.current[alvo] === offsetY) {
-      return;
-    }
-
-    chatMessageOffsetsRef.current[alvo] = offsetY;
-    setLayoutMensagensChatVersao((estadoAtual) => estadoAtual + 1);
-  }
-
-  async function abrirReferenciaNoChat(referenciaId: number | null | undefined) {
-    const alvo = Number(referenciaId || 0) || null;
-    if (!alvo) {
-      return;
-    }
-
-    if (!conversa?.mensagens.some((item) => Number(item.id || 0) === alvo) && session && conversa?.laudoId) {
-      await abrirLaudoPorId(session.accessToken, conversa.laudoId);
-    }
-
-    setAbaAtiva("chat");
-    setMensagemChatDestacadaId(alvo);
-  }
-
-  useEffect(() => {
-    if (!settingsHydrated) {
-      return;
-    }
-    void bootstrapApp();
-  }, [settingsHydrated]);
-
-  useEffect(() => {
-    historicoAbertoRef.current = historicoAberto;
-  }, [historicoAberto]);
-
-  useEffect(() => {
-    configuracoesAbertaRef.current = configuracoesAberta;
-  }, [configuracoesAberta]);
-
-  useEffect(() => {
-    keyboardAbertoRef.current = keyboardHeight > 0;
-  }, [keyboardHeight]);
+        updatedAt: new Date().toISOString(),
+      }));
+    },
+    onSetStatusApi: setStatusApi,
+    onSetErroConversaIfEmpty: (message) => {
+      setErroConversa((estadoAtual) => estadoAtual || message);
+    },
+    maxNotifications: MAX_NOTIFICATIONS,
+  });
+  const {
+    actions: {
+      handleAbrirPermissaoNotificacoes,
+      handleDesbloquearAplicativo,
+      handleGerenciarPermissao,
+    },
+  } = useAppLockController({
+    appLocked: bloqueioAppAtivo,
+    session,
+    settingsHydrated,
+    requireAuthOnOpen,
+    lockTimeout,
+    reauthenticationExpiresAt: reautenticacaoExpiraEm,
+    deviceBiometricsEnabled,
+    microphonePermissionGranted: microfonePermitido,
+    cameraPermissionGranted: cameraPermitida,
+    filesPermissionGranted: arquivosPermitidos,
+    notificationsPermissionGranted: notificacoesPermitidas,
+    biometricsPermissionGranted: biometriaPermitida,
+    pushEnabled: notificaPush,
+    uploadFilesEnabled: uploadArquivosAtivo,
+    voiceInputEnabled: entradaPorVoz,
+    setMicrophonePermissionGranted: setMicrofonePermitido,
+    setCameraPermissionGranted: setCameraPermitida,
+    setFilesPermissionGranted: setArquivosPermitidos,
+    setNotificationsPermissionGranted: setNotificacoesPermitidas,
+    setBiometricsPermissionGranted: setBiometriaPermitida,
+    setPushEnabled: setNotificaPush,
+    setDeviceBiometricsEnabled,
+    setUploadFilesEnabled: setUploadArquivosAtivo,
+    setVoiceInputEnabled: setEntradaPorVoz,
+    setAppLocked: setBloqueioAppAtivo,
+    isReauthenticationStillValid: reautenticacaoAindaValida,
+    resolveLockTimeoutMs: obterTimeoutBloqueioMs,
+    openReauthFlow: abrirFluxoReautenticacao,
+    registerSecurityEvent: registrarEventoSegurancaLocal,
+  });
 
   useEffect(() => {
     if (!session) {
       return;
     }
 
-    settingsActions.updateWith((current) => mergeMobileUserIntoSettings(current, session.bootstrap.usuario));
+    settingsActions.updateWith((current) =>
+      mergeMobileUserIntoSettings(current, session.bootstrap.usuario),
+    );
     setProvedoresConectados((estadoAtual) =>
       estadoAtual.map((provider) =>
         provider.connected && !provider.email && session.bootstrap.usuario.email
@@ -2296,15 +2630,24 @@ export function InspectorMobileApp() {
     carregando,
     snapshotAtual: snapshotConfiguracoesCriticasAtuais,
     aplicarSnapshot: (snapshot) => {
-      settingsActions.updateWith((current) => mergeCriticalSnapshotIntoSettings(current, snapshot));
+      settingsActions.updateWith((current) =>
+        mergeCriticalSnapshotIntoSettings(current, snapshot),
+      );
     },
     onLoadError: (error) => {
-      console.warn("Falha ao carregar configuracoes criticas da conta no backend.", error);
+      console.warn(
+        "Falha ao carregar configuracoes criticas da conta no backend.",
+        error,
+      );
     },
     onSaveError: (error) => {
-      console.warn("Falha ao sincronizar configuracoes criticas da conta no backend.", error);
+      console.warn(
+        "Falha ao sincronizar configuracoes criticas da conta no backend.",
+        error,
+      );
     },
   });
+  registrarNotificacoesRef.current = registrarNotificacoes;
 
   useEffect(() => {
     configureObservability({ analyticsOptIn });
@@ -2315,28 +2658,16 @@ export function InspectorMobileApp() {
   }, [crashReportsOptIn]);
 
   useEffect(() => {
-    initializeNotificationsRuntime();
-  }, []);
-
-  useEffect(() => {
-    void syncNotificationChannels(settingsState.notifications);
-  }, [settingsState.notifications]);
-
-  useEffect(() => {
-    if (!settingsHydrated) {
-      return;
-    }
-    void atualizarPermissoesDoSistema();
-  }, [settingsHydrated]);
-
-  useEffect(() => {
     let ativo = true;
     void loadVoiceRuntimeState(voiceLanguage).then((runtime) => {
       if (!ativo) {
         return;
       }
       setVoiceRuntimeState(runtime);
-      if (preferredVoiceId && !runtime.voices.some((voice) => voice.identifier === preferredVoiceId)) {
+      if (
+        preferredVoiceId &&
+        !runtime.voices.some((voice) => voice.identifier === preferredVoiceId)
+      ) {
         setPreferredVoiceId("");
       }
     });
@@ -2349,23 +2680,11 @@ export function InspectorMobileApp() {
     const threadKey = chaveCacheLaudo(conversa?.laudoId ?? null);
     const previousSummary = aiBehaviorByThreadRef.current[threadKey] || "";
     const nextSummary = aiRequestConfig.summaryLabel;
-    setChatAiBehaviorNotice(describeChatAiBehaviorChange(previousSummary, nextSummary));
+    setChatAiBehaviorNotice(
+      describeChatAiBehaviorChange(previousSummary, nextSummary),
+    );
     aiBehaviorByThreadRef.current[threadKey] = nextSummary;
   }, [aiRequestConfig.summaryLabel, conversa?.laudoId]);
-
-  useEffect(() => {
-    if (carregando) {
-      return;
-    }
-    void salvarFilaOfflineLocal(filaOffline);
-  }, [carregando, filaOffline]);
-
-  useEffect(() => {
-    if (carregando) {
-      return;
-    }
-    void salvarNotificacoesLocais(notificacoes);
-  }, [carregando, notificacoes]);
 
   useEffect(() => {
     if (carregando) {
@@ -2386,7 +2705,9 @@ export function InspectorMobileApp() {
       return;
     }
     void salvarCacheLeituraLocal(
-      salvarHistoricoConversas ? cacheLeitura : limparCachePorPrivacidade(cacheLeitura),
+      salvarHistoricoConversas
+        ? cacheLeitura
+        : limparCachePorPrivacidade(cacheLeitura),
     );
   }, [backupAutomatico, cacheLeitura, carregando, salvarHistoricoConversas]);
 
@@ -2428,11 +2749,16 @@ export function InspectorMobileApp() {
       return;
     }
 
-    setReautenticacaoStatus(formatarStatusReautenticacao(reautenticacaoExpiraEm));
-    const timeout = setTimeout(() => {
-      setReautenticacaoExpiraEm("");
-      setReautenticacaoStatus("Não confirmada");
-    }, Math.max(0, new Date(reautenticacaoExpiraEm).getTime() - Date.now()));
+    setReautenticacaoStatus(
+      formatarStatusReautenticacao(reautenticacaoExpiraEm),
+    );
+    const timeout = setTimeout(
+      () => {
+        setReautenticacaoExpiraEm("");
+        setReautenticacaoStatus("Não confirmada");
+      },
+      Math.max(0, new Date(reautenticacaoExpiraEm).getTime() - Date.now()),
+    );
 
     return () => clearTimeout(timeout);
   }, [reautenticacaoExpiraEm, reautenticacaoStatus]);
@@ -2456,12 +2782,21 @@ export function InspectorMobileApp() {
       filtrarItensPorRetencao(estadoAtual, janelaMs, (item) => item.data_iso),
     );
     setCacheLeitura((estadoAtual) => {
-      const laudosFiltrados = filtrarItensPorRetencao(estadoAtual.laudos, janelaMs, (item) => item.data_iso);
-      const idsPermitidos = new Set(laudosFiltrados.map((item) => chaveCacheLaudo(item.id)));
+      const laudosFiltrados = filtrarItensPorRetencao(
+        estadoAtual.laudos,
+        janelaMs,
+        (item) => item.data_iso,
+      );
+      const idsPermitidos = new Set(
+        laudosFiltrados.map((item) => chaveCacheLaudo(item.id)),
+      );
       const filtrarPorIds = <T,>(mapa: Record<string, T>): Record<string, T> =>
-        Object.fromEntries(Object.entries(mapa).filter(([chave]) => idsPermitidos.has(chave)));
+        Object.fromEntries(
+          Object.entries(mapa).filter(([chave]) => idsPermitidos.has(chave)),
+        );
       const conversaAtualValida =
-        estadoAtual.conversaAtual?.laudoId && !idsPermitidos.has(chaveCacheLaudo(estadoAtual.conversaAtual.laudoId))
+        estadoAtual.conversaAtual?.laudoId &&
+        !idsPermitidos.has(chaveCacheLaudo(estadoAtual.conversaAtual.laudoId))
           ? null
           : estadoAtual.conversaAtual;
 
@@ -2480,56 +2815,6 @@ export function InspectorMobileApp() {
   }, [retencaoDados]);
 
   useEffect(() => {
-    if (!session) {
-      setBloqueioAppAtivo(false);
-      return;
-    }
-
-    const subscription = AppState.addEventListener("change", (nextState) => {
-      const estadoAtual = appStateRef.current;
-      appStateRef.current = nextState;
-
-      if (nextState === "background" || nextState === "inactive") {
-        backgroundAtRef.current = Date.now();
-        return;
-      }
-
-      if (nextState !== "active" || estadoAtual === "active") {
-        return;
-      }
-
-      void atualizarPermissoesDoSistema();
-
-      if (!requireAuthOnOpen) {
-        setBloqueioAppAtivo(false);
-        return;
-      }
-
-      const timeoutMs = obterTimeoutBloqueioMs(lockTimeout);
-      if (timeoutMs === null) {
-        setBloqueioAppAtivo(false);
-        return;
-      }
-
-      const tempoFora = backgroundAtRef.current ? Date.now() - backgroundAtRef.current : Number.POSITIVE_INFINITY;
-      if (timeoutMs > 0 && tempoFora < timeoutMs) {
-        return;
-      }
-
-      if (deviceBiometricsEnabled && reautenticacaoAindaValida(reautenticacaoExpiraEm)) {
-        setBloqueioAppAtivo(false);
-        return;
-      }
-
-      setBloqueioAppAtivo(true);
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [deviceBiometricsEnabled, lockTimeout, reautenticacaoExpiraEm, requireAuthOnOpen, session]);
-
-  useEffect(() => {
     if (!bloqueioAppAtivo) {
       return;
     }
@@ -2537,155 +2822,24 @@ export function InspectorMobileApp() {
     setCentralAtividadeAberta(false);
     setFilaOfflineAberta(false);
     setPreviewAnexoImagem(null);
-    setConfirmSheet(null);
-    setSettingsSheet((estadoAtual) => (estadoAtual?.kind === "reauth" ? estadoAtual : null));
+    clearTransientSettingsUiPreservingReauth();
     fecharPaineisLaterais();
   }, [bloqueioAppAtivo]);
 
   useEffect(() => {
-    if (notificacoesPermitidas || !notificaPush) {
-      return;
-    }
-    setNotificaPush(false);
-  }, [notificaPush, notificacoesPermitidas]);
-
-  useEffect(() => {
-    if (biometriaPermitida || !deviceBiometricsEnabled) {
-      return;
-    }
-    setDeviceBiometricsEnabled(false);
-  }, [biometriaPermitida, deviceBiometricsEnabled]);
-
-  useEffect(() => {
-    if (arquivosPermitidos || !uploadArquivosAtivo) {
-      return;
-    }
-    setUploadArquivosAtivo(false);
-  }, [arquivosPermitidos, uploadArquivosAtivo]);
-
-  useEffect(() => {
-    if (microfonePermitido || !entradaPorVoz) {
-      return;
-    }
-    setEntradaPorVoz(false);
-  }, [entradaPorVoz, microfonePermitido]);
-
-  useEffect(() => {
-    if (!session) {
-      chatDraftKeyRef.current = "";
-      mesaDraftKeyRef.current = "";
-      chatAttachmentDraftKeyRef.current = "";
-      mesaAttachmentDraftKeyRef.current = "";
-      if (carregando) {
-        return;
-      }
-      setConversa(null);
-      setMensagem("");
-      setErroConversa("");
-      setAbaAtiva("chat");
-      setLaudosDisponiveis([]);
-      setErroLaudos("");
-      setMensagensMesa([]);
-      setErroMesa("");
-      setMensagemMesa("");
-      setAnexoMesaRascunho(null);
-      setMensagemMesaReferenciaAtiva(null);
-      setLaudoMesaCarregado(null);
-      setAnexoAbrindoChave("");
-      setPreviewAnexoImagem(null);
-      setBugAttachmentDraft(null);
-      setIntegracaoSincronizandoId("");
-      setMensagemChatDestacadaId(null);
-      setLayoutMensagensChatVersao(0);
-      chatMessageOffsetsRef.current = {};
-      setUsandoCacheOffline(false);
-      setCentralAtividadeAberta(false);
-      setHistoricoAberto(false);
-      setConfiguracoesAberta(false);
-      setMonitorandoAtividade(false);
-      historicoDrawerX.setValue(HISTORY_PANEL_CLOSED_X);
-      configuracoesDrawerX.setValue(SETTINGS_PANEL_CLOSED_X);
-      drawerOverlayOpacity.setValue(0);
-      statusSnapshotRef.current = {};
-      mesaSnapshotRef.current = {};
+    if (session || carregando) {
       return;
     }
 
-    void carregarConversaAtual(session.accessToken);
-    void carregarListaLaudos(session.accessToken);
-  }, [session]);
-
-  useEffect(() => {
-    chatMessageOffsetsRef.current = {};
-    setLayoutMensagensChatVersao(0);
-    setMensagemChatDestacadaId(null);
-    setMensagemMesaReferenciaAtiva(null);
-  }, [conversa?.laudoId]);
-
-  useEffect(() => {
-    if (abaAtiva !== "chat" || !mensagemChatDestacadaId) {
-      return;
-    }
-
-    const offsetY = chatMessageOffsetsRef.current[mensagemChatDestacadaId];
-    if (typeof offsetY !== "number") {
-      return;
-    }
-
-    const scrollTimeout = setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        y: Math.max(offsetY - 112, 0),
-        animated: true,
-      });
-    }, 120);
-
-    if (chatHighlightTimeoutRef.current) {
-      clearTimeout(chatHighlightTimeoutRef.current);
-    }
-    chatHighlightTimeoutRef.current = setTimeout(() => {
-      setMensagemChatDestacadaId((estadoAtual) =>
-        estadoAtual === mensagemChatDestacadaId ? null : estadoAtual,
-      );
-      chatHighlightTimeoutRef.current = null;
-    }, 1800);
-
-    return () => clearTimeout(scrollTimeout);
-  }, [abaAtiva, conversa?.mensagens.length, layoutMensagensChatVersao, mensagemChatDestacadaId]);
-
-  useEffect(() => {
-    return () => {
-      if (chatHighlightTimeoutRef.current) {
-        clearTimeout(chatHighlightTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const chatLaudoId = conversa?.laudoId ?? null;
-    const chatKey = chatLaudoId ? chaveRascunho("chat", chatLaudoId) : "";
-    if (chatDraftKeyRef.current !== chatKey) {
-      chatDraftKeyRef.current = chatKey;
-      setMensagem("");
-      setAnexoRascunho(null);
-    }
-    chatAttachmentDraftKeyRef.current = chatKey;
-
-    const mesaLaudoId = conversa?.laudoId ?? null;
-    const mesaKey = mesaLaudoId ? chaveRascunho("mesa", mesaLaudoId) : "";
-    if (mesaDraftKeyRef.current !== mesaKey) {
-      mesaDraftKeyRef.current = mesaKey;
-      setMensagemMesa("");
-      setAnexoMesaRascunho(null);
-    }
-    mesaAttachmentDraftKeyRef.current = mesaKey;
-  }, [
-    conversa?.laudoId,
-    session,
-  ]);
+    setAbaAtiva("chat");
+    resetMesaState();
+    setAnexoAbrindoChave("");
+    setPreviewAnexoImagem(null);
+    clearTransientSettingsPresentationState();
+    setUsandoCacheOffline(false);
+    setCentralAtividadeAberta(false);
+    resetPainelLateralState();
+  }, [carregando, session]);
 
   useEffect(() => {
     if (carregando || !session) {
@@ -2713,39 +2867,10 @@ export function InspectorMobileApp() {
   }, [carregando, session]);
 
   useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    if (!conversa?.laudoId) {
-      setMensagensMesa([]);
-      setErroMesa("");
-      setMensagemMesa("");
-      setAnexoMesaRascunho(null);
-      setLaudoMesaCarregado(null);
-      return;
-    }
-
-    if (abaAtiva === "mesa" && laudoMesaCarregado !== conversa.laudoId) {
-      void carregarMesaAtual(session.accessToken, conversa.laudoId);
-    }
-  }, [abaAtiva, conversa?.laudoId, laudoMesaCarregado, session]);
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 60);
-
-    return () => clearTimeout(timeout);
-  }, [abaAtiva, conversa?.mensagens.length, mensagensMesa.length, session]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
     const showSubscription = Keyboard.addListener(showEvent, (event) => {
       setKeyboardHeight(event.endCoordinates.height);
@@ -2772,3618 +2897,15 @@ export function InspectorMobileApp() {
     return () => clearTimeout(timeout);
   }, [keyboardHeight, session]);
 
-  useEffect(() => {
-    if (keyboardHeight <= 0) {
-      return;
-    }
-
-    fecharPaineisLaterais();
-  }, [keyboardHeight]);
-
-  useEffect(() => {
-    if (!session || statusApi !== "online" || !filaOffline.length || sincronizandoFilaOffline || !sincronizacaoDispositivos) {
-      return;
-    }
-
-    if (!filaOffline.some((item) => pendenciaFilaProntaParaReenvio(item))) {
-      return;
-    }
-
-    void sincronizarFilaOffline(session.accessToken, true);
-  }, [filaOffline, session, sincronizandoFilaOffline, sincronizacaoDispositivos, statusApi]);
-
-  useEffect(() => {
-    if (!session || statusApi !== "online" || sincronizandoFilaOffline || !filaOffline.length || !sincronizacaoDispositivos) {
-      return;
-    }
-
-    const proximaPendente = filaOffline
-      .map((item) => {
-        const proximaTentativa = item.nextRetryAt ? new Date(item.nextRetryAt).getTime() : Number.NaN;
-        return {
-          id: item.id,
-          timestamp: proximaTentativa,
-        };
-      })
-      .filter((item) => !Number.isNaN(item.timestamp) && item.timestamp > Date.now())
-      .sort((a, b) => a.timestamp - b.timestamp)[0];
-
-    if (!proximaPendente) {
-      return;
-    }
-
-    const esperaMs = Math.max(500, proximaPendente.timestamp - Date.now());
-    const timeout = setTimeout(() => {
-      void sincronizarFilaOffline(session.accessToken, true);
-    }, esperaMs);
-
-    return () => clearTimeout(timeout);
-  }, [filaOffline, session, sincronizandoFilaOffline, sincronizacaoDispositivos, statusApi]);
-
-  useEffect(() => {
-    if (!session) {
-      return;
-    }
-
-    const statusAtual: Record<number, string> = {};
-    for (const item of laudosDisponiveis) {
-      statusAtual[item.id] = assinaturaStatusLaudo(item);
-    }
-    statusSnapshotRef.current = statusAtual;
-  }, [laudosDisponiveis, session]);
-
-  useEffect(() => {
-    if (!session || !conversa?.laudoId || laudoMesaCarregado !== conversa.laudoId) {
-      return;
-    }
-
-    mesaSnapshotRef.current[conversa.laudoId] = Object.fromEntries(
-      mensagensMesa.map((item) => [item.id, assinaturaMensagemMesa(item)]),
-    );
-  }, [conversa?.laudoId, laudoMesaCarregado, mensagensMesa, session]);
-
-  useEffect(() => {
-    if (!session || !sincronizacaoDispositivos) {
-      return;
-    }
-
-    const intervaloMonitoramentoMs = obterIntervaloMonitoramentoMs(economiaDados, usoBateria);
-    let cancelado = false;
-    const intervalo = setInterval(() => {
-      if (cancelado) {
-        return;
-      }
-
-      if (statusApi === "offline") {
-        void (async () => {
-          const online = await pingApi();
-          if (!online || cancelado) {
-            return;
-          }
-          if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
-            return;
-          }
-          setStatusApi("online");
-          await handleRefresh();
-        })();
-        return;
-      }
-
-      void monitorarAtividade(session.accessToken);
-    }, intervaloMonitoramentoMs);
-
-    return () => {
-      cancelado = true;
-      clearInterval(intervalo);
-    };
-  }, [conversa?.laudoId, economiaDados, session, sincronizacaoDispositivos, statusApi, usoBateria, wifiOnlySync]);
-
-  async function bootstrapApp() {
-    setCarregando(true);
-    setErro("");
-    await runBootstrapAppFlow({
-      aplicarPreferenciasLaudos,
-      carregarBootstrapMobile,
-      chaveCacheLaudo,
-      chatHistoryEnabled: settingsState.dataControls.chatHistoryEnabled,
-      deviceBackupEnabled: settingsState.dataControls.deviceBackupEnabled,
-      erroSugereModoOffline,
-      lerCacheLeituraLocal,
-      lerEstadoHistoricoLocal,
-      lerFilaOfflineLocal,
-      lerNotificacoesLocais,
-      limparCachePorPrivacidade,
-      obterItemSeguro,
-      pingApi,
-      removeToken: async () => {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-      },
-      CACHE_LEITURA_VAZIO,
-      EMAIL_KEY,
-      TOKEN_KEY,
-      onSetStatusApi: setStatusApi,
-      onSetEmail: setEmail,
-      onSetFilaOffline: setFilaOffline,
-      onSetNotificacoes: setNotificacoes,
-      onSetCacheLeitura: setCacheLeitura,
-      onSetLaudosFixadosIds: setLaudosFixadosIds,
-      onSetHistoricoOcultoIds: setHistoricoOcultoIds,
-      onMergeCacheBootstrap: (bootstrap) => {
-        setUsandoCacheOffline(false);
-        setCacheLeitura((estadoAtual) => ({
-          ...estadoAtual,
-          bootstrap,
-          updatedAt: new Date().toISOString(),
-        }));
-      },
-      onSetSession: setSession,
-      onSetUsandoCacheOffline: setUsandoCacheOffline,
-      onSetLaudosDisponiveis: setLaudosDisponiveis,
-      onSetConversa: setConversa,
-      onSetMensagensMesa: setMensagensMesa,
-      onSetLaudoMesaCarregado: setLaudoMesaCarregado,
-      onSetErroLaudos: setErroLaudos,
-    });
-    setCarregando(false);
-  }
-
-  async function handleLogin() {
-    if (!email.trim() || !senha.trim()) {
-      setErro("Preencha e-mail e senha para entrar no app.");
-      return;
-    }
-
-    setEntrando(true);
-    setErro("");
-
-    try {
-      const login = await loginInspectorMobile(email, senha, lembrar);
-      const bootstrap = await carregarBootstrapMobile(login.access_token);
-
-      if (lembrar) {
-        await Promise.all([
-          salvarItemSeguro(TOKEN_KEY, login.access_token),
-          salvarItemSeguro(EMAIL_KEY, email.trim()),
-        ]);
-      } else {
-        await Promise.all([
-          removerItemSeguro(TOKEN_KEY),
-          removerItemSeguro(EMAIL_KEY),
-        ]);
-      }
-
-      setSenha("");
-      setUsandoCacheOffline(false);
-      setCacheLeitura((estadoAtual) => ({
-        ...estadoAtual,
-        bootstrap,
-        updatedAt: new Date().toISOString(),
-      }));
-      setBloqueioAppAtivo(false);
-      setSession({ accessToken: login.access_token, bootstrap });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha ao autenticar no app.";
-      setErro(message);
-    } finally {
-      setEntrando(false);
-    }
-  }
-
-  async function handleRefresh() {
-    setSincronizandoAgora(true);
-    try {
-      const online = await pingApi();
-      setStatusApi(online ? "online" : "offline");
-
-      if (session) {
-        if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
-          const mensagem = "Sincronização limitada ao Wi-Fi nas configurações de dados.";
-          setErroConversa(mensagem);
-          setErroMesa(mensagem);
-          registrarNotificacoes([
-            criarNotificacaoSistema({
-              title: "Sincronização aguardando Wi-Fi",
-              body: mensagem,
-            }),
-          ]);
-          return;
-        }
-        if (online && sincronizacaoDispositivos && filaOffline.some((item) => pendenciaFilaProntaParaReenvio(item))) {
-          await sincronizarFilaOffline(session.accessToken, true);
-        }
-        await carregarListaLaudos(session.accessToken, true);
-        const proximaConversa = await carregarConversaAtual(session.accessToken, true);
-        const laudoAtual = proximaConversa?.laudoId ?? conversa?.laudoId ?? null;
-        if (abaAtiva === "mesa" && laudoAtual) {
-          await carregarMesaAtual(session.accessToken, laudoAtual, true);
-        }
-        if (online) {
-          setUsandoCacheOffline(false);
-        }
-        registrarNotificacoes([
-          criarNotificacaoSistema({
-            title: "Sincronização concluída",
-            body: "Os dados locais foram atualizados com sucesso.",
-          }),
-        ]);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível sincronizar agora.";
-      setErroConversa(message);
-      setErroMesa(message);
-      registrarNotificacoes([
-        criarNotificacaoSistema({
-          kind: "alerta_critico",
-          title: "Falha ao sincronizar",
-          body: message,
-        }),
-      ]);
-    } finally {
-      setSincronizandoAgora(false);
-    }
-  }
-
-  async function handleLogout() {
-    try {
-      if (session) {
-        await logoutInspectorMobile(session.accessToken);
-      }
-    } catch {
-      // Mantém a saída local mesmo se o backend já tiver expirado o token.
-    } finally {
-      await removerItemSeguro(TOKEN_KEY);
-      setCacheLeitura(CACHE_LEITURA_VAZIO);
-      setSession(null);
-      setConversa(null);
-      setMensagem("");
-      setAnexoRascunho(null);
-      setSenha("");
-      setAbaAtiva("chat");
-      setLaudosDisponiveis([]);
-      setErroLaudos("");
-      setMensagensMesa([]);
-      setErroMesa("");
-      setMensagemMesa("");
-      setAnexoMesaRascunho(null);
-      setFilaOffline([]);
-      setLaudoMesaCarregado(null);
-      setNotificacoes([]);
-      setAnexoAbrindoChave("");
-      setPreviewAnexoImagem(null);
-      setBugAttachmentDraft(null);
-      setIntegracaoSincronizandoId("");
-      setBloqueioAppAtivo(false);
-      setSettingsSheet(null);
-      setSettingsSheetLoading(false);
-      setSettingsSheetNotice("");
-      setConfirmSheet(null);
-      setConfirmTextDraft("");
-      setSenhaAtualDraft("");
-      setNovaSenhaDraft("");
-      setConfirmarSenhaDraft("");
-      setNomeCompletoDraft("");
-      setNomeExibicaoDraft("");
-      setTelefoneDraft("");
-      setNovoEmailDraft("");
-      setReautenticacaoExpiraEm("");
-      setReautenticacaoStatus("Não confirmada");
-      pendingSensitiveActionRef.current = null;
-    }
-  }
-
-  async function limparPersistenciaContaLocal(): Promise<void> {
-    await Promise.all([
-      removerItemSeguro(EMAIL_KEY),
-      FileSystem.deleteAsync(OFFLINE_QUEUE_FILE, { idempotent: true }),
-      FileSystem.deleteAsync(NOTIFICATIONS_FILE, { idempotent: true }),
-      FileSystem.deleteAsync(READ_CACHE_FILE, { idempotent: true }),
-      FileSystem.deleteAsync(HISTORY_UI_STATE_FILE, { idempotent: true }),
-      FileSystem.deleteAsync(APP_PREFERENCES_FILE, { idempotent: true }),
-    ]);
-  }
-
-  function resetarPreferenciasContaPosExclusao() {
-    setEmail("");
-    setPerfilNome("");
-    setPerfilExibicao("");
-    setPerfilFotoUri("");
-    setPerfilFotoHint("Toque para atualizar");
-    setEmailAtualConta("");
-    setNomeCompletoDraft("");
-    setNomeExibicaoDraft("");
-    setTelefoneDraft("");
-    setNovoEmailDraft("");
-    setSenhaAtualDraft("");
-    setNovaSenhaDraft("");
-    setConfirmarSenhaDraft("");
-    setPlanoAtual("Pro");
-    setCartaoAtual("Visa final 4242");
-    setModeloIa("equilibrado");
-    setEstiloResposta("detalhado");
-    setIdiomaResposta("Português");
-    setMemoriaIa(true);
-    setAprendizadoIa(false);
-    setTomConversa("técnico");
-    setTemperaturaIa(0.4);
-    setTemaApp("claro");
-    setTamanhoFonte("médio");
-    setDensidadeInterface("confortável");
-    setCorDestaque("laranja");
-    setAnimacoesAtivas(true);
-    setNotificaRespostas(true);
-    setNotificaPush(true);
-    setChatCategoryEnabled(true);
-    setMesaCategoryEnabled(true);
-    setSystemCategoryEnabled(true);
-    setCriticalAlertsEnabled(true);
-    setSomNotificacao("Ping");
-    setVibracaoAtiva(true);
-    setEmailsAtivos(false);
-    setSalvarHistoricoConversas(true);
-    setCompartilharMelhoriaIa(false);
-    setBackupAutomatico(true);
-    setSincronizacaoDispositivos(true);
-    setNomeAutomaticoConversas(true);
-    setFixarConversas(true);
-    setEntradaPorVoz(false);
-    setRespostaPorVoz(false);
-    setVoiceLanguage("Sistema");
-    setSpeechRate(1);
-    setPreferredVoiceId("");
-    setUploadArquivosAtivo(true);
-    setEconomiaDados(false);
-    setUsoBateria("Otimizado");
-    setIdiomaApp("Português");
-    setRegiaoApp("Brasil");
-    setLaudosFixadosIds([]);
-    setHistoricoOcultoIds([]);
-    setProvedoresConectados(criarProvedoresConectadosPadrao());
-    setIntegracoesExternas(criarIntegracoesExternasPadrao());
-    setSessoesAtivas(criarSessoesAtivasPadrao());
-    setTwoFactorEnabled(false);
-    setTwoFactorMethod("App autenticador");
-    setRecoveryCodesEnabled(true);
-    setDeviceBiometricsEnabled(false);
-    setRequireAuthOnOpen(true);
-    setHideInMultitask(true);
-    setLockTimeout("1 minuto");
-    setRetencaoDados("90 dias");
-    setAutoUploadAttachments(true);
-    setMediaCompression("equilibrada");
-    setCodigosRecuperacao([]);
-    setCodigo2FA("");
-    setReautenticacaoExpiraEm("");
-    setReautenticacaoStatus("Não confirmada");
-    setMostrarConteudoNotificacao(false);
-    setOcultarConteudoBloqueado(true);
-    setMostrarSomenteNovaMensagem(true);
-    setMicrofonePermitido(true);
-    setCameraPermitida(true);
-    setArquivosPermitidos(true);
-    setNotificacoesPermitidas(true);
-    setBiometriaPermitida(true);
-    setFilaSuporteLocal([]);
-    setEventosSeguranca([]);
-    setFeedbackDraft("");
-    setBugDescriptionDraft("");
-    setBugEmailDraft("");
-    setBugAttachmentDraft(null);
-    setUltimaVerificacaoAtualizacao("");
-    setStatusAtualizacaoApp("Nenhuma verificação recente");
-    setBuscaAjuda("");
-    setArtigoAjudaExpandidoId(HELP_CENTER_ARTICLES[0]?.id ?? "");
-  }
-
-  async function executarExclusaoContaLocal() {
-    setCarregando(true);
-    fecharConfiguracoes();
-    try {
-      await limparPersistenciaContaLocal();
-      await handleLogout();
-      resetarPreferenciasContaPosExclusao();
-      Alert.alert(
-        "Conta excluída neste dispositivo",
-        "Sessão encerrada e dados locais removidos. Faça login novamente apenas se a conta estiver ativa.",
-      );
-    } catch (error) {
-      const mensagem =
-        error instanceof Error ? error.message : "Não foi possível concluir a exclusão local da conta.";
-      Alert.alert("Exclusão incompleta", mensagem);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  async function carregarConversaAtual(accessToken: string, silencioso = false): Promise<ChatState | null> {
-    if (silencioso) {
-      setSincronizandoConversa(true);
-    } else {
-      setCarregandoConversa(true);
-    }
-    setErroConversa("");
-
-    try {
-      const status = await carregarStatusLaudo(accessToken);
-      let proximaConversa = normalizarConversa(status);
-
-      if (status.laudo_id) {
-        const historico = await carregarMensagensLaudo(accessToken, status.laudo_id);
-        proximaConversa = normalizarConversa(historico);
-      }
-
-      setConversa(proximaConversa);
-      setUsandoCacheOffline(false);
-      setCacheLeitura((estadoAtual) => ({
-        ...estadoAtual,
-        conversaAtual: proximaConversa,
-        conversasPorLaudo: {
-          ...estadoAtual.conversasPorLaudo,
-          [chaveCacheLaudo(proximaConversa.laudoId)]: proximaConversa,
-        },
-        updatedAt: new Date().toISOString(),
-      }));
-      if (proximaConversa.laudoId !== laudoMesaCarregado) {
-        setMensagensMesa([]);
-        setErroMesa("");
-        setMensagemMesa("");
-        setLaudoMesaCarregado(null);
-      }
-      return proximaConversa;
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Não foi possível atualizar a conversa do inspetor.";
-      const emModoOffline = statusApi === "offline" || erroSugereModoOffline(error);
-      const cacheKey = chaveCacheLaudo(conversa?.laudoId ?? null);
-      const conversaCache = cacheLeitura.conversasPorLaudo[cacheKey] || cacheLeitura.conversaAtual;
-      if (emModoOffline && conversaCache) {
-        setConversa(conversaCache);
-        setUsandoCacheOffline(true);
-        setErroConversa("");
-        return conversaCache;
-      }
-      setErroConversa(message);
-      return null;
-    } finally {
-      setCarregandoConversa(false);
-      setSincronizandoConversa(false);
-    }
-  }
-
-  async function carregarListaLaudos(accessToken: string, silencioso = false): Promise<MobileLaudoCard[]> {
-    if (!silencioso) {
-      setCarregandoLaudos(true);
-    }
-    setErroLaudos("");
-
-    try {
-      const payload = await carregarLaudosMobile(accessToken);
-      const laudosNormalizados = aplicarPreferenciasLaudos(payload.itens || [], laudosFixadosIds, historicoOcultoIds);
-      setLaudosDisponiveis(laudosNormalizados);
-      setUsandoCacheOffline(false);
-      setCacheLeitura((estadoAtual) => ({
-        ...estadoAtual,
-        laudos: laudosNormalizados,
-        updatedAt: new Date().toISOString(),
-      }));
-      return laudosNormalizados;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível carregar os laudos do inspetor.";
-      const emModoOffline = statusApi === "offline" || erroSugereModoOffline(error);
-      if (emModoOffline && cacheLeitura.laudos.length) {
-        const laudosCache = aplicarPreferenciasLaudos(cacheLeitura.laudos, laudosFixadosIds, historicoOcultoIds);
-        setLaudosDisponiveis(laudosCache);
-        setUsandoCacheOffline(true);
-        setErroLaudos("");
-        return laudosCache;
-      }
-      setErroLaudos(message);
-      return [];
-    } finally {
-      setCarregandoLaudos(false);
-    }
-  }
-
-  async function carregarMesaAtual(accessToken: string, laudoId: number, silencioso = false) {
-    if (silencioso) {
-      setSincronizandoMesa(true);
-    } else {
-      setCarregandoMesa(true);
-    }
-    setErroMesa("");
-
-    try {
-      const payload = await carregarMensagensMesaMobile(accessToken, laudoId);
-      setMensagensMesa(payload.itens || []);
-      setLaudoMesaCarregado(laudoId);
-      setUsandoCacheOffline(false);
-      setCacheLeitura((estadoAtual) => ({
-        ...estadoAtual,
-        mesaPorLaudo: {
-          ...estadoAtual.mesaPorLaudo,
-          [chaveCacheLaudo(laudoId)]: payload.itens || [],
-        },
-        updatedAt: new Date().toISOString(),
-      }));
-      setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, payload));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível abrir a conversa da mesa.";
-      const mesaCache = cacheLeitura.mesaPorLaudo[chaveCacheLaudo(laudoId)] || [];
-      const emModoOffline = statusApi === "offline" || erroSugereModoOffline(error);
-      if (emModoOffline && mesaCache.length) {
-        setMensagensMesa(mesaCache);
-        setLaudoMesaCarregado(laudoId);
-        setUsandoCacheOffline(true);
-        setErroMesa("");
-        return;
-      }
-      setErroMesa(message);
-    } finally {
-      setCarregandoMesa(false);
-      setSincronizandoMesa(false);
-    }
-  }
-
-  async function handleAbrirAnexo(anexo: MobileAttachment) {
-    if (!session) {
-      return;
-    }
-
-    const absoluteUrl = urlAnexoAbsoluta(anexo.url);
-    if (!absoluteUrl) {
-      Alert.alert("Anexo", "Esse anexo ainda não está disponível para abertura no app.");
-      return;
-    }
-
-    if (ehImagemAnexo(anexo)) {
-      setPreviewAnexoImagem({
-        titulo: nomeExibicaoAnexo(anexo, "Imagem"),
-        uri: absoluteUrl,
-      });
-      return;
-    }
-
-    const key = chaveAnexo(anexo, "anexo");
-    setAnexoAbrindoChave(key);
-
-    try {
-      const gateDownload = await gateHeavyTransfer({
-        wifiOnlySync,
-        requiresHeavyTransfer: attachmentHandlingPolicy.disableAggressiveDownloads,
-        blockedMessage: "O download deste anexo aguarda Wi-Fi por causa da economia de dados ativa.",
-      });
-      if (!gateDownload.allowed) {
-        Alert.alert("Anexo", gateDownload.reason || "Esse anexo precisa de uma rede adequada para abrir.");
-        return;
-      }
-
-      const baseDir = `${FileSystem.cacheDirectory || ""}tariel-anexos`;
-      await FileSystem.makeDirectoryAsync(baseDir, { intermediates: true });
-
-      const extensao = inferirExtensaoAnexo(anexo);
-      const nomeBase = nomeArquivoSeguro(nomeExibicaoAnexo(anexo, "anexo"), `anexo${extensao}`);
-      const nomeFinal = extensao && !nomeBase.toLowerCase().endsWith(extensao.toLowerCase()) ? `${nomeBase}${extensao}` : nomeBase;
-      const destino = `${baseDir}/${Date.now()}-${nomeFinal}`;
-
-      const resultado = await FileSystem.downloadAsync(absoluteUrl, destino, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-      });
-
-      const sharingDisponivel = await Sharing.isAvailableAsync();
-      if (!sharingDisponivel) {
-        Alert.alert("Anexo pronto", `Arquivo salvo em ${resultado.uri}`);
-        return;
-      }
-
-      await Sharing.shareAsync(resultado.uri, {
-        mimeType: anexo.mime_type || undefined,
-        dialogTitle: `Abrir ${nomeExibicaoAnexo(anexo, "anexo")}`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível abrir o anexo no app.";
-      Alert.alert("Anexo", message);
-    } finally {
-      setAnexoAbrindoChave((estadoAtual) => (estadoAtual === key ? "" : estadoAtual));
-    }
-  }
-
-  function removerItemFilaOffline(id: string) {
-    setFilaOffline((estadoAtual) => estadoAtual.filter((item) => item.id !== id));
-  }
-
-  function atualizarItemFilaOffline(
-    id: string,
-    atualizacao: Partial<Pick<OfflinePendingMessage, "attempts" | "lastAttemptAt" | "lastError" | "nextRetryAt">>,
-  ) {
-    setFilaOffline((estadoAtual) =>
-      estadoAtual.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              ...atualizacao,
-            }
-          : item,
-      ),
-    );
-  }
-
-  async function handleRetomarItemFilaOffline(item: OfflinePendingMessage) {
-    if (!session) {
-      return;
-    }
-
-    try {
-      setFilaOfflineAberta(false);
-      setErroConversa("");
-      setErroMesa("");
-
-      if (item.channel === "chat") {
-        setAbaAtiva("chat");
-        if (item.laudoId) {
-          await abrirLaudoPorId(session.accessToken, item.laudoId);
-        } else {
-          await handleSelecionarLaudo(null);
-        }
-        setMensagem(item.text);
-        setAnexoRascunho(duplicarComposerAttachment(item.attachment));
-      } else {
-        if (!item.laudoId) {
-          removerItemFilaOffline(item.id);
-          return;
-        }
-        await abrirLaudoPorId(session.accessToken, item.laudoId);
-        setAbaAtiva("mesa");
-        await carregarMesaAtual(session.accessToken, item.laudoId, true);
-        setMensagemMesa(item.text);
-        setAnexoMesaRascunho(duplicarComposerAttachment(item.attachment));
-        if (item.referenceMessageId) {
-          setMensagemMesaReferenciaAtiva({
-            id: item.referenceMessageId,
-            texto: obterResumoReferenciaMensagem(
-              item.referenceMessageId,
-              conversa?.mensagens || [],
-              mensagensMesa,
-            ),
-          });
-        }
-      }
-
-      removerItemFilaOffline(item.id);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível retomar essa pendência local.";
-      if (item.channel === "mesa") {
-        setErroMesa(message);
-      } else {
-        setErroConversa(message);
-      }
-    }
-  }
-
-  async function enviarPendenciaOffline(
-    accessToken: string,
-    item: OfflinePendingMessage,
-    laudoSequencial: number | null,
-  ): Promise<number | null> {
-    if (item.channel === "mesa") {
-      if (!item.laudoId) {
-        return laudoSequencial;
-      }
-
-      if (item.attachment) {
-        await enviarAnexoMesaMobile(accessToken, item.laudoId, {
-          uri: item.attachment.fileUri,
-          nome: item.attachment.kind === "document" ? item.attachment.nomeDocumento : item.attachment.label,
-          mimeType: item.attachment.mimeType,
-          texto: item.text,
-          referenciaMensagemId: item.referenceMessageId,
-        });
-      } else {
-        await enviarMensagemMesaMobile(accessToken, item.laudoId, item.text, item.referenceMessageId);
-      }
-      return laudoSequencial;
-    }
-
-    const laudoIdAtual = item.laudoId ?? laudoSequencial;
-    let dadosImagem = "";
-    let textoDocumento = "";
-    let nomeDocumento = "";
-
-    if (item.attachment?.kind === "image") {
-      dadosImagem = item.attachment.dadosImagem;
-    } else if (item.attachment?.kind === "document") {
-      if (item.attachment.textoDocumento) {
-        textoDocumento = item.attachment.textoDocumento;
-        nomeDocumento = item.attachment.nomeDocumento;
-      } else {
-        const documento = await uploadDocumentoChatMobile(accessToken, {
-          uri: item.attachment.fileUri,
-          nome: item.attachment.nomeDocumento,
-          mimeType: item.attachment.mimeType,
-        });
-        textoDocumento = documento.texto;
-        nomeDocumento = documento.nome;
-      }
-    }
-
-    const resposta = await enviarMensagemChatMobile(accessToken, {
-      mensagem: item.aiMessagePrefix ? `${item.aiMessagePrefix}\n\n${item.text}`.trim() : item.text,
-      dadosImagem,
-      setor: conversa?.laudoId && conversa.laudoId === laudoIdAtual ? inferirSetorConversa(conversa) : "geral",
-      textoDocumento,
-      nomeDocumento,
-      laudoId: laudoIdAtual,
-      modo: normalizarModoChat(item.aiMode || conversa?.modo),
-      historico:
-        conversa?.laudoId && conversa.laudoId === laudoIdAtual
-          ? montarHistoricoParaEnvio(conversa.mensagens)
-          : [],
-    });
-    return resposta.laudoId ?? laudoSequencial;
-  }
-
-  async function sincronizarItemFilaOffline(item: OfflinePendingMessage) {
-    if (!session || sincronizandoFilaOffline || sincronizandoItemFilaId) {
-      return;
-    }
-    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
-      const mensagem = "Ative Wi-Fi para sincronizar a fila offline neste dispositivo.";
-      setErroConversa(mensagem);
-      setErroMesa(mensagem);
-      return;
-    }
-    if (!sincronizacaoDispositivos) {
-      const mensagem = "Ative a sincronização entre dispositivos para reenviar itens da fila offline.";
-      setErroConversa(mensagem);
-      setErroMesa(mensagem);
-      return;
-    }
-
-    setErroConversa("");
-    setErroMesa("");
-    setSincronizandoItemFilaId(item.id);
-    const tentativaEm = new Date().toISOString();
-    const proximaTentativa = item.attempts + 1;
-    atualizarItemFilaOffline(item.id, {
-      attempts: proximaTentativa,
-      lastAttemptAt: tentativaEm,
-      lastError: "",
-      nextRetryAt: "",
-    });
-
-    try {
-      const laudoResultado = await enviarPendenciaOffline(session.accessToken, item, null);
-      removerItemFilaOffline(item.id);
-      await carregarListaLaudos(session.accessToken, true);
-      const proximaConversa = await carregarConversaAtual(session.accessToken, true);
-      const laudoAtual = item.laudoId ?? laudoResultado ?? proximaConversa?.laudoId ?? null;
-      if ((item.channel === "mesa" || abaAtiva === "mesa") && laudoAtual) {
-        await carregarMesaAtual(session.accessToken, laudoAtual, true);
-      }
-      void registrarEventoObservabilidade({
-        kind: "offline_queue",
-        name: "offline_queue_item_sync",
-        ok: true,
-        count: 1,
-        detail: `${item.channel}_attempt_${proximaTentativa}`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível reenviar essa pendência.";
-      const proximaTentativaEm = new Date(Date.now() + calcularBackoffPendenciaOfflineMs(proximaTentativa)).toISOString();
-      atualizarItemFilaOffline(item.id, {
-        attempts: proximaTentativa,
-        lastAttemptAt: tentativaEm,
-        lastError: message,
-        nextRetryAt: proximaTentativaEm,
-      });
-      void registrarEventoObservabilidade({
-        kind: "offline_queue",
-        name: "offline_queue_item_sync",
-        ok: false,
-        count: 1,
-        detail: message,
-      });
-      if (erroSugereModoOffline(error)) {
-        setStatusApi("offline");
-      }
-      if (item.channel === "mesa") {
-        setErroMesa(message);
-      } else {
-        setErroConversa(message);
-      }
-    } finally {
-      setSincronizandoItemFilaId("");
-    }
-  }
-
-  async function sincronizarFilaOffline(accessToken: string, silencioso = false) {
-    if (!filaOffline.length || sincronizandoFilaOffline) {
-      return;
-    }
-    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
-      if (!silencioso) {
-        const mensagem = "A fila offline só sincroniza em Wi-Fi porque esse controle está ativo.";
-        setErroConversa(mensagem);
-        setErroMesa(mensagem);
-      }
-      return;
-    }
-    if (!sincronizacaoDispositivos) {
-      if (!silencioso) {
-        const mensagem = "Sincronização entre dispositivos desativada. Ative essa opção para enviar a fila offline.";
-        setErroConversa(mensagem);
-        setErroMesa(mensagem);
-      }
-      return;
-    }
-
-    if (!silencioso) {
-      setErroConversa("");
-      setErroMesa("");
-    }
-    setSincronizandoFilaOffline(true);
-
-    let restante = [...filaOffline];
-    let laudoSequencial: number | null = null;
-    const referencia = Date.now();
-    let itensTentados = 0;
-    let itensSincronizados = 0;
-
-    try {
-      for (const item of [...restante]) {
-        if (item.channel === "mesa" && !item.laudoId) {
-          removerItemFilaOffline(item.id);
-          restante = restante.filter((registro) => registro.id !== item.id);
-          continue;
-        }
-
-        if (!pendenciaFilaProntaParaReenvio(item, referencia)) {
-          continue;
-        }
-        itensTentados += 1;
-
-        const tentativaEm = new Date().toISOString();
-        const proximaTentativa = item.attempts + 1;
-        atualizarItemFilaOffline(item.id, {
-          attempts: proximaTentativa,
-          lastAttemptAt: tentativaEm,
-          lastError: "",
-          nextRetryAt: "",
-        });
-
-        try {
-          laudoSequencial = await enviarPendenciaOffline(accessToken, item, laudoSequencial);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Não foi possível sincronizar a fila local.";
-          const proximaTentativaEm = new Date(Date.now() + calcularBackoffPendenciaOfflineMs(proximaTentativa)).toISOString();
-          atualizarItemFilaOffline(item.id, {
-            attempts: proximaTentativa,
-            lastAttemptAt: tentativaEm,
-            lastError: message,
-            nextRetryAt: proximaTentativaEm,
-          });
-          throw error;
-        }
-
-        removerItemFilaOffline(item.id);
-        restante = restante.filter((registro) => registro.id !== item.id);
-        itensSincronizados += 1;
-      }
-
-      await carregarListaLaudos(accessToken, true);
-      const proximaConversa = await carregarConversaAtual(accessToken, true);
-      const laudoAtual = proximaConversa?.laudoId ?? laudoSequencial ?? null;
-      if (abaAtiva === "mesa" && laudoAtual) {
-        await carregarMesaAtual(accessToken, laudoAtual, true);
-      }
-      void registrarEventoObservabilidade({
-        kind: "offline_queue",
-        name: "offline_queue_sync",
-        ok: true,
-        count: itensSincronizados,
-        detail: `${itensSincronizados}/${itensTentados}`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível sincronizar a fila local.";
-      setErroConversa(message);
-      setErroMesa(message);
-      void registrarEventoObservabilidade({
-        kind: "offline_queue",
-        name: "offline_queue_sync",
-        ok: false,
-        count: itensSincronizados,
-        detail: message,
-      });
-      if (erroSugereModoOffline(error)) {
-        setStatusApi("offline");
-      }
-    } finally {
-      setSincronizandoFilaOffline(false);
-    }
-  }
-
-  function registrarNotificacoes(novas: MobileActivityNotification[]) {
-    if (!novas.length) {
-      return;
-    }
-
-    const novasNormalizadas = novas.map((item) => {
-      let body = item.body;
-      if (mostrarSomenteNovaMensagem) {
-        body = "Nova mensagem";
-      } else if (!mostrarConteudoNotificacao || ocultarConteudoBloqueado) {
-        body =
-          item.kind === "status"
-            ? "Há uma atualização no laudo."
-            : item.kind === "system"
-              ? "Há uma atualização no aplicativo."
-              : item.kind === "alerta_critico"
-                ? "Há um alerta crítico no aplicativo."
-                : "Há uma nova interação na conversa.";
-      }
-
-      return {
-        ...item,
-        body,
-      };
-    });
-    const idsExistentes = new Set(notificacoes.map((item) => item.id));
-    const novasUnicas = novasNormalizadas.filter((item) => !idsExistentes.has(item.id));
-
-    setNotificacoes((estadoAtual) => {
-      const mapa = new Map(estadoAtual.map((item) => [item.id, item]));
-      for (const item of novasNormalizadas) {
-        if (!mapa.has(item.id)) {
-          mapa.set(item.id, item);
-        }
-      }
-
-      return Array.from(mapa.values())
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, MAX_NOTIFICATIONS);
-    });
-
-    const novasParaPush = (notificaRespostas
-      ? novasUnicas
-      : novasUnicas.filter(
-          (item) => item.kind === "status" || item.kind === "system" || item.kind === "alerta_critico",
-        ));
-
-    if (!notificacoesPermitidas || !notificaPush) {
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_dispatch_blocked",
-        ok: false,
-        count: novasParaPush.length,
-        detail: !notificacoesPermitidas ? "permission_denied" : "push_disabled",
-      });
-      return;
-    }
-
-    if (!novasParaPush.length) {
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_dispatch_filtered",
-        ok: true,
-        count: novas.length,
-        detail: "responses_disabled",
-      });
-      return;
-    }
-
-    if (vibracaoAtiva) {
-      Vibration.vibrate(18);
-    }
-    void Promise.all(
-      novasParaPush.map((notification) =>
-        scheduleLocalActivityNotification({
-          notification,
-          settings: settingsState.notifications,
-        }),
-      ),
-    );
-    void registrarEventoObservabilidade({
-      kind: "push",
-      name: "push_dispatch",
-      ok: true,
-      count: novasParaPush.length,
-      detail: mostrarSomenteNovaMensagem ? "preview_hidden" : "preview_visible",
-    });
-  }
-
-  function marcarCentralAtividadeComoLida() {
-    setNotificacoes((estadoAtual) =>
-      estadoAtual.map((item) => (item.unread ? { ...item, unread: false } : item)),
-    );
-  }
-
-  function animarPainelLateral(
-    valor: Animated.Value,
-    toValue: number,
-    onEnd?: () => void,
-  ) {
-    Animated.timing(valor, {
-      toValue,
-      duration: PANEL_ANIMATION_DURATION,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && onEnd) {
-        onEnd();
-      }
-    });
-  }
-
-  function fecharHistorico(options?: { limparBusca?: boolean; manterOverlay?: boolean }) {
-    if (!historicoAbertoRef.current && !historicoAberto) {
-      historicoAbertoRef.current = false;
-      if (options?.limparBusca) {
-        setBuscaHistorico("");
-      }
-      historicoDrawerX.setValue(HISTORY_PANEL_CLOSED_X);
-      if (!options?.manterOverlay && !configuracoesAbertaRef.current) {
-        drawerOverlayOpacity.setValue(0);
-      }
-      return;
-    }
-
-    historicoAbertoRef.current = false;
-    animarPainelLateral(historicoDrawerX, HISTORY_PANEL_CLOSED_X, () => {
-      setHistoricoAberto(false);
-      if (options?.limparBusca) {
-        setBuscaHistorico("");
-      }
-    });
-
-    if (!options?.manterOverlay && !configuracoesAbertaRef.current) {
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 0,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    }
-  }
-
-  function fecharConfiguracoes(options?: { manterOverlay?: boolean }) {
-    if (!configuracoesAbertaRef.current && !configuracoesAberta) {
-      configuracoesAbertaRef.current = false;
-      configuracoesDrawerX.setValue(SETTINGS_PANEL_CLOSED_X);
-      setSettingsDrawerPage("overview");
-      setSettingsDrawerSection("all");
-      settingsNavigationHistoryRef.current = [];
-      if (!options?.manterOverlay && !historicoAbertoRef.current) {
-        drawerOverlayOpacity.setValue(0);
-      }
-      return;
-    }
-
-    configuracoesAbertaRef.current = false;
-    animarPainelLateral(configuracoesDrawerX, SETTINGS_PANEL_CLOSED_X, () => {
-      setConfiguracoesAberta(false);
-      setSettingsDrawerPage("overview");
-      setSettingsDrawerSection("all");
-      settingsNavigationHistoryRef.current = [];
-    });
-
-    if (!options?.manterOverlay && !historicoAbertoRef.current) {
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 0,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
-    }
-  }
-
-  function fecharPaineisLaterais() {
-    if (historicoAbertoRef.current) {
-      fecharHistorico({ limparBusca: true, manterOverlay: configuracoesAbertaRef.current });
-    }
-    if (configuracoesAbertaRef.current) {
-      fecharConfiguracoes({ manterOverlay: historicoAbertoRef.current });
-    }
-  }
-
-  function abrirHistorico() {
-    if (configuracoesAbertaRef.current) {
-      configuracoesAbertaRef.current = false;
-      setConfiguracoesAberta(false);
-      configuracoesDrawerX.setValue(SETTINGS_PANEL_CLOSED_X);
-    }
-    historicoAbertoRef.current = true;
-    setHistoricoAberto(true);
-    Animated.parallel([
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 1,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(historicoDrawerX, {
-        toValue: 0,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }
-
-  function abrirConfiguracoes() {
-    if (historicoAbertoRef.current) {
-      historicoAbertoRef.current = false;
-      setHistoricoAberto(false);
-      historicoDrawerX.setValue(HISTORY_PANEL_CLOSED_X);
-    }
-    setSettingsDrawerPage("overview");
-    setSettingsDrawerSection("all");
-    settingsNavigationHistoryRef.current = [];
-    configuracoesAbertaRef.current = true;
-    setConfiguracoesAberta(true);
-    Animated.parallel([
-      Animated.timing(drawerOverlayOpacity, {
-        toValue: 1,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(configuracoesDrawerX, {
-        toValue: 0,
-        duration: PANEL_ANIMATION_DURATION,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }
-
-  function handleAbrirCentralAtividade() {
-    setCentralAtividadeAberta(true);
-    marcarCentralAtividadeComoLida();
-  }
-
-function handleAbrirConfiguracoes() {
-    if (keyboardHeight > 0) {
-      Keyboard.dismiss();
-      return;
-    }
-    if (configuracoesAberta || configuracoesAbertaRef.current) {
-      fecharConfiguracoes();
-      return;
-    }
-    abrirConfiguracoes();
-  }
-
-  function handleAbrirPaginaConfiguracoes(page: SettingsDrawerPage, section: SettingsSectionKey | "all" = "all") {
-    if (settingsDrawerPage === page && settingsDrawerSection === section) {
-      return;
-    }
-    pushSettingsNavigationState(settingsNavigationHistoryRef, {
-      page: settingsDrawerPage,
-      section: settingsDrawerSection,
-    });
-    setSettingsDrawerPage(page);
-    setSettingsDrawerSection(section);
-  }
-
-  function handleAbrirSecaoConfiguracoes(section: SettingsSectionKey) {
-    if (settingsDrawerSection === section) {
-      return;
-    }
-    pushSettingsNavigationState(settingsNavigationHistoryRef, {
-      page: settingsDrawerPage,
-      section: settingsDrawerSection,
-    });
-    setSettingsDrawerSection(section);
-  }
-
-  function handleVoltarResumoConfiguracoes() {
-    const anterior = settingsNavigationHistoryRef.current.pop();
-    if (anterior) {
-      setSettingsDrawerPage(anterior.page);
-      setSettingsDrawerSection(anterior.section);
-      return;
-    }
-
-    if (settingsDrawerSection !== "all") {
-      setSettingsDrawerSection("all");
-      return;
-    }
-    setSettingsDrawerPage("overview");
-    setSettingsDrawerSection("all");
-  }
-
-  function handleDesbloquearAplicativo() {
-    if (!session) {
-      setBloqueioAppAtivo(false);
-      return;
-    }
-
-    if (!requireAuthOnOpen || reautenticacaoAindaValida(reautenticacaoExpiraEm)) {
-      setBloqueioAppAtivo(false);
-      return;
-    }
-
-    abrirFluxoReautenticacao("Confirme sua identidade para desbloquear o app do inspetor.", () => {
-      setBloqueioAppAtivo(false);
-    });
-  }
-
-  function registrarEventoSegurancaLocal(evento: Omit<SecurityEventItem, "id">) {
-    setEventosSeguranca((estadoAtual) => [
-      {
-        id: `security-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-        ...evento,
-      },
-      ...estadoAtual,
-    ].slice(0, 20));
-  }
-
-  function abrirSheetConfiguracao(config: SettingsSheetState) {
-    setSettingsSheetNotice("");
-    setSettingsSheetLoading(false);
-    setSettingsSheet(config);
-  }
-
-  function fecharSheetConfiguracao() {
-    setSettingsSheet(null);
-    setSettingsSheetLoading(false);
-    setSettingsSheetNotice("");
-  }
-
-  function abrirConfirmacaoConfiguracao(config: ConfirmSheetState) {
-    setConfirmTextDraft("");
-    setConfirmSheet(config);
-  }
-
-  function fecharConfirmacaoConfiguracao() {
-    setConfirmTextDraft("");
-    setConfirmSheet(null);
-  }
-
-  function notificarConfiguracaoConcluida(mensagem: string) {
-    setSettingsSheetNotice(mensagem);
-  }
-
-  function abrirFluxoReautenticacao(motivo: string, onSuccess?: () => void) {
-    pendingSensitiveActionRef.current = onSuccess || null;
-    setReauthReason(motivo);
-    abrirSheetConfiguracao({
-      kind: "reauth",
-      title: "Confirmar identidade",
-      subtitle: "Antes de continuar, valide a identidade do inspetor para proteger ações sensíveis.",
-      actionLabel: "Confirmar agora",
-    });
-  }
-
-  function executarComReautenticacao(motivo: string, onSuccess: () => void) {
-    if (reautenticacaoAindaValida(reautenticacaoExpiraEm)) {
-      onSuccess();
-      return;
-    }
-    abrirFluxoReautenticacao(motivo, onSuccess);
-  }
-
-  function aplicarPerfilLocalNoEstado(payload: {
-    nomeCompleto: string;
-    nomeExibicao: string;
-    telefone: string;
-  }) {
-    setPerfilNome(payload.nomeCompleto);
-    setPerfilExibicao(payload.nomeExibicao);
-    settingsActions.updateAccount({ phone: payload.telefone });
-  }
-
-  function aplicarPerfilSincronizadoNoEstado(perfil: PerfilContaSincronizado) {
-    const fotoComCacheInvalido = perfil.fotoPerfilUri ? invalidarCacheImagemUri(perfil.fotoPerfilUri) : "";
-    setPerfilNome(perfil.nomeCompleto);
-    if (perfil.nomeExibicao) {
-      setPerfilExibicao(perfil.nomeExibicao);
-    }
-    setEmailAtualConta(perfil.email);
-    settingsActions.updateAccount({ phone: perfil.telefone });
-    if (fotoComCacheInvalido) {
-      setPerfilFotoUri(fotoComCacheInvalido);
-      setPerfilFotoHint("Foto sincronizada com a conta");
-    }
-    setSession((estadoAtual) => {
-      if (!estadoAtual) {
-        return estadoAtual;
-      }
-      return {
-        ...estadoAtual,
-        bootstrap: {
-          ...estadoAtual.bootstrap,
-          usuario: {
-            ...estadoAtual.bootstrap.usuario,
-            nome_completo: perfil.nomeCompleto,
-            email: perfil.email,
-            telefone: perfil.telefone,
-            foto_perfil_url: fotoComCacheInvalido || perfil.fotoPerfilUri,
-          },
-        },
-      };
-    });
-    setProvedoresConectados((estadoAtual) =>
-      estadoAtual.map((provider) =>
-        provider.connected
-          ? {
-              ...provider,
-              email: perfil.email || provider.email,
-            }
-          : provider,
-      ),
-    );
-  }
-
-  async function handleConfirmarSettingsSheet() {
-    if (!settingsSheet) {
-      return;
-    }
-
-    setSettingsSheetLoading(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 420));
-
-    switch (settingsSheet.kind) {
-      case "reauth": {
-        const expiracao = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-        const status = formatarStatusReautenticacao(expiracao);
-        setReautenticacaoExpiraEm(expiracao);
-        setReautenticacaoStatus(status);
-        registrarEventoSegurancaLocal({
-          title: "Reautenticação concluída",
-          meta: "Janela temporária liberada para ações sensíveis",
-          status: "Agora",
-          type: "login",
-        });
-        const pendingAction = pendingSensitiveActionRef.current;
-        pendingSensitiveActionRef.current = null;
-        if (pendingAction) {
-          setSettingsSheetLoading(false);
-          setSettingsSheetNotice("Identidade confirmada. O fluxo protegido será liberado agora.");
-          setTimeout(() => {
-            fecharSheetConfiguracao();
-            pendingAction();
-          }, 180);
-          return;
-        }
-        notificarConfiguracaoConcluida("Identidade confirmada. Ações sensíveis ficam liberadas por 15 minutos.");
-        break;
-      }
-      case "photo":
-        try {
-          const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-          if (!permissao.granted && permissao.accessPrivileges !== "limited") {
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice("Permita acesso às imagens para atualizar a foto de perfil.");
-            return;
-          }
-
-          const resultado = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images"],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-          });
-
-          if (resultado.canceled || !resultado.assets?.length) {
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice("Seleção cancelada. Escolha uma imagem para atualizar o perfil.");
-            return;
-          }
-
-          const asset = resultado.assets[0];
-          const mimeType =
-            typeof asset.mimeType === "string" && asset.mimeType.trim() ? asset.mimeType.trim() : "image/jpeg";
-          if (!mimeType.startsWith("image/")) {
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice("Escolha um arquivo de imagem válido para a foto de perfil.");
-            return;
-          }
-          if (typeof asset.fileSize === "number" && asset.fileSize > 5 * 1024 * 1024) {
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice("A foto de perfil precisa ter no máximo 5 MB.");
-            return;
-          }
-          if (!session) {
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice("A sessão atual não permite enviar a foto de perfil agora.");
-            return;
-          }
-
-          const nomeArquivo =
-            typeof asset.fileName === "string" && asset.fileName.trim()
-              ? asset.fileName.trim()
-              : `perfil-${Date.now()}.jpg`;
-          const fotoAnterior = perfilFotoUri;
-          const hintAnterior = perfilFotoHint;
-
-          try {
-            const perfilSincronizado = await enviarFotoPerfilNoBackend(session.accessToken, {
-              uri: asset.uri,
-              nome: nomeArquivo,
-              mimeType,
-            });
-            aplicarPerfilSincronizadoNoEstado(perfilSincronizado);
-            notificarConfiguracaoConcluida("Foto atualizada e sincronizada com a conta.");
-          } catch (error) {
-            setPerfilFotoUri(fotoAnterior);
-            setPerfilFotoHint(hintAnterior);
-            setSettingsSheetLoading(false);
-            setSettingsSheetNotice(
-              error instanceof Error ? error.message : "Não foi possível atualizar a foto agora.",
-            );
-            return;
-          }
-        } catch (error) {
-          setSettingsSheetLoading(false);
-          setSettingsSheetNotice(
-            error instanceof Error ? error.message : "Não foi possível atualizar a foto agora.",
-          );
-          return;
-        }
-        break;
-      default: {
-        const delegatedResult = await handleSettingsSheetConfirmDelegated({
-          profile: {
-            currentNomeCompleto: perfilNome,
-            currentNomeExibicao: perfilExibicao,
-            currentTelefone: contaTelefone,
-            nomeCompletoDraft,
-            nomeExibicaoDraft,
-            onAplicarPerfilLocal: aplicarPerfilLocalNoEstado,
-            onAplicarPerfilSincronizado: aplicarPerfilSincronizadoNoEstado,
-            onAtualizarPerfilContaNoBackend: atualizarPerfilContaNoBackend,
-            onSetNomeCompletoDraft: setNomeCompletoDraft,
-            onSetNomeExibicaoDraft: setNomeExibicaoDraft,
-            onSetTelefoneDraft: setTelefoneDraft,
-            session,
-            telefoneDraft,
-          },
-          billing: {
-            current: cartaoAtual,
-            onChange: setCartaoAtual,
-          },
-          email: {
-            draft: novoEmailDraft,
-            emailAtualConta,
-            emailLogin: email,
-            onAplicarPerfilSincronizado: aplicarPerfilSincronizadoNoEstado,
-            onAtualizarPerfilContaNoBackend: atualizarPerfilContaNoBackend,
-            onSetEmailAtualConta: setEmailAtualConta,
-            perfilNome,
-            telefone: contaTelefone,
-            session,
-          },
-          exports: {
-            onCompartilharTextoExportado: compartilharTextoExportado,
-          },
-          kind: settingsSheet.kind,
-          password: {
-            confirmarSenhaDraft,
-            novaSenhaDraft,
-            onAtualizarSenhaContaNoBackend: atualizarSenhaContaNoBackend,
-            onSetConfirmarSenhaDraft: setConfirmarSenhaDraft,
-            onSetNovaSenhaDraft: setNovaSenhaDraft,
-            onSetSenhaAtualDraft: setSenhaAtualDraft,
-            senhaAtualDraft,
-            session,
-          },
-          plan: {
-            current: planoAtual,
-            onChange: setPlanoAtual,
-          },
-          support: {
-            bugAttachmentDraft,
-            bugDescriptionDraft,
-            bugEmailDraft,
-            currentDeviceLabel: sessaoAtual?.title || "Dispositivo atual",
-            emailAtualConta,
-            emailLogin: email,
-            feedbackDraft,
-            accessLevelLabel:
-              typeof session?.bootstrap.usuario.nivel_acesso === "number"
-                ? `Nível ${session.bootstrap.usuario.nivel_acesso}`
-                : "Conta autenticada",
-            onEnviarRelatoSuporteNoBackend: enviarRelatoSuporteNoBackend,
-            onSetBugAttachmentDraft: setBugAttachmentDraft,
-            onSetBugDescriptionDraft: setBugDescriptionDraft,
-            onSetBugEmailDraft: setBugEmailDraft,
-            onSetFeedbackDraft: setFeedbackDraft,
-            onSetFilaSuporteLocal: setFilaSuporteLocal,
-            profileName: perfilExibicao || perfilNome || "Inspetor Tariel",
-            session,
-            statusApi,
-            workspaceName: workspaceResumoConfiguracao,
-          },
-          ui: {
-            onNotificarConfiguracaoConcluida: notificarConfiguracaoConcluida,
-            onRegistrarEventoSegurancaLocal: registrarEventoSegurancaLocal,
-            onSetSettingsSheetLoading: setSettingsSheetLoading,
-            onSetSettingsSheetNotice: setSettingsSheetNotice,
-          },
-          updates: {
-            onPingApi: pingApi,
-            onSetStatusApi: setStatusApi,
-            onSetStatusAtualizacaoApp: setStatusAtualizacaoApp,
-            onSetUltimaVerificacaoAtualizacao: setUltimaVerificacaoAtualizacao,
-          },
-        });
-        if (delegatedResult === "return") {
-          return;
-        }
-        break;
-      }
-    }
-
-    setSettingsSheetLoading(false);
-  }
-
-  function executarLimpezaHistoricoLocal() {
-    setConversa(criarConversaNova());
-    setMensagensMesa([]);
-    setMensagem("");
-    setMensagemMesa("");
-    setAnexoRascunho(null);
-    setAnexoMesaRascunho(null);
-    setPreviewAnexoImagem(null);
-    setBuscaHistorico("");
-    setCacheLeitura((estadoAtual) => limparCachePorPrivacidade(estadoAtual));
-  }
-
-  function executarLimpezaConversasLocais() {
-    setLaudosDisponiveis([]);
-    setConversa(criarConversaNova());
-    setMensagensMesa([]);
-    setMensagem("");
-    setMensagemMesa("");
-    setAnexoRascunho(null);
-    setAnexoMesaRascunho(null);
-    setPreviewAnexoImagem(null);
-    setBuscaHistorico("");
-    setNotificacoes([]);
-    setCacheLeitura((estadoAtual) => limparCachePorPrivacidade(estadoAtual));
-  }
-
-  function handleConfirmarAcaoCritica() {
-    handleConfirmSheetAction({
-      confirmSheet,
-      confirmTextDraft,
-      onClearConversations: executarLimpezaConversasLocais,
-      onClearHistory: executarLimpezaHistoricoLocal,
-      onCloseConfirmacao: fecharConfirmacaoConfiguracao,
-      onDeleteAccount: () => {
-        void executarExclusaoContaLocal();
-      },
-      onRegistrarEventoSegurancaLocal: registrarEventoSegurancaLocal,
-    });
-  }
-
-  function handleUploadFotoPerfil() {
-    abrirSheetConfiguracao({
-      kind: "photo",
-      title: "Foto de perfil",
-      subtitle: "Atualize a imagem usada na conta e no chat do inspetor.",
-      actionLabel: "Escolher foto",
-    });
-  }
-
-  function handleEditarPerfil() {
-    setNomeCompletoDraft(perfilNome);
-    setNomeExibicaoDraft(
-      perfilExibicao ||
-        perfilNome
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean)[0] ||
-        "",
-    );
-    setTelefoneDraft(contaTelefone);
-    abrirSheetConfiguracao({
-      kind: "profile",
-      title: "Editar perfil",
-      subtitle: "Atualize nome, nome de exibição e telefone usados nesta conta.",
-      actionLabel: "Salvar perfil",
-    });
-  }
-
-  function handleAlterarEmail() {
-    setNovoEmailDraft(emailAtualConta || email);
-    abrirSheetConfiguracao({
-      kind: "email",
-      title: "Alterar e-mail",
-      subtitle: "Atualize o e-mail principal usado no acesso e no suporte.",
-      actionLabel: "Salvar e-mail",
-    });
-  }
-
-  function handleAlterarSenha() {
-    setSenhaAtualDraft("");
-    setNovaSenhaDraft("");
-    setConfirmarSenhaDraft("");
-    abrirSheetConfiguracao({
-      kind: "password",
-      title: "Alterar senha",
-      subtitle: "Confirme sua senha atual e defina uma nova credencial para o aplicativo.",
-      actionLabel: "Salvar nova senha",
-    });
-  }
-
-  function handleGerenciarPlano() {
-    abrirSheetConfiguracao({
-      kind: "plan",
-      title: "Plano e assinatura",
-      subtitle: "Revise benefícios do plano atual e prepare a próxima mudança de assinatura do inspetor.",
-      actionLabel: "Trocar plano",
-    });
-  }
-
-  function handleHistoricoPagamentos() {
-    abrirSheetConfiguracao({
-      kind: "payments",
-      title: "Histórico de pagamentos",
-      subtitle: "Resumo financeiro da assinatura do inspetor e das últimas cobranças.",
-    });
-  }
-
-  function handleGerenciarPagamento() {
-    abrirSheetConfiguracao({
-      kind: "billing",
-      title: "Gerenciar pagamento",
-      subtitle: "Atualize o cartão cadastrado e deixe o método de cobrança pronto para a próxima renovação.",
-      actionLabel: "Atualizar cartão",
-    });
-  }
-
-  function handleSolicitarLogout() {
-    abrirConfirmacaoConfiguracao({
-      kind: "sessionCurrent",
-      title: "Sair da conta",
-      description: "Vamos encerrar a sessão atual, limpar tokens e voltar para a tela de login deste dispositivo.",
-      confirmLabel: "Sair agora",
-      onConfirm: () => {
-        fecharConfiguracoes();
-        void handleLogout();
-      },
-    });
-  }
-
-  function handleAbrirModeloIa() {
-    abrirSheetConfiguracao({
-      kind: "aiModel",
-      title: "Modelo de IA",
-      subtitle: "Escolha o perfil padrão para equilibrar velocidade, custo e profundidade das respostas.",
-    });
-  }
-
-  function handleSelecionarModeloIa(value: (typeof AI_MODEL_OPTIONS)[number]) {
-    if (!ehOpcaoValida(value, AI_MODEL_OPTIONS)) {
-      return;
-    }
-    setModeloIa(value);
-    fecharSheetConfiguracao();
-  }
-
-  async function handleExportarDados(formato: "JSON" | "PDF" | "TXT") {
-    await runExportDataFlow({
-      formato,
-      reautenticacaoExpiraEm,
-      reautenticacaoAindaValida,
-      abrirFluxoReautenticacao,
-      registrarEventoSegurancaLocal,
-      abrirSheetConfiguracao,
-      perfilNome,
-      perfilExibicao,
-      emailAtualConta,
-      email,
-      planoAtual,
-      modeloIa,
-      estiloResposta,
-      idiomaResposta,
-      temaApp,
-      tamanhoFonte,
-      densidadeInterface,
-      corDestaque,
-      memoriaIa,
-      aprendizadoIa,
-      economiaDados,
-      usoBateria,
-      notificaPush,
-      notificaRespostas,
-      emailsAtivos,
-      vibracaoAtiva,
-      mostrarConteudoNotificacao,
-      mostrarSomenteNovaMensagem,
-      salvarHistoricoConversas,
-      compartilharMelhoriaIa,
-      retencaoDados,
-      ocultarConteudoBloqueado,
-      integracoesExternas,
-      laudosDisponiveis,
-      notificacoes,
-      eventosSeguranca,
-      serializarPayloadExportacao,
-      compartilharTextoExportado,
-    });
-  }
-
-  function handleApagarHistoricoConfiguracoes() {
-    executarComReautenticacao("Confirme sua identidade para apagar o histórico salvo neste dispositivo.", () => {
-      abrirConfirmacaoConfiguracao({
-        kind: "clearHistory",
-        title: "Apagar histórico",
-        description: "Remove o histórico salvo localmente neste app. Você poderá sincronizar novamente depois.",
-        confirmLabel: "Apagar histórico",
-      });
-    });
-  }
-
-  function handleLimparTodasConversasConfig() {
-    executarComReautenticacao("Confirme sua identidade para excluir todas as conversas locais do inspetor.", () => {
-      abrirConfirmacaoConfiguracao({
-        kind: "clearConversations",
-        title: "Limpar conversas",
-        description: "Limpa a lista local de conversas do app. O backend poderá sincronizar tudo de novo depois.",
-        confirmLabel: "Limpar conversas",
-      });
-    });
-  }
-
-  function handleIntegracoesExternas() {
-    abrirSheetConfiguracao({
-      kind: "integrations",
-      title: "Integrações",
-      subtitle: "Conecte serviços externos ao fluxo do inspetor sem sair do app.",
-    });
-  }
-
-  function handleAlternarIntegracaoExterna(integration: ExternalIntegration) {
-    const conectando = !integration.connected;
-    const agora = conectando ? new Date().toISOString() : "";
-    setIntegracoesExternas((estadoAtual) =>
-      estadoAtual.map((item) =>
-        item.id === integration.id
-          ? {
-              ...item,
-              connected: conectando,
-              lastSyncAt: agora,
-            }
-          : item,
-      ),
-    );
-    registrarEventoSegurancaLocal({
-      title: conectando ? `${integration.label} conectada` : `${integration.label} desconectada`,
-      meta: conectando
-        ? "Integração habilitada nas configurações avançadas"
-        : "Integração removida das configurações avançadas",
-      status: "Agora",
-      type: "provider",
-    });
-    setSettingsSheetNotice(
-      conectando
-        ? `${integration.label} conectada com sucesso.`
-        : `${integration.label} desconectada deste dispositivo.`,
-    );
-  }
-
-  async function handleSincronizarIntegracaoExterna(integration: ExternalIntegration) {
-    if (!integration.connected) {
-      setSettingsSheetNotice(`Conecte ${integration.label} antes de sincronizar.`);
-      return;
-    }
-
-    if (integracaoSincronizandoId) {
-      return;
-    }
-
-    setIntegracaoSincronizandoId(integration.id);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 420));
-      const agora = new Date().toISOString();
-      setIntegracoesExternas((estadoAtual) =>
-        estadoAtual.map((item) =>
-          item.id === integration.id
-            ? {
-                ...item,
-                lastSyncAt: agora,
-              }
-            : item,
-        ),
-      );
-      registrarEventoSegurancaLocal({
-        title: `${integration.label} sincronizada`,
-        meta: `Sincronização local concluída em ${formatarHorarioAtividade(agora)}`,
-        status: "Agora",
-        type: "data",
-      });
-      setSettingsSheetNotice(`${integration.label} sincronizada com sucesso.`);
-    } finally {
-      setIntegracaoSincronizandoId("");
-    }
-  }
-
-  async function handleSelecionarScreenshotBug() {
-    try {
-      const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissao.granted && permissao.accessPrivileges !== "limited") {
-        setSettingsSheetNotice("Permita acesso às imagens para anexar o screenshot do bug.");
-        return;
-      }
-
-      const resultado = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: false,
-        quality: 0.8,
-        base64: true,
-      });
-
-      if (resultado.canceled || !resultado.assets?.length) {
-        setSettingsSheetNotice("Seleção de screenshot cancelada.");
-        return;
-      }
-
-      const screenshot = montarAnexoImagem(
-        resultado.assets[0],
-        "Screenshot anexada ao relato de bug para facilitar a reprodução.",
-      );
-      setBugAttachmentDraft(screenshot);
-      setSettingsSheetNotice(`Screenshot "${screenshot.label}" anexada ao relato.`);
-    } catch (error) {
-      setSettingsSheetNotice(error instanceof Error ? error.message : "Não foi possível anexar o screenshot agora.");
-    }
-  }
-
-  function handleRemoverScreenshotBug() {
-    setBugAttachmentDraft(null);
-    setSettingsSheetNotice("Screenshot removida do relato.");
-  }
-
-  function handleDetalhesSegurancaArquivos(topico: "validacao" | "urls" | "bloqueios") {
-    if (topico === "validacao") {
-      Alert.alert(
-        "Validação de upload",
-        "O app valida tipo e tamanho no cliente, e o backend valida novamente antes de aceitar o arquivo.",
-      );
-      return;
-    }
-    if (topico === "urls") {
-      Alert.alert(
-        "URLs protegidas",
-        "Os anexos são servidos com autorização de sessão. Sem token válido, o arquivo não é aberto no app.",
-      );
-      return;
-    }
-    Alert.alert(
-      "Falhas e bloqueios",
-      "Quando o upload falha, o app mostra feedback e permite retomar pela fila offline sem perder contexto.",
-    );
-  }
-
-  function handlePluginsIa() {
-    abrirSheetConfiguracao({
-      kind: "plugins",
-      title: "Plugins da IA",
-      subtitle: "Ative ferramentas extras para tornar a assistência do inspetor mais operacional.",
-    });
-  }
-
-  function handlePermissoes() {
-    handleAbrirPaginaConfiguracoes("seguranca", "permissoes");
-  }
-
-  function handlePoliticaPrivacidade() {
-    abrirSheetConfiguracao({
-      kind: "privacy",
-      title: "Política de privacidade",
-      subtitle: "Veja como a Tariel.ia trata dados, histórico e retenção das conversas.",
-    });
-  }
-
-  async function handleVerificarAtualizacoes() {
-    if (verificandoAtualizacoes) {
-      return;
-    }
-
-    setVerificandoAtualizacoes(true);
-    try {
-      const [online, networkSnapshot] = await Promise.all([pingApi(), readNetworkSnapshot()]);
-      setStatusApi(online ? "online" : "offline");
-      const verificadoEm = new Date().toISOString();
-      setUltimaVerificacaoAtualizacao(verificadoEm);
-      const status = online
-        ? `${appRuntime.updateStatusFallback} Rede atual: ${networkSnapshot.isWifi ? "Wi-Fi" : networkSnapshot.typeLabel}.`
-        : "Sem conexão para verificar a disponibilidade de atualização nesta build.";
-      setStatusAtualizacaoApp(status);
-      registrarNotificacoes([
-        criarNotificacaoSistema({
-          title: "Atualizações verificadas",
-          body: status,
-        }),
-      ]);
-      abrirSheetConfiguracao({
-        kind: "updates",
-        title: "Verificar atualizações",
-        subtitle: `Versão instalada ${appRuntime.versionLabel} • ${appRuntime.buildLabel}.`,
-        actionLabel: "Verificar agora",
-      });
-    } finally {
-      setVerificandoAtualizacoes(false);
-    }
-  }
-
-  async function handleLimparCache() {
-    if (limpandoCache) {
-      return;
-    }
-
-    setLimpandoCache(true);
-    try {
-      const baseCacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || "";
-      const resultado = await clearLocalCache([
-        READ_CACHE_FILE,
-        `${baseCacheDir}tariel-anexos`,
-        `${baseCacheDir}tariel-exports`,
-      ]);
-      setCacheLeitura((estadoAtual) => ({
-        ...CACHE_LEITURA_VAZIO,
-        bootstrap: estadoAtual.bootstrap,
-        updatedAt: "",
-      }));
-      setUltimaLimpezaCacheEm(new Date().toISOString());
-      registrarNotificacoes([
-        criarNotificacaoSistema({
-          title: "Cache limpo",
-          body: `${resultado.removedCount} item(ns) temporário(s) removido(s) do dispositivo.`,
-        }),
-      ]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível limpar o cache local.";
-      registrarNotificacoes([
-        criarNotificacaoSistema({
-          kind: "alerta_critico",
-          title: "Falha ao limpar cache",
-          body: message,
-        }),
-      ]);
-      Alert.alert("Cache", message);
-    } finally {
-      setLimpandoCache(false);
-    }
-  }
-
-  function handleAbrirCanalSuporte() {
-    if (!canalSuporteUrl) {
-      Alert.alert("Suporte", "Nenhum canal de suporte operacional foi publicado para esta conta.");
-      return;
-    }
-    void (async () => {
-      const abriu = await tentarAbrirUrlExterna(canalSuporteUrl);
-      if (!abriu) {
-        Alert.alert("Suporte", "Não foi possível abrir o canal de suporte agora.");
-      }
-    })();
-  }
-
-  function handleCentralAjuda() {
-    setBuscaAjuda("");
-    setArtigoAjudaExpandidoId(HELP_CENTER_ARTICLES[0]?.id ?? "");
-    abrirSheetConfiguracao({
-      kind: "help",
-      title: "Central de ajuda",
-      subtitle: "Acesse artigos, respostas rápidas e atalhos para suporte do inspetor.",
-    });
-  }
-
-  function handleReportarProblema() {
-    setBugDescriptionDraft("");
-    setBugEmailDraft(emailAtualConta || email);
-    setBugAttachmentDraft(null);
-    abrirSheetConfiguracao({
-      kind: "bug",
-      title: "Reportar problema",
-      subtitle: "Descreva o bug encontrado e envie o contexto para a equipe da Tariel.ia.",
-      actionLabel: "Enviar relato",
-    });
-  }
-
-  function handleEnviarFeedback() {
-    setFeedbackDraft("");
-    abrirSheetConfiguracao({
-      kind: "feedback",
-      title: "Enviar feedback",
-      subtitle: "Compartilhe ideias, melhorias e sugestões para a próxima evolução do app.",
-      actionLabel: "Enviar feedback",
-    });
-  }
-
-  function handleAbrirSobreApp() {
-    abrirSheetConfiguracao({
-      kind: "about",
-      title: "Sobre o app",
-      subtitle: "Versão, build, ambiente e documentos disponíveis nesta instalação do inspetor.",
-    });
-  }
-
-  function handleAlternarArtigoAjuda(articleId: string) {
-    setArtigoAjudaExpandidoId((estadoAtual) => (estadoAtual === articleId ? "" : articleId));
-  }
-
-  async function handleExportarDiagnosticoApp() {
-    const eventosObservabilidade = await listarEventosObservabilidade(80);
-    const resumoObservabilidade = resumirEventosObservabilidade(eventosObservabilidade);
-    const payload = [
-      "Tariel Inspetor - Diagnóstico local",
-      `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
-      `Build: ${appRuntime.versionLabel} (${appRuntime.buildLabel}) • ${APP_BUILD_CHANNEL}`,
-      `API: ${statusApi === "online" ? "online" : "offline"}`,
-      `Conta: ${perfilNome || perfilExibicao || "Inspetor"}`,
-      `Email: ${emailAtualConta || email || "Sem email"}`,
-      `Sessão atual: ${sessaoAtual?.title || "Dispositivo atual"}`,
-      `Fila offline: ${filaOffline.length} item(ns)`,
-      `Fila de suporte: ${filaSuporteLocal.length} item(ns)`,
-      `Fila de suporte com anexo: ${filaSuporteLocal.filter((item) => Boolean(item.attachmentUri)).length} item(ns)`,
-      `Integrações conectadas: ${integracoesExternas.filter((item) => item.connected).length}/${integracoesExternas.length}`,
-      `Observabilidade: ${resumoObservabilidade.total} evento(s) / ${resumoObservabilidade.failures} falha(s)`,
-      `Observabilidade (último evento): ${resumoObservabilidade.latestAt ? formatarHorarioAtividade(resumoObservabilidade.latestAt) : "nenhum"}`,
-      `Observabilidade (latência média): ${resumoObservabilidade.averageDurationMs} ms`,
-      `Observabilidade (por tipo): api=${resumoObservabilidade.byKind.api}, fila=${resumoObservabilidade.byKind.offline_queue}, atividade=${resumoObservabilidade.byKind.activity_monitor}, push=${resumoObservabilidade.byKind.push}`,
-      `Observabilidade (falhas por tipo): api=${resumoObservabilidade.failuresByKind.api}, fila=${resumoObservabilidade.failuresByKind.offline_queue}, atividade=${resumoObservabilidade.failuresByKind.activity_monitor}, push=${resumoObservabilidade.failuresByKind.push}`,
-      `Última verificação de atualização: ${ultimaVerificacaoAtualizacao ? formatarHorarioAtividade(ultimaVerificacaoAtualizacao) : "nunca"}`,
-      `Status da atualização: ${statusAtualizacaoApp}`,
-      `Permissões: ${[microfonePermitido ? "microfone" : "", cameraPermitida ? "câmera" : "", arquivosPermitidos ? "arquivos" : "", notificacoesPermitidas ? "notificações" : ""].filter(Boolean).join(", ") || "nenhuma ativa"}`,
-      "",
-      "Eventos recentes de segurança:",
-      ...eventosSeguranca.slice(0, 5).map((item) => `- ${item.title} • ${item.status} • ${item.meta}`),
-    ].join("\n");
-
-    const exportado = await compartilharTextoExportado({
-      extension: "txt",
-      content: payload,
-      prefixo: "tariel-inspetor-diagnostico",
-    });
-    if (exportado) {
-      registrarEventoSegurancaLocal({
-        title: "Diagnóstico exportado",
-        meta: "Pacote textual compartilhado pelo fluxo de suporte",
-        status: "Agora",
-        type: "data",
-      });
-      return;
-    }
-    setSettingsSheetNotice("Não foi possível compartilhar o diagnóstico agora.");
-  }
-
-  function handleLimparFilaSuporteLocal() {
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: "Limpar fila local de suporte",
-      description: "Remove os relatos de bug e feedback guardados apenas neste dispositivo. O histórico de segurança permanece intacto.",
-      confirmLabel: "Limpar fila",
-      onConfirm: () => {
-        setFilaSuporteLocal([]);
-        registrarEventoSegurancaLocal({
-          title: "Fila local de suporte limpa",
-          meta: "Relatos locais removidos pelo usuário",
-          status: "Agora",
-          type: "data",
-        });
-      },
-    });
-  }
-
-  function handleTermosUso() {
-    abrirSheetConfiguracao({
-      kind: "terms",
-      title: "Termos de uso",
-      subtitle: "Resumo das condições de uso do app do inspetor e das responsabilidades do usuário.",
-      actionLabel: "Exportar TXT",
-    });
-  }
-
-  function handleLicencas() {
-    abrirSheetConfiguracao({
-      kind: "licenses",
-      title: "Licenças",
-      subtitle: "Bibliotecas, dependências e componentes utilizados nesta build do aplicativo.",
-      actionLabel: "Exportar TXT",
-    });
-  }
-
-  function handleExcluirConta() {
-    executarComReautenticacao("Confirme sua identidade para excluir a conta e invalidar todas as sessões do app.", () => {
-      abrirConfirmacaoConfiguracao({
-        kind: "deleteAccount",
-        title: "Excluir conta",
-        description: "Essa ação é permanente, invalida sessões e remove os dados conforme a política do sistema. Digite EXCLUIR para continuar.",
-        confirmLabel: "Excluir permanentemente",
-        confirmPhrase: "EXCLUIR",
-      });
-    });
-  }
-
-  function handleToggleProviderConnection(provider: ConnectedProvider) {
-    const conectados = provedoresConectados.filter((item) => item.connected).length;
-    if (provider.connected) {
-      if (conectados <= 1) {
-        abrirConfirmacaoConfiguracao({
-          kind: "provider",
-          title: "Último método de acesso",
-          description: "Cadastre outro provedor ou mantenha um método adicional válido antes de desconectar este acesso.",
-          confirmLabel: "Entendi",
-        });
-        return;
-      }
-
-      executarComReautenticacao(`Confirme sua identidade para desconectar ${provider.label} desta conta.`, () => {
-        abrirConfirmacaoConfiguracao({
-          kind: "provider",
-          title: `Desconectar ${provider.label}`,
-          description: provider.requiresReauth
-            ? `Confirme a desconexão do provedor ${provider.label}. Para ações sensíveis, a reautenticação será exigida.`
-            : `Confirme a desconexão do provedor ${provider.label}.`,
-          confirmLabel: "Desconectar",
-          onConfirm: () => {
-            setProvedoresConectados((estadoAtual) =>
-              estadoAtual.map((item) =>
-                item.id === provider.id ? { ...item, connected: false, email: "" } : item,
-              ),
-            );
-            registrarEventoSegurancaLocal({
-              title: `${provider.label} desconectado`,
-              meta: "Evento de segurança registrado na conta do inspetor",
-              status: "Agora",
-              type: "provider",
-              critical: true,
-            });
-          },
-        });
-      });
-      return;
-    }
-
-    executarComReautenticacao(`Confirme sua identidade para vincular ${provider.label} à conta do inspetor.`, () => {
-      setProvedoresConectados((estadoAtual) =>
-        estadoAtual.map((item) =>
-          item.id === provider.id ? { ...item, connected: true, email: emailAtualConta || email } : item,
-        ),
-      );
-      registrarEventoSegurancaLocal({
-        title: `${provider.label} conectado`,
-        meta: emailAtualConta || email || "Conta corporativa vinculada",
-        status: "Agora",
-        type: "provider",
-      });
-    });
-  }
-
-  function handleEncerrarSessao(item: SessionDevice) {
-    abrirConfirmacaoConfiguracao({
-      kind: "session",
-      title: "Encerrar sessão",
-      description: `Deseja encerrar a sessão em ${item.title}?`,
-      confirmLabel: "Encerrar",
-      onConfirm: () => {
-        setSessoesAtivas((estadoAtual) => estadoAtual.filter((sessao) => sessao.id !== item.id));
-        registrarEventoSegurancaLocal({
-          title: "Sessão encerrada",
-          meta: `${item.title} • ${item.location}`,
-          status: "Agora",
-          type: "session",
-        });
-      },
-    });
-  }
-
-  function handleRevisarSessao(item: SessionDevice) {
-    const vaiMarcarComoSuspeita = !item.suspicious;
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: vaiMarcarComoSuspeita ? "Sinalizar atividade incomum" : "Marcar sessão como segura",
-      description: vaiMarcarComoSuspeita
-        ? `Deseja sinalizar ${item.title} como atividade incomum para revisão posterior?`
-        : `Deseja remover o alerta de risco da sessão em ${item.title}?`,
-      confirmLabel: vaiMarcarComoSuspeita ? "Sinalizar" : "Marcar segura",
-      onConfirm: () => {
-        setSessoesAtivas((estadoAtual) =>
-          estadoAtual.map((sessao) =>
-            sessao.id === item.id ? { ...sessao, suspicious: vaiMarcarComoSuspeita } : sessao,
-          ),
-        );
-        registrarEventoSegurancaLocal({
-          title: vaiMarcarComoSuspeita ? "Sessão sinalizada como incomum" : "Sessão marcada como segura",
-          meta: `${item.title} • ${item.location}`,
-          status: "Agora",
-          type: "session",
-          critical: vaiMarcarComoSuspeita,
-        });
-      },
-    });
-  }
-
-  function handleEncerrarOutrasSessoes() {
-    abrirConfirmacaoConfiguracao({
-      kind: "sessionOthers",
-      title: "Encerrar todas as outras",
-      description: "Deseja encerrar todas as outras sessões ativas do inspetor?",
-      confirmLabel: "Encerrar",
-      onConfirm: () => {
-        setSessoesAtivas((estadoAtual) => estadoAtual.filter((sessao) => sessao.current));
-        registrarEventoSegurancaLocal({
-          title: "Outras sessões encerradas",
-          meta: "Sessões antigas invalidadas no dispositivo atual",
-          status: "Agora",
-          type: "session",
-          critical: true,
-        });
-      },
-    });
-  }
-
-  function handleEncerrarSessaoAtual() {
-    abrirConfirmacaoConfiguracao({
-      kind: "sessionCurrent",
-      title: "Encerrar esta sessão",
-      description: "Deseja sair deste dispositivo agora? O token atual será invalidado e você precisará entrar novamente.",
-      confirmLabel: "Encerrar",
-      onConfirm: () => {
-        registrarEventoSegurancaLocal({
-          title: "Sessão atual encerrada",
-          meta: "Logout acionado a partir do dispositivo em uso",
-          status: "Agora",
-          type: "session",
-          critical: true,
-        });
-        fecharConfiguracoes();
-        void handleLogout();
-      },
-    });
-  }
-
-  function handleEncerrarSessoesSuspeitas() {
-    const sessoesSuspeitas = sessoesAtivas.filter((item) => item.suspicious);
-    if (!sessoesSuspeitas.length) {
-      abrirConfirmacaoConfiguracao({
-        kind: "security",
-        title: "Nenhuma sessão suspeita",
-        description: "No momento não existe nenhuma sessão marcada como suspeita para encerrar.",
-        confirmLabel: "Entendi",
-      });
-      return;
-    }
-
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: "Encerrar sessões suspeitas",
-      description: `Vamos encerrar ${sessoesSuspeitas.length} sessão(ões) marcadas como suspeitas e manter somente as confiáveis.`,
-      confirmLabel: "Encerrar suspeitas",
-      onConfirm: () => {
-        setSessoesAtivas((estadoAtual) => estadoAtual.filter((sessao) => !sessao.suspicious));
-        registrarEventoSegurancaLocal({
-          title: "Sessões suspeitas encerradas",
-          meta: `${sessoesSuspeitas.length} sessão(ões) removidas após revisão`,
-          status: "Agora",
-          type: "session",
-          critical: true,
-        });
-      },
-    });
-  }
-
-  function handleConectarProximoProvedorDisponivel() {
-    const proximoProvider = provedoresConectados.find((item) => !item.connected) || null;
-    if (!proximoProvider) {
-      abrirConfirmacaoConfiguracao({
-        kind: "provider",
-        title: "Todos os provedores já estão vinculados",
-        description: "Google, Apple e Microsoft já estão conectados nesta conta do inspetor.",
-        confirmLabel: "Entendi",
-      });
-      return;
-    }
-
-    handleToggleProviderConnection(proximoProvider);
-  }
-
-  async function handleCompartilharCodigosRecuperacao() {
-    if (!codigosRecuperacao.length) {
-      setSettingsSheetNotice("Gere os códigos primeiro para compartilhar ou salvar com segurança.");
-      return;
-    }
-
-    if (!reautenticacaoAindaValida(reautenticacaoExpiraEm)) {
-      abrirFluxoReautenticacao(
-        "Confirme sua identidade para exportar os códigos de recuperação da verificação em duas etapas.",
-        () => {
-          void handleCompartilharCodigosRecuperacao();
-        },
-      );
-      return;
-    }
-
-    const conteudo = [
-      "Tariel Inspetor • Códigos de recuperação",
-      `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
-      "",
-      ...codigosRecuperacao,
-      "",
-      "Guarde estes códigos em local seguro. Cada código deve ser usado apenas uma vez.",
-    ].join("\n");
-
-    const compartilhado = await compartilharTextoExportado({
-      extension: "txt",
-      content: conteudo,
-      prefixo: "tariel-recovery-codes",
-    });
-
-    if (compartilhado) {
-      registrarEventoSegurancaLocal({
-        title: "Códigos de recuperação exportados",
-        meta: "Exportação local concluída com reautenticação válida",
-        status: "Agora",
-        type: "2fa",
-        critical: true,
-      });
-      setSettingsSheetNotice("Códigos compartilhados. Salve-os em um local seguro.");
-      return;
-    }
-
-    setSettingsSheetNotice("Não foi possível exportar os códigos agora. Tente novamente em alguns segundos.");
-  }
-
-  function handleReautenticacaoSensivel() {
-    abrirFluxoReautenticacao(
-      "Confirme a identidade do inspetor para liberar exportação, exclusão de dados, 2FA e mudanças sensíveis na conta.",
-    );
-  }
-
-  function handleMudarMetodo2FA(value: (typeof TWO_FACTOR_METHOD_OPTIONS)[number]) {
-    if (value === twoFactorMethod) {
-      return;
-    }
-    setTwoFactorMethod(value);
-    registrarEventoSegurancaLocal({
-      title: "Método preferido de 2FA atualizado",
-      meta: `Novo método preferido: ${value}`,
-      status: "Agora",
-      type: "2fa",
-      critical: twoFactorEnabled,
-    });
-  }
-
-  function handleToggle2FA() {
-    const proximoEstado = !twoFactorEnabled;
-    executarComReautenticacao(
-      proximoEstado
-        ? "Confirme sua identidade para ativar a verificação em duas etapas."
-        : "Confirme sua identidade para desativar a verificação em duas etapas.",
-      () => {
-        abrirConfirmacaoConfiguracao({
-          kind: "security",
-          title: proximoEstado ? "Ativar verificação em duas etapas" : "Desativar verificação em duas etapas",
-          description: proximoEstado
-            ? "A ativação será registrada no histórico de segurança e passa a proteger ações críticas."
-            : "A desativação da 2FA exige confirmação forte e ficará registrada no histórico de segurança.",
-          confirmLabel: proximoEstado ? "Ativar" : "Desativar",
-          onConfirm: () => {
-            setTwoFactorEnabled(proximoEstado);
-            registrarEventoSegurancaLocal({
-              title: proximoEstado ? "2FA ativada" : "2FA desativada",
-              meta: `Método preferido: ${twoFactorMethod}`,
-              status: "Agora",
-              type: "2fa",
-              critical: !proximoEstado,
-            });
-          },
-        });
-      },
-    );
-  }
-
-  function handleGerarCodigosRecuperacao() {
-    executarComReautenticacao("Confirme sua identidade para gerar novos códigos de recuperação.", () => {
-      const novosCodigos = Array.from({ length: 6 }, (_, index) => `TG-${index + 1}${Math.random().toString(36).slice(2, 7).toUpperCase()}`);
-      setCodigosRecuperacao(novosCodigos);
-      registrarEventoSegurancaLocal({
-        title: "Códigos de recuperação gerados",
-        meta: "Exibidos uma única vez ao usuário",
-        status: "Agora",
-        type: "2fa",
-      });
-      abrirSheetConfiguracao({
-        kind: "reauth",
-        title: "Códigos de recuperação",
-        subtitle: "Os novos códigos já foram gerados e aparecem na seção de 2FA. Salve-os em local seguro antes de sair.",
-      });
-    });
-  }
-
-  function handleConfirmarCodigo2FA() {
-    if (codigo2FA.trim().length < 6) {
-      Alert.alert("Código inválido", "Digite um código válido para concluir a configuração da verificação em duas etapas.");
-      return;
-    }
-
-    registrarEventoSegurancaLocal({
-      title: "Código 2FA confirmado",
-      meta: `Método validado: ${twoFactorMethod}`,
-      status: "Agora",
-      type: "2fa",
-    });
-    Alert.alert("Código confirmado", "A verificação em duas etapas foi confirmada no app.");
-    setCodigo2FA("");
-  }
-
-  async function handleGerenciarPermissao(nome: string, status: string) {
-    const chavePermissao =
-      nome === "Microfone"
-        ? "microphone"
-        : nome === "Câmera"
-          ? "camera"
-          : nome === "Arquivos"
-            ? "files"
-            : nome === "Notificações"
-              ? "notifications"
-              : null;
-
-    if (!chavePermissao) {
-      registrarEventoSegurancaLocal({
-        title: `Permissão revisada: ${nome}`,
-        meta: `Status atual ${status}. Ajustes do sistema foram abertos pelo usuário.`,
-        status: "Agora",
-        type: "session",
-      });
-      void Linking.openSettings();
-      return;
-    }
-
-    const concedida = await requestDevicePermission(chavePermissao);
-    if (chavePermissao === "microphone") {
-      setMicrofonePermitido(concedida);
-    } else if (chavePermissao === "camera") {
-      setCameraPermitida(concedida);
-    } else if (chavePermissao === "files") {
-      setArquivosPermitidos(concedida);
-    } else {
-      setNotificacoesPermitidas(concedida);
-      if (!concedida) {
-        setNotificaPush(false);
-      }
-    }
-
-    registrarEventoSegurancaLocal({
-      title: `Permissão revisada: ${nome}`,
-      meta: concedida ? `${nome} concedida diretamente pelo fluxo do app.` : `Status atual ${status}.`,
-      status: "Agora",
-      type: "session",
-    });
-
-    if (!concedida) {
-      Alert.alert(
-        `${nome} indisponível`,
-        `O sistema manteve ${nome.toLowerCase()} como negado. Revise isso nos ajustes do Android.`,
-        [
-          { text: "Fechar", style: "cancel" },
-          {
-            text: "Abrir ajustes",
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ],
-      );
-    }
-  }
-
-  function handleAbrirAjustesDoSistema(contexto: string) {
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: "Abrir ajustes do sistema",
-      description: `Vamos abrir as configurações do Android para revisar ${contexto}.`,
-      confirmLabel: "Abrir ajustes",
-      onConfirm: () => {
-        registrarEventoSegurancaLocal({
-          title: "Ajustes do sistema abertos",
-          meta: `Fluxo acionado a partir de ${contexto}`,
-          status: "Agora",
-          type: "session",
-        });
-        void Linking.openSettings();
-      },
-    });
-  }
-
-  function handleToggleBiometriaNoDispositivo(value: boolean) {
-    if (!biometriaLocalSuportada) {
-      setDeviceBiometricsEnabled(false);
-      Alert.alert(
-        "Biometria indisponível",
-        "Esta build ainda não possui autenticação biométrica nativa integrada. Use o bloqueio ao abrir e o bloqueio por inatividade.",
-      );
-      return;
-    }
-
-    if (!value) {
-      setDeviceBiometricsEnabled(false);
-      registrarEventoSegurancaLocal({
-        title: "Biometria de desbloqueio desativada",
-        meta: "O desbloqueio local por biometria foi desativado neste dispositivo.",
-        status: "Agora",
-        type: "session",
-      });
-      return;
-    }
-
-    if (!biometriaPermitida) {
-      setDeviceBiometricsEnabled(false);
-      Alert.alert(
-        "Permissão necessária",
-        "Libere biometria nas permissões do Android para usar desbloqueio biométrico no app.",
-        [
-          { text: "Agora não", style: "cancel" },
-          {
-            text: "Abrir ajustes",
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ],
-      );
-      return;
-    }
-
-    if (!requireAuthOnOpen) {
-      setRequireAuthOnOpen(true);
-    }
-    setDeviceBiometricsEnabled(true);
-    registrarEventoSegurancaLocal({
-      title: "Biometria de desbloqueio ativada",
-      meta: "O app poderá usar biometria ao abrir e em desbloqueios locais.",
-      status: "Agora",
-      type: "session",
-    });
-  }
-
-  function handleToggleBackupAutomatico(value: boolean) {
-    setBackupAutomatico(value);
-    if (!value) {
-      void salvarCacheLeituraLocal(CACHE_LEITURA_VAZIO);
-      registrarEventoSegurancaLocal({
-        title: "Backup automático desativado",
-        meta: "O cache de leitura local foi limpo e novos backups automáticos foram pausados.",
-        status: "Agora",
-        type: "data",
-      });
-      return;
-    }
-    registrarEventoSegurancaLocal({
-      title: "Backup automático ativado",
-      meta: "O app voltará a persistir cache local de leitura automaticamente.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleToggleSincronizacaoDispositivos(value: boolean) {
-    setSincronizacaoDispositivos(value);
-    if (!value) {
-      registrarEventoSegurancaLocal({
-        title: "Sincronização entre dispositivos desativada",
-        meta: "Monitoramento em segundo plano e sincronização automática da fila offline foram pausados.",
-        status: "Agora",
-        type: "session",
-      });
-      return;
-    }
-    registrarEventoSegurancaLocal({
-      title: "Sincronização entre dispositivos ativada",
-      meta: "Monitoramento automático do app e sincronização de pendências foram reativados.",
-      status: "Agora",
-      type: "session",
-    });
-    if (session && statusApi === "online" && filaOffline.some((item) => pendenciaFilaProntaParaReenvio(item))) {
-      void sincronizarFilaOffline(session.accessToken, true);
-    }
-  }
-
-  async function handleToggleUploadArquivos(value: boolean) {
-    if (!value) {
-      setUploadArquivosAtivo(false);
-      setAnexoRascunho(null);
-      setAnexoMesaRascunho(null);
-      registrarEventoSegurancaLocal({
-        title: "Upload de arquivos desativado",
-        meta: "Anexos foram bloqueados no composer e rascunhos de anexo foram removidos.",
-        status: "Agora",
-        type: "data",
-      });
-      return;
-    }
-
-    const permitido = arquivosPermitidos || (await requestDevicePermission("files"));
-    setArquivosPermitidos(permitido);
-    if (!permitido) {
-      setUploadArquivosAtivo(false);
-      Alert.alert(
-        "Permissão necessária",
-        "Libere o acesso a arquivos no Android para anexar documentos e imagens no app.",
-        [
-          { text: "Agora não", style: "cancel" },
-          {
-            text: "Abrir ajustes",
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ],
-      );
-      return;
-    }
-
-    setUploadArquivosAtivo(true);
-    registrarEventoSegurancaLocal({
-      title: "Upload de arquivos ativado",
-      meta: "Anexos de imagem e documento liberados no fluxo de conversa.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  async function handleToggleEntradaPorVoz(value: boolean) {
-    if (!value) {
-      setEntradaPorVoz(false);
-      registrarEventoSegurancaLocal({
-        title: "Entrada por voz desativada",
-        meta: "Comandos por voz foram desativados neste dispositivo.",
-        status: "Agora",
-        type: "data",
-      });
-      return;
-    }
-
-    const permitido = microfonePermitido || (await requestDevicePermission("microphone"));
-    setMicrofonePermitido(permitido);
-    if (!permitido) {
-      setEntradaPorVoz(false);
-      Alert.alert(
-        "Permissão necessária",
-        "Ative a permissão de microfone no Android para usar entrada por voz no app.",
-        [
-          { text: "Agora não", style: "cancel" },
-          {
-            text: "Abrir ajustes",
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ],
-      );
-      return;
-    }
-
-    setEntradaPorVoz(true);
-    registrarEventoSegurancaLocal({
-      title: "Entrada por voz ativada",
-      meta: "O app está autorizado a receber comandos por voz quando disponíveis no dispositivo.",
-      status: "Agora",
-      type: "data",
-    });
-    if (!voiceRuntimeState.sttSupported) {
-      setSettingsSheetNotice(buildVoiceInputUnavailableMessage(voiceLanguage));
-    }
-  }
-
-  function handleToggleSpeechEnabled(value: boolean) {
-    setSpeechEnabled(value);
-    if (!value) {
-      void stopSpeechPlayback();
-    }
-    registrarEventoSegurancaLocal({
-      title: value ? "Preferências de fala ativadas" : "Preferências de fala desativadas",
-      meta: value
-        ? "O dispositivo volta a permitir preferências locais de voz e transcrição."
-        : "Os atalhos locais de fala foram pausados neste dispositivo.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleToggleRespostaPorVoz(value: boolean) {
-    setRespostaPorVoz(value);
-    if (!value) {
-      void stopSpeechPlayback();
-    }
-    registrarEventoSegurancaLocal({
-      title: "Resposta por voz atualizada",
-      meta: value
-        ? "O app poderá usar síntese de voz quando o recurso estiver disponível no dispositivo."
-        : "Saída por voz desativada neste dispositivo.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  async function handleToggleNotificaPush(value: boolean) {
-    if (!value) {
-      setNotificaPush(false);
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_toggle",
-        ok: true,
-        detail: "disabled",
-      });
-      return;
-    }
-
-    const permitido = notificacoesPermitidas || (await requestDevicePermission("notifications"));
-    setNotificacoesPermitidas(permitido);
-    if (permitido) {
-      setNotificaPush(true);
-      void registrarEventoObservabilidade({
-        kind: "push",
-        name: "push_toggle",
-        ok: true,
-        detail: "enabled",
-      });
-      return;
-    }
-
-    setNotificaPush(false);
-    void registrarEventoObservabilidade({
-      kind: "push",
-      name: "push_toggle",
-      ok: false,
-      detail: "permission_denied",
-    });
-    Alert.alert(
-      "Permissão necessária",
-      "Ative as notificações do sistema para habilitar alertas push no app.",
-      [
-        { text: "Agora não", style: "cancel" },
-        {
-          text: "Abrir ajustes",
-          onPress: () => {
-            void Linking.openSettings();
-          },
-        },
-      ],
-    );
-  }
-
-  function handleToggleVibracao(value: boolean) {
-    setVibracaoAtiva(value);
-    if (value) {
-      Vibration.vibrate(24);
-    }
-    registrarEventoSegurancaLocal({
-      title: "Vibração do app atualizada",
-      meta: value ? "Feedback tátil ativado nas ações do aplicativo." : "Feedback tátil desativado.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleToggleMostrarConteudoNotificacao(value: boolean) {
-    setMostrarConteudoNotificacao(value);
-    if (value) {
-      setMostrarSomenteNovaMensagem(false);
-    }
-    registrarEventoSegurancaLocal({
-      title: "Prévia de notificação atualizada",
-      meta: value
-        ? "Conteúdo das mensagens pode aparecer quando o sistema permitir."
-        : "Conteúdo textual das mensagens ficou oculto nas notificações.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleToggleOcultarConteudoBloqueado(value: boolean) {
-    setOcultarConteudoBloqueado(value);
-    registrarEventoSegurancaLocal({
-      title: "Privacidade na tela bloqueada atualizada",
-      meta: value
-        ? "Conteúdo sensível oculto na tela bloqueada."
-        : "O app permite prévias fora da tela bloqueada, conforme o sistema.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleToggleMostrarSomenteNovaMensagem(value: boolean) {
-    setMostrarSomenteNovaMensagem(value);
-    if (value) {
-      setMostrarConteudoNotificacao(false);
-      setOcultarConteudoBloqueado(true);
-    }
-    registrarEventoSegurancaLocal({
-      title: "Modo privado de notificação atualizado",
-      meta: value
-        ? 'As notificações exibem apenas "Nova mensagem".'
-        : "O app voltou a permitir outros níveis de prévia.",
-      status: "Agora",
-      type: "data",
-    });
-  }
-
-  function handleRevisarPermissoesCriticas() {
-    const faltando = [
-      !cameraPermitida ? "câmera" : "",
-      !arquivosPermitidos ? "arquivos" : "",
-      !notificacoesPermitidas ? "notificações" : "",
-    ].filter(Boolean);
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: "Revisar permissões críticas",
-      description: faltando.length
-        ? `Ainda faltam ${faltando.join(", ")} para o app operar melhor em campo. Vamos abrir os ajustes do Android.`
-        : "As permissões críticas já estão liberadas. Você ainda pode revisar tudo nos ajustes do Android.",
-      confirmLabel: "Abrir ajustes",
-      onConfirm: () => {
-        registrarEventoSegurancaLocal({
-          title: "Revisão de permissões críticas",
-          meta: faltando.length ? `Pendentes: ${faltando.join(", ")}` : "Todas as permissões críticas já estavam liberadas",
-          status: "Agora",
-          type: "session",
-        });
-        void Linking.openSettings();
-      },
-    });
-  }
-
-  function handleExportarAntesDeExcluirConta() {
-    executarComReautenticacao("Confirme sua identidade para exportar os dados antes da exclusão permanente da conta.", () => {
-      void handleExportarDados("JSON");
-    });
-  }
-
-  function handleReportarAtividadeSuspeita() {
-    abrirConfirmacaoConfiguracao({
-      kind: "security",
-      title: "Reportar atividade suspeita",
-      description: "Esse evento será marcado como crítico no histórico de segurança do inspetor e usado para revisão posterior.",
-      confirmLabel: "Reportar",
-      onConfirm: () => {
-        registrarEventoSegurancaLocal({
-          title: "Atividade suspeita reportada",
-          meta: "O usuário sinalizou uma ocorrência no histórico de segurança",
-          status: "Agora",
-          type: "session",
-          critical: true,
-        });
-      },
-    });
-  }
-
-  function handleAbrirSeletorAnexo() {
-    if (!uploadArquivosAtivo) {
-      Alert.alert(
-        "Uploads desativados",
-        "O envio de arquivos está desligado nas preferências do app. Reative em Configurações > Recursos avançados.",
-      );
-      return;
-    }
-    if (!arquivosPermitidos) {
-      Alert.alert(
-        "Arquivos bloqueados",
-        "O acesso a arquivos foi desativado neste dispositivo. Ajuste isso em Configurações > Permissões.",
-      );
-      return;
-    }
-    setAnexosAberto(true);
-  }
-
-  async function handleEscolherAnexo(opcao: "camera" | "galeria" | "documento") {
-    setAnexosAberto(false);
-    if (!uploadArquivosAtivo) {
-      return;
-    }
-    if (opcao === "camera" && !cameraPermitida) {
-      Alert.alert("Câmera indisponível", "Ative a câmera em Configurações > Permissões para anexar fotos.");
-      return;
-    }
-    if (opcao !== "camera" && !arquivosPermitidos) {
-      Alert.alert("Arquivos indisponíveis", "Ative o acesso a arquivos em Configurações > Permissões.");
-      return;
-    }
-    if (opcao === "camera") {
-      await handleCapturarImagem();
-      return;
-    }
-    if (opcao === "galeria") {
-      await handleSelecionarImagem();
-      return;
-    }
-    await handleSelecionarDocumento();
-  }
-
-function handleAbrirHistorico() {
-    if (keyboardHeight > 0) {
-      Keyboard.dismiss();
-      return;
-    }
-    if (historicoAberto || historicoAbertoRef.current) {
-      fecharHistorico({ limparBusca: true });
-      return;
-    }
-    abrirHistorico();
-  }
-
-  function handleGerenciarConversasIndividuais() {
-    fecharConfiguracoes();
-    setTimeout(() => {
-      abrirHistorico();
-    }, 180);
-  }
-
-  function atualizarLaudosLocais(transform: (itens: MobileLaudoCard[]) => MobileLaudoCard[]) {
-    setLaudosDisponiveis((estadoAtual) => {
-      const proximosLaudos = transform(estadoAtual);
-      setCacheLeitura((cacheAtual) => ({
-        ...cacheAtual,
-        laudos: transform(cacheAtual.laudos),
-        updatedAt: new Date().toISOString(),
-      }));
-      return proximosLaudos;
-    });
-  }
-
-  function handleAlternarFixadoHistorico(card: MobileLaudoCard) {
-    const vaiFixar = !card.pinado;
-    setLaudosFixadosIds((estadoAtual) =>
-      vaiFixar ? Array.from(new Set([...estadoAtual, card.id])) : estadoAtual.filter((item) => item !== card.id),
-    );
-    atualizarLaudosLocais((itens) =>
-      itens.map((item) => (item.id === card.id ? { ...item, pinado: vaiFixar } : item)),
-    );
-  }
-
-  function handleExcluirConversaHistorico(card: MobileLaudoCard) {
-    setHistoricoOcultoIds((estadoAtual) => Array.from(new Set([...estadoAtual, card.id])));
-    setLaudosFixadosIds((estadoAtual) => estadoAtual.filter((item) => item !== card.id));
-    atualizarLaudosLocais((itens) => itens.filter((item) => item.id !== card.id));
-    setCacheLeitura((estadoAtual) => {
-      const chave = chaveCacheLaudo(card.id);
-      const { [chave]: _chatRemovido, ...restoConversas } = estadoAtual.conversasPorLaudo;
-      const { [chave]: _mesaRemovida, ...restoMesa } = estadoAtual.mesaPorLaudo;
-      return {
-        ...estadoAtual,
-        laudos: estadoAtual.laudos.filter((item) => item.id !== card.id),
-        conversasPorLaudo: restoConversas,
-        mesaPorLaudo: restoMesa,
-        updatedAt: new Date().toISOString(),
-      };
-    });
-    setNotificacoes((estadoAtual) => estadoAtual.filter((item) => item.laudoId !== card.id));
-    if (conversa?.laudoId === card.id) {
-      setConversa(criarConversaNova());
-      setMensagensMesa([]);
-      setMensagem("");
-      setMensagemMesa("");
-      setAnexoRascunho(null);
-      setAnexoMesaRascunho(null);
-      setErroMesa("");
-      setErroConversa("");
-      setLaudoMesaCarregado(null);
-    }
-  }
-
-  async function handleSelecionarHistorico(card: MobileLaudoCard | null) {
-    fecharHistorico({ limparBusca: true });
-    setAbaAtiva("chat");
-    await handleSelecionarLaudo(card);
-  }
-
-  async function tentarAbrirUrlExterna(url: string): Promise<boolean> {
-    const target = String(url || "").trim();
-    if (!target) {
-      return false;
-    }
-    try {
-      const supported = await Linking.canOpenURL(target);
-      if (!supported) {
-        return false;
-      }
-      await Linking.openURL(target);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function handleEsqueciSenha() {
-    const url = obterUrlRecuperacaoSenhaMobile(email);
-    void (async () => {
-      const abriu = await tentarAbrirUrlExterna(url);
-      if (!abriu) {
-        Alert.alert(
-          "Recuperação de senha",
-          "Não foi possível abrir o fluxo agora. Tente novamente em instantes ou contate o administrador da sua empresa.",
-        );
-      }
-    })();
-  }
-
-  function handleLoginSocial(provider: "Google" | "Microsoft") {
-    const url = obterUrlLoginSocialMobile(provider);
-    void (async () => {
-      const abriu = await tentarAbrirUrlExterna(url);
-      if (!abriu) {
-        Alert.alert(
-          `${provider} indisponível`,
-          `Não foi possível abrir o login com ${provider} agora. Use email e senha enquanto o acesso externo é normalizado.`,
-        );
-      }
-    })();
-  }
-
-  const historyEdgePanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        !keyboardAbertoRef.current &&
-        !historicoAbertoRef.current &&
-        !configuracoesAbertaRef.current &&
-        gestureState.x0 <= PANEL_EDGE_GESTURE_WIDTH &&
-        gestureState.dx > 8 &&
-        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx >= PANEL_OPEN_SWIPE_THRESHOLD) {
-          handleAbrirHistorico();
-        }
-      },
-    }),
-  ).current;
-
-  const settingsEdgePanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        !keyboardAbertoRef.current &&
-        !historicoAbertoRef.current &&
-        !configuracoesAbertaRef.current &&
-        gestureState.x0 >= SCREEN_WIDTH - PANEL_EDGE_GESTURE_WIDTH &&
-        gestureState.dx < -8 &&
-        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx <= -PANEL_OPEN_SWIPE_THRESHOLD) {
-          handleAbrirConfiguracoes();
-        }
-      },
-    }),
-  ).current;
-
-  const historyDrawerPanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        historicoAbertoRef.current &&
-        gestureState.dx < -8 &&
-        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx <= -PANEL_CLOSE_SWIPE_THRESHOLD) {
-          fecharHistorico({ limparBusca: true });
-        }
-      },
-    }),
-  ).current;
-
-  const settingsDrawerPanResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        configuracoesAbertaRef.current &&
-        gestureState.dx > 8 &&
-        Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx >= PANEL_CLOSE_SWIPE_THRESHOLD) {
-          fecharConfiguracoes();
-        }
-      },
-    }),
-  ).current;
-
-  async function abrirLaudoPorId(accessToken: string, laudoId: number) {
-    setErroConversa("");
-    setErroMesa("");
-    setMensagem("");
-    setMensagemMesa("");
-    setAnexoRascunho(null);
-    setAnexoMesaRascunho(null);
-    limparReferenciaMesaAtiva();
-    setCarregandoConversa(true);
-
-    try {
-      const historico = await carregarMensagensLaudo(accessToken, laudoId);
-      const proximaConversa = normalizarConversa(historico);
-      setConversa(proximaConversa);
-      setUsandoCacheOffline(false);
-      setCacheLeitura((estadoAtual) => ({
-        ...estadoAtual,
-        conversaAtual: proximaConversa,
-        conversasPorLaudo: {
-          ...estadoAtual.conversasPorLaudo,
-          [chaveCacheLaudo(laudoId)]: proximaConversa,
-        },
-        updatedAt: new Date().toISOString(),
-      }));
-      setMensagensMesa([]);
-      setLaudoMesaCarregado(null);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível abrir o laudo selecionado.";
-      const conversaCache = cacheLeitura.conversasPorLaudo[chaveCacheLaudo(laudoId)];
-      const emModoOffline = statusApi === "offline" || erroSugereModoOffline(error);
-      if (emModoOffline && conversaCache) {
-        setConversa(conversaCache);
-        setMensagensMesa(cacheLeitura.mesaPorLaudo[chaveCacheLaudo(laudoId)] || []);
-        setLaudoMesaCarregado((cacheLeitura.mesaPorLaudo[chaveCacheLaudo(laudoId)] || []).length ? laudoId : null);
-        setUsandoCacheOffline(true);
-        return;
-      }
-      setErroConversa(message);
-    } finally {
-      setCarregandoConversa(false);
-    }
-  }
-
-  async function handleAbrirNotificacao(item: MobileActivityNotification) {
-    if (!session) {
-      return;
-    }
-
-    setCentralAtividadeAberta(false);
-    setNotificacoes((estadoAtual) =>
-      estadoAtual.map((registro) =>
-        registro.id === item.id && registro.unread ? { ...registro, unread: false } : registro,
-      ),
-    );
-
-    if (!item.laudoId) {
-      return;
-    }
-
-    await abrirLaudoPorId(session.accessToken, item.laudoId);
-    setAbaAtiva(item.targetThread);
-
-    if (item.targetThread === "mesa") {
-      await carregarMesaAtual(session.accessToken, item.laudoId, true);
-    }
-  }
-
-  async function monitorarAtividade(accessToken: string) {
-    if (!(await podeSincronizarNaRedeAtual(wifiOnlySync))) {
-      return;
-    }
-    await runMonitorActivityFlow<MobileActivityNotification>({
-      accessToken,
-      monitorandoAtividade,
-      conversaLaudoId: conversa?.laudoId ?? null,
-      conversaLaudoTitulo: conversa?.laudoCard?.titulo || "",
-      sessionUserId: session?.bootstrap.usuario.id ?? null,
-      assinaturaStatusLaudo,
-      assinaturaMensagemMesa,
-      selecionarLaudosParaMonitoramentoMesa,
-      criarNotificacaoStatusLaudo,
-      criarNotificacaoMesa,
-      atualizarResumoLaudoAtual: (payload) => {
-        setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, payload as any));
-      },
-      registrarNotificacoes,
-      erroSugereModoOffline,
-      chaveCacheLaudo,
-      statusSnapshotRef,
-      mesaSnapshotRef,
-      onSetMonitorandoAtividade: setMonitorandoAtividade,
-      onSetLaudosDisponiveis: setLaudosDisponiveis,
-      onSetCacheLaudos: (proximosLaudos) => {
-        setCacheLeitura((estadoAtual) => ({
-          ...estadoAtual,
-          laudos: proximosLaudos,
-          updatedAt: new Date().toISOString(),
-        }));
-      },
-      onSetErroLaudos: setErroLaudos,
-      onSetMensagensMesa: setMensagensMesa,
-      onSetLaudoMesaCarregado: setLaudoMesaCarregado,
-      onSetCacheMesa: (cacheMesaAtualizado) => {
-        setCacheLeitura((estadoAtual) => ({
-          ...estadoAtual,
-          mesaPorLaudo: {
-            ...estadoAtual.mesaPorLaudo,
-            ...cacheMesaAtualizado,
-          },
-          updatedAt: new Date().toISOString(),
-        }));
-      },
-      onSetStatusApi: setStatusApi,
-      onSetErroConversaIfEmpty: (message) => {
-        setErroConversa((estadoAtual) => estadoAtual || message);
-      },
-    });
-  }
-
-  async function handleSelecionarLaudo(card: MobileLaudoCard | null) {
-    if (!session) {
-      return;
-    }
-
-    setErroConversa("");
-    setErroMesa("");
-    setMensagem("");
-    setMensagemMesa("");
-    setAnexoRascunho(null);
-    setAnexoMesaRascunho(null);
-    setAbaAtiva("chat");
-
-    if (!card) {
-      setConversa(criarConversaNova());
-      setMensagensMesa([]);
-      setLaudoMesaCarregado(null);
-      return;
-    }
-
-    await abrirLaudoPorId(session.accessToken, card.id);
-  }
-
-  async function handleAbrirNovoChat() {
-    await handleSelecionarLaudo(null);
-  }
-
-  async function handleReabrir() {
-    if (!session || !conversa?.laudoId) {
-      return;
-    }
-
-    try {
-      await reabrirLaudoMobile(session.accessToken, conversa.laudoId);
-      const proximaConversa = await carregarConversaAtual(session.accessToken, true);
-      await carregarListaLaudos(session.accessToken, true);
-      if (abaAtiva === "mesa" && proximaConversa?.laudoId) {
-        await carregarMesaAtual(session.accessToken, proximaConversa.laudoId, true);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Não foi possível reabrir o laudo.";
-      Alert.alert("Reabrir laudo", message);
-    }
-  }
-
-  async function handleSelecionarImagem() {
-    if (!session) {
-      return;
-    }
-
-    await selecionarImagemRascunhoFlow({
-      abaAtiva,
-      preparandoAnexo,
-      uploadArquivosAtivo,
-      imageQuality: attachmentHandlingPolicy.imageQuality,
-      arquivosPermitidos,
-      montarAnexoImagem,
-      onSetAnexoMesaRascunho: setAnexoMesaRascunho,
-      onSetAnexoRascunho: setAnexoRascunho,
-      onSetErroConversa: setErroConversa,
-      onSetPreparandoAnexo: setPreparandoAnexo,
-    });
-  }
-
-  async function handleCapturarImagem() {
-    if (!session) {
-      return;
-    }
-
-    await capturarImagemRascunhoFlow({
-      abaAtiva,
-      preparandoAnexo,
-      uploadArquivosAtivo,
-      imageQuality: attachmentHandlingPolicy.imageQuality,
-      cameraPermitida,
-      montarAnexoImagem,
-      onSetAnexoMesaRascunho: setAnexoMesaRascunho,
-      onSetAnexoRascunho: setAnexoRascunho,
-      onSetErroConversa: setErroConversa,
-      onSetPreparandoAnexo: setPreparandoAnexo,
-    });
-  }
-
-  async function handleSelecionarDocumento() {
-    if (!session) {
-      return;
-    }
-
-    const gateDocumento = await gateHeavyTransfer({
-      wifiOnlySync,
-      requiresHeavyTransfer: autoUploadAttachments,
-      blockedMessage: "O upload automático de documentos está restrito ao Wi-Fi neste dispositivo.",
-    });
-    const autoUploadDocuments = autoUploadAttachments && gateDocumento.allowed;
-    if (autoUploadAttachments && !gateDocumento.allowed) {
-      setErroConversa(
-        gateDocumento.reason || "Documento será mantido localmente até haver uma rede adequada.",
-      );
-    }
-
-    await selecionarDocumentoRascunhoFlow({
-      abaAtiva,
-      preparandoAnexo,
-      uploadArquivosAtivo,
-      imageQuality: attachmentHandlingPolicy.imageQuality,
-      arquivosPermitidos,
-      autoUploadDocuments,
-      sessionAccessToken: session.accessToken,
-      statusApi,
-      erroSugereModoOffline,
-      montarAnexoDocumentoLocal,
-      montarAnexoDocumentoMesa,
-      onSetAnexoMesaRascunho: setAnexoMesaRascunho,
-      onSetAnexoRascunho: setAnexoRascunho,
-      onSetErroConversa: setErroConversa,
-      onSetPreparandoAnexo: setPreparandoAnexo,
-      onSetStatusOffline: () => {
-        setStatusApi("offline");
-      },
-    });
-  }
-
-  async function handleEnviarMensagem() {
-    if (!session) {
-      return;
-    }
-
-    const snapshotConversa = conversa;
-    const gateAnexo = await gateHeavyTransfer({
-      wifiOnlySync,
-      requiresHeavyTransfer: Boolean(anexoRascunho),
-      blockedMessage: "Anexos foram guardados na fila local e só seguem quando houver Wi-Fi.",
-    });
-    if (anexoRascunho && !gateAnexo.allowed) {
-      setFilaOffline((estadoAtual) => [
-        ...estadoAtual,
-        criarItemFilaOffline({
-          channel: "chat",
-          laudoId: snapshotConversa?.laudoId ?? null,
-          text: mensagem.trim(),
-          title: snapshotConversa?.laudoCard?.titulo || "Nova inspeção",
-          attachment: anexoRascunho,
-          aiMode: aiRequestConfig.mode,
-          aiSummary: aiRequestConfig.summaryLabel,
-          aiMessagePrefix: aiRequestConfig.messagePrefix,
-        }),
-      ]);
-      setMensagem("");
-      setAnexoRascunho(null);
-      setErroConversa(gateAnexo.reason || "Envio local guardado para sincronizar depois.");
-      return;
-    }
-
-    await sendInspectorMessageFlow<OfflinePendingMessage>({
-      mensagem,
-      anexoAtual: anexoRascunho,
-      snapshotConversa,
-      aiRequestConfig,
-      sessionAccessToken: session.accessToken,
-      statusApi,
-      podeEditarConversaNoComposer,
-      textoFallbackAnexo,
-      normalizarModoChat,
-      inferirSetorConversa,
-      montarHistoricoParaEnvio,
-      criarMensagemAssistenteServidor,
-      carregarConversaAtual: async () => {
-        await carregarConversaAtual(session.accessToken, true);
-      },
-      carregarListaLaudos: async () => {
-        await carregarListaLaudos(session.accessToken, true);
-      },
-      erroSugereModoOffline,
-      criarItemFilaOffline,
-      onSetMensagem: setMensagem,
-      onSetAnexoRascunho: setAnexoRascunho,
-      onSetErroConversa: setErroConversa,
-      onSetEnviandoMensagem: setEnviandoMensagem,
-      onApplyOptimisticMessage: (mensagemOtimista, modoAtivo) => {
-        setConversa((estadoAtual) => ({
-          laudoId: estadoAtual?.laudoId || null,
-          estado: estadoAtual?.estado || "sem_relatorio",
-          statusCard: estadoAtual?.statusCard || "aberto",
-          permiteEdicao: estadoAtual?.permiteEdicao ?? true,
-          permiteReabrir: estadoAtual?.permiteReabrir ?? false,
-          laudoCard: estadoAtual?.laudoCard || null,
-          modo: normalizarModoChat(estadoAtual?.modo, modoAtivo),
-          mensagens: [...(estadoAtual?.mensagens || []), mensagemOtimista],
-        }));
-      },
-      onApplyAssistantResponse: (respostaChat, mensagemAssistenteServidor) => {
-        setConversa((estadoAtual) => {
-          const base = estadoAtual || criarConversaNova();
-          return {
-            ...base,
-            laudoId: respostaChat.laudoId ?? base.laudoId,
-            statusCard: respostaChat.laudoCard?.status_card || base.statusCard,
-            laudoCard: respostaChat.laudoCard || base.laudoCard,
-            modo: normalizarModoChat(respostaChat.modo, normalizarModoChat(base.modo)),
-            mensagens: mensagemAssistenteServidor
-              ? [...base.mensagens, mensagemAssistenteServidor]
-              : base.mensagens,
-          };
-        });
-        void speakAssistantResponse({
-          text: respostaChat.assistantText,
-          speech: settingsState.speech,
-        });
-      },
-      onReverterConversa: () => {
-        setConversa(snapshotConversa);
-      },
-      onQueueOfflineItem: (itemFila) => {
-        setFilaOffline((estadoAtual) => [...estadoAtual, itemFila]);
-      },
-      onSetStatusOffline: () => {
-        setStatusApi("offline");
-      },
-      onRestoreDraft: (texto, anexo) => {
-        setMensagem(texto);
-        setAnexoRascunho(anexo);
-      },
-    });
-  }
-
-  async function handleEnviarMensagemMesa() {
-    if (!session || !conversa) {
-      return;
-    }
-
-    const referenciaMensagemId = Number(mensagemMesaReferenciaAtiva?.id || 0) || null;
-    const snapshotMesa = mensagensMesa;
-    const gateAnexo = await gateHeavyTransfer({
-      wifiOnlySync,
-      requiresHeavyTransfer: Boolean(anexoMesaRascunho),
-      blockedMessage: "Anexos da mesa foram guardados na fila local e aguardam Wi-Fi para envio.",
-    });
-    if (anexoMesaRascunho && !gateAnexo.allowed && conversa.laudoId) {
-      setFilaOffline((estadoAtual) => [
-        ...estadoAtual,
-        criarItemFilaOffline({
-          channel: "mesa",
-          laudoId: conversa.laudoId,
-          text: mensagemMesa.trim(),
-          title: conversa.laudoCard?.titulo || "Mesa avaliadora",
-          attachment: anexoMesaRascunho,
-          referenceMessageId: referenciaMensagemId,
-        }),
-      ]);
-      setMensagemMesa("");
-      setAnexoMesaRascunho(null);
-      limparReferenciaMesaAtiva();
-      setErroMesa(gateAnexo.reason || "Resposta guardada localmente para sincronizar depois.");
-      return;
-    }
-
-    await sendMesaMessageFlow<OfflinePendingMessage>({
-      mensagemMesa,
-      anexoAtual: anexoMesaRascunho,
-      referenciaMensagemId,
-      conversa: {
-        laudoId: conversa.laudoId,
-        permiteEdicao: conversa.permiteEdicao,
-        laudoCard: conversa.laudoCard,
-      },
-      mensagensMesa: snapshotMesa,
-      sessionAccessToken: session.accessToken,
-      sessionUserId: session.bootstrap.usuario.id,
-      statusApi,
-      carregarListaLaudos: async () => {
-        await carregarListaLaudos(session.accessToken, true);
-      },
-      erroSugereModoOffline,
-      textoFallbackAnexo,
-      criarItemFilaOffline,
-      atualizarResumoLaudoAtual: (resposta) => {
-        setConversa((estadoAtual) => atualizarResumoLaudoAtual(estadoAtual, resposta));
-      },
-      onSetMensagemMesa: setMensagemMesa,
-      onSetAnexoMesaRascunho: setAnexoMesaRascunho,
-      onSetErroMesa: setErroMesa,
-      onSetEnviandoMesa: setEnviandoMesa,
-      onSetMensagensMesa: setMensagensMesa,
-      onSetMensagensMesaSnapshot: setMensagensMesa,
-      onQueueOfflineItem: (itemFila) => {
-        setFilaOffline((estadoAtual) => [...estadoAtual, itemFila]);
-      },
-      onSetStatusOffline: () => {
-        setStatusApi("offline");
-      },
-      onRestoreDraft: (texto, anexo) => {
-        setMensagemMesa(texto);
-        setAnexoMesaRascunho(anexo);
-      },
-      onLimparReferenciaMesaAtiva: limparReferenciaMesaAtiva,
-      onSetLaudoMesaCarregado: setLaudoMesaCarregado,
-    });
-  }
-
-  function renderSettingsSheetBody() {
-    return renderSettingsSheetBodyContent({
-      apiEnvironmentLabel,
-      appBuildLabel: appRuntime.buildLabel,
-      appName: session?.bootstrap.app.nome || "Tariel Inspetor",
-      appPlatformLabel: `${Platform.OS} ${String(Platform.Version || "").trim() || "n/d"}`,
-      artigoAjudaExpandidoId,
-      artigosAjudaFiltrados,
-      bugAttachmentDraft,
-      bugDescriptionDraft,
-      bugEmailDraft,
-      buscaAjuda,
-      cartaoAtual,
-      confirmarSenhaDraft,
-      email,
-      emailAtualConta,
-      feedbackDraft,
-      formatarHorarioAtividade,
-      formatarStatusReautenticacao,
-      integracaoSincronizandoId,
-      integracoesConectadasTotal,
-      integracoesDisponiveisTotal,
-      integracoesExternas,
-      modeloIa,
-      nomeCompletoDraft,
-      nomeExibicaoDraft,
-      nomeAutomaticoConversas,
-      novaSenhaDraft,
-      novoEmailDraft,
-      onAlternarArtigoAjuda: handleAlternarArtigoAjuda,
-      onBugDescriptionDraftChange: setBugDescriptionDraft,
-      onBugEmailDraftChange: setBugEmailDraft,
-      onBuscaAjudaChange: setBuscaAjuda,
-      onConfirmarSenhaDraftChange: setConfirmarSenhaDraft,
-      onFeedbackDraftChange: setFeedbackDraft,
-      onNomeCompletoDraftChange: setNomeCompletoDraft,
-      onNomeExibicaoDraftChange: setNomeExibicaoDraft,
-      onNovaSenhaDraftChange: setNovaSenhaDraft,
-      onNovoEmailDraftChange: setNovoEmailDraft,
-      onRemoveScreenshot: handleRemoverScreenshotBug,
-      onSelectScreenshot: () => {
-        void handleSelecionarScreenshotBug();
-      },
-      onSenhaAtualDraftChange: setSenhaAtualDraft,
-      onSyncNow: (item) => {
-        void handleSincronizarIntegracaoExterna(item);
-      },
-      onTelefoneDraftChange: setTelefoneDraft,
-      onToggleIntegracao: handleAlternarIntegracaoExterna,
-      onToggleNomeAutomaticoConversas: setNomeAutomaticoConversas,
-      onToggleUploadArquivos: handleToggleUploadArquivos,
-      onSelecionarModeloIa: handleSelecionarModeloIa,
-      perfilFotoHint,
-      perfilFotoUri,
-      planoAtual,
-      provedoresConectados,
-      reauthReason,
-      reautenticacaoExpiraEm,
-      resumoAtualizacaoApp,
-      resumoFilaSuporteLocal,
-      resumoSuporteApp,
-      retencaoDados,
-      salvarHistoricoConversas,
-      senhaAtualDraft,
-      sessaoAtual,
-      settingsSheet,
-      statusApi,
-      statusAtualizacaoApp,
-      supportChannelLabel: canalSuporteLabel,
-      telefoneDraft,
-      ultimaVerificacaoAtualizacaoLabel,
-      ultimoTicketSuporte,
-      uploadArquivosAtivo,
-      workspaceLabel: workspaceResumoConfiguracao,
-    });
-  }
-
   const {
     accentColor,
     appGradientColors,
     artigosAjudaFiltrados,
-    buscaConfiguracoesNormalizada,
     chatKeyboardVerticalOffset,
     contaEmailLabel,
     contaTelefoneLabel,
     conversaAtiva,
     conversaVazia,
-    conversasFixadasTotal,
     conversasOcultasTotal,
     conversasVisiveisTotal,
     corDestaqueResumoConfiguracao,
@@ -6395,7 +2917,6 @@ function handleAbrirHistorico() {
     filaOfflineFiltrada,
     filaOfflineOrdenada,
     filtrosFilaOffline,
-    filtrosHistoricoComContagem,
     fontScale,
     headerSafeTopInset,
     historicoAgrupadoFinal,
@@ -6444,7 +2965,6 @@ function handleAbrirHistorico() {
     resumoFilaOffline,
     resumoFilaOfflineFiltrada,
     resumoFilaSuporteLocal,
-    resumoHistoricoDrawer,
     resumoMetodosConta,
     resumoPermissoes,
     resumoPermissoesCriticas,
@@ -6478,86 +2998,100 @@ function handleAbrirHistorico() {
     notificacoesNaoLidas,
     placeholderComposer,
     placeholderMesa,
-  } = buildInspectorBaseDerivedState({
-    anexoMesaRascunho,
-    anexoRascunho,
-    arquivosPermitidos,
-    abaAtiva,
-    biometriaPermitida,
-    buscaAjuda,
-    buscaConfiguracoes,
-    buscaHistorico,
-    buildHistorySections,
-    cameraPermitida,
-    carregandoConversa,
-    carregandoMesa,
-    codigosRecuperacao,
-    colorScheme,
-    conversa,
-    corDestaque,
-    contaTelefone,
-    densidadeInterface,
-    email,
-    emailAtualConta,
-    enviandoMensagem,
-    enviandoMesa,
-    eventosSeguranca,
-    filaOffline,
-    filaSuporteLocal,
-    filtroConfiguracoes,
-    filtroEventosSeguranca,
-    filtroFilaOffline,
-    filtroHistorico,
-    fixarConversas,
-    formatarHorarioAtividade,
-    formatarTipoTemplateLaudo,
-    historicoOcultoIds,
-    idiomaResposta,
-    integracoesExternas,
-    keyboardHeight,
-    laudosDisponiveis,
-    lockTimeout,
-    memoriaIa,
-    mensagem,
-    mensagemMesa,
-    mensagensMesa,
-    microfonePermitido,
-    modeloIa,
-    mostrarConteudoNotificacao,
-    mostrarSomenteNovaMensagem,
-    notificacoes,
-    notificacoesPermitidas,
-    obterEscalaDensidade,
-    obterEscalaFonte,
-    ocultarConteudoBloqueado,
-    pendenciaFilaProntaParaReenvio,
-    perfilExibicao,
-    perfilNome,
-    planoAtual,
-    podeEditarConversaNoComposer,
-    preparandoAnexo,
-    previewChatLiberadoParaConversa,
-    prioridadePendenciaOffline,
-    provedoresConectados,
-    reautenticacaoStatus,
-    recoveryCodesEnabled,
-    salvarHistoricoConversas,
-    session,
-    settingsDrawerPage,
-    settingsDrawerSection,
-    sessoesAtivas,
-    somNotificacao,
-    statusApi,
-    statusAtualizacaoApp,
-    sincronizacaoDispositivos,
-    tamanhoFonte,
-    temaApp,
-    twoFactorEnabled,
-    twoFactorMethod,
-    ultimaVerificacaoAtualizacao,
-    uploadArquivosAtivo,
-  });
-  const canalSuporteUrl = construirUrlCanalSuporte(session?.bootstrap.app.suporte_whatsapp || "");
+  } = buildInspectorBaseDerivedState(
+    buildInspectorBaseDerivedStateInput({
+      shell: {
+        abaAtiva,
+        buscaAjuda,
+        buscaConfiguracoes,
+        colorScheme,
+        filtroConfiguracoes,
+        keyboardHeight,
+        session,
+        statusApi,
+        statusAtualizacaoApp,
+        ultimaVerificacaoAtualizacao,
+      },
+      chat: {
+        anexoMesaRascunho,
+        anexoRascunho,
+        carregandoConversa,
+        carregandoMesa,
+        conversa,
+        enviandoMensagem,
+        enviandoMesa,
+        mensagem,
+        mensagemMesa,
+        mensagensMesa,
+        preparandoAnexo,
+      },
+      historyAndOffline: {
+        buscaHistorico,
+        eventosSeguranca,
+        filaOffline,
+        filaSuporteLocal,
+        filtroEventosSeguranca,
+        filtroFilaOffline,
+        filtroHistorico,
+        fixarConversas,
+        historicoOcultoIds,
+        laudosDisponiveis,
+        notificacoes,
+        pendenciaFilaProntaParaReenvio,
+        prioridadePendenciaOffline,
+      },
+      settingsAndAccount: {
+        arquivosPermitidos,
+        biometriaPermitida,
+        cameraPermitida,
+        codigosRecuperacao,
+        corDestaque,
+        contaTelefone,
+        densidadeInterface,
+        email,
+        emailAtualConta,
+        idiomaResposta,
+        integracoesExternas,
+        lockTimeout,
+        memoriaIa,
+        microfonePermitido,
+        modeloIa,
+        mostrarConteudoNotificacao,
+        mostrarSomenteNovaMensagem,
+        notificacoesPermitidas,
+        ocultarConteudoBloqueado,
+        perfilExibicao,
+        perfilNome,
+        planoAtual,
+        provedoresConectados,
+        reautenticacaoStatus,
+        recoveryCodesEnabled,
+        salvarHistoricoConversas,
+        settingsDrawerPage,
+        settingsDrawerSection,
+        sessoesAtivas,
+        somNotificacao,
+        sincronizacaoDispositivos,
+        tamanhoFonte,
+        temaApp,
+        twoFactorEnabled,
+        twoFactorMethod,
+        uploadArquivosAtivo,
+      },
+      helpers: {
+        buildHistorySections,
+        formatarHorarioAtividade,
+        formatarTipoTemplateLaudo,
+        obterEscalaDensidade,
+        obterEscalaFonte,
+        podeEditarConversaNoComposer,
+        previewChatLiberadoParaConversa,
+      },
+    }),
+  );
+  const canalSuporteUrl = construirUrlCanalSuporte(
+    session?.bootstrap.app.suporte_whatsapp || "",
+  );
   const canalSuporteLabel = canalSuporteUrl ? "WhatsApp" : "Canal indisponível";
   const apiEnvironmentLabel = (() => {
     const raw = session?.bootstrap.app.api_base_url || API_BASE_URL;
@@ -6569,10 +3103,14 @@ function handleAbrirHistorico() {
     }
   })();
   const preferredVoice =
-    voiceRuntimeState.voices.find((voice) => voice.identifier === preferredVoiceId) ||
+    voiceRuntimeState.voices.find(
+      (voice) => voice.identifier === preferredVoiceId,
+    ) ||
     voiceRuntimeState.voices[0] ||
     null;
-  const preferredVoiceLabel = preferredVoice?.name || (voiceRuntimeState.ttsSupported ? "Padrão do sistema" : "Indisponível");
+  const preferredVoiceLabel =
+    preferredVoice?.name ||
+    (voiceRuntimeState.ttsSupported ? "Padrão do sistema" : "Indisponível");
   const resumoCentralAtividade = !notificacoes.length
     ? "Sem eventos"
     : notificacoesNaoLidas
@@ -6591,327 +3129,732 @@ function handleAbrirHistorico() {
     sincronizandoMesa ||
     carregandoLaudos ||
     sincronizandoFilaOffline;
-  const settingsDrawerPanelProps = buildInspectorSettingsDrawerPanelProps({
-    appBuildChannel: APP_BUILD_CHANNEL,
-    appVersionLabel: `${appRuntime.versionLabel} • ${appRuntime.buildLabel}`,
-    aprendizadoIa,
-    animacoesAtivas,
-    arquivosPermitidos,
-    artigosAjudaFiltrados,
-    autoUploadAttachments,
-    backupAutomatico,
-    biometriaPermitida,
+  const {
+    handleAbrirCanalSuporte,
+    handleAlternarIntegracaoExterna,
+    handleApagarHistoricoConfiguracoes,
+    handleDetalhesSegurancaArquivos,
+    handleExportarDiagnosticoApp,
+    handleLimparCache,
+    handleLimparFilaSuporteLocal,
+    handleRemoverScreenshotBug,
+    handleSelecionarScreenshotBug,
+    handleSincronizarIntegracaoExterna,
+    handleSolicitarLogout,
+    handleVerificarAtualizacoes,
+  } = useSettingsOperationsActions<MobileReadCache>({
+    appRuntime,
+    cacheLeituraVazio: CACHE_LEITURA_VAZIO,
+    canalSuporteUrl,
+    emailAtualConta,
+    eventosSeguranca,
+    executarComReautenticacao,
+    fallbackEmail: email,
+    fecharConfiguracoes,
+    filaOfflineTotal: filaOffline.length,
+    filaSuporteLocal,
+    formatarHorarioAtividade,
+    handleLogout,
+    integracaoSincronizandoId,
+    integracoesExternas,
+    limpandoCache,
+    microfonePermitido,
     cameraPermitida,
+    arquivosPermitidos,
+    notificacoesPermitidas,
+    abrirConfirmacaoConfiguracao,
+    abrirSheetConfiguracao,
+    perfilExibicao,
+    perfilNome,
+    registrarEventoSegurancaLocal,
+    resumoAtualizacaoApp: statusAtualizacaoApp,
+    sessaoAtualTitulo:
+      sessoesAtivas.find((item) => item.current)?.title || "Dispositivo atual",
+    setBugAttachmentDraft,
+    setCacheLeitura,
+    setFilaSuporteLocal,
+    setIntegracaoSincronizandoId,
+    setIntegracoesExternas,
+    setLimpandoCache,
+    setSettingsSheetNotice,
+    setStatusApi,
+    setStatusAtualizacaoApp,
+    setUltimaLimpezaCacheEm,
+    setUltimaVerificacaoAtualizacao,
+    setVerificandoAtualizacoes,
+    compartilharTextoExportado,
+    statusApi,
+    statusAtualizacaoApp,
+    tentarAbrirUrlExterna,
+    ultimaVerificacaoAtualizacao,
+    verificandoAtualizacoes,
+    showAlert: Alert.alert,
+    onNotificarSistema: (params) => {
+      registrarNotificacoes([criarNotificacaoSistema(params)]);
+    },
+    montarScreenshotAnexo: (asset) =>
+      montarAnexoImagem(
+        asset,
+        "Screenshot anexada ao relato de bug para facilitar a reprodução.",
+      ),
+  });
+  const executarExclusaoContaLocal = buildAccountDeletionAction({
+    fecharConfiguracoes,
+    handleLogout,
+    onResetSettingsPresentationAfterAccountDeletion:
+      resetSettingsPresentationAfterAccountDeletion,
+    onSetAppLoading: setCarregando,
+    onSetAprendizadoIa: setAprendizadoIa,
+    onSetAnimacoesAtivas: setAnimacoesAtivas,
+    onSetArquivosPermitidos: setArquivosPermitidos,
+    onSetAutoUploadAttachments: setAutoUploadAttachments,
+    onSetBackupAutomatico: setBackupAutomatico,
+    onSetBiometriaPermitida: setBiometriaPermitida,
+    onSetCameraPermitida: setCameraPermitida,
+    onSetChatCategoryEnabled: setChatCategoryEnabled,
+    onSetCompartilharMelhoriaIa: setCompartilharMelhoriaIa,
+    onSetCorDestaque: setCorDestaque,
+    onSetCriticalAlertsEnabled: setCriticalAlertsEnabled,
+    onSetDensidadeInterface: setDensidadeInterface,
+    onSetDeviceBiometricsEnabled: setDeviceBiometricsEnabled,
+    onSetEconomiaDados: setEconomiaDados,
+    onSetEmail: setEmail,
+    onSetEmailAtualConta: setEmailAtualConta,
+    onSetEmailsAtivos: setEmailsAtivos,
+    onSetEntradaPorVoz: setEntradaPorVoz,
+    onSetEstiloResposta: setEstiloResposta,
+    onSetFixarConversas: setFixarConversas,
+    onSetHideInMultitask: setHideInMultitask,
+    onSetHistoricoOcultoIds: setHistoricoOcultoIds,
+    onSetIdiomaApp: setIdiomaApp,
+    onSetIdiomaResposta: setIdiomaResposta,
+    onSetLaudosFixadosIds: setLaudosFixadosIds,
+    onSetLockTimeout: setLockTimeout,
+    onSetMediaCompression: setMediaCompression,
+    onSetMemoriaIa: setMemoriaIa,
+    onSetMesaCategoryEnabled: setMesaCategoryEnabled,
+    onSetMicrofonePermitido: setMicrofonePermitido,
+    onSetModeloIa: setModeloIa,
+    onSetMostrarConteudoNotificacao: setMostrarConteudoNotificacao,
+    onSetMostrarSomenteNovaMensagem: setMostrarSomenteNovaMensagem,
+    onSetNomeAutomaticoConversas: setNomeAutomaticoConversas,
+    onSetNotificaPush: setNotificaPush,
+    onSetNotificaRespostas: setNotificaRespostas,
+    onSetNotificacoesPermitidas: setNotificacoesPermitidas,
+    onSetOcultarConteudoBloqueado: setOcultarConteudoBloqueado,
+    onSetPerfilExibicao: setPerfilExibicao,
+    onSetPerfilFotoHint: setPerfilFotoHint,
+    onSetPerfilFotoUri: setPerfilFotoUri,
+    onSetPerfilNome: setPerfilNome,
+    onSetPreferredVoiceId: setPreferredVoiceId,
+    onSetRegiaoApp: setRegiaoApp,
+    onSetRequireAuthOnOpen: setRequireAuthOnOpen,
+    onSetRespostaPorVoz: setRespostaPorVoz,
+    onSetRetencaoDados: setRetencaoDados,
+    onSetSalvarHistoricoConversas: setSalvarHistoricoConversas,
+    onSetSincronizacaoDispositivos: setSincronizacaoDispositivos,
+    onSetSomNotificacao: setSomNotificacao,
+    onSetSpeechRate: setSpeechRate,
+    onSetSystemCategoryEnabled: setSystemCategoryEnabled,
+    onSetTamanhoFonte: setTamanhoFonte,
+    onSetTemperaturaIa: setTemperaturaIa,
+    onSetTemaApp: setTemaApp,
+    onSetTomConversa: setTomConversa,
+    onSetUploadArquivosAtivo: setUploadArquivosAtivo,
+    onSetUsoBateria: setUsoBateria,
+    onSetVibracaoAtiva: setVibracaoAtiva,
+    onSetVoiceLanguage: setVoiceLanguage,
+    onShowAlert: Alert.alert,
+  });
+  const handleConfirmarSettingsSheet = buildSettingsSheetConfirmAction({
+    bugAttachmentDraft,
+    bugDescriptionDraft,
+    bugEmailDraft,
     cartaoAtual,
-    codigo2FA,
-    codigosRecuperacao,
-    criticalAlertsEnabled,
+    confirmarSenhaDraft,
+    compartilharTextoExportado,
+    contaTelefone,
+    email,
+    emailAtualConta,
+    enviarFotoPerfilNoBackend,
+    enviarRelatoSuporteNoBackend,
+    feedbackDraft,
+    handleConfirmarSettingsSheetReauth,
+    nomeCompletoDraft,
+    nomeExibicaoDraft,
+    notificarConfiguracaoConcluida,
+    novaSenhaDraft,
+    novoEmailDraft,
+    onRegistrarEventoSegurancaLocal: registrarEventoSegurancaLocal,
+    onSetBugAttachmentDraft: setBugAttachmentDraft,
+    onSetBugDescriptionDraft: setBugDescriptionDraft,
+    onSetBugEmailDraft: setBugEmailDraft,
+    onSetCartaoAtual: setCartaoAtual,
+    onSetConfirmarSenhaDraft: setConfirmarSenhaDraft,
+    onSetEmailAtualConta: setEmailAtualConta,
+    onSetFeedbackDraft: setFeedbackDraft,
+    onSetFilaSuporteLocal: setFilaSuporteLocal,
+    onSetNomeCompletoDraft: setNomeCompletoDraft,
+    onSetNomeExibicaoDraft: setNomeExibicaoDraft,
+    onSetNovaSenhaDraft: setNovaSenhaDraft,
+    onSetPerfilExibicao: setPerfilExibicao,
+    onSetPerfilFotoHint: setPerfilFotoHint,
+    onSetPerfilFotoUri: setPerfilFotoUri,
+    onSetPerfilNome: setPerfilNome,
+    onSetPlanoAtual: setPlanoAtual,
+    onSetProvedoresConectados: setProvedoresConectados,
+    onSetSenhaAtualDraft: setSenhaAtualDraft,
+    onSetSession: setSession,
+    onSetSettingsSheetLoading: setSettingsSheetLoading,
+    onSetSettingsSheetNotice: setSettingsSheetNotice,
+    onSetStatusApi: setStatusApi,
+    onSetStatusAtualizacaoApp: setStatusAtualizacaoApp,
+    onSetTelefoneDraft: setTelefoneDraft,
+    onSetUltimaVerificacaoAtualizacao: setUltimaVerificacaoAtualizacao,
+    onUpdateAccountPhone: (value) =>
+      settingsActions.updateAccount({ phone: value }),
+    onAtualizarPerfilContaNoBackend: atualizarPerfilContaNoBackend,
+    onAtualizarSenhaContaNoBackend: atualizarSenhaContaNoBackend,
+    onPingApi: pingApi,
+    perfilExibicao,
+    perfilFotoHint,
+    perfilFotoUri,
+    perfilNome,
+    planoAtual,
+    senhaAtualDraft,
+    session,
+    sessaoAtual,
+    settingsSheet,
+    statusApi,
+    telefoneDraft,
+    workspaceResumoConfiguracao,
+  });
+  const {
+    handleConfirmarAcaoCritica,
+    handleExportarDados,
+    handleSelecionarModeloIa,
+  } = buildSettingsConfirmAndExportActions({
+    abrirFluxoReautenticacao,
+    abrirSheetConfiguracao,
     compartilharMelhoriaIa,
-    configuracoesDrawerX,
-    contaEmailLabel,
-    contaTelefoneLabel,
-    conversasOcultasTotal,
-    conversasVisiveisTotal,
+    compartilharTextoExportado,
+    confirmSheet,
+    confirmTextDraft,
     corDestaque,
-    corDestaqueResumoConfiguracao,
     densidadeInterface,
-    deviceBiometricsEnabled,
     economiaDados,
     email,
     emailAtualConta,
     emailsAtivos,
-    entradaPorVoz,
     estiloResposta,
-    eventosSegurancaFiltrados,
-    existeProvedorDisponivel,
-    fecharConfiguracoes,
-    filaSuporteLocal,
-    filtroEventosSeguranca,
-    fixarConversas,
-    handleAbrirAjustesDoSistema,
-    handleAbrirCentralAtividade,
-    handleAbrirCanalSuporte,
-    handleAbrirPaginaConfiguracoes,
-    handleAbrirSobreApp,
-    handleAbrirSecaoConfiguracoes,
-    handleAbrirAjudaDitado,
-    handleAlterarEmail,
-    handleEditarPerfil,
-    handleAlterarSenha,
-    handleApagarHistoricoConfiguracoes,
-    handleCentralAjuda,
-    handleCompartilharCodigosRecuperacao,
-    handleConectarProximoProvedorDisponivel,
-    handleConfirmarCodigo2FA,
-    handleDetalhesSegurancaArquivos,
-    handleEncerrarOutrasSessoes,
-    handleEncerrarSessao,
-    handleEncerrarSessaoAtual,
-    handleEncerrarSessoesSuspeitas,
-    handleEnviarFeedback,
-    handleExcluirConta,
+    eventosSeguranca,
+    executarExclusaoContaLocal,
+    fecharConfirmacaoConfiguracao,
+    fecharSheetConfiguracao,
+    integracoesExternas,
+    idiomaResposta,
+    laudosDisponiveis,
+    limparCachePorPrivacidade,
+    memoriaIa,
+    modeloIa,
+    mostrarConteudoNotificacao,
+    mostrarSomenteNovaMensagem,
+    notificacoes,
+    notificaPush,
+    notificaRespostas,
+    ocultarConteudoBloqueado,
+    onCreateNewConversation: criarConversaNova,
+    onIsValidAiModel: (value) => ehOpcaoValida(value, AI_MODEL_OPTIONS),
+    onRegistrarEventoSegurancaLocal: registrarEventoSegurancaLocal,
+    onSetAnexoMesaRascunho: setAnexoMesaRascunho,
+    onSetAnexoRascunho: setAnexoRascunho,
+    onSetBuscaHistorico: setBuscaHistorico,
+    onSetCacheLeitura: setCacheLeitura,
+    onSetConversa: setConversa,
+    onSetLaudosDisponiveis: setLaudosDisponiveis,
+    onSetMensagem: setMensagem,
+    onSetMensagemMesa: setMensagemMesa,
+    onSetMensagensMesa: setMensagensMesa,
+    onSetModeloIa: setModeloIa,
+    onSetNotificacoes: setNotificacoes,
+    onSetPreviewAnexoImagem: setPreviewAnexoImagem,
+    perfilExibicao,
+    perfilNome,
+    planoAtual,
+    reautenticacaoAindaValida,
+    reautenticacaoExpiraEm,
+    retencaoDados,
+    salvarHistoricoConversas,
+    serializarPayloadExportacao,
+    tamanhoFonte,
+    temaApp,
+    usoBateria,
+    vibracaoAtiva,
+  });
+  const {
     handleExportarAntesDeExcluirConta,
-    handleExportarDados,
-    handleExportarDiagnosticoApp,
-    handleGerarCodigosRecuperacao,
-    handleGerenciarConversasIndividuais,
-    handleGerenciarPagamento,
-    handleGerenciarPermissao,
-    handleGerenciarPlano,
-    handleHistoricoPagamentos,
-    handleIntegracoesExternas,
-    handleLicencas,
-    handleLimparCache,
-    handleLimparFilaSuporteLocal,
-    handleLimparTodasConversasConfig,
-    handleLogout,
-    handleSolicitarLogout,
-    handleAbrirModeloIa,
-    handleMudarMetodo2FA,
-    handlePermissoes,
-    handlePluginsIa,
-    handlePoliticaPrivacidade,
-    handleReautenticacaoSensivel,
-    handleRefresh,
     handleReportarAtividadeSuspeita,
-    handleReportarProblema,
     handleRevisarPermissoesCriticas,
-    handleRevisarSessao,
-    handleTermosUso,
-    handleToggle2FA,
     handleToggleBackupAutomatico,
-    handleToggleBiometriaNoDispositivo,
-    handleToggleSpeechEnabled,
     handleToggleEntradaPorVoz,
     handleToggleMostrarConteudoNotificacao,
     handleToggleMostrarSomenteNovaMensagem,
     handleToggleNotificaPush,
     handleToggleOcultarConteudoBloqueado,
-    handleToggleProviderConnection,
     handleToggleRespostaPorVoz,
     handleToggleSincronizacaoDispositivos,
+    handleToggleSpeechEnabled,
     handleToggleUploadArquivos,
     handleToggleVibracao,
-    handleUploadFotoPerfil,
-    handleVerificarAtualizacoes,
-    handleVoltarResumoConfiguracoes,
-    hideInMultitask,
-    idiomaApp,
-    idiomaResposta,
-    iniciaisPerfilConfiguracao,
+  } = useSettingsToggleActions<MobileReadCache>({
+    arquivosPermitidos,
+    cacheLeituraVazio: CACHE_LEITURA_VAZIO,
+    cameraPermitida,
+    executarComReautenticacao,
+    filaOffline,
+    microfonePermitido,
+    notificacoesPermitidas,
+    sessionAccessToken: session?.accessToken || null,
+    statusApi,
+    abrirConfirmacaoConfiguracao,
+    handleExportarDados,
+    onIsOfflineItemReadyForRetry: pendenciaFilaProntaParaReenvio,
+    onOpenSystemSettings: () => {
+      void Linking.openSettings();
+    },
+    onSaveReadCacheLocally: salvarCacheLeituraLocal,
+    onSetSettingsSheetNotice: setSettingsSheetNotice,
+    onSyncOfflineQueue: sincronizarFilaOffline,
+    registrarEventoSegurancaLocal,
+    setAnexoMesaRascunho,
+    setAnexoRascunho,
+    setArquivosPermitidos,
+    setBackupAutomatico,
+    setEntradaPorVoz,
+    setMicrofonePermitido,
+    setMostrarConteudoNotificacao,
+    setMostrarSomenteNovaMensagem,
+    setNotificaPush,
+    setNotificacoesPermitidas,
+    setOcultarConteudoBloqueado,
+    setRespostaPorVoz,
+    setSpeechEnabled,
+    setSincronizacaoDispositivos,
+    setUploadArquivosAtivo,
+    setVibracaoAtiva,
+    voiceInputRuntimeSupported: voiceRuntimeState.sttSupported,
+    voiceInputUnavailableMessage:
+      buildVoiceInputUnavailableMessage(voiceLanguage),
+    showAlert: Alert.alert,
+  });
+  const renderSettingsSheetBody = buildSettingsSheetBodyRenderer({
+    apiEnvironmentLabel,
+    appBuildLabel: appRuntime.buildLabel,
+    appName: session?.bootstrap.app.nome || "Tariel Inspetor",
+    artigoAjudaExpandidoId,
+    artigosAjudaFiltrados,
+    bugAttachmentDraft,
+    bugDescriptionDraft,
+    bugEmailDraft,
+    buscaAjuda,
+    cartaoAtual,
+    confirmarSenhaDraft,
+    email,
+    emailAtualConta,
+    feedbackDraft,
+    formatarHorarioAtividade,
+    formatarStatusReautenticacao,
+    handleAlternarArtigoAjuda,
+    handleAlternarIntegracaoExterna,
+    handleRemoverScreenshotBug,
+    handleSelecionarModeloIa,
+    handleSelecionarScreenshotBug,
+    handleSincronizarIntegracaoExterna,
+    handleToggleUploadArquivos,
+    integracaoSincronizandoId,
     integracoesConectadasTotal,
     integracoesDisponiveisTotal,
-    lockTimeout,
-    memoriaIa,
-    microfonePermitido,
+    integracoesExternas,
     modeloIa,
-    mostrarConteudoNotificacao,
-    mostrarGrupoContaAcesso,
-    mostrarGrupoExperiencia,
-    mostrarGrupoSeguranca,
-    mostrarGrupoSistema,
-    mostrarSomenteNovaMensagem,
     nomeAutomaticoConversas,
-    nomeUsuarioExibicao,
-    notificaPush,
-    notificaRespostas,
-    notificacoesPermitidas,
-    analyticsOptIn,
-    chatCategoryEnabled,
-    limpandoCache,
-    ocultarConteudoBloqueado,
-    onAbrirPermissaoNotificacoes: handleAbrirPermissaoNotificacoes,
-    onAbrirFilaOffline: () => {
-      setFilaOfflineAberta(true);
-    },
-    outrasSessoesAtivas,
-    perfilExibicao,
-    perfilExibicaoLabel,
+    nomeCompletoDraft,
+    nomeExibicaoDraft,
+    novaSenhaDraft,
+    novoEmailDraft,
+    onSetBugDescriptionDraft: setBugDescriptionDraft,
+    onSetBugEmailDraft: setBugEmailDraft,
+    onSetBuscaAjuda: setBuscaAjuda,
+    onSetConfirmarSenhaDraft: setConfirmarSenhaDraft,
+    onSetFeedbackDraft: setFeedbackDraft,
+    onSetNomeAutomaticoConversas: setNomeAutomaticoConversas,
+    onSetNomeCompletoDraft: setNomeCompletoDraft,
+    onSetNomeExibicaoDraft: setNomeExibicaoDraft,
+    onSetNovaSenhaDraft: setNovaSenhaDraft,
+    onSetNovoEmailDraft: setNovoEmailDraft,
+    onSetSenhaAtualDraft: setSenhaAtualDraft,
+    onSetTelefoneDraft: setTelefoneDraft,
     perfilFotoHint,
     perfilFotoUri,
-    perfilNome,
-    perfilNomeCompleto,
-    permissoesNegadasTotal,
     planoAtual,
-    planoResumoConfiguracao,
-    previewPrivacidadeNotificacao,
     provedoresConectados,
-    provedoresConectadosTotal,
-    provedorPrimario,
-    reautenticacaoStatus,
-    recoveryCodesEnabled,
-    regiaoApp,
-    requireAuthOnOpen,
-    preferredVoiceLabel,
-    resumoCache,
-    resumoCentralAtividade,
-    respostaPorVoz,
-    crashReportsOptIn,
-    resumo2FAFootnote,
-    resumo2FAStatus,
-    resumoAlertaMetodosConta,
-    resumoBlindagemSessoes,
-    resumoContaAcesso,
-    resumoCodigosRecuperacao,
-    resumoDadosConversas,
-    resumoExcluirConta,
+    reauthReason,
+    reautenticacaoExpiraEm,
+    resumoAtualizacaoApp,
     resumoFilaSuporteLocal,
-    resumoMetodosConta,
-    resumoPermissoes,
-    resumoPermissoesCriticas,
-    resumoPrivacidadeNotificacoes,
-    resumoSessaoAtual,
     resumoSuporteApp,
     retencaoDados,
     salvarHistoricoConversas,
-    setAnimacoesAtivas,
-    setAprendizadoIa,
-    setAnalyticsOptIn,
-    setCodigo2FA,
-    setCompartilharMelhoriaIa,
-    setCrashReportsOptIn,
-    setCorDestaque,
-    setDensidadeInterface,
-    setEconomiaDados,
-    setEmailsAtivos,
-    setEstiloResposta,
-    setFiltroEventosSeguranca,
-    setFixarConversas,
-    setHideInMultitask,
-    setIdiomaApp,
-    setIdiomaResposta,
-    setLockTimeout,
-    setMemoriaIa,
-    setModeloIa,
-    setNomeAutomaticoConversas,
-    setNotificaRespostas,
-    setPerfilExibicao,
-    setPerfilNome,
-    setRecoveryCodesEnabled,
-    setRegiaoApp,
-    setRequireAuthOnOpen,
-    setRetencaoDados,
-    setSalvarHistoricoConversas,
-    setSomNotificacao,
-    setSpeechEnabled,
-    setSpeechRate,
-    setTamanhoFonte,
-    setTemperaturaIa,
-    setTemaApp,
-    setTomConversa,
-    setUsoBateria,
-    setVoiceLanguage,
-    setChatCategoryEnabled,
-    setMesaCategoryEnabled,
-    setSystemCategoryEnabled,
-    setCriticalAlertsEnabled,
-    setAutoUploadAttachments,
-    setMediaCompression,
-    setWifiOnlySync,
-    settingsDrawerInOverview,
-    settingsDrawerMatchesPage,
-    settingsDrawerMatchesSection,
-    settingsDrawerPage,
-    settingsDrawerPageSections,
-    settingsDrawerPanResponder,
-    settingsDrawerSectionMenuAtiva,
-    settingsDrawerSubtitle,
-    settingsDrawerTitle,
-    settingsPrintDarkMode,
-    sessoesAtivas,
-    sessoesSuspeitasTotal,
-    sincronizacaoDispositivos,
-    somNotificacao,
-    speechEnabled,
-    speechRate,
-    sttSupported: voiceRuntimeState.sttSupported,
-    systemCategoryEnabled,
-    tamanhoFonte,
-    temperaturaIa,
-    temaApp,
-    temaResumoConfiguracao,
-    temPrioridadesConfiguracao,
-    ticketsBugTotal,
-    ticketsFeedbackTotal,
-    tomConversa,
-    totalSecoesConfiguracaoVisiveis,
-    twoFactorEnabled,
-    twoFactorMethod,
-    ultimaVerificacaoAtualizacaoLabel,
-    ultimoEventoProvedor,
-    ultimoEventoSessao,
-    ultimoTicketSuporteResumo,
-    uploadArquivosAtivo,
-    usoBateria,
-    vibracaoAtiva,
-    verificandoAtualizacoes,
-    voiceLanguage,
-    supportChannelLabel: canalSuporteLabel,
-    ttsSupported: voiceRuntimeState.ttsSupported,
-    wifiOnlySync,
-    workspaceResumoConfiguracao,
-    mediaCompression,
-    mesaCategoryEnabled,
-    onCyclePreferredVoice,
-    sincronizandoDados,
-  });
-  const notificacoesMesaLaudoAtual = notificacoes.filter(
-    (item) => item.unread && item.targetThread === "mesa" && item.laudoId === laudoSelecionadoId,
-  ).length;
-  const ultimaNotificacao = notificacoes[0] || null;
-  const algumPainelLateralAberto = historicoAberto || configuracoesAberta;
-  const sessionModalsStackProps = buildInspectorSessionModalsStackProps({
-    anexosAberto,
-    bloqueioAppAtivo,
-    centralAtividadeAberta,
-    confirmSheet,
-    confirmTextDraft,
-    detalheStatusPendenciaOffline,
-    deviceBiometricsEnabled,
-    fecharConfirmacaoConfiguracao,
-    fecharSheetConfiguracao,
-    filaOfflineAberta,
-    filaOfflineFiltrada,
-    filaOfflineOrdenada,
-    filtroFilaOffline,
-    filtrosFilaOffline,
-    formatarHorarioAtividade,
-    handleAbrirNotificacao,
-    handleConfirmarAcaoCritica,
-    handleConfirmarSettingsSheet,
-    handleDesbloquearAplicativo,
-    handleEscolherAnexo,
-    handleLogout,
-    handleRetomarItemFilaOffline,
-    iconePendenciaOffline,
-    legendaPendenciaOffline,
-    monitorandoAtividade,
-    notificacoes,
-    pendenciaFilaProntaParaReenvio,
-    podeSincronizarFilaOffline,
-    previewAnexoImagem,
-    removerItemFilaOffline,
-    renderSettingsSheetBody,
-    resumoFilaOfflineFiltrada,
-    resumoPendenciaOffline,
-    rotuloStatusPendenciaOffline,
-    session,
-    setAnexosAberto,
-    setCentralAtividadeAberta,
-    setConfirmTextDraft,
-    setFilaOfflineAberta,
-    setFiltroFilaOffline,
-    setPreviewAnexoImagem,
+    senhaAtualDraft,
+    sessaoAtual,
     settingsSheet,
-    settingsSheetLoading,
-    settingsSheetNotice,
-    sincronizacaoDispositivos,
-    sincronizarFilaOffline,
-    sincronizarItemFilaOffline,
-    sincronizandoFilaOffline,
-    sincronizandoItemFilaId,
     statusApi,
+    statusAtualizacaoApp,
+    supportChannelLabel: canalSuporteLabel,
+    telefoneDraft,
+    ultimaVerificacaoAtualizacaoLabel,
+    ultimoTicketSuporte,
+    uploadArquivosAtivo,
+    workspaceLabel: workspaceResumoConfiguracao,
   });
+  const settingsDrawerPanelProps = buildInspectorSettingsDrawerPanelProps(
+    buildInspectorSettingsDrawerInput({
+      account: {
+        contaEmailLabel,
+        contaTelefoneLabel,
+        email,
+        emailAtualConta,
+        handleAlterarEmail,
+        handleAlterarSenha,
+        handleEditarPerfil,
+        handleGerenciarPagamento,
+        handleGerenciarPlano,
+        handleHistoricoPagamentos,
+        handleLogout,
+        handleSolicitarLogout,
+        handleUploadFotoPerfil,
+        iniciaisPerfilConfiguracao,
+        nomeUsuarioExibicao,
+        perfilExibicao,
+        perfilExibicaoLabel,
+        perfilFotoHint,
+        perfilFotoUri,
+        perfilNome,
+        perfilNomeCompleto,
+        planoAtual,
+        planoResumoConfiguracao,
+        provedorPrimario,
+        resumoContaAcesso,
+        resumoMetodosConta,
+        workspaceResumoConfiguracao,
+      },
+      experience: {
+        aprendizadoIa,
+        animacoesAtivas,
+        artigosAjudaFiltrados,
+        chatCategoryEnabled,
+        corDestaque,
+        criticalAlertsEnabled,
+        densidadeInterface,
+        emailsAtivos,
+        entradaPorVoz,
+        estiloResposta,
+        handleAbrirAjudaDitado,
+        handleAbrirModeloIa,
+        handleToggleEntradaPorVoz,
+        handleToggleNotificaPush,
+        handleToggleRespostaPorVoz,
+        handleToggleSpeechEnabled,
+        handleToggleVibracao,
+        idiomaResposta,
+        mediaCompression,
+        memoriaIa,
+        mesaCategoryEnabled,
+        microfonePermitido,
+        modeloIa,
+        nomeAutomaticoConversas,
+        notificaPush,
+        notificaRespostas,
+        notificacoesPermitidas,
+        onAbrirPermissaoNotificacoes: handleAbrirPermissaoNotificacoes,
+        onCyclePreferredVoice,
+        preferredVoiceLabel,
+        respostaPorVoz,
+        setAnimacoesAtivas,
+        setAprendizadoIa,
+        setChatCategoryEnabled,
+        setCorDestaque,
+        setCriticalAlertsEnabled,
+        setDensidadeInterface,
+        setEmailsAtivos,
+        setEstiloResposta,
+        setIdiomaResposta,
+        setMemoriaIa,
+        setMesaCategoryEnabled,
+        setNomeAutomaticoConversas,
+        setNotificaRespostas,
+        setSomNotificacao,
+        setSpeechEnabled,
+        setSpeechRate,
+        setSystemCategoryEnabled,
+        setTamanhoFonte,
+        setTemperaturaIa,
+        setTemaApp,
+        setTomConversa,
+        setVoiceLanguage,
+        somNotificacao,
+        speechEnabled,
+        speechRate,
+        sttSupported: voiceRuntimeState.sttSupported,
+        systemCategoryEnabled,
+        tamanhoFonte,
+        temperaturaIa,
+        temaApp,
+        ttsSupported: voiceRuntimeState.ttsSupported,
+        tomConversa,
+        vibracaoAtiva,
+        voiceLanguage,
+      },
+      navigation: {
+        appBuildChannel: APP_BUILD_CHANNEL,
+        appVersionLabel: `${appRuntime.versionLabel} • ${appRuntime.buildLabel}`,
+        configuracoesDrawerX,
+        fecharConfiguracoes,
+        handleAbrirPaginaConfiguracoes,
+        handleAbrirSecaoConfiguracoes,
+        handleVoltarResumoConfiguracoes,
+        mostrarGrupoContaAcesso,
+        mostrarGrupoExperiencia,
+        mostrarGrupoSeguranca,
+        mostrarGrupoSistema,
+        onAbrirFilaOffline: () => {
+          setFilaOfflineAberta(true);
+        },
+        settingsDrawerInOverview,
+        settingsDrawerMatchesPage,
+        settingsDrawerMatchesSection,
+        settingsDrawerPage,
+        settingsDrawerPageSections,
+        settingsDrawerPanResponder,
+        settingsDrawerSectionMenuAtiva,
+        settingsDrawerSubtitle,
+        settingsDrawerTitle,
+        settingsPrintDarkMode,
+        temaResumoConfiguracao,
+        temPrioridadesConfiguracao,
+        totalSecoesConfiguracaoVisiveis,
+      },
+      security: {
+        analyticsOptIn,
+        arquivosPermitidos,
+        autoUploadAttachments,
+        backupAutomatico,
+        biometriaPermitida,
+        cameraPermitida,
+        codigo2FA,
+        codigosRecuperacao,
+        compartilharMelhoriaIa,
+        conversasOcultasTotal,
+        conversasVisiveisTotal,
+        crashReportsOptIn,
+        deviceBiometricsEnabled,
+        eventosSegurancaFiltrados,
+        filtroEventosSeguranca,
+        fixarConversas,
+        handleApagarHistoricoConfiguracoes,
+        handleCompartilharCodigosRecuperacao,
+        handleConfirmarCodigo2FA,
+        handleConectarProximoProvedorDisponivel,
+        handleDetalhesSegurancaArquivos,
+        handleEncerrarOutrasSessoes,
+        handleEncerrarSessao,
+        handleEncerrarSessaoAtual,
+        handleEncerrarSessoesSuspeitas,
+        handleExcluirConta,
+        handleExportarAntesDeExcluirConta,
+        handleExportarDados,
+        handleGerarCodigosRecuperacao,
+        handleGerenciarConversasIndividuais,
+        handleGerenciarPermissao,
+        handleMudarMetodo2FA,
+        handleReautenticacaoSensivel,
+        handleReportarAtividadeSuspeita,
+        handleRevisarPermissoesCriticas,
+        handleRevisarSessao,
+        handleToggle2FA,
+        handleToggleBackupAutomatico,
+        handleToggleBiometriaNoDispositivo,
+        handleToggleMostrarConteudoNotificacao,
+        handleToggleMostrarSomenteNovaMensagem,
+        handleToggleOcultarConteudoBloqueado,
+        handleToggleProviderConnection,
+        handleToggleSincronizacaoDispositivos,
+        hideInMultitask,
+        lockTimeout,
+        mostrarConteudoNotificacao,
+        mostrarSomenteNovaMensagem,
+        outrasSessoesAtivas,
+        ocultarConteudoBloqueado,
+        permissoesNegadasTotal,
+        previewPrivacidadeNotificacao,
+        provedoresConectados,
+        provedoresConectadosTotal,
+        reautenticacaoStatus,
+        recoveryCodesEnabled,
+        requireAuthOnOpen,
+        resumo2FAFootnote,
+        resumo2FAStatus,
+        resumoAlertaMetodosConta,
+        resumoBlindagemSessoes,
+        resumoCache,
+        resumoCodigosRecuperacao,
+        resumoDadosConversas,
+        resumoExcluirConta,
+        resumoPermissoes,
+        resumoPermissoesCriticas,
+        resumoPrivacidadeNotificacoes,
+        resumoSessaoAtual,
+        retencaoDados,
+        salvarHistoricoConversas,
+        setAnalyticsOptIn,
+        setAutoUploadAttachments,
+        setCodigo2FA,
+        setCompartilharMelhoriaIa,
+        setCrashReportsOptIn,
+        setFiltroEventosSeguranca,
+        setFixarConversas,
+        setHideInMultitask,
+        setLockTimeout,
+        setMediaCompression,
+        setRecoveryCodesEnabled,
+        setRequireAuthOnOpen,
+        setRetencaoDados,
+        setSalvarHistoricoConversas,
+        setWifiOnlySync,
+        sessoesAtivas,
+        sessoesSuspeitasTotal,
+        sincronizacaoDispositivos,
+        twoFactorEnabled,
+        twoFactorMethod,
+        ultimoEventoProvedor,
+        ultimoEventoSessao,
+        wifiOnlySync,
+      },
+      supportAndSystem: {
+        contaEmailLabel,
+        contaTelefoneLabel,
+        corDestaqueResumoConfiguracao,
+        economiaDados,
+        existeProvedorDisponivel,
+        filaSuporteLocal,
+        handleAbrirAjustesDoSistema,
+        handleAbrirCanalSuporte,
+        handleAbrirCentralAtividade,
+        handleAbrirSobreApp,
+        handleCentralAjuda,
+        handleEnviarFeedback,
+        handleExportarDiagnosticoApp,
+        handleLicencas,
+        handleLimparCache,
+        handleLimparFilaSuporteLocal,
+        handlePermissoes,
+        handlePluginsIa,
+        handlePoliticaPrivacidade,
+        handleRefresh,
+        handleReportarProblema,
+        handleTermosUso,
+        handleVerificarAtualizacoes,
+        idiomaApp,
+        integracoesConectadasTotal,
+        integracoesDisponiveisTotal,
+        limpandoCache,
+        onSetEconomiaDados: setEconomiaDados,
+        regiaoApp,
+        resumoCentralAtividade,
+        resumoFilaOffline,
+        resumoFilaSuporteLocal,
+        resumoSuporteApp,
+        setRegiaoApp,
+        setUsoBateria,
+        sincronizandoDados,
+        supportChannelLabel: canalSuporteLabel,
+        ticketsBugTotal,
+        ticketsFeedbackTotal,
+        ultimaVerificacaoAtualizacaoLabel,
+        ultimoTicketSuporteResumo,
+        uploadArquivosAtivo,
+        usoBateria,
+        verificandoAtualizacoes,
+      },
+    }),
+  );
+  const notificacoesMesaLaudoAtual = notificacoes.filter(
+    (item) =>
+      item.unread &&
+      item.targetThread === "mesa" &&
+      item.laudoId === laudoSelecionadoId,
+  ).length;
+  const sessionModalsStackProps = buildInspectorSessionModalsStackProps(
+    buildInspectorSessionModalsInput({
+      activityAndLock: {
+        bloqueioAppAtivo,
+        centralAtividadeAberta,
+        deviceBiometricsEnabled,
+        formatarHorarioAtividade,
+        handleAbrirNotificacao,
+        handleDesbloquearAplicativo,
+        handleLogout,
+        monitorandoAtividade,
+        notificacoes,
+        session,
+        setCentralAtividadeAberta,
+      },
+      attachment: {
+        anexosAberto,
+        handleEscolherAnexo,
+        previewAnexoImagem,
+        setAnexosAberto,
+        setPreviewAnexoImagem,
+      },
+      offlineQueue: {
+        detalheStatusPendenciaOffline,
+        filaOfflineAberta,
+        filaOfflineFiltrada,
+        filaOfflineOrdenada,
+        filtroFilaOffline,
+        filtrosFilaOffline,
+        handleRetomarItemFilaOffline,
+        iconePendenciaOffline,
+        legendaPendenciaOffline,
+        pendenciaFilaProntaParaReenvio,
+        podeSincronizarFilaOffline,
+        removerItemFilaOffline,
+        resumoFilaOfflineFiltrada,
+        resumoPendenciaOffline,
+        rotuloStatusPendenciaOffline,
+        setFilaOfflineAberta,
+        setFiltroFilaOffline,
+        sincronizacaoDispositivos,
+        sincronizarFilaOffline,
+        sincronizarItemFilaOffline,
+        sincronizandoFilaOffline,
+        sincronizandoItemFilaId,
+        statusApi,
+      },
+      settings: {
+        confirmSheet,
+        confirmTextDraft,
+        fecharConfirmacaoConfiguracao,
+        fecharSheetConfiguracao,
+        handleConfirmarAcaoCritica,
+        handleConfirmarSettingsSheet,
+        renderSettingsSheetBody,
+        setConfirmTextDraft,
+        settingsSheet,
+        settingsSheetLoading,
+        settingsSheetNotice,
+      },
+    }),
+  );
   const {
     chipsContextoThread,
     laudoContextDescription,
@@ -6934,114 +3877,119 @@ function handleAbrirHistorico() {
   });
 
   if (session) {
-    const authenticatedLayoutProps = buildAuthenticatedLayoutProps({
-      accentColor,
-      animacoesAtivas,
-      anexoAbrindoChave,
-      anexoMesaRascunho,
-      anexoRascunho,
-      appGradientColors,
-      abrirReferenciaNoChat,
-      buscaHistorico,
-      carregandoConversa,
-      carregandoMesa,
-      chatKeyboardVerticalOffset,
-      chipsContextoThread,
-      configuracoesAberta,
-      conversaAtiva,
-      conversaVazia,
-      conversasFixadasTotal,
-      conversasOcultasTotal,
-      conversasVisiveisTotal,
-      definirReferenciaMesaAtiva,
-      drawerOverlayOpacity,
-      dynamicComposerInputStyle,
-      dynamicMessageBubbleStyle,
-      dynamicMessageTextStyle,
-      enviandoMensagem,
-      enviandoMesa,
-      erroConversa,
-      erroLaudos,
-      erroMesa,
-      fecharHistorico,
-      fecharPaineisLaterais,
-      filaOfflineOrdenada,
-      filtroHistorico,
-      filtrosHistoricoComContagem,
-      formatarHorarioAtividade,
-      formatarTipoTemplateLaudo,
-      handleAbrirAnexo,
-      handleAbrirConfiguracoes,
-      handleAbrirHistorico,
-      handleAbrirNovoChat,
-      handleAbrirSeletorAnexo,
-      handleAlternarFixadoHistorico,
-      handleEnviarMensagem,
-      handleEnviarMensagemMesa,
-      handleExcluirConversaHistorico,
-      handleReabrir,
-      handleSelecionarHistorico,
-      headerSafeTopInset,
-      historicoAberto,
-      historicoAgrupadoFinal,
-      historicoDrawerX,
-      historicoVazioTexto,
-      historicoVazioTitulo,
-      historyDrawerPanResponder,
-      historyEdgePanResponder,
-      introVisivel,
-      keyboardAvoidingBehavior,
-      keyboardVisible,
-      laudoContextDescription,
-      laudoContextTitle,
-      laudoSelecionadoId,
-      limparReferenciaMesaAtiva,
-      mesaDisponivel,
-      mesaTemMensagens,
-      mensagem,
-      mensagemChatDestacadaId,
-      mensagemMesa,
-      mensagemMesaReferenciaAtiva,
-      mensagensMesa,
-      mensagensVisiveis,
-      mostrarContextoThread,
-      nomeUsuarioExibicao,
-      notificacoesMesaLaudoAtual,
-      notificacoesNaoLidas,
-      obterResumoReferenciaMensagem,
-      placeholderComposer,
-      placeholderMesa,
-      podeAbrirAnexosChat,
-      podeAbrirAnexosMesa,
-      podeAcionarComposer,
-      podeEnviarComposer,
-      podeEnviarMesa,
-      podeUsarComposerMesa,
-      showVoiceInputAction: speechEnabled && entradaPorVoz,
-      onVoiceInputPress: handleVoiceInputPress,
-      voiceInputEnabled: speechEnabled && entradaPorVoz && microfonePermitido,
-      composerNotice: chatAiBehaviorNotice,
-      registrarLayoutMensagemChat,
-      resumoHistoricoDrawer,
-      scrollRef,
-      sessionAccessToken: session.accessToken,
-      sessionModalsStackProps,
-      setAbaAtiva,
-      setAnexoMesaRascunho,
-      setAnexoRascunho,
-      setBuscaHistorico,
-      setFiltroHistorico,
-      setIntroVisivel,
-      setMensagem,
-      setMensagemMesa,
-      settingsDrawerPanelProps,
-      settingsEdgePanResponder,
-      threadInsights,
-      threadKeyboardPaddingBottom,
-      threadSpotlight,
-      vendoMesa,
-      chaveAnexo,
-    });
+    const authenticatedLayoutProps = buildAuthenticatedLayoutProps(
+      buildAuthenticatedLayoutInput({
+        shell: {
+          accentColor,
+          animacoesAtivas,
+          appGradientColors,
+          chatKeyboardVerticalOffset,
+          composerNotice: chatAiBehaviorNotice,
+          configuracoesAberta,
+          drawerOverlayOpacity,
+          erroConversa,
+          erroLaudos,
+          fecharPaineisLaterais,
+          introVisivel,
+          keyboardAvoidingBehavior,
+          keyboardVisible,
+          onVoiceInputPress: handleVoiceInputPress,
+          sessionModalsStackProps,
+          setIntroVisivel,
+          settingsDrawerPanelProps,
+          settingsEdgePanResponder,
+          vendoMesa,
+        },
+        history: {
+          buscaHistorico,
+          conversasOcultasTotal,
+          fecharHistorico,
+          handleAbrirHistorico,
+          handleExcluirConversaHistorico,
+          handleSelecionarHistorico,
+          historicoAberto,
+          historicoAgrupadoFinal,
+          historicoDrawerX,
+          historicoVazioTexto,
+          historicoVazioTitulo,
+          historyDrawerPanResponder,
+          historyEdgePanResponder,
+          laudoSelecionadoId,
+          setBuscaHistorico,
+        },
+        thread: {
+          abrirReferenciaNoChat,
+          chipsContextoThread,
+          conversaAtiva,
+          conversaVazia,
+          definirReferenciaMesaAtiva,
+          dynamicMessageBubbleStyle,
+          dynamicMessageTextStyle,
+          filaOfflineOrdenada,
+          handleAbrirAnexo,
+          handleAbrirConfiguracoes,
+          handleAbrirNovoChat,
+          headerSafeTopInset,
+          laudoContextDescription,
+          laudoContextTitle,
+          mesaDisponivel,
+          mesaTemMensagens,
+          mensagemChatDestacadaId,
+          mensagensMesa,
+          mensagensVisiveis,
+          mostrarContextoThread,
+          nomeUsuarioExibicao,
+          notificacoesMesaLaudoAtual,
+          notificacoesNaoLidas,
+          obterResumoReferenciaMensagem,
+          registrarLayoutMensagemChat,
+          threadInsights,
+          threadKeyboardPaddingBottom,
+          threadSpotlight,
+          chaveAnexo,
+        },
+        composer: {
+          anexoAbrindoChave,
+          anexoMesaRascunho,
+          anexoRascunho,
+          carregandoConversa,
+          carregandoMesa,
+          dynamicComposerInputStyle,
+          enviandoMensagem,
+          enviandoMesa,
+          erroMesa,
+          handleAbrirSeletorAnexo,
+          handleEnviarMensagem,
+          handleEnviarMensagemMesa,
+          handleReabrir,
+          limparReferenciaMesaAtiva,
+          mensagem,
+          mensagemMesa,
+          mensagemMesaReferenciaAtiva,
+          microfonePermitido,
+          placeholderComposer,
+          placeholderMesa,
+          podeAbrirAnexosChat,
+          podeAbrirAnexosMesa,
+          podeAcionarComposer,
+          podeEnviarComposer,
+          podeEnviarMesa,
+          podeUsarComposerMesa,
+          setAnexoMesaRascunho,
+          setAnexoRascunho,
+          setMensagem,
+          setMensagemMesa,
+          showVoiceInputAction: speechEnabled && entradaPorVoz,
+          voiceInputEnabled:
+            speechEnabled && entradaPorVoz && microfonePermitido,
+        },
+        session: {
+          scrollRef,
+          sessionAccessToken: session.accessToken,
+          setAbaAtiva,
+        },
+      }),
+    );
 
     return <InspectorAuthenticatedLayout {...authenticatedLayoutProps} />;
   }
@@ -7075,4 +4023,3 @@ function handleAbrirHistorico() {
 
   return <LoginScreen {...loginScreenProps} />;
 }
-

@@ -8,13 +8,13 @@ import { styles } from "../InspectorMobileApp.styles";
 type ModeloIa = (typeof AI_MODEL_OPTIONS)[number];
 
 const AI_MODEL_DETAILS: Record<ModeloIa, { subtitle: string }> = {
-  "rápido": {
+  rápido: {
     subtitle: "Respostas curtas com menor custo e latência.",
   },
   equilibrado: {
     subtitle: "Melhor equilíbrio entre velocidade e profundidade.",
   },
-  "avançado": {
+  avançado: {
     subtitle: "Mais contexto e análise para casos complexos.",
   },
 };
@@ -52,7 +52,12 @@ export function SettingsAiModelSheetContent({
             testID={modelOptionTestId(option)}
           >
             <View style={styles.settingsMiniListItemHeader}>
-              <Text style={[styles.settingsMiniListTitle, ativo ? styles.settingsMiniListTitleActive : null]}>
+              <Text
+                style={[
+                  styles.settingsMiniListTitle,
+                  ativo ? styles.settingsMiniListTitleActive : null,
+                ]}
+              >
                 {option}
               </Text>
               <View
@@ -68,7 +73,9 @@ export function SettingsAiModelSheetContent({
                 />
               </View>
             </View>
-            <Text style={styles.settingsMiniListMeta}>{AI_MODEL_DETAILS[option].subtitle}</Text>
+            <Text style={styles.settingsMiniListMeta}>
+              {AI_MODEL_DETAILS[option].subtitle}
+            </Text>
           </Pressable>
         );
       })}

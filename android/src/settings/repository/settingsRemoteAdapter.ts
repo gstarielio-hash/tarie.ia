@@ -1,14 +1,25 @@
 import type { MobileUser } from "../../types/mobile";
 import type { CriticalSettingsSnapshot } from "../../features/settings/criticalSettings";
 import { hashSnapshotCritico } from "../../features/settings/criticalSettings";
-import { DATA_RETENTION_OPTIONS, NOTIFICATION_SOUND_OPTIONS } from "../schema/options";
+import {
+  DATA_RETENTION_OPTIONS,
+  NOTIFICATION_SOUND_OPTIONS,
+} from "../schema/options";
 import type { AppSettings } from "../schema/types";
 
 function firstName(fullName: string): string {
-  return String(fullName || "").trim().split(/\s+/).filter(Boolean)[0] || "";
+  return (
+    String(fullName || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)[0] || ""
+  );
 }
 
-export function mergeMobileUserIntoSettings(settings: AppSettings, user: MobileUser | null | undefined): AppSettings {
+export function mergeMobileUserIntoSettings(
+  settings: AppSettings,
+  user: MobileUser | null | undefined,
+): AppSettings {
   if (!user) {
     return settings;
   }
@@ -26,12 +37,16 @@ export function mergeMobileUserIntoSettings(settings: AppSettings, user: MobileU
       email: email || settings.account.email,
       phone: phone || settings.account.phone,
       photoUri: photoUri || settings.account.photoUri,
-      photoHint: photoUri ? "Foto sincronizada com a conta" : settings.account.photoHint,
+      photoHint: photoUri
+        ? "Foto sincronizada com a conta"
+        : settings.account.photoHint,
     },
   };
 }
 
-export function settingsToCriticalSnapshot(settings: AppSettings): CriticalSettingsSnapshot {
+export function settingsToCriticalSnapshot(
+  settings: AppSettings,
+): CriticalSettingsSnapshot {
   return {
     notificacoes: {
       notificaRespostas: settings.notifications.responseAlertsEnabled,
@@ -65,16 +80,18 @@ export function mergeCriticalSnapshotIntoSettings(
   settings: AppSettings,
   snapshot: CriticalSettingsSnapshot,
 ): AppSettings {
-  const soundPreset: AppSettings["notifications"]["soundPreset"] = NOTIFICATION_SOUND_OPTIONS.includes(
-    snapshot.notificacoes.somNotificacao as any,
-  )
-    ? (snapshot.notificacoes.somNotificacao as AppSettings["notifications"]["soundPreset"])
-    : settings.notifications.soundPreset;
-  const retention: AppSettings["dataControls"]["retention"] = DATA_RETENTION_OPTIONS.includes(
-    snapshot.privacidade.retencaoDados as any,
-  )
-    ? (snapshot.privacidade.retencaoDados as AppSettings["dataControls"]["retention"])
-    : settings.dataControls.retention;
+  const soundPreset: AppSettings["notifications"]["soundPreset"] =
+    NOTIFICATION_SOUND_OPTIONS.includes(
+      snapshot.notificacoes.somNotificacao as any,
+    )
+      ? (snapshot.notificacoes
+          .somNotificacao as AppSettings["notifications"]["soundPreset"])
+      : settings.notifications.soundPreset;
+  const retention: AppSettings["dataControls"]["retention"] =
+    DATA_RETENTION_OPTIONS.includes(snapshot.privacidade.retencaoDados as any)
+      ? (snapshot.privacidade
+          .retencaoDados as AppSettings["dataControls"]["retention"])
+      : settings.dataControls.retention;
   const soundEnabled = soundPreset !== "Silencioso";
   return {
     ...settings,

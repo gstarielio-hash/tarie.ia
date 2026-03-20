@@ -88,7 +88,10 @@ interface SettingsSupportSectionProps {
   onLimparFilaSuporteLocal: () => void;
 }
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -141,7 +144,11 @@ export function SettingsAdvancedResourcesSection({
       <SettingsPressRow
         description="Idioma preferido para voz, leitura e fallback de ditado."
         icon="translate"
-        onPress={() => onSetVoiceLanguage(nextOptionValue(voiceLanguage, SPEECH_LANGUAGE_OPTIONS))}
+        onPress={() =>
+          onSetVoiceLanguage(
+            nextOptionValue(voiceLanguage, SPEECH_LANGUAGE_OPTIONS),
+          )
+        }
         title="Idioma de voz"
         value={voiceLanguage}
       />
@@ -232,13 +239,18 @@ export function SettingsSystemSection({
       <SettingsPressRow
         description="Troca completa de idioma ainda depende da camada de i18n do app."
         icon="translate"
+        onPress={() =>
+          onSetIdiomaApp(nextOptionValue(idiomaApp, APP_LANGUAGE_OPTIONS))
+        }
         testID="settings-system-language-row"
         title="Idioma do aplicativo"
         value={idiomaApp}
       />
       <SettingsPressRow
         icon="map-marker-radius-outline"
-        onPress={() => onSetRegiaoApp(nextOptionValue(regiaoApp, REGION_OPTIONS))}
+        onPress={() =>
+          onSetRegiaoApp(nextOptionValue(regiaoApp, REGION_OPTIONS))
+        }
         testID="settings-system-region-row"
         title="Região"
         value={regiaoApp}
@@ -252,7 +264,9 @@ export function SettingsSystemSection({
       />
       <SettingsPressRow
         icon="battery-heart-variant"
-        onPress={() => onSetUsoBateria(nextOptionValue(usoBateria, BATTERY_OPTIONS))}
+        onPress={() =>
+          onSetUsoBateria(nextOptionValue(usoBateria, BATTERY_OPTIONS))
+        }
         testID="settings-system-battery-row"
         title="Uso de bateria"
         value={usoBateria}
@@ -276,7 +290,11 @@ export function SettingsSystemSection({
         onPress={onVerificarAtualizacoes}
         testID="settings-system-check-updates-row"
         title="Verificar atualizações"
-        value={verificandoAtualizacoes ? "Verificando..." : ultimaVerificacaoAtualizacaoLabel}
+        value={
+          verificandoAtualizacoes
+            ? "Verificando..."
+            : ultimaVerificacaoAtualizacaoLabel
+        }
       />
       <SettingsPressRow
         icon="bell-badge-outline"
@@ -377,7 +395,9 @@ export function SettingsSupportSection({
         onPress={onEnviarFeedback}
         testID="settings-support-send-feedback-row"
         title="Enviar feedback"
-        value={ticketsFeedbackTotal ? `${ticketsFeedbackTotal} na fila` : "Sugestões"}
+        value={
+          ticketsFeedbackTotal ? `${ticketsFeedbackTotal} na fila` : "Sugestões"
+        }
       />
       <SettingsPressRow
         description={resumoFilaSuporteLocal}

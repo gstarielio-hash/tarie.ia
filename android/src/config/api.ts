@@ -59,7 +59,10 @@ function normalizarApiBaseUrl(rawValue: string): string {
   }
 
   // In Android emulators, localhost/127.0.0.1 points to the emulator itself.
-  return value.replace(/:\/\/(127\.0\.0\.1|localhost)(?=[:/]|$)/i, "://10.0.2.2");
+  return value.replace(
+    /:\/\/(127\.0\.0\.1|localhost)(?=[:/]|$)/i,
+    "://10.0.2.2",
+  );
 }
 
 export const API_BASE_URL = normalizarApiBaseUrl(
@@ -88,10 +91,17 @@ function basePublicaAuth(): string {
     process.env.EXPO_PUBLIC_AUTH_WEB_BASE_URL ||
     process.env.EXPO_PUBLIC_API_BASE_URL ||
     DEFAULT_API_BASE_URL;
-  return normalizarApiBaseUrl(String(rawBase || "").trim().replace(/\/+$/, ""));
+  return normalizarApiBaseUrl(
+    String(rawBase || "")
+      .trim()
+      .replace(/\/+$/, ""),
+  );
 }
 
-function montarUrlAuth(rawValue: string | undefined, fallbackPath: string): string {
+function montarUrlAuth(
+  rawValue: string | undefined,
+  fallbackPath: string,
+): string {
   const configured = String(rawValue || "").trim();
   if (configured) {
     return configured;
@@ -100,7 +110,10 @@ function montarUrlAuth(rawValue: string | undefined, fallbackPath: string): stri
 }
 
 export function obterUrlRecuperacaoSenhaMobile(email?: string): string {
-  const base = montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_FORGOT_PASSWORD_URL, "/app/login");
+  const base = montarUrlAuth(
+    process.env.EXPO_PUBLIC_AUTH_FORGOT_PASSWORD_URL,
+    "/app/login",
+  );
   const emailLimpo = String(email || "").trim();
   if (!emailLimpo) {
     return base;
@@ -109,15 +122,25 @@ export function obterUrlRecuperacaoSenhaMobile(email?: string): string {
   return `${base}${separador}email=${encodeURIComponent(emailLimpo)}`;
 }
 
-export function obterUrlLoginSocialMobile(provider: "Google" | "Microsoft"): string {
+export function obterUrlLoginSocialMobile(
+  provider: "Google" | "Microsoft",
+): string {
   if (provider === "Google") {
-    return montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_GOOGLE_URL, "/app/login?provider=google");
+    return montarUrlAuth(
+      process.env.EXPO_PUBLIC_AUTH_GOOGLE_URL,
+      "/app/login?provider=google",
+    );
   }
-  return montarUrlAuth(process.env.EXPO_PUBLIC_AUTH_MICROSOFT_URL, "/app/login?provider=microsoft");
+  return montarUrlAuth(
+    process.env.EXPO_PUBLIC_AUTH_MICROSOFT_URL,
+    "/app/login?provider=microsoft",
+  );
 }
 
 function inferirMimeType(nomeArquivo: string): string {
-  const nome = String(nomeArquivo || "").trim().toLowerCase();
+  const nome = String(nomeArquivo || "")
+    .trim()
+    .toLowerCase();
   if (nome.endsWith(".pdf")) {
     return "application/pdf";
   }
@@ -175,7 +198,9 @@ function extrairEventosSse(raw: string): Record<string, unknown>[] {
     .flatMap((linha) => {
       try {
         const payload = JSON.parse(linha);
-        return payload && typeof payload === "object" ? [payload as Record<string, unknown>] : [];
+        return payload && typeof payload === "object"
+          ? [payload as Record<string, unknown>]
+          : [];
       } catch {
         return [];
       }
@@ -183,7 +208,9 @@ function extrairEventosSse(raw: string): Record<string, unknown>[] {
 }
 
 function normalizarModoChat(modo: unknown): MobileChatMode {
-  const value = String(modo || "").trim().toLowerCase();
+  const value = String(modo || "")
+    .trim()
+    .toLowerCase();
   if (value === "curto") {
     return "curto";
   }
@@ -198,7 +225,8 @@ function extrairCitacoes(payload: unknown): Array<Record<string, unknown>> {
     return [];
   }
   return payload.filter(
-    (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
   );
 }
 
@@ -283,31 +311,55 @@ export async function loginInspectorMobile(
   senha: string,
   lembrar: boolean,
 ): Promise<MobileLoginResponse> {
-  const response = await fetchComObservabilidade("mobile_auth_login", `${API_BASE_URL}/app/api/mobile/auth/login`, {
-    method: "POST",
-    headers: construirHeaders(undefined, {
-      "Content-Type": "application/json",
-    }),
-    body: JSON.stringify({ email, senha, lembrar }),
-  });
+  const response = await fetchComObservabilidade(
+    "mobile_auth_login",
+    `${API_BASE_URL}/app/api/mobile/auth/login`,
+    {
+      method: "POST",
+      headers: construirHeaders(undefined, {
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({ email, senha, lembrar }),
+    },
+  );
 
-  const payload = await lerJsonSeguro<MobileLoginResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileLoginResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("access_token" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível autenticar no app mobile."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível autenticar no app mobile.",
+      ),
+    );
   }
 
   return payload;
 }
 
-export async function carregarBootstrapMobile(accessToken: string): Promise<MobileBootstrapResponse> {
-  const response = await fetchComObservabilidade("mobile_bootstrap", `${API_BASE_URL}/app/api/mobile/bootstrap`, {
-    method: "GET",
-    headers: construirHeaders(accessToken),
-  });
+export async function carregarBootstrapMobile(
+  accessToken: string,
+): Promise<MobileBootstrapResponse> {
+  const response = await fetchComObservabilidade(
+    "mobile_bootstrap",
+    `${API_BASE_URL}/app/api/mobile/bootstrap`,
+    {
+      method: "GET",
+      headers: construirHeaders(accessToken),
+    },
+  );
 
-  const payload = await lerJsonSeguro<MobileBootstrapResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileBootstrapResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("app" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar o bootstrap do app."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível carregar o bootstrap do app.",
+      ),
+    );
   }
 
   return payload;
@@ -337,10 +389,17 @@ export async function atualizarPerfilContaMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileAccountProfileResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileAccountProfileResponse | { detail?: string }
+  >(response);
   const usuario = extrairUsuarioMobile(body);
   if (!response.ok || !body || !usuario) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel atualizar o perfil da conta."));
+    throw new Error(
+      extrairMensagemErro(
+        body,
+        "Nao foi possivel atualizar o perfil da conta.",
+      ),
+    );
   }
 
   return {
@@ -373,9 +432,13 @@ export async function alterarSenhaContaMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileAccountPasswordResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileAccountPasswordResponse | { detail?: string }
+  >(response);
   if (!response.ok || !body || !("ok" in body) || body.ok !== true) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel atualizar a senha da conta."));
+    throw new Error(
+      extrairMensagemErro(body, "Nao foi possivel atualizar a senha da conta."),
+    );
   }
 
   return {
@@ -412,10 +475,14 @@ export async function uploadFotoPerfilContaMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileAccountProfileResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileAccountProfileResponse | { detail?: string }
+  >(response);
   const usuario = extrairUsuarioMobile(body);
   if (!response.ok || !body || !usuario) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel atualizar a foto de perfil."));
+    throw new Error(
+      extrairMensagemErro(body, "Nao foi possivel atualizar a foto de perfil."),
+    );
   }
 
   return {
@@ -454,13 +521,19 @@ export async function enviarRelatoSuporteMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileSupportReportResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileSupportReportResponse | { detail?: string }
+  >(response);
   if (!response.ok || !body || !("ok" in body) || body.ok !== true) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel enviar o relato de suporte."));
+    throw new Error(
+      extrairMensagemErro(body, "Nao foi possivel enviar o relato de suporte."),
+    );
   }
 
-  const protocolo = typeof body.protocolo === "string" ? body.protocolo.trim() : "";
-  const status = typeof body.status === "string" ? body.status.trim() : "Recebido";
+  const protocolo =
+    typeof body.protocolo === "string" ? body.protocolo.trim() : "";
+  const status =
+    typeof body.status === "string" ? body.status.trim() : "Recebido";
 
   return {
     ok: true,
@@ -481,9 +554,16 @@ export async function carregarConfiguracoesCriticasContaMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileCriticalSettingsResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileCriticalSettingsResponse | { detail?: string }
+  >(response);
   if (!response.ok || !body || !("settings" in body)) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel carregar as configuracoes criticas da conta."));
+    throw new Error(
+      extrairMensagemErro(
+        body,
+        "Nao foi possivel carregar as configuracoes criticas da conta.",
+      ),
+    );
   }
 
   return body;
@@ -505,37 +585,70 @@ export async function salvarConfiguracoesCriticasContaMobile(
     },
   );
 
-  const body = await lerJsonSeguro<MobileCriticalSettingsResponse | { detail?: string }>(response);
+  const body = await lerJsonSeguro<
+    MobileCriticalSettingsResponse | { detail?: string }
+  >(response);
   if (!response.ok || !body || !("settings" in body)) {
-    throw new Error(extrairMensagemErro(body, "Nao foi possivel salvar as configuracoes criticas da conta."));
+    throw new Error(
+      extrairMensagemErro(
+        body,
+        "Nao foi possivel salvar as configuracoes criticas da conta.",
+      ),
+    );
   }
 
   return body;
 }
 
-export async function carregarLaudosMobile(accessToken: string): Promise<MobileLaudoListResponse> {
-  const response = await fetchComObservabilidade("mobile_laudos_list", `${API_BASE_URL}/app/api/mobile/laudos`, {
-    method: "GET",
-    headers: construirHeaders(accessToken),
-  });
+export async function carregarLaudosMobile(
+  accessToken: string,
+): Promise<MobileLaudoListResponse> {
+  const response = await fetchComObservabilidade(
+    "mobile_laudos_list",
+    `${API_BASE_URL}/app/api/mobile/laudos`,
+    {
+      method: "GET",
+      headers: construirHeaders(accessToken),
+    },
+  );
 
-  const payload = await lerJsonSeguro<MobileLaudoListResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileLaudoListResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("itens" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar os laudos do inspetor."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível carregar os laudos do inspetor.",
+      ),
+    );
   }
 
   return payload;
 }
 
-export async function carregarStatusLaudo(accessToken: string): Promise<MobileLaudoStatusResponse> {
-  const response = await fetchComObservabilidade("laudo_status", `${API_BASE_URL}/app/api/laudo/status`, {
-    method: "GET",
-    headers: construirHeaders(accessToken),
-  });
+export async function carregarStatusLaudo(
+  accessToken: string,
+): Promise<MobileLaudoStatusResponse> {
+  const response = await fetchComObservabilidade(
+    "laudo_status",
+    `${API_BASE_URL}/app/api/laudo/status`,
+    {
+      method: "GET",
+      headers: construirHeaders(accessToken),
+    },
+  );
 
-  const payload = await lerJsonSeguro<MobileLaudoStatusResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileLaudoStatusResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("estado" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar o status do laudo."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível carregar o status do laudo.",
+      ),
+    );
   }
 
   return payload;
@@ -549,14 +662,21 @@ export async function carregarMensagensLaudo(
     "laudo_mensagens_list",
     `${API_BASE_URL}/app/api/laudo/${laudoId}/mensagens`,
     {
-    method: "GET",
-    headers: construirHeaders(accessToken),
+      method: "GET",
+      headers: construirHeaders(accessToken),
     },
   );
 
-  const payload = await lerJsonSeguro<MobileLaudoMensagensResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileLaudoMensagensResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("itens" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar o histórico do laudo."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível carregar o histórico do laudo.",
+      ),
+    );
   }
 
   return payload;
@@ -572,45 +692,61 @@ export async function enviarMensagemChatMobile(
     nomeDocumento?: string;
     laudoId?: number | null;
     modo?: MobileChatMode | string;
-    historico?: Array<{ papel: "usuario" | "assistente"; texto: string }> | MobileChatMessage[];
+    historico?:
+      | Array<{ papel: "usuario" | "assistente"; texto: string }>
+      | MobileChatMessage[];
   },
 ): Promise<MobileChatSendResult> {
   const modo = normalizarModoChat(payload.modo);
-  const response = await fetchComObservabilidade("chat_send", `${API_BASE_URL}/app/api/chat`, {
-    method: "POST",
-    headers: construirHeaders(accessToken, {
-      "Content-Type": "application/json",
-    }),
-    body: JSON.stringify({
-      mensagem: payload.mensagem,
-      dados_imagem: payload.dadosImagem || "",
-      setor: (payload.setor || "geral").trim() || "geral",
-      texto_documento: payload.textoDocumento || "",
-      nome_documento: payload.nomeDocumento || "",
-      laudo_id: payload.laudoId ?? undefined,
-      modo,
-      historico: (payload.historico || []).map((item) => ({
-        papel: item.papel,
-        texto: item.texto,
-      })),
-    }),
-  });
+  const response = await fetchComObservabilidade(
+    "chat_send",
+    `${API_BASE_URL}/app/api/chat`,
+    {
+      method: "POST",
+      headers: construirHeaders(accessToken, {
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({
+        mensagem: payload.mensagem,
+        dados_imagem: payload.dadosImagem || "",
+        setor: (payload.setor || "geral").trim() || "geral",
+        texto_documento: payload.textoDocumento || "",
+        nome_documento: payload.nomeDocumento || "",
+        laudo_id: payload.laudoId ?? undefined,
+        modo,
+        historico: (payload.historico || []).map((item) => ({
+          papel: item.papel,
+          texto: item.texto,
+        })),
+      }),
+    },
+  );
 
   const contentType = response.headers.get("content-type") || "";
   if (!response.ok) {
     const erroJson = await lerJsonSeguro<{ detail?: string }>(response);
-    throw new Error(extrairMensagemErro(erroJson, "Não foi possível enviar a mensagem do chat."));
+    throw new Error(
+      extrairMensagemErro(
+        erroJson,
+        "Não foi possível enviar a mensagem do chat.",
+      ),
+    );
   }
 
   if (contentType.includes("application/json")) {
-    const jsonPayload = (await lerJsonSeguro<Record<string, unknown>>(response)) || {};
+    const jsonPayload =
+      (await lerJsonSeguro<Record<string, unknown>>(response)) || {};
     return {
-      laudoId: typeof jsonPayload.laudo_id === "number" ? jsonPayload.laudo_id : payload.laudoId ?? null,
+      laudoId:
+        typeof jsonPayload.laudo_id === "number"
+          ? jsonPayload.laudo_id
+          : (payload.laudoId ?? null),
       laudoCard:
         jsonPayload.laudo_card && typeof jsonPayload.laudo_card === "object"
           ? (jsonPayload.laudo_card as MobileChatSendResult["laudoCard"])
           : null,
-      assistantText: typeof jsonPayload.texto === "string" ? jsonPayload.texto : "",
+      assistantText:
+        typeof jsonPayload.texto === "string" ? jsonPayload.texto : "",
       modo: normalizarModoChat(jsonPayload.modo ?? modo),
       citacoes: extrairCitacoes(jsonPayload.citacoes),
       confiancaIa: extrairConfiancaIa(jsonPayload.confianca_ia),
@@ -671,15 +807,26 @@ export async function uploadDocumentoChatMobile(
     type: payload.mimeType || inferirMimeType(payload.nome),
   } as unknown as Blob);
 
-  const response = await fetchComObservabilidade("chat_upload_doc", `${API_BASE_URL}/app/api/upload_doc`, {
-    method: "POST",
-    headers: construirHeaders(accessToken),
-    body: formData,
-  });
+  const response = await fetchComObservabilidade(
+    "chat_upload_doc",
+    `${API_BASE_URL}/app/api/upload_doc`,
+    {
+      method: "POST",
+      headers: construirHeaders(accessToken),
+      body: formData,
+    },
+  );
 
-  const corpo = await lerJsonSeguro<MobileDocumentUploadResponse | { detail?: string }>(response);
+  const corpo = await lerJsonSeguro<
+    MobileDocumentUploadResponse | { detail?: string }
+  >(response);
   if (!response.ok || !corpo || !("texto" in corpo)) {
-    throw new Error(extrairMensagemErro(corpo, "Não foi possível preparar o documento para o chat."));
+    throw new Error(
+      extrairMensagemErro(
+        corpo,
+        "Não foi possível preparar o documento para o chat.",
+      ),
+    );
   }
 
   return corpo;
@@ -693,14 +840,21 @@ export async function carregarMensagensMesaMobile(
     "mesa_mensagens_list",
     `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagens`,
     {
-    method: "GET",
-    headers: construirHeaders(accessToken),
+      method: "GET",
+      headers: construirHeaders(accessToken),
     },
   );
 
-  const payload = await lerJsonSeguro<MobileMesaMensagensResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileMesaMensagensResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("itens" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível carregar a conversa da mesa."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível carregar a conversa da mesa.",
+      ),
+    );
   }
 
   return payload;
@@ -716,20 +870,27 @@ export async function enviarMensagemMesaMobile(
     "mesa_send_text",
     `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/mensagem`,
     {
-    method: "POST",
-    headers: construirHeaders(accessToken, {
-      "Content-Type": "application/json",
-    }),
-    body: JSON.stringify({
-      texto,
-      referencia_mensagem_id: referenciaMensagemId ?? null,
-    }),
+      method: "POST",
+      headers: construirHeaders(accessToken, {
+        "Content-Type": "application/json",
+      }),
+      body: JSON.stringify({
+        texto,
+        referencia_mensagem_id: referenciaMensagemId ?? null,
+      }),
     },
   );
 
-  const payload = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileMesaSendResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("mensagem" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível responder à mesa pelo app."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível responder à mesa pelo app.",
+      ),
+    );
   }
 
   return payload;
@@ -754,49 +915,81 @@ export async function enviarAnexoMesaMobile(
   } as unknown as Blob);
   formData.append("texto", payload.texto || "");
   if (payload.referenciaMensagemId) {
-    formData.append("referencia_mensagem_id", String(payload.referenciaMensagemId));
+    formData.append(
+      "referencia_mensagem_id",
+      String(payload.referenciaMensagemId),
+    );
   }
 
   const response = await fetchComObservabilidade(
     "mesa_send_attachment",
     `${API_BASE_URL}/app/api/laudo/${laudoId}/mesa/anexo`,
     {
-    method: "POST",
-    headers: construirHeaders(accessToken),
-    body: formData,
+      method: "POST",
+      headers: construirHeaders(accessToken),
+      body: formData,
     },
   );
 
-  const corpo = await lerJsonSeguro<MobileMesaSendResponse | { detail?: string }>(response);
+  const corpo = await lerJsonSeguro<
+    MobileMesaSendResponse | { detail?: string }
+  >(response);
   if (!response.ok || !corpo || !("mensagem" in corpo)) {
-    throw new Error(extrairMensagemErro(corpo, "Não foi possível enviar o anexo para a mesa."));
+    throw new Error(
+      extrairMensagemErro(
+        corpo,
+        "Não foi possível enviar o anexo para a mesa.",
+      ),
+    );
   }
 
   return corpo;
 }
 
-export async function reabrirLaudoMobile(accessToken: string, laudoId: number): Promise<MobileLaudoStatusResponse> {
-  const response = await fetchComObservabilidade("laudo_reabrir", `${API_BASE_URL}/app/api/laudo/${laudoId}/reabrir`, {
-    method: "POST",
-    headers: construirHeaders(accessToken),
-  });
+export async function reabrirLaudoMobile(
+  accessToken: string,
+  laudoId: number,
+): Promise<MobileLaudoStatusResponse> {
+  const response = await fetchComObservabilidade(
+    "laudo_reabrir",
+    `${API_BASE_URL}/app/api/laudo/${laudoId}/reabrir`,
+    {
+      method: "POST",
+      headers: construirHeaders(accessToken),
+    },
+  );
 
-  const payload = await lerJsonSeguro<MobileLaudoStatusResponse | { detail?: string }>(response);
+  const payload = await lerJsonSeguro<
+    MobileLaudoStatusResponse | { detail?: string }
+  >(response);
   if (!response.ok || !payload || !("estado" in payload)) {
-    throw new Error(extrairMensagemErro(payload, "Não foi possível reabrir o laudo."));
+    throw new Error(
+      extrairMensagemErro(payload, "Não foi possível reabrir o laudo."),
+    );
   }
 
   return payload;
 }
 
-export async function logoutInspectorMobile(accessToken: string): Promise<void> {
-  const response = await fetchComObservabilidade("mobile_auth_logout", `${API_BASE_URL}/app/api/mobile/auth/logout`, {
-    method: "POST",
-    headers: construirHeaders(accessToken),
-  });
+export async function logoutInspectorMobile(
+  accessToken: string,
+): Promise<void> {
+  const response = await fetchComObservabilidade(
+    "mobile_auth_logout",
+    `${API_BASE_URL}/app/api/mobile/auth/logout`,
+    {
+      method: "POST",
+      headers: construirHeaders(accessToken),
+    },
+  );
 
   if (!response.ok) {
     const payload = await lerJsonSeguro<{ detail?: string }>(response);
-    throw new Error(extrairMensagemErro(payload, "Não foi possível encerrar a sessão mobile."));
+    throw new Error(
+      extrairMensagemErro(
+        payload,
+        "Não foi possível encerrar a sessão mobile.",
+      ),
+    );
   }
 }

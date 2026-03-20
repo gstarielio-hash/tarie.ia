@@ -23,7 +23,9 @@ export function resolveImageCompressionQuality(
   return 1;
 }
 
-export function buildAttachmentHandlingPolicy(settings: AppSettings): AttachmentHandlingPolicy {
+export function buildAttachmentHandlingPolicy(
+  settings: AppSettings,
+): AttachmentHandlingPolicy {
   const imageQuality = resolveImageCompressionQuality(
     settings.system.dataSaver,
     settings.dataControls.mediaCompression,
@@ -37,4 +39,3 @@ export function buildAttachmentHandlingPolicy(settings: AppSettings): Attachment
       : `compressão ${settings.dataControls.mediaCompression}`,
   };
 }
-

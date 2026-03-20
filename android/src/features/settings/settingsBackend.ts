@@ -7,7 +7,10 @@ import {
   salvarConfiguracoesCriticasContaMobile,
   uploadFotoPerfilContaMobile,
 } from "../../config/api";
-import type { MobileSupportReportResponse, MobileUser } from "../../types/mobile";
+import type {
+  MobileSupportReportResponse,
+  MobileUser,
+} from "../../types/mobile";
 import {
   type CriticalSettingsSnapshot,
   payloadRemotoParaSnapshotCritico,
@@ -61,7 +64,9 @@ function obterNomeExibicaoPadrao(nomeCompleto: string): string {
   return partes[0];
 }
 
-export function mapearUsuarioParaPerfilConta(usuario: MobileUser): PerfilContaSincronizado {
+export function mapearUsuarioParaPerfilConta(
+  usuario: MobileUser,
+): PerfilContaSincronizado {
   const nomeCompleto = String(usuario.nome_completo || "").trim();
   const email = String(usuario.email || "").trim();
   const telefone = String(usuario.telefone || "").trim();
@@ -117,6 +122,9 @@ export async function salvarConfiguracoesCriticasNoBackend(
   snapshot: CriticalSettingsSnapshot,
 ): Promise<CriticalSettingsSnapshot> {
   const payload = snapshotCriticoParaPayloadRemoto(snapshot);
-  const response = await salvarConfiguracoesCriticasContaMobile(accessToken, payload);
+  const response = await salvarConfiguracoesCriticasContaMobile(
+    accessToken,
+    payload,
+  );
   return payloadRemotoParaSnapshotCritico(response);
 }

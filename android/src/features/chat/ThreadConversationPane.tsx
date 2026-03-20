@@ -19,7 +19,11 @@ import {
 } from "../../components/AssistantRichMessage";
 import { EmptyState } from "../../components/EmptyState";
 import { colors } from "../../theme/tokens";
-import type { MobileAttachment, MobileChatMessage, MobileMesaMessage } from "../../types/mobile";
+import type {
+  MobileAttachment,
+  MobileChatMessage,
+  MobileMesaMessage,
+} from "../../types/mobile";
 import { styles } from "../InspectorMobileApp.styles";
 import { MessageAttachmentCard, MessageReferenceCard } from "./MessageCards";
 
@@ -88,8 +92,10 @@ export function ThreadConversationPane({
     if (carregandoMesa && !mensagensMesa.length) {
       return (
         <View style={styles.loadingState}>
-          <ActivityIndicator color={colors.accent} size="large" />
-          <Text style={styles.loadingText}>Abrindo a conversa com a mesa...</Text>
+          <ActivityIndicator color={accentColor} size="large" />
+          <Text style={styles.loadingText}>
+            Abrindo a conversa com a mesa...
+          </Text>
         </View>
       );
     }
@@ -121,7 +127,9 @@ export function ThreadConversationPane({
         contentContainerStyle={[
           styles.threadContent,
           keyboardVisible ? styles.threadContentKeyboard : null,
-          keyboardVisible ? { paddingBottom: threadKeyboardPaddingBottom } : null,
+          keyboardVisible
+            ? { paddingBottom: threadKeyboardPaddingBottom }
+            : null,
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -131,7 +139,8 @@ export function ThreadConversationPane({
             const mensagemEhUsuario = item.tipo === "humano_insp";
             const mensagemEhMesa = item.tipo === "humano_eng";
             const nomeAutor = mensagemEhUsuario ? nomeUsuarioExibicao : "Mesa";
-            const referenciaId = Number(item.referencia_mensagem_id || 0) || null;
+            const referenciaId =
+              Number(item.referencia_mensagem_id || 0) || null;
             const referenciaPreview = obterResumoReferenciaMensagem(
               referenciaId,
               mensagensVisiveis,
@@ -143,7 +152,9 @@ export function ThreadConversationPane({
                 key={`${item.id}-${index}`}
                 style={[
                   styles.messageRow,
-                  mensagemEhUsuario ? styles.messageRowOutgoing : styles.messageRowIncoming,
+                  mensagemEhUsuario
+                    ? styles.messageRowOutgoing
+                    : styles.messageRowIncoming,
                 ]}
               >
                 {mensagemEhUsuario ? (
@@ -154,7 +165,14 @@ export function ThreadConversationPane({
                       dynamicMessageBubbleStyle,
                     ]}
                   >
-                    <Text style={[styles.messageAuthor, styles.messageAuthorOutgoing]}>{nomeAutor}</Text>
+                    <Text
+                      style={[
+                        styles.messageAuthor,
+                        styles.messageAuthorOutgoing,
+                      ]}
+                    >
+                      {nomeAutor}
+                    </Text>
                     {referenciaId ? (
                       <MessageReferenceCard
                         messageId={referenciaId}
@@ -163,7 +181,13 @@ export function ThreadConversationPane({
                         variant="outgoing"
                       />
                     ) : null}
-                    <Text style={[styles.messageText, styles.messageTextOutgoing, dynamicMessageTextStyle]}>
+                    <Text
+                      style={[
+                        styles.messageText,
+                        styles.messageTextOutgoing,
+                        dynamicMessageTextStyle,
+                      ]}
+                    >
                       {item.texto}
                     </Text>
                     {item.anexos?.length ? (
@@ -175,27 +199,45 @@ export function ThreadConversationPane({
                               accessToken={sessionAccessToken}
                               attachment={anexo}
                               onPress={onAbrirAnexo}
-                              opening={anexoAbrindoChave === toAttachmentKey(anexo, `${item.id}-anexo-${anexoIndex}`)}
+                              opening={
+                                anexoAbrindoChave ===
+                                toAttachmentKey(
+                                  anexo,
+                                  `${item.id}-anexo-${anexoIndex}`,
+                                )
+                              }
                             />
                           );
                         })}
                       </View>
                     ) : null}
-                    <Text style={[styles.messageMeta, styles.messageMetaOutgoing]}>
+                    <Text
+                      style={[styles.messageMeta, styles.messageMetaOutgoing]}
+                    >
                       {item.data}
-                      {item.resolvida_em_label ? ` • resolvida em ${item.resolvida_em_label}` : ""}
+                      {item.resolvida_em_label
+                        ? ` • resolvida em ${item.resolvida_em_label}`
+                        : ""}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.messageIncomingCluster}>
-                    <View style={[styles.messageAvatar, styles.messageAvatarMesa]}>
-                      <MaterialCommunityIcons color={colors.accent} name="clipboard-text-outline" size={16} />
+                    <View
+                      style={[styles.messageAvatar, styles.messageAvatarMesa]}
+                    >
+                      <MaterialCommunityIcons
+                        color={accentColor}
+                        name="clipboard-text-outline"
+                        size={16}
+                      />
                     </View>
                     <View
                       style={[
                         styles.messageBubble,
                         styles.messageBubbleIncomingShell,
-                        mensagemEhMesa ? styles.messageBubbleEngineering : styles.messageBubbleIncoming,
+                        mensagemEhMesa
+                          ? styles.messageBubbleEngineering
+                          : styles.messageBubbleIncoming,
                       ]}
                     >
                       <View style={styles.messageHeaderRow}>
@@ -216,7 +258,9 @@ export function ThreadConversationPane({
                                 : styles.messageStatusBadgeTextAccent,
                             ]}
                           >
-                            {item.resolvida_em_label ? "Resolvida" : "Mesa ativa"}
+                            {item.resolvida_em_label
+                              ? "Resolvida"
+                              : "Mesa ativa"}
                           </Text>
                         </View>
                       </View>
@@ -227,7 +271,11 @@ export function ThreadConversationPane({
                           preview={referenciaPreview}
                         />
                       ) : null}
-                      <Text style={[styles.messageText, dynamicMessageTextStyle]}>{item.texto}</Text>
+                      <Text
+                        style={[styles.messageText, dynamicMessageTextStyle]}
+                      >
+                        {item.texto}
+                      </Text>
                       {item.anexos?.length ? (
                         <View style={styles.messageAttachments}>
                           {item.anexos.map((anexo, anexoIndex) => {
@@ -237,7 +285,13 @@ export function ThreadConversationPane({
                                 accessToken={sessionAccessToken}
                                 attachment={anexo}
                                 onPress={onAbrirAnexo}
-                                opening={anexoAbrindoChave === toAttachmentKey(anexo, `${item.id}-anexo-${anexoIndex}`)}
+                                opening={
+                                  anexoAbrindoChave ===
+                                  toAttachmentKey(
+                                    anexo,
+                                    `${item.id}-anexo-${anexoIndex}`,
+                                  )
+                                }
                               />
                             );
                           })}
@@ -249,14 +303,22 @@ export function ThreadConversationPane({
                             onPress={() => onDefinirReferenciaMesaAtiva(item)}
                             style={styles.messageActionButton}
                           >
-                            <MaterialCommunityIcons name="reply-outline" size={15} color={colors.accent} />
-                            <Text style={styles.messageActionText}>Responder nesta mensagem</Text>
+                            <MaterialCommunityIcons
+                              name="reply-outline"
+                              size={15}
+                              color={colors.accent}
+                            />
+                            <Text style={styles.messageActionText}>
+                              Responder nesta mensagem
+                            </Text>
                           </Pressable>
                         </View>
                       ) : null}
                       <Text style={styles.messageMeta}>
                         {item.data}
-                        {item.resolvida_em_label ? ` • resolvida em ${item.resolvida_em_label}` : ""}
+                        {item.resolvida_em_label
+                          ? ` • resolvida em ${item.resolvida_em_label}`
+                          : ""}
                       </Text>
                     </View>
                   </View>
@@ -288,7 +350,9 @@ export function ThreadConversationPane({
     return (
       <View style={styles.loadingState}>
         <ActivityIndicator color={colors.accent} size="large" />
-        <Text style={styles.loadingText}>Carregando a conversa do inspetor...</Text>
+        <Text style={styles.loadingText}>
+          Carregando a conversa do inspetor...
+        </Text>
       </View>
     );
   }
@@ -301,10 +365,7 @@ export function ThreadConversationPane({
           keyboardVisible ? styles.threadEmptyStateKeyboardVisible : null,
         ]}
       >
-        <EmptyState
-          compact
-          icon="message-processing-outline"
-        />
+        <EmptyState compact icon="message-processing-outline" />
       </View>
     );
   }
@@ -336,15 +397,21 @@ export function ThreadConversationPane({
           mensagensVisiveis,
           mensagensMesa,
         );
-        const mensagemDestacada = Boolean(item.id && item.id === mensagemChatDestacadaId);
+        const mensagemDestacada = Boolean(
+          item.id && item.id === mensagemChatDestacadaId,
+        );
 
         return (
           <View
             key={`${item.id ?? "placeholder"}-${index}`}
-            onLayout={(event) => onRegistrarLayoutMensagemChat(item.id, event.nativeEvent.layout.y)}
+            onLayout={(event) =>
+              onRegistrarLayoutMensagemChat(item.id, event.nativeEvent.layout.y)
+            }
             style={[
               styles.messageRow,
-              mensagemEhUsuario ? styles.messageRowOutgoing : styles.messageRowIncoming,
+              mensagemEhUsuario
+                ? styles.messageRowOutgoing
+                : styles.messageRowIncoming,
             ]}
           >
             {mensagemEhUsuario ? (
@@ -355,7 +422,11 @@ export function ThreadConversationPane({
                   mensagemDestacada ? styles.messageBubbleReferenced : null,
                 ]}
               >
-                <Text style={[styles.messageAuthor, styles.messageAuthorOutgoing]}>{nomeAutor}</Text>
+                <Text
+                  style={[styles.messageAuthor, styles.messageAuthorOutgoing]}
+                >
+                  {nomeAutor}
+                </Text>
                 {referenciaId ? (
                   <MessageReferenceCard
                     messageId={referenciaId}
@@ -364,7 +435,13 @@ export function ThreadConversationPane({
                     variant="outgoing"
                   />
                 ) : null}
-                <Text style={[styles.messageText, styles.messageTextOutgoing, dynamicMessageTextStyle]}>
+                <Text
+                  style={[
+                    styles.messageText,
+                    styles.messageTextOutgoing,
+                    dynamicMessageTextStyle,
+                  ]}
+                >
                   {item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
                 </Text>
                 {item.anexos?.length ? (
@@ -378,7 +455,10 @@ export function ThreadConversationPane({
                           onPress={onAbrirAnexo}
                           opening={
                             anexoAbrindoChave ===
-                            toAttachmentKey(anexo, `${item.id ?? "msg"}-anexo-${anexoIndex}`)
+                            toAttachmentKey(
+                              anexo,
+                              `${item.id ?? "msg"}-anexo-${anexoIndex}`,
+                            )
                           }
                         />
                       );
@@ -386,25 +466,42 @@ export function ThreadConversationPane({
                   </View>
                 ) : null}
                 {item.citacoes?.length ? (
-                  <Text style={[styles.messageMeta, styles.messageMetaOutgoing]}>
-                    {item.citacoes.length} referência{item.citacoes.length > 1 ? "s" : ""} anexada
+                  <Text
+                    style={[styles.messageMeta, styles.messageMetaOutgoing]}
+                  >
+                    {item.citacoes.length} referência
+                    {item.citacoes.length > 1 ? "s" : ""} anexada
                   </Text>
                 ) : null}
               </View>
             ) : (
               <View style={styles.messageIncomingCluster}>
                 {mensagemEhEngenharia ? (
-                  <View style={[styles.messageAvatar, styles.messageAvatarEngineering]}>
-                    <MaterialCommunityIcons color={colors.accent} name="clipboard-check-outline" size={16} />
+                  <View
+                    style={[
+                      styles.messageAvatar,
+                      styles.messageAvatarEngineering,
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      color={colors.accent}
+                      name="clipboard-check-outline"
+                      size={16}
+                    />
                   </View>
                 ) : (
-                  <Image source={brandMarkSource} style={styles.messageAvatarBrand} />
+                  <Image
+                    source={brandMarkSource}
+                    style={styles.messageAvatarBrand}
+                  />
                 )}
                 <View
                   style={[
                     styles.messageBubble,
                     styles.messageBubbleIncomingShell,
-                    mensagemEhEngenharia ? styles.messageBubbleEngineering : styles.messageBubbleIncoming,
+                    mensagemEhEngenharia
+                      ? styles.messageBubbleEngineering
+                      : styles.messageBubbleIncoming,
                     mensagemDestacada ? styles.messageBubbleReferenced : null,
                     dynamicMessageBubbleStyle,
                   ]}
@@ -412,8 +509,18 @@ export function ThreadConversationPane({
                   <View style={styles.messageHeaderRow}>
                     <Text style={styles.messageAuthor}>{nomeAutor}</Text>
                     {mensagemEhEngenharia ? (
-                      <View style={[styles.messageStatusBadge, styles.messageStatusBadgeAccent]}>
-                        <Text style={[styles.messageStatusBadgeText, styles.messageStatusBadgeTextAccent]}>
+                      <View
+                        style={[
+                          styles.messageStatusBadge,
+                          styles.messageStatusBadgeAccent,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.messageStatusBadgeText,
+                            styles.messageStatusBadgeTextAccent,
+                          ]}
+                        >
                           Mesa
                         </Text>
                       </View>
@@ -428,12 +535,18 @@ export function ThreadConversationPane({
                   ) : null}
                   {mensagemEhAssistente ? (
                     <AssistantMessageContent
-                      text={item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
+                      text={
+                        item.texto === "[imagem]"
+                          ? "Imagem enviada"
+                          : item.texto
+                      }
                       textStyle={[styles.messageText, dynamicMessageTextStyle]}
                     />
                   ) : (
                     <Text style={[styles.messageText, dynamicMessageTextStyle]}>
-                      {item.texto === "[imagem]" ? "Imagem enviada" : item.texto}
+                      {item.texto === "[imagem]"
+                        ? "Imagem enviada"
+                        : item.texto}
                     </Text>
                   )}
                   {item.anexos?.length ? (
@@ -447,7 +560,10 @@ export function ThreadConversationPane({
                             onPress={onAbrirAnexo}
                             opening={
                               anexoAbrindoChave ===
-                              toAttachmentKey(anexo, `${item.id ?? "msg"}-anexo-${anexoIndex}`)
+                              toAttachmentKey(
+                                anexo,
+                                `${item.id ?? "msg"}-anexo-${anexoIndex}`,
+                              )
                             }
                           />
                         );
@@ -458,7 +574,8 @@ export function ThreadConversationPane({
                     <AssistantCitationList citations={item.citacoes} />
                   ) : item.citacoes?.length ? (
                     <Text style={styles.messageMeta}>
-                      {item.citacoes.length} referência{item.citacoes.length > 1 ? "s" : ""} anexada
+                      {item.citacoes.length} referência
+                      {item.citacoes.length > 1 ? "s" : ""} anexada
                     </Text>
                   ) : null}
                 </View>

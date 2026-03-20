@@ -4,7 +4,6 @@ import {
 } from "../InspectorMobileApp.constants";
 import {
   SettingsPressRow,
-  SettingsScaleRow,
   SettingsSection,
   SettingsSwitchRow,
 } from "./SettingsPrimitives";
@@ -88,7 +87,10 @@ interface SettingsSecurityDeleteAccountSectionProps {
   onExcluirConta: () => void;
 }
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -201,7 +203,11 @@ export function SettingsSecurityDataConversationsSection({
       <SettingsPressRow
         description="Define por quanto tempo o histórico pode permanecer salvo."
         icon="timer-sand"
-        onPress={() => onSetRetencaoDados(nextOptionValue(retencaoDados, DATA_RETENTION_OPTIONS))}
+        onPress={() =>
+          onSetRetencaoDados(
+            nextOptionValue(retencaoDados, DATA_RETENTION_OPTIONS),
+          )
+        }
         title="Retenção de dados"
         value={retencaoDados}
       />
@@ -240,7 +246,11 @@ export function SettingsSecurityDataConversationsSection({
       <SettingsPressRow
         description="Define a intensidade da compressão aplicada a imagens antes do envio."
         icon="image-size-select-small"
-        onPress={() => onSetMediaCompression(nextOptionValue(mediaCompression, MEDIA_COMPRESSION_OPTIONS))}
+        onPress={() =>
+          onSetMediaCompression(
+            nextOptionValue(mediaCompression, MEDIA_COMPRESSION_OPTIONS),
+          )
+        }
         title="Compressão de mídia"
         value={mediaCompression}
       />
@@ -287,32 +297,57 @@ export function SettingsSecurityPermissionsSection({
     >
       <SettingsPressRow
         icon="microphone-outline"
-        onPress={() => onGerenciarPermissao("Microfone", microfonePermitido ? "permitido" : "negado")}
+        onPress={() =>
+          onGerenciarPermissao(
+            "Microfone",
+            microfonePermitido ? "permitido" : "negado",
+          )
+        }
         title="Microfone"
         value={microfonePermitido ? "Permitido" : "Negado"}
       />
       <SettingsPressRow
         icon="camera-outline"
-        onPress={() => onGerenciarPermissao("Câmera", cameraPermitida ? "permitido" : "negado")}
+        onPress={() =>
+          onGerenciarPermissao(
+            "Câmera",
+            cameraPermitida ? "permitido" : "negado",
+          )
+        }
         title="Câmera"
         value={cameraPermitida ? "Permitido" : "Negado"}
       />
       <SettingsPressRow
         icon="file-document-outline"
-        onPress={() => onGerenciarPermissao("Arquivos", arquivosPermitidos ? "permitido" : "negado")}
+        onPress={() =>
+          onGerenciarPermissao(
+            "Arquivos",
+            arquivosPermitidos ? "permitido" : "negado",
+          )
+        }
         title="Arquivos"
         value={arquivosPermitidos ? "Permitido" : "Negado"}
       />
       <SettingsPressRow
         icon="bell-outline"
-        onPress={() => onGerenciarPermissao("Notificações", notificacoesPermitidas ? "permitido" : "negado")}
+        onPress={() =>
+          onGerenciarPermissao(
+            "Notificações",
+            notificacoesPermitidas ? "permitido" : "negado",
+          )
+        }
         title="Notificações"
         value={notificacoesPermitidas ? "Permitido" : "Negado"}
       />
       {showBiometricsPermission ? (
         <SettingsPressRow
           icon="fingerprint"
-          onPress={() => onGerenciarPermissao("Biometria", biometriaPermitida ? "permitido" : "negado")}
+          onPress={() =>
+            onGerenciarPermissao(
+              "Biometria",
+              biometriaPermitida ? "permitido" : "negado",
+            )
+          }
           title="Biometria"
           value={biometriaPermitida ? "Permitido" : "Negado"}
         />
@@ -320,7 +355,9 @@ export function SettingsSecurityPermissionsSection({
       <SettingsPressRow
         description="Abra diretamente os ajustes do Android para revisar todas as permissões deste app."
         icon="open-in-app"
-        onPress={() => onAbrirAjustesDoSistema("as permissões do app do inspetor")}
+        onPress={() =>
+          onAbrirAjustesDoSistema("as permissões do app do inspetor")
+        }
         title="Abrir ajustes do sistema"
       />
       <SettingsPressRow
@@ -328,7 +365,11 @@ export function SettingsSecurityPermissionsSection({
         icon="shield-sync-outline"
         onPress={onRevisarPermissoesCriticas}
         title="Revisar permissões críticas"
-        value={permissoesNegadasTotal ? `${permissoesNegadasTotal} pendente(s)` : "Tudo certo"}
+        value={
+          permissoesNegadasTotal
+            ? `${permissoesNegadasTotal} pendente(s)`
+            : "Tudo certo"
+        }
       />
     </SettingsSection>
   );

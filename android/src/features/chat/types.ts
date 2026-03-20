@@ -1,5 +1,8 @@
 import type {
+  MobileChatMessage,
   MobileChatMode,
+  MobileEstadoLaudo,
+  MobileLaudoCard,
 } from "../../types/mobile";
 
 export type ActiveThread = "chat" | "mesa";
@@ -10,7 +13,11 @@ export type ActivityNotificationKind =
   | "mesa_reaberta"
   | "system"
   | "alerta_critico";
-export type ActivityNotificationCategory = "chat" | "mesa" | "system" | "critical";
+export type ActivityNotificationCategory =
+  | "chat"
+  | "mesa"
+  | "system"
+  | "critical";
 
 export type ComposerAttachment =
   | {
@@ -33,6 +40,22 @@ export type ComposerAttachment =
       fileUri: string;
       mimeType: string;
     };
+
+export interface MessageReferenceState {
+  id: number;
+  texto: string;
+}
+
+export interface ChatState {
+  laudoId: number | null;
+  estado: MobileEstadoLaudo | string;
+  statusCard: string;
+  permiteEdicao: boolean;
+  permiteReabrir: boolean;
+  laudoCard: MobileLaudoCard | null;
+  modo: MobileChatMode | string;
+  mensagens: MobileChatMessage[];
+}
 
 export interface OfflinePendingMessage {
   id: string;
@@ -63,7 +86,9 @@ export interface MobileActivityNotification {
   targetThread: ActiveThread;
 }
 
-export function duplicarComposerAttachment(anexo: ComposerAttachment | null): ComposerAttachment | null {
+export function duplicarComposerAttachment(
+  anexo: ComposerAttachment | null,
+): ComposerAttachment | null {
   if (!anexo) {
     return null;
   }
@@ -73,7 +98,11 @@ export function duplicarComposerAttachment(anexo: ComposerAttachment | null): Co
 export function categoriaNotificacaoPorKind(
   kind: ActivityNotificationKind,
 ): ActivityNotificationCategory {
-  if (kind === "mesa_nova" || kind === "mesa_resolvida" || kind === "mesa_reaberta") {
+  if (
+    kind === "mesa_nova" ||
+    kind === "mesa_resolvida" ||
+    kind === "mesa_reaberta"
+  ) {
     return "mesa";
   }
   if (kind === "system") {

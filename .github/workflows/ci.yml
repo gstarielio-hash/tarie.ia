@@ -44,3 +44,36 @@ jobs:
             tests/test_regras_rotas_criticas.py \
             tests/test_inspetor_comandos_dominio.py \
             tests/test_inspetor_confianca_dominio.py
+
+  mobile-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: android/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Jest
+        run: npm run test -- --runInBand

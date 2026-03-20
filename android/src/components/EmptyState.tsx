@@ -43,11 +43,17 @@ export function EmptyState({
   return (
     <View style={[styles.container, compact ? styles.containerCompact : null]}>
       <View style={[styles.iconShell, iconShellStyle]}>
-        <MaterialCommunityIcons color={iconColor} name={icon} size={iconSizes.lg} />
+        <MaterialCommunityIcons
+          color={iconColor}
+          name={icon}
+          size={iconSizes.lg}
+        />
       </View>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
       {title ? <Text style={styles.title}>{title}</Text> : null}
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      {description ? (
+        <Text style={styles.description}>{description}</Text>
+      ) : null}
     </View>
   );
 }

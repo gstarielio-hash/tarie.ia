@@ -17,7 +17,9 @@ export async function readNetworkSnapshot(): Promise<NetworkSnapshot> {
     const state = await Network.getNetworkStateAsync();
     return {
       connected: Boolean(state.isConnected),
-      isWifi: Boolean(state.isConnected) && state.type === Network.NetworkStateType.WIFI,
+      isWifi:
+        Boolean(state.isConnected) &&
+        state.type === Network.NetworkStateType.WIFI,
       typeLabel: String(state.type || "unknown"),
     };
   } catch {
@@ -29,7 +31,9 @@ export async function readNetworkSnapshot(): Promise<NetworkSnapshot> {
   }
 }
 
-export async function canSyncOnCurrentNetwork(wifiOnlySync: boolean): Promise<boolean> {
+export async function canSyncOnCurrentNetwork(
+  wifiOnlySync: boolean,
+): Promise<boolean> {
   if (!wifiOnlySync) {
     return true;
   }
@@ -70,4 +74,3 @@ export async function gateHeavyTransfer(params: {
     snapshot,
   };
 }
-

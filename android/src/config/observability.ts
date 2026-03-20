@@ -45,7 +45,12 @@ function clampDuration(value: unknown): number | undefined {
 }
 
 function parseKind(value: unknown): MobileObservabilityKind {
-  if (value === "api" || value === "offline_queue" || value === "activity_monitor" || value === "push") {
+  if (
+    value === "api" ||
+    value === "offline_queue" ||
+    value === "activity_monitor" ||
+    value === "push"
+  ) {
     return value;
   }
   return "api";
@@ -60,7 +65,9 @@ function normalizeRecord(raw: unknown): MobileObservabilityEvent | null {
   if (!name) {
     return null;
   }
-  const id = String(item.id || "").trim() || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const id =
+    String(item.id || "").trim() ||
+    `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   const createdAt = String(item.createdAt || "").trim() || nowIso();
   const httpStatus =
     typeof item.httpStatus === "number" && Number.isFinite(item.httpStatus)
@@ -78,10 +85,16 @@ function normalizeRecord(raw: unknown): MobileObservabilityEvent | null {
     ok: Boolean(item.ok),
     createdAt,
     durationMs: clampDuration(item.durationMs),
-    method: typeof item.method === "string" ? item.method.trim().toUpperCase() : undefined,
+    method:
+      typeof item.method === "string"
+        ? item.method.trim().toUpperCase()
+        : undefined,
     path: typeof item.path === "string" ? item.path.trim() : undefined,
     httpStatus,
-    detail: typeof item.detail === "string" ? item.detail.trim().slice(0, 320) : undefined,
+    detail:
+      typeof item.detail === "string"
+        ? item.detail.trim().slice(0, 320)
+        : undefined,
     count,
   };
 }
@@ -107,13 +120,18 @@ async function saveEvents(items: MobileObservabilityEvent[]): Promise<void> {
       await FileSystem.deleteAsync(OBSERVABILITY_FILE, { idempotent: true });
       return;
     }
-    await FileSystem.writeAsStringAsync(OBSERVABILITY_FILE, JSON.stringify(items));
+    await FileSystem.writeAsStringAsync(
+      OBSERVABILITY_FILE,
+      JSON.stringify(items),
+    );
   } catch {
     // Observabilidade não pode quebrar o fluxo principal.
   }
 }
 
-export function configureObservability(options: { analyticsOptIn: boolean }): void {
+export function configureObservability(options: {
+  analyticsOptIn: boolean;
+}): void {
   analyticsOptInEnabled = options.analyticsOptIn;
   if (!analyticsOptInEnabled) {
     void saveEvents([]);
@@ -121,7 +139,9 @@ export function configureObservability(options: { analyticsOptIn: boolean }): vo
 }
 
 export async function registrarEventoObservabilidade(
-  input: Omit<MobileObservabilityEvent, "id" | "createdAt"> & { createdAt?: string },
+  input: Omit<MobileObservabilityEvent, "id" | "createdAt"> & {
+    createdAt?: string;
+  },
 ): Promise<void> {
   if (!analyticsOptInEnabled) {
     return;
@@ -138,13 +158,17 @@ export async function registrarEventoObservabilidade(
     ok: Boolean(input.ok),
     createdAt: input.createdAt || nowIso(),
     durationMs: clampDuration(input.durationMs),
-    method: input.method ? String(input.method).trim().toUpperCase() : undefined,
+    method: input.method
+      ? String(input.method).trim().toUpperCase()
+      : undefined,
     path: input.path ? String(input.path).trim() : undefined,
     httpStatus:
       typeof input.httpStatus === "number" && Number.isFinite(input.httpStatus)
         ? Math.round(input.httpStatus)
         : undefined,
-    detail: input.detail ? String(input.detail).trim().slice(0, 320) : undefined,
+    detail: input.detail
+      ? String(input.detail).trim().slice(0, 320)
+      : undefined,
     count:
       typeof input.count === "number" && Number.isFinite(input.count)
         ? Math.max(0, Math.round(input.count))
@@ -156,8 +180,12 @@ export async function registrarEventoObservabilidade(
   await saveEvents(proximo);
 }
 
-export async function listarEventosObservabilidade(limit = 120): Promise<MobileObservabilityEvent[]> {
-  const limite = Number.isFinite(limit) ? Math.max(1, Math.min(500, Math.round(limit))) : 120;
+export async function listarEventosObservabilidade(
+  limit = 120,
+): Promise<MobileObservabilityEvent[]> {
+  const limite = Number.isFinite(limit)
+    ? Math.max(1, Math.min(500, Math.round(limit)))
+    : 120;
   const itens = await readEvents();
   return itens.slice(-limite).reverse();
 }
@@ -166,7 +194,9 @@ export async function limparEventosObservabilidade(): Promise<void> {
   await saveEvents([]);
 }
 
-export function resumirEventosObservabilidade(itens: MobileObservabilityEvent[]): ObservabilitySummary {
+export function resumirEventosObservabilidade(
+  itens: MobileObservabilityEvent[],
+): ObservabilitySummary {
   const baseKind: Record<MobileObservabilityKind, number> = {
     api: 0,
     offline_queue: 0,
@@ -207,7 +237,9 @@ export function resumirEventosObservabilidade(itens: MobileObservabilityEvent[])
     failures,
     byKind: baseKind,
     failuresByKind: failuresKind,
-    averageDurationMs: durationCount ? Math.round(durationTotal / durationCount) : 0,
+    averageDurationMs: durationCount
+      ? Math.round(durationTotal / durationCount)
+      : 0,
     latestAt,
   };
 }

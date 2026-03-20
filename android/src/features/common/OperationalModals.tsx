@@ -37,25 +37,51 @@ export function AttachmentPickerModal({
               <Text style={styles.activityModalEyebrow}>anexar</Text>
               <Text style={styles.activityModalTitle}>Escolha o anexo</Text>
               <Text style={styles.activityModalDescription}>
-                Envie uma foto, uma imagem da galeria ou um documento no mesmo fluxo da conversa.
+                Envie uma foto, uma imagem da galeria ou um documento no mesmo
+                fluxo da conversa.
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.activityModalClose}>
-              <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={20}
+                color={colors.textPrimary}
+              />
             </Pressable>
           </View>
 
           <View style={styles.actionList}>
-            <Pressable onPress={() => onChoose("camera")} style={styles.actionItem}>
-              <MaterialCommunityIcons name="camera-outline" size={20} color={colors.accent} />
+            <Pressable
+              onPress={() => onChoose("camera")}
+              style={styles.actionItem}
+            >
+              <MaterialCommunityIcons
+                name="camera-outline"
+                size={20}
+                color={colors.accent}
+              />
               <Text style={styles.actionText}>Câmera</Text>
             </Pressable>
-            <Pressable onPress={() => onChoose("galeria")} style={styles.actionItem}>
-              <MaterialCommunityIcons name="image-outline" size={20} color={colors.accent} />
+            <Pressable
+              onPress={() => onChoose("galeria")}
+              style={styles.actionItem}
+            >
+              <MaterialCommunityIcons
+                name="image-outline"
+                size={20}
+                color={colors.accent}
+              />
               <Text style={styles.actionText}>Galeria</Text>
             </Pressable>
-            <Pressable onPress={() => onChoose("documento")} style={styles.actionItem}>
-              <MaterialCommunityIcons name="file-document-outline" size={20} color={colors.accent} />
+            <Pressable
+              onPress={() => onChoose("documento")}
+              style={styles.actionItem}
+            >
+              <MaterialCommunityIcons
+                name="file-document-outline"
+                size={20}
+                color={colors.accent}
+              />
               <Text style={styles.actionText}>Documento</Text>
             </Pressable>
           </View>
@@ -65,15 +91,17 @@ export function AttachmentPickerModal({
   );
 }
 
-export function ActivityCenterModal<TNotification extends {
-  id: string;
-  kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta";
-  title: string;
-  body: string;
-  createdAt: string;
-  unread: boolean;
-  targetThread: "chat" | "mesa";
-}>({
+export function ActivityCenterModal<
+  TNotification extends {
+    id: string;
+    kind: "status" | "mesa_nova" | "mesa_resolvida" | "mesa_reaberta";
+    title: string;
+    body: string;
+    createdAt: string;
+    unread: boolean;
+    targetThread: "chat" | "mesa";
+  },
+>({
   visible,
   onClose,
   monitorandoAtividade,
@@ -100,20 +128,29 @@ export function ActivityCenterModal<TNotification extends {
           <View style={styles.activityModalHeader}>
             <View style={styles.activityModalCopy}>
               <Text style={styles.activityModalEyebrow}>tariel.ia</Text>
-              <Text style={styles.activityModalTitle}>Central de atividade</Text>
+              <Text style={styles.activityModalTitle}>
+                Central de atividade
+              </Text>
               <Text style={styles.activityModalDescription}>
-                Alertas recentes do laudo ativo e da mesa enquanto o app estiver em uso.
+                Alertas recentes do laudo ativo e da mesa enquanto o app estiver
+                em uso.
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.activityModalClose}>
-              <MaterialCommunityIcons name="close" size={18} color={colors.textPrimary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={colors.textPrimary}
+              />
             </Pressable>
           </View>
 
           {monitorandoAtividade ? (
             <View style={styles.activityModalLoading}>
               <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={styles.activityModalLoadingText}>Atualizando atividade...</Text>
+              <Text style={styles.activityModalLoadingText}>
+                Atualizando atividade...
+              </Text>
             </View>
           ) : null}
 
@@ -146,21 +183,32 @@ export function ActivityCenterModal<TNotification extends {
                   <View style={styles.activityItemBody}>
                     <View style={styles.activityItemTop}>
                       <Text style={styles.activityItemTitle}>{item.title}</Text>
-                      <Text style={styles.activityItemTime}>{formatarHorarioAtividade(item.createdAt)}</Text>
+                      <Text style={styles.activityItemTime}>
+                        {formatarHorarioAtividade(item.createdAt)}
+                      </Text>
                     </View>
                     <Text style={styles.activityItemText}>{item.body}</Text>
                     <Text style={styles.activityItemHint}>
-                      {item.targetThread === "mesa" ? "Abrir na aba Mesa" : "Abrir no Chat"}
+                      {item.targetThread === "mesa"
+                        ? "Abrir na aba Mesa"
+                        : "Abrir no Chat"}
                     </Text>
                   </View>
                 </Pressable>
               ))
             ) : (
               <View style={styles.activityEmptyState}>
-                <MaterialCommunityIcons name="bell-outline" size={26} color={colors.textSecondary} />
-                <Text style={styles.activityEmptyTitle}>Nenhuma atividade recente</Text>
+                <MaterialCommunityIcons
+                  name="bell-outline"
+                  size={26}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.activityEmptyTitle}>
+                  Nenhuma atividade recente
+                </Text>
                 <Text style={styles.activityEmptyText}>
-                  Quando a mesa responder ou um laudo mudar de status, isso aparece aqui.
+                  Quando a mesa responder ou um laudo mudar de status, isso
+                  aparece aqui.
                 </Text>
               </View>
             )}
@@ -171,13 +219,15 @@ export function ActivityCenterModal<TNotification extends {
   );
 }
 
-export function OfflineQueueModal<TOfflineItem extends {
-  id: string;
-  channel: "chat" | "mesa";
-  title: string;
-  createdAt: string;
-  lastError: string;
-}>({
+export function OfflineQueueModal<
+  TOfflineItem extends {
+    id: string;
+    channel: "chat" | "mesa";
+    title: string;
+    createdAt: string;
+    lastError: string;
+  },
+>({
   visible,
   onClose,
   resumoFilaOfflineFiltrada,
@@ -242,16 +292,23 @@ export function OfflineQueueModal<TOfflineItem extends {
               <Text style={styles.activityModalEyebrow}>tariel.ia</Text>
               <Text style={styles.activityModalTitle}>Fila offline</Text>
               <Text style={styles.activityModalDescription}>
-                Envios guardados localmente para o inspetor retomar, revisar ou reenviar quando a conexão voltar.
+                Envios guardados localmente para o inspetor retomar, revisar ou
+                reenviar quando a conexão voltar.
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.activityModalClose}>
-              <MaterialCommunityIcons name="close" size={18} color={colors.textPrimary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={colors.textPrimary}
+              />
             </Pressable>
           </View>
 
           <View style={styles.offlineModalToolbar}>
-            <Text style={styles.offlineModalToolbarText}>{resumoFilaOfflineFiltrada}</Text>
+            <Text style={styles.offlineModalToolbarText}>
+              {resumoFilaOfflineFiltrada}
+            </Text>
             {sincronizandoFilaOffline ? (
               <ActivityIndicator size="small" color={colors.accent} />
             ) : (
@@ -260,7 +317,9 @@ export function OfflineQueueModal<TOfflineItem extends {
                 onPress={onSincronizarFilaOffline}
                 style={[
                   styles.offlineModalSyncButton,
-                  !podeSincronizarFilaOffline ? styles.offlineModalSyncButtonDisabled : null,
+                  !podeSincronizarFilaOffline
+                    ? styles.offlineModalSyncButtonDisabled
+                    : null,
                 ]}
               >
                 <MaterialCommunityIcons
@@ -274,12 +333,18 @@ export function OfflineQueueModal<TOfflineItem extends {
                           : "cloud-off-outline"
                   }
                   size={16}
-                  color={podeSincronizarFilaOffline ? colors.accent : colors.textSecondary}
+                  color={
+                    podeSincronizarFilaOffline
+                      ? colors.accent
+                      : colors.textSecondary
+                  }
                 />
                 <Text
                   style={[
                     styles.offlineModalSyncText,
-                    !podeSincronizarFilaOffline ? styles.offlineModalSyncTextDisabled : null,
+                    !podeSincronizarFilaOffline
+                      ? styles.offlineModalSyncTextDisabled
+                      : null,
                   ]}
                 >
                   Sincronizar
@@ -289,7 +354,8 @@ export function OfflineQueueModal<TOfflineItem extends {
           </View>
           {!sincronizacaoDispositivos ? (
             <Text style={styles.offlineModalToolbarText}>
-              Sincronização entre dispositivos está desativada nas configurações de dados.
+              Sincronização entre dispositivos está desativada nas configurações
+              de dados.
             </Text>
           ) : null}
 
@@ -336,7 +402,10 @@ export function OfflineQueueModal<TOfflineItem extends {
           <ScrollView contentContainerStyle={styles.activityModalList}>
             {filaOfflineFiltrada.length ? (
               filaOfflineFiltrada.map((item) => (
-                <View key={`offline-modal-${item.id}`} style={styles.offlineModalItem}>
+                <View
+                  key={`offline-modal-${item.id}`}
+                  style={styles.offlineModalItem}
+                >
                   <View style={styles.offlineModalItemTop}>
                     <View style={styles.offlineModalItemBadge}>
                       <MaterialCommunityIcons
@@ -348,34 +417,53 @@ export function OfflineQueueModal<TOfflineItem extends {
                     <View style={styles.offlineModalItemCopy}>
                       <View style={styles.offlineModalItemHeading}>
                         <Text style={styles.offlineModalItemTitle}>
-                          {item.channel === "mesa" ? "Mesa" : "Chat"} • {item.title}
+                          {item.channel === "mesa" ? "Mesa" : "Chat"} •{" "}
+                          {item.title}
                         </Text>
-                        <Text style={styles.offlineModalItemTime}>{formatarHorarioAtividade(item.createdAt)}</Text>
+                        <Text style={styles.offlineModalItemTime}>
+                          {formatarHorarioAtividade(item.createdAt)}
+                        </Text>
                       </View>
-                      <Text style={styles.offlineModalItemText}>{resumoPendenciaOffline(item)}</Text>
-                      <Text style={styles.offlineModalItemHint}>{legendaPendenciaOffline(item)}</Text>
+                      <Text style={styles.offlineModalItemText}>
+                        {resumoPendenciaOffline(item)}
+                      </Text>
+                      <Text style={styles.offlineModalItemHint}>
+                        {legendaPendenciaOffline(item)}
+                      </Text>
                       <View style={styles.offlineModalItemStatusRow}>
                         <View
                           style={[
                             styles.offlineModalItemStatusBadge,
-                            item.lastError ? styles.offlineModalItemStatusBadgeError : null,
+                            item.lastError
+                              ? styles.offlineModalItemStatusBadgeError
+                              : null,
                           ]}
                         >
                           <MaterialCommunityIcons
-                            name={item.lastError ? "alert-circle-outline" : "clock-outline"}
+                            name={
+                              item.lastError
+                                ? "alert-circle-outline"
+                                : "clock-outline"
+                            }
                             size={13}
-                            color={item.lastError ? colors.danger : colors.accent}
+                            color={
+                              item.lastError ? colors.danger : colors.accent
+                            }
                           />
                           <Text
                             style={[
                               styles.offlineModalItemStatusBadgeText,
-                              item.lastError ? styles.offlineModalItemStatusBadgeTextError : null,
+                              item.lastError
+                                ? styles.offlineModalItemStatusBadgeTextError
+                                : null,
                             ]}
                           >
                             {rotuloStatusPendenciaOffline(item)}
                           </Text>
                         </View>
-                        <Text style={styles.offlineModalItemStatusText}>{detalheStatusPendenciaOffline(item)}</Text>
+                        <Text style={styles.offlineModalItemStatusText}>
+                          {detalheStatusPendenciaOffline(item)}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -403,7 +491,11 @@ export function OfflineQueueModal<TOfflineItem extends {
                         <ActivityIndicator size="small" color={colors.accent} />
                       ) : (
                         <MaterialCommunityIcons
-                          name={pendenciaFilaProntaParaReenvio(item) ? "upload-outline" : "lightning-bolt-outline"}
+                          name={
+                            pendenciaFilaProntaParaReenvio(item)
+                              ? "upload-outline"
+                              : "lightning-bolt-outline"
+                          }
                           size={16}
                           color={colors.accent}
                         />
@@ -419,22 +511,36 @@ export function OfflineQueueModal<TOfflineItem extends {
                             : null,
                         ]}
                       >
-                        {pendenciaFilaProntaParaReenvio(item) ? "Enviar agora" : "Forçar agora"}
+                        {pendenciaFilaProntaParaReenvio(item)
+                          ? "Enviar agora"
+                          : "Forçar agora"}
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => onRetomarItemFilaOffline(item)}
                       style={styles.offlineModalActionPrimary}
                     >
-                      <MaterialCommunityIcons name="reply-outline" size={16} color={colors.white} />
-                      <Text style={styles.offlineModalActionPrimaryText}>Retomar</Text>
+                      <MaterialCommunityIcons
+                        name="reply-outline"
+                        size={16}
+                        color={colors.white}
+                      />
+                      <Text style={styles.offlineModalActionPrimaryText}>
+                        Retomar
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => onRemoverItemFilaOffline(item.id)}
                       style={styles.offlineModalActionSecondary}
                     >
-                      <MaterialCommunityIcons name="close" size={15} color={colors.textSecondary} />
-                      <Text style={styles.offlineModalActionSecondaryText}>Remover</Text>
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={15}
+                        color={colors.textSecondary}
+                      />
+                      <Text style={styles.offlineModalActionSecondaryText}>
+                        Remover
+                      </Text>
                     </Pressable>
                   </View>
                 </View>
@@ -442,12 +548,18 @@ export function OfflineQueueModal<TOfflineItem extends {
             ) : (
               <View style={styles.activityEmptyState}>
                 <MaterialCommunityIcons
-                  name={filaOfflineOrdenadaTotal ? "filter-variant" : "cloud-check-outline"}
+                  name={
+                    filaOfflineOrdenadaTotal
+                      ? "filter-variant"
+                      : "cloud-check-outline"
+                  }
                   size={26}
                   color={colors.textSecondary}
                 />
                 <Text style={styles.activityEmptyTitle}>
-                  {filaOfflineOrdenadaTotal ? "Nenhuma pendência neste filtro" : "Fila offline vazia"}
+                  {filaOfflineOrdenadaTotal
+                    ? "Nenhuma pendência neste filtro"
+                    : "Fila offline vazia"}
                 </Text>
                 <Text style={styles.activityEmptyText}>
                   {filaOfflineOrdenadaTotal
@@ -490,7 +602,11 @@ export function AttachmentPreviewModal({
               {title || "Imagem anexada"}
             </Text>
             <Pressable onPress={onClose} style={styles.attachmentModalClose}>
-              <MaterialCommunityIcons name="close" size={18} color={colors.white} />
+              <MaterialCommunityIcons
+                name="close"
+                size={18}
+                color={colors.white}
+              />
             </Pressable>
           </View>
 

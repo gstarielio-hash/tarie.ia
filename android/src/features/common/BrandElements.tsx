@@ -16,10 +16,24 @@ export function BrandIntroMark({
   brandColor?: string;
 }) {
   return (
-    <View style={compact ? styles.brandStageCompact : styles.threadEmptyBrandStage}>
-      <View style={compact ? styles.brandHaloCompact : styles.threadEmptyBrandHalo} />
-      <Image source={TARIEL_APP_MARK} style={compact ? styles.brandMarkCompact : styles.threadEmptyBrandMark} />
-      <Text style={[compact ? styles.brandLabelCompact : styles.threadEmptyBrand, { color: brandColor }]}>TARIEL.IA</Text>
+    <View
+      style={compact ? styles.brandStageCompact : styles.threadEmptyBrandStage}
+    >
+      <View
+        style={compact ? styles.brandHaloCompact : styles.threadEmptyBrandHalo}
+      />
+      <Image
+        source={TARIEL_APP_MARK}
+        style={compact ? styles.brandMarkCompact : styles.threadEmptyBrandMark}
+      />
+      <Text
+        style={[
+          compact ? styles.brandLabelCompact : styles.threadEmptyBrand,
+          { color: brandColor },
+        ]}
+      >
+        TARIEL.IA
+      </Text>
       {title ? <Text style={styles.threadEmptyTitle}>{title}</Text> : null}
     </View>
   );
@@ -107,7 +121,11 @@ export function BrandLaunchOverlay({
   return (
     <View pointerEvents="none" style={styles.launchOverlay}>
       <LinearGradient
-        colors={["rgba(255,249,243,0.96)", "rgba(252,248,242,0.98)", "rgba(246,239,231,0.99)"]}
+        colors={[
+          "rgba(255,249,243,0.96)",
+          "rgba(252,248,242,0.98)",
+          "rgba(246,239,231,0.99)",
+        ]}
         style={styles.launchOverlayGradient}
       >
         <Animated.View
@@ -119,10 +137,14 @@ export function BrandLaunchOverlay({
             },
           ]}
         >
-          <Animated.View style={[styles.launchOverlayHalo, { transform: [{ scale: halo }] }]} />
+          <Animated.View
+            style={[styles.launchOverlayHalo, { transform: [{ scale: halo }] }]}
+          />
           <Image source={TARIEL_APP_MARK} style={styles.launchOverlayMark} />
           <Text style={styles.launchOverlayBrand}>TARIEL.IA</Text>
-          <Text style={[styles.launchOverlaySubtitle, { color: accentColor }]}>Inspetor</Text>
+          <Text style={[styles.launchOverlaySubtitle, { color: accentColor }]}>
+            Inspetor
+          </Text>
         </Animated.View>
       </LinearGradient>
     </View>

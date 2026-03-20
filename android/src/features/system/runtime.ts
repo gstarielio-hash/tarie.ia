@@ -13,10 +13,17 @@ export interface InstalledAppRuntimeInfo {
 
 export function getInstalledAppRuntimeInfo(): InstalledAppRuntimeInfo {
   const appName = Constants.expoConfig?.name || "Tariel Inspetor";
-  const version = Application.nativeApplicationVersion || Constants.expoConfig?.version || "1.0.0";
+  const version =
+    Application.nativeApplicationVersion ||
+    Constants.expoConfig?.version ||
+    "1.0.0";
   const build =
     Application.nativeBuildVersion ||
-    String(Constants.expoConfig?.android?.versionCode || Constants.expoConfig?.ios?.buildNumber || "1");
+    String(
+      Constants.expoConfig?.android?.versionCode ||
+        Constants.expoConfig?.ios?.buildNumber ||
+        "1",
+    );
   const applicationId =
     Application.applicationId ||
     Constants.expoConfig?.android?.package ||
@@ -34,4 +41,3 @@ export function getInstalledAppRuntimeInfo(): InstalledAppRuntimeInfo {
       "Este app não tem integração OTA/store check configurada nesta build. A verificação confirma conectividade e a versão instalada.",
   };
 }
-

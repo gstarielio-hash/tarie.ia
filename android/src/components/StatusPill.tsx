@@ -7,7 +7,10 @@ interface StatusPillProps {
   status: ApiHealthStatus;
 }
 
-const statusCopy: Record<ApiHealthStatus, { label: string; tone: string; dot: string }> = {
+const statusCopy: Record<
+  ApiHealthStatus,
+  { label: string; tone: string; dot: string }
+> = {
   checking: {
     label: "Verificando API",
     tone: "#203246",

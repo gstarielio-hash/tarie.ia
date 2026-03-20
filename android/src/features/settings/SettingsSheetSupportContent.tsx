@@ -82,7 +82,9 @@ export function SettingsHelpSheetContent({
         </View>
         <View style={[styles.settingsInfoCard, styles.settingsInfoGridItem]}>
           <Text style={styles.settingsInfoTitle}>Contato de retorno</Text>
-          <Text style={styles.settingsInfoText}>{emailAtualConta || emailLogin || "Sem email definido"}</Text>
+          <Text style={styles.settingsInfoText}>
+            {emailAtualConta || emailLogin || "Sem email definido"}
+          </Text>
         </View>
       </View>
       <View style={styles.settingsInfoCard}>
@@ -90,7 +92,8 @@ export function SettingsHelpSheetContent({
         <Text style={styles.settingsInfoText}>{resumoFilaSuporteLocal}</Text>
         {ultimoTicketSuporte ? (
           <Text style={styles.settingsInfoSubtle}>
-            Último item: {ultimoTicketSuporte.kind === "bug" ? "Bug" : "Feedback"} •{" "}
+            Último item:{" "}
+            {ultimoTicketSuporte.kind === "bug" ? "Bug" : "Feedback"} •{" "}
             {formatarHorarioAtividade(ultimoTicketSuporte.createdAt)}
           </Text>
         ) : null}
@@ -111,7 +114,9 @@ export function SettingsHelpSheetContent({
               >
                 <View style={styles.settingsHelpArticleHeader}>
                   <View style={styles.settingsHelpArticleCopy}>
-                    <Text style={styles.settingsMiniListTitle}>{article.title}</Text>
+                    <Text style={styles.settingsMiniListTitle}>
+                      {article.title}
+                    </Text>
                     <Text style={styles.settingsMiniListMeta}>
                       {article.category} • {article.estimatedRead}
                     </Text>
@@ -122,8 +127,14 @@ export function SettingsHelpSheetContent({
                     size={20}
                   />
                 </View>
-                <Text style={styles.settingsMiniListMeta}>{article.summary}</Text>
-                {expandido ? <Text style={styles.settingsHelpArticleBody}>{article.body}</Text> : null}
+                <Text style={styles.settingsMiniListMeta}>
+                  {article.summary}
+                </Text>
+                {expandido ? (
+                  <Text style={styles.settingsHelpArticleBody}>
+                    {article.body}
+                  </Text>
+                ) : null}
               </Pressable>
             );
           })}
@@ -132,7 +143,8 @@ export function SettingsHelpSheetContent({
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>Nenhum artigo encontrado</Text>
           <Text style={styles.settingsInfoText}>
-            Tente buscar por mesa, segurança, offline ou inspeção para localizar o guia certo.
+            Tente buscar por mesa, segurança, offline ou inspeção para localizar
+            o guia certo.
           </Text>
         </View>
       )}
@@ -189,7 +201,11 @@ export function SettingsBugSheetContent({
       <View style={styles.settingsFieldBlockNoDivider}>
         <View style={styles.settingsFieldLabelRow}>
           <View style={styles.settingsRowIcon}>
-            <MaterialCommunityIcons name="bug-outline" size={18} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="bug-outline"
+              size={18}
+              color={colors.accent}
+            />
           </View>
           <Text style={styles.settingsRowTitle}>Descrição do problema</Text>
         </View>
@@ -206,29 +222,52 @@ export function SettingsBugSheetContent({
         <Text style={styles.settingsInfoTitle}>Anexo de screenshot</Text>
         {bugAttachmentDraft?.kind === "image" ? (
           <View style={styles.securityProviderMain}>
-            <Image source={{ uri: bugAttachmentDraft.previewUri }} style={styles.settingsInlineHeroMark} />
+            <Image
+              source={{ uri: bugAttachmentDraft.previewUri }}
+              style={styles.settingsInlineHeroMark}
+            />
             <View style={styles.securityProviderCopy}>
-              <Text style={styles.settingsMiniListTitle}>{bugAttachmentDraft.label}</Text>
-              <Text style={styles.settingsMiniListMeta}>{bugAttachmentDraft.resumo}</Text>
+              <Text style={styles.settingsMiniListTitle}>
+                {bugAttachmentDraft.label}
+              </Text>
+              <Text style={styles.settingsMiniListMeta}>
+                {bugAttachmentDraft.resumo}
+              </Text>
             </View>
           </View>
         ) : bugAttachmentDraft?.kind === "document" ? (
-          <Text style={styles.settingsInfoText}>Documento anexado: {bugAttachmentDraft.nomeDocumento}</Text>
+          <Text style={styles.settingsInfoText}>
+            Documento anexado: {bugAttachmentDraft.nomeDocumento}
+          </Text>
         ) : (
           <Text style={styles.settingsInfoText}>
-            Anexe um screenshot para facilitar a reprodução do problema pela equipe.
+            Anexe um screenshot para facilitar a reprodução do problema pela
+            equipe.
           </Text>
         )}
         <View style={styles.securitySessionActions}>
-          <Pressable onPress={onSelectScreenshot} style={styles.securitySessionActionButton}>
-            <Text style={styles.securitySessionActionText}>Selecionar screenshot</Text>
+          <Pressable
+            onPress={onSelectScreenshot}
+            style={styles.securitySessionActionButton}
+          >
+            <Text style={styles.securitySessionActionText}>
+              Selecionar screenshot
+            </Text>
           </Pressable>
           {bugAttachmentDraft ? (
             <Pressable
               onPress={onRemoveScreenshot}
-              style={[styles.securityProviderActionButton, styles.securityProviderActionButtonDanger]}
+              style={[
+                styles.securityProviderActionButton,
+                styles.securityProviderActionButtonDanger,
+              ]}
             >
-              <Text style={[styles.securityProviderActionText, styles.securityProviderActionTextDanger]}>
+              <Text
+                style={[
+                  styles.securityProviderActionText,
+                  styles.securityProviderActionTextDanger,
+                ]}
+              >
                 Remover anexo
               </Text>
             </Pressable>
@@ -238,12 +277,17 @@ export function SettingsBugSheetContent({
       {ultimoTicketSuporte?.kind === "bug" ? (
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>Último bug salvo</Text>
-          <Text style={styles.settingsInfoText}>{ultimoTicketSuporte.body}</Text>
+          <Text style={styles.settingsInfoText}>
+            {ultimoTicketSuporte.body}
+          </Text>
           <Text style={styles.settingsInfoSubtle}>
-            {ultimoTicketSuporte.status} • {formatarHorarioAtividade(ultimoTicketSuporte.createdAt)}
+            {ultimoTicketSuporte.status} •{" "}
+            {formatarHorarioAtividade(ultimoTicketSuporte.createdAt)}
           </Text>
           {ultimoTicketSuporte.attachmentLabel ? (
-            <Text style={styles.settingsInfoSubtle}>Anexo: {ultimoTicketSuporte.attachmentLabel}</Text>
+            <Text style={styles.settingsInfoSubtle}>
+              Anexo: {ultimoTicketSuporte.attachmentLabel}
+            </Text>
           ) : null}
         </View>
       ) : null}
@@ -276,7 +320,11 @@ export function SettingsFeedbackSheetContent({
       <View style={styles.settingsFieldBlockNoDivider}>
         <View style={styles.settingsFieldLabelRow}>
           <View style={styles.settingsRowIcon}>
-            <MaterialCommunityIcons name="message-draw" size={18} color={colors.accent} />
+            <MaterialCommunityIcons
+              name="message-draw"
+              size={18}
+              color={colors.accent}
+            />
           </View>
           <Text style={styles.settingsRowTitle}>Sugestão para a Tariel.ia</Text>
         </View>
@@ -292,9 +340,12 @@ export function SettingsFeedbackSheetContent({
       {ultimoTicketSuporte?.kind === "feedback" ? (
         <View style={styles.settingsInfoCard}>
           <Text style={styles.settingsInfoTitle}>Último feedback salvo</Text>
-          <Text style={styles.settingsInfoText}>{ultimoTicketSuporte.body}</Text>
+          <Text style={styles.settingsInfoText}>
+            {ultimoTicketSuporte.body}
+          </Text>
           <Text style={styles.settingsInfoSubtle}>
-            {ultimoTicketSuporte.status} • {formatarHorarioAtividade(ultimoTicketSuporte.createdAt)}
+            {ultimoTicketSuporte.status} •{" "}
+            {formatarHorarioAtividade(ultimoTicketSuporte.createdAt)}
           </Text>
         </View>
       ) : null}

@@ -35,7 +35,10 @@ interface AssistantCitationListProps {
 }
 
 function normalizeInlineText(value: string): string {
-  return value.replace(/\r\n/g, "\n").replace(/\u00a0/g, " ").trim();
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .trim();
 }
 
 function parseAssistantContent(text: string): AssistantContentBlock[] {
@@ -111,21 +114,34 @@ function parseAssistantContent(text: string): AssistantContentBlock[] {
   return blocks;
 }
 
-function parseInlineSegments(text: string): Array<{ text: string; tone: "plain" | "strong" | "emphasis" | "code" }> {
+function parseInlineSegments(
+  text: string,
+): Array<{ text: string; tone: "plain" | "strong" | "emphasis" | "code" }> {
   const normalized = text.replace(/\r\n/g, "\n");
-  const segments: Array<{ text: string; tone: "plain" | "strong" | "emphasis" | "code" }> = [];
+  const segments: Array<{
+    text: string;
+    tone: "plain" | "strong" | "emphasis" | "code";
+  }> = [];
   const pattern = /(\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*\n]+\*|_[^_\n]+_)/g;
   let lastIndex = 0;
 
   normalized.replace(pattern, (match, _group, offset: number) => {
     if (offset > lastIndex) {
-      segments.push({ text: normalized.slice(lastIndex, offset), tone: "plain" });
+      segments.push({
+        text: normalized.slice(lastIndex, offset),
+        tone: "plain",
+      });
     }
 
-    const isStrong = (match.startsWith("**") && match.endsWith("**")) || (match.startsWith("__") && match.endsWith("__"));
+    const isStrong =
+      (match.startsWith("**") && match.endsWith("**")) ||
+      (match.startsWith("__") && match.endsWith("__"));
     const isCode = match.startsWith("`") && match.endsWith("`");
     const delimiterLength = isStrong ? 2 : 1;
-    const cleaned = match.slice(delimiterLength, match.length - delimiterLength);
+    const cleaned = match.slice(
+      delimiterLength,
+      match.length - delimiterLength,
+    );
 
     segments.push({
       text: cleaned,
@@ -143,7 +159,11 @@ function parseInlineSegments(text: string): Array<{ text: string; tone: "plain" 
   return segments.length ? segments : [{ text: normalized, tone: "plain" }];
 }
 
-function renderInlineText(text: string, baseStyle: StyleProp<TextStyle>, keyPrefix: string) {
+function renderInlineText(
+  text: string,
+  baseStyle: StyleProp<TextStyle>,
+  keyPrefix: string,
+) {
   const segments = parseInlineSegments(text);
 
   return segments.map((segment, index) => {
@@ -168,10 +188,19 @@ function normalizeCitationValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeCitationEntry(entry: Record<string, unknown>, index: number): CitationItem | null {
-  const norma = normalizeCitationValue(entry.norma || entry.referencia || entry.fonte || entry.titulo);
-  const artigo = normalizeCitationValue(entry.artigo || entry.item || entry.topico);
-  const trecho = normalizeCitationValue(entry.trecho || entry.resumo || entry.descricao);
+function normalizeCitationEntry(
+  entry: Record<string, unknown>,
+  index: number,
+): CitationItem | null {
+  const norma = normalizeCitationValue(
+    entry.norma || entry.referencia || entry.fonte || entry.titulo,
+  );
+  const artigo = normalizeCitationValue(
+    entry.artigo || entry.item || entry.topico,
+  );
+  const trecho = normalizeCitationValue(
+    entry.trecho || entry.resumo || entry.descricao,
+  );
   const url = normalizeCitationValue(entry.url || entry.link);
 
   if (!norma && !trecho) {
@@ -202,7 +231,9 @@ async function openCitationUrl(url: string) {
   }
 }
 
-function createHeadingStyle(textStyle?: StyleProp<TextStyle>): StyleProp<TextStyle> {
+function createHeadingStyle(
+  textStyle?: StyleProp<TextStyle>,
+): StyleProp<TextStyle> {
   const base = StyleSheet.flatten(textStyle) || {};
   const fontSize = typeof base.fontSize === "number" ? base.fontSize : 15;
   const lineHeight = typeof base.lineHeight === "number" ? base.lineHeight : 24;
@@ -216,7 +247,9 @@ function createHeadingStyle(textStyle?: StyleProp<TextStyle>): StyleProp<TextSty
   ];
 }
 
-function createListShellStyle(textStyle?: StyleProp<TextStyle>): StyleProp<ViewStyle> {
+function createListShellStyle(
+  textStyle?: StyleProp<TextStyle>,
+): StyleProp<ViewStyle> {
   const base = StyleSheet.flatten(textStyle) || {};
   const lineHeight = typeof base.lineHeight === "number" ? base.lineHeight : 24;
 
@@ -254,10 +287,19 @@ export function AssistantMessageContent({
               {block.items.map((item, itemIndex) => {
                 const marker = block.ordered ? `${itemIndex + 1}.` : "•";
                 return (
-                  <View key={`list-${blockIndex}-${itemIndex}`} style={createListShellStyle(textStyle)}>
+                  <View
+                    key={`list-${blockIndex}-${itemIndex}`}
+                    style={createListShellStyle(textStyle)}
+                  >
                     <Text style={styles.listMarker}>{marker}</Text>
-                    <Text style={[styles.paragraphText, textStyle, styles.listText]}>
-                      {renderInlineText(item, [styles.paragraphText, textStyle, styles.listText], `list-${blockIndex}-${itemIndex}`)}
+                    <Text
+                      style={[styles.paragraphText, textStyle, styles.listText]}
+                    >
+                      {renderInlineText(
+                        item,
+                        [styles.paragraphText, textStyle, styles.listText],
+                        `list-${blockIndex}-${itemIndex}`,
+                      )}
                     </Text>
                   </View>
                 );
@@ -272,10 +314,16 @@ export function AssistantMessageContent({
             style={[
               styles.paragraphText,
               textStyle,
-              blockIndex === 0 && hasMultipleBlocks ? styles.leadParagraph : null,
+              blockIndex === 0 && hasMultipleBlocks
+                ? styles.leadParagraph
+                : null,
             ]}
           >
-            {renderInlineText(block.text, [styles.paragraphText, textStyle], `paragraph-${blockIndex}`)}
+            {renderInlineText(
+              block.text,
+              [styles.paragraphText, textStyle],
+              `paragraph-${blockIndex}`,
+            )}
           </Text>
         );
       })}

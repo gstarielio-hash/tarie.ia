@@ -22,15 +22,23 @@ export function ProfileAvatarPicker({
   return (
     <View style={styles.settingsPrintAvatarShell}>
       {photoUri ? (
-        <Image source={{ uri: photoUri }} style={styles.settingsPrintAvatarImage} />
+        <Image
+          source={{ uri: photoUri }}
+          style={styles.settingsPrintAvatarImage}
+        />
       ) : (
         <View style={styles.settingsPrintAvatarFallback}>
-          <Text style={styles.settingsPrintAvatarInitials}>{fallbackLabel}</Text>
+          <Text style={styles.settingsPrintAvatarInitials}>
+            {fallbackLabel}
+          </Text>
         </View>
       )}
       <Pressable
         onPress={onPress}
-        style={[styles.settingsPrintAvatarEditButton, darkMode ? styles.settingsPrintAvatarEditButtonDark : null]}
+        style={[
+          styles.settingsPrintAvatarEditButton,
+          darkMode ? styles.settingsPrintAvatarEditButtonDark : null,
+        ]}
         testID={testID}
       >
         <MaterialCommunityIcons color={colors.ink700} name="pencil" size={12} />

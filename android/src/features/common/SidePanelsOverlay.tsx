@@ -41,11 +41,17 @@ export function SidePanelsOverlay({
           <>
             <View
               {...historyEdgePanHandlers}
-              style={[styles.sidePanelEdgeHitbox, styles.sidePanelEdgeHitboxLeft]}
+              style={[
+                styles.sidePanelEdgeHitbox,
+                styles.sidePanelEdgeHitboxLeft,
+              ]}
             />
             <View
               {...settingsEdgePanHandlers}
-              style={[styles.sidePanelEdgeHitbox, styles.sidePanelEdgeHitboxRight]}
+              style={[
+                styles.sidePanelEdgeHitbox,
+                styles.sidePanelEdgeHitboxRight,
+              ]}
             />
           </>
         ) : null}
@@ -65,7 +71,10 @@ export function SidePanelsOverlay({
             pointerEvents="box-none"
             style={[styles.sidePanelScrim, { opacity: drawerOverlayOpacity }]}
           >
-            <Pressable onPress={onClosePanels} style={styles.sidePanelScrimPressable} />
+            <Pressable
+              onPress={onClosePanels}
+              style={styles.sidePanelScrimPressable}
+            />
           </Animated.View>
 
           {historyOpen ? renderHistoryDrawer() : null}

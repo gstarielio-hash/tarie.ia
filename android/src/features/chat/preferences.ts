@@ -15,7 +15,9 @@ export interface ChatAiRequestConfig {
   fallbackNotes: string[];
 }
 
-export function mapAiModelToChatMode(model: AppSettings["ai"]["model"]): MobileChatMode {
+export function mapAiModelToChatMode(
+  model: AppSettings["ai"]["model"],
+): MobileChatMode {
   if (model === "rápido") {
     return "curto";
   }
@@ -25,14 +27,18 @@ export function mapAiModelToChatMode(model: AppSettings["ai"]["model"]): MobileC
   return "detalhado";
 }
 
-function normalizarIdiomaResposta(language: AppSettings["ai"]["responseLanguage"]): string {
+function normalizarIdiomaResposta(
+  language: AppSettings["ai"]["responseLanguage"],
+): string {
   if (language === "Auto detectar") {
     return "use o idioma predominante da solicitação do inspetor";
   }
   return `responda em ${language}`;
 }
 
-function normalizarEstiloResposta(style: AppSettings["ai"]["responseStyle"]): string {
+function normalizarEstiloResposta(
+  style: AppSettings["ai"]["responseStyle"],
+): string {
   switch (style) {
     case "curto":
       return "seja direto e conciso";
@@ -82,7 +88,9 @@ export function summarizeChatAiConfig(ai: AppSettings["ai"]): string {
   ].join(" • ");
 }
 
-export function buildChatAiRequestConfig(ai: AppSettings["ai"]): ChatAiRequestConfig {
+export function buildChatAiRequestConfig(
+  ai: AppSettings["ai"],
+): ChatAiRequestConfig {
   const mode = mapAiModelToChatMode(ai.model);
   const fallbackNotes = [
     "O backend mobile aplica `modo` de forma explícita.",
@@ -138,4 +146,3 @@ export function describeChatAiBehaviorChange(
   }
   return `Novas mensagens usarão ${nextSummary}. Histórico anterior permanece igual.`;
 }
-

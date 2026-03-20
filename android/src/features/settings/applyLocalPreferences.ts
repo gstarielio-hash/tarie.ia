@@ -117,11 +117,17 @@ export function applyLocalPreferencesFromStorage(
     setPerfilFotoHint(preferencias.perfilFotoHint);
   }
   if (Array.isArray(preferencias.laudosFixadosIds)) {
-    setLaudosFixadosIds(preferencias.laudosFixadosIds.filter((item): item is number => typeof item === "number"));
+    setLaudosFixadosIds(
+      preferencias.laudosFixadosIds.filter(
+        (item): item is number => typeof item === "number",
+      ),
+    );
   }
   if (Array.isArray(preferencias.historicoOcultoIds)) {
     setHistoricoOcultoIds(
-      preferencias.historicoOcultoIds.filter((item): item is number => typeof item === "number"),
+      preferencias.historicoOcultoIds.filter(
+        (item): item is number => typeof item === "number",
+      ),
     );
   }
   if (ehOpcaoValida(preferencias.planoAtual, PLAN_OPTIONS)) {
@@ -148,7 +154,10 @@ export function applyLocalPreferencesFromStorage(
   if (ehOpcaoValida(preferencias.tomConversa, CONVERSATION_TONE_OPTIONS)) {
     setTomConversa(preferencias.tomConversa);
   }
-  if (typeof preferencias.temperaturaIa === "number" && !Number.isNaN(preferencias.temperaturaIa)) {
+  if (
+    typeof preferencias.temperaturaIa === "number" &&
+    !Number.isNaN(preferencias.temperaturaIa)
+  ) {
     setTemperaturaIa(Math.max(0, Math.min(1, preferencias.temperaturaIa)));
   }
   if (ehOpcaoValida(preferencias.temaApp, THEME_OPTIONS)) {
@@ -235,7 +244,9 @@ export function applyLocalPreferencesFromStorage(
     setIntegracoesExternas(reconciliarIntegracoesExternas(integracoes));
   }
   if (Array.isArray(preferencias.sessoesAtivas)) {
-    const sessoes = preferencias.sessoesAtivas.map((item) => normalizarSessaoAtiva(item)).filter(Boolean);
+    const sessoes = preferencias.sessoesAtivas
+      .map((item) => normalizarSessaoAtiva(item))
+      .filter(Boolean);
     if (sessoes.length) {
       setSessoesAtivas(sessoes);
     }
@@ -267,14 +278,17 @@ export function applyLocalPreferencesFromStorage(
   if (Array.isArray(preferencias.codigosRecuperacao)) {
     setCodigosRecuperacao(
       preferencias.codigosRecuperacao.filter(
-        (item): item is string => typeof item === "string" && Boolean(item.trim()),
+        (item): item is string =>
+          typeof item === "string" && Boolean(item.trim()),
       ),
     );
   }
   if (typeof preferencias.reautenticacaoExpiraEm === "string") {
     if (reautenticacaoAindaValida(preferencias.reautenticacaoExpiraEm)) {
       setReautenticacaoExpiraEm(preferencias.reautenticacaoExpiraEm);
-      setReautenticacaoStatus(formatarStatusReautenticacao(preferencias.reautenticacaoExpiraEm));
+      setReautenticacaoStatus(
+        formatarStatusReautenticacao(preferencias.reautenticacaoExpiraEm),
+      );
     } else {
       setReautenticacaoExpiraEm("");
       setReautenticacaoStatus("Não confirmada");
@@ -283,14 +297,18 @@ export function applyLocalPreferencesFromStorage(
   if (typeof preferencias.reautenticacaoStatus === "string") {
     if (
       !reautenticacaoAindaValida(
-        typeof preferencias.reautenticacaoExpiraEm === "string" ? preferencias.reautenticacaoExpiraEm : "",
+        typeof preferencias.reautenticacaoExpiraEm === "string"
+          ? preferencias.reautenticacaoExpiraEm
+          : "",
       )
     ) {
       setReautenticacaoStatus(preferencias.reautenticacaoStatus);
     }
   }
   if (Array.isArray(preferencias.eventosSeguranca)) {
-    const eventos = preferencias.eventosSeguranca.map((item) => normalizarEventoSeguranca(item)).filter(Boolean);
+    const eventos = preferencias.eventosSeguranca
+      .map((item) => normalizarEventoSeguranca(item))
+      .filter(Boolean);
     if (eventos.length) {
       setEventosSeguranca(eventos);
     }
@@ -320,7 +338,11 @@ export function applyLocalPreferencesFromStorage(
     setBiometriaPermitida(preferencias.biometriaPermitida);
   }
   if (Array.isArray(preferencias.filaSuporteLocal)) {
-    setFilaSuporteLocal(preferencias.filaSuporteLocal.map((item) => normalizarItemSuporte(item)).filter(Boolean));
+    setFilaSuporteLocal(
+      preferencias.filaSuporteLocal
+        .map((item) => normalizarItemSuporte(item))
+        .filter(Boolean),
+    );
   }
   if (typeof preferencias.ultimaVerificacaoAtualizacao === "string") {
     setUltimaVerificacaoAtualizacao(preferencias.ultimaVerificacaoAtualizacao);

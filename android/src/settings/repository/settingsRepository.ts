@@ -9,8 +9,13 @@ import {
 } from "../schema/types";
 import { migrateSettingsDocument } from "../migrations/migrateSettingsDocument";
 
-async function writeDocument(document: PersistedSettingsDocument): Promise<void> {
-  await FileSystem.writeAsStringAsync(APP_PREFERENCES_FILE, JSON.stringify(document));
+async function writeDocument(
+  document: PersistedSettingsDocument,
+): Promise<void> {
+  await FileSystem.writeAsStringAsync(
+    APP_PREFERENCES_FILE,
+    JSON.stringify(document),
+  );
 }
 
 export async function loadSettingsDocument(): Promise<PersistedSettingsDocument> {
@@ -26,7 +31,9 @@ export async function loadSettingsDocument(): Promise<PersistedSettingsDocument>
   }
 }
 
-export async function saveSettingsDocument(settings: AppSettings): Promise<PersistedSettingsDocument> {
+export async function saveSettingsDocument(
+  settings: AppSettings,
+): Promise<PersistedSettingsDocument> {
   const document: PersistedSettingsDocument = {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     updatedAt: new Date().toISOString(),

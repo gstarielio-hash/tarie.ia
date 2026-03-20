@@ -99,16 +99,21 @@ export function LoginScreen({
                 {carregando ? (
                   <View style={styles.loadingState}>
                     <ActivityIndicator color={colors.accent} size="large" />
-                    <Text style={styles.loadingText}>Preparando o app do inspetor...</Text>
+                    <Text style={styles.loadingText}>
+                      Preparando o app do inspetor...
+                    </Text>
                   </View>
                 ) : (
                   <>
-                    <View style={styles.loginCardHeader}>
-                    </View>
+                    <View style={styles.loginCardHeader}></View>
 
                     <View style={styles.loginFields}>
                       <View style={styles.mobileField}>
-                        <MaterialCommunityIcons color={colors.ink600} name="email-outline" size={22} />
+                        <MaterialCommunityIcons
+                          color={colors.ink600}
+                          name="email-outline"
+                          size={22}
+                        />
                         <TextInput
                           ref={emailInputRef}
                           autoCapitalize="none"
@@ -121,7 +126,10 @@ export function LoginScreen({
                           placeholder="Email corporativo"
                           placeholderTextColor="#8EA0B3"
                           returnKeyType="next"
-                          style={[styles.mobileFieldInput, { fontSize: 17 * fontScale }]}
+                          style={[
+                            styles.mobileFieldInput,
+                            { fontSize: 17 * fontScale },
+                          ]}
                           testID="login-email-input"
                           textContentType="emailAddress"
                           value={email}
@@ -129,7 +137,11 @@ export function LoginScreen({
                       </View>
 
                       <View style={styles.mobileField}>
-                        <MaterialCommunityIcons color={colors.ink600} name="lock-outline" size={22} />
+                        <MaterialCommunityIcons
+                          color={colors.ink600}
+                          name="lock-outline"
+                          size={22}
+                        />
                         <TextInput
                           ref={senhaInputRef}
                           autoCapitalize="none"
@@ -141,7 +153,10 @@ export function LoginScreen({
                           placeholderTextColor="#8EA0B3"
                           returnKeyType="done"
                           secureTextEntry={!mostrarSenha}
-                          style={[styles.mobileFieldInput, { fontSize: 17 * fontScale }]}
+                          style={[
+                            styles.mobileFieldInput,
+                            { fontSize: 17 * fontScale },
+                          ]}
                           testID="login-password-input"
                           textContentType="password"
                           value={senha}
@@ -153,7 +168,9 @@ export function LoginScreen({
                         >
                           <MaterialCommunityIcons
                             color="#8EA0B3"
-                            name={mostrarSenha ? "eye-off-outline" : "eye-outline"}
+                            name={
+                              mostrarSenha ? "eye-off-outline" : "eye-outline"
+                            }
                             size={20}
                           />
                         </Pressable>
@@ -163,7 +180,9 @@ export function LoginScreen({
                     <View style={styles.loginForgotRow}>
                       <View />
                       <Pressable onPress={onEsqueciSenha}>
-                        <Text style={styles.loginForgotLink}>Esqueceu a senha?</Text>
+                        <Text style={styles.loginForgotLink}>
+                          Esqueceu a senha?
+                        </Text>
                       </Pressable>
                     </View>
 
@@ -174,7 +193,10 @@ export function LoginScreen({
                       onPress={onLogin}
                       style={[
                         styles.loginPrimaryButton,
-                        { backgroundColor: accentColor, shadowColor: accentColor },
+                        {
+                          backgroundColor: accentColor,
+                          shadowColor: accentColor,
+                        },
                         entrando ? styles.primaryButtonDisabled : null,
                       ]}
                       testID="login-submit-button"
@@ -182,7 +204,9 @@ export function LoginScreen({
                       {entrando ? (
                         <ActivityIndicator color={colors.white} />
                       ) : (
-                        <Text style={styles.loginPrimaryButtonText}>Entrar</Text>
+                        <Text style={styles.loginPrimaryButtonText}>
+                          Entrar
+                        </Text>
                       )}
                     </Pressable>
 
@@ -199,9 +223,15 @@ export function LoginScreen({
                         testID="login-google-button"
                       >
                         <View style={styles.loginSocialIconShell}>
-                          <MaterialCommunityIcons color={colors.textPrimary} name="google" size={18} />
+                          <MaterialCommunityIcons
+                            color={colors.textPrimary}
+                            name="google"
+                            size={18}
+                          />
                         </View>
-                        <Text style={styles.loginSocialButtonText}>Continuar com Google</Text>
+                        <Text style={styles.loginSocialButtonText}>
+                          Continuar com Google
+                        </Text>
                       </Pressable>
                       <Pressable
                         onPress={() => onLoginSocial("Microsoft")}
@@ -209,9 +239,15 @@ export function LoginScreen({
                         testID="login-microsoft-button"
                       >
                         <View style={styles.loginSocialIconShell}>
-                          <MaterialCommunityIcons color={colors.textPrimary} name="microsoft-windows" size={18} />
+                          <MaterialCommunityIcons
+                            color={colors.textPrimary}
+                            name="microsoft-windows"
+                            size={18}
+                          />
                         </View>
-                        <Text style={styles.loginSocialButtonText}>Continuar com Microsoft</Text>
+                        <Text style={styles.loginSocialButtonText}>
+                          Continuar com Microsoft
+                        </Text>
                       </Pressable>
                     </View>
 

@@ -54,7 +54,10 @@ interface SettingsExperienceNotificationsSectionProps {
   onAbrirPermissaoNotificacoes: () => void;
 }
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -174,7 +177,11 @@ export function SettingsExperienceNotificationsSection({
       />
       <SettingsPressRow
         icon="music-note-outline"
-        onPress={() => onSetSomNotificacao(nextOptionValue(somNotificacao, NOTIFICATION_SOUND_OPTIONS))}
+        onPress={() =>
+          onSetSomNotificacao(
+            nextOptionValue(somNotificacao, NOTIFICATION_SOUND_OPTIONS),
+          )
+        }
         title="Som de notificação"
         value={somNotificacao}
       />

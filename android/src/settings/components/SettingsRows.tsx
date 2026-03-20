@@ -1,7 +1,10 @@
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { SettingsPressRow, SettingsSwitchRow } from "../../features/settings/SettingsPrimitives";
+import {
+  SettingsPressRow,
+  SettingsSwitchRow,
+} from "../../features/settings/SettingsPrimitives";
 import { colors, spacing } from "../../theme/tokens";
 
 type SettingsIconName = ComponentProps<typeof SettingsPressRow>["icon"];
@@ -32,14 +35,14 @@ interface SettingsToggleRowProps extends SettingsRowStateProps {
 }
 
 function SettingsRowState({ loading, disabled, error }: SettingsRowStateProps) {
-  const message = error || (loading ? "Carregando..." : disabled ? "Indisponível neste contexto" : "");
+  const message =
+    error ||
+    (loading ? "Carregando..." : disabled ? "Indisponível neste contexto" : "");
   if (!message) {
     return null;
   }
   return (
-    <Text style={[styles.message, error ? styles.error : null]}>
-      {message}
-    </Text>
+    <Text style={[styles.message, error ? styles.error : null]}>{message}</Text>
   );
 }
 
@@ -71,7 +74,9 @@ export function SettingsActionRow(props: SettingsValueRowProps) {
   return <SettingsValueRow {...props} />;
 }
 
-export function SettingsDangerRow(props: Omit<SettingsValueRowProps, "danger">) {
+export function SettingsDangerRow(
+  props: Omit<SettingsValueRowProps, "danger">,
+) {
   return <SettingsValueRow {...props} danger />;
 }
 

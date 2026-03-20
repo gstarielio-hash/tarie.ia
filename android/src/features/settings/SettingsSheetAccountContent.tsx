@@ -2,7 +2,10 @@ import type { ImageSourcePropType } from "react-native";
 import { Image, Text, View } from "react-native";
 
 import { styles } from "../InspectorMobileApp.styles";
-import { IntegrationConnectionCard, type ExternalIntegrationCardModel } from "./IntegrationConnectionCard";
+import {
+  IntegrationConnectionCard,
+  type ExternalIntegrationCardModel,
+} from "./IntegrationConnectionCard";
 import { SettingsSwitchRow, SettingsTextField } from "./SettingsPrimitives";
 
 interface ConnectedProviderSummary {
@@ -28,7 +31,9 @@ export function SettingsReauthSheetContent({
       <View style={styles.settingsInlineHero}>
         <Image source={brandMarkSource} style={styles.settingsInlineHeroMark} />
         <View style={styles.settingsInlineHeroCopy}>
-          <Text style={styles.settingsInlineHeroTitle}>Janela temporária de confiança</Text>
+          <Text style={styles.settingsInlineHeroTitle}>
+            Janela temporária de confiança
+          </Text>
           <Text style={styles.settingsInlineHeroText}>{reauthReason}</Text>
         </View>
       </View>
@@ -43,7 +48,9 @@ export function SettingsReauthSheetContent({
       </View>
       <View style={styles.settingsInfoCard}>
         <Text style={styles.settingsInfoTitle}>Status atual</Text>
-        <Text style={styles.settingsInfoText}>{formatarStatusReautenticacao(reautenticacaoExpiraEm)}</Text>
+        <Text style={styles.settingsInfoText}>
+          {formatarStatusReautenticacao(reautenticacaoExpiraEm)}
+        </Text>
       </View>
     </View>
   );
@@ -61,9 +68,12 @@ export function SettingsPhotoSheetContent({
       <View style={styles.settingsInlineHero}>
         <Image source={photoSource} style={styles.settingsInlineHeroMark} />
         <View style={styles.settingsInlineHeroCopy}>
-          <Text style={styles.settingsInlineHeroTitle}>Foto de perfil do inspetor</Text>
+          <Text style={styles.settingsInlineHeroTitle}>
+            Foto de perfil do inspetor
+          </Text>
           <Text style={styles.settingsInlineHeroText}>
-            A identidade visual do usuário aparece na conta, no histórico e nos fluxos de suporte.
+            A identidade visual do usuário aparece na conta, no histórico e nos
+            fluxos de suporte.
           </Text>
         </View>
       </View>
@@ -121,7 +131,11 @@ export function SettingsProfileSheetContent({
   );
 }
 
-export function SettingsPlanSheetContent({ planoAtual }: { planoAtual: string }) {
+export function SettingsPlanSheetContent({
+  planoAtual,
+}: {
+  planoAtual: string;
+}) {
   return (
     <View style={styles.settingsFlowStack}>
       <View style={styles.settingsInfoCard}>
@@ -131,22 +145,36 @@ export function SettingsPlanSheetContent({ planoAtual }: { planoAtual: string })
       <View style={styles.settingsMiniList}>
         <View style={styles.settingsMiniListItem}>
           <Text style={styles.settingsMiniListTitle}>Operação em campo</Text>
-          <Text style={styles.settingsMiniListMeta}>Chat, mesa, fila offline e histórico sincronizado do inspetor.</Text>
+          <Text style={styles.settingsMiniListMeta}>
+            Chat, mesa, fila offline e histórico sincronizado do inspetor.
+          </Text>
         </View>
         <View style={styles.settingsMiniListItem}>
-          <Text style={styles.settingsMiniListTitle}>Segurança e privacidade</Text>
-          <Text style={styles.settingsMiniListMeta}>Reautenticação sensível, eventos de segurança e proteção local do dispositivo.</Text>
+          <Text style={styles.settingsMiniListTitle}>
+            Segurança e privacidade
+          </Text>
+          <Text style={styles.settingsMiniListMeta}>
+            Reautenticação sensível, eventos de segurança e proteção local do
+            dispositivo.
+          </Text>
         </View>
         <View style={styles.settingsMiniListItem}>
           <Text style={styles.settingsMiniListTitle}>Próximo passo</Text>
-          <Text style={styles.settingsMiniListMeta}>Ao confirmar, o app troca para a próxima opção de plano disponível nesta conta.</Text>
+          <Text style={styles.settingsMiniListMeta}>
+            Ao confirmar, o app troca para a próxima opção de plano disponível
+            nesta conta.
+          </Text>
         </View>
       </View>
     </View>
   );
 }
 
-export function SettingsBillingSheetContent({ cartaoAtual }: { cartaoAtual: string }) {
+export function SettingsBillingSheetContent({
+  cartaoAtual,
+}: {
+  cartaoAtual: string;
+}) {
   return (
     <View style={styles.settingsFlowStack}>
       <View style={styles.settingsInfoCard}>
@@ -156,11 +184,17 @@ export function SettingsBillingSheetContent({ cartaoAtual }: { cartaoAtual: stri
       <View style={styles.settingsMiniList}>
         <View style={styles.settingsMiniListItem}>
           <Text style={styles.settingsMiniListTitle}>Cobrança protegida</Text>
-          <Text style={styles.settingsMiniListMeta}>O método de pagamento é apenas referenciado no app, nunca exposto por completo.</Text>
+          <Text style={styles.settingsMiniListMeta}>
+            O método de pagamento é apenas referenciado no app, nunca exposto
+            por completo.
+          </Text>
         </View>
         <View style={styles.settingsMiniListItem}>
           <Text style={styles.settingsMiniListTitle}>Próxima atualização</Text>
-          <Text style={styles.settingsMiniListMeta}>Ao confirmar, o app troca para a próxima forma de pagamento cadastrada neste perfil.</Text>
+          <Text style={styles.settingsMiniListMeta}>
+            Ao confirmar, o app troca para a próxima forma de pagamento
+            cadastrada neste perfil.
+          </Text>
         </View>
       </View>
     </View>
@@ -182,7 +216,9 @@ export function SettingsEmailSheetContent({
     <View style={styles.settingsFlowStack}>
       <View style={styles.settingsInfoCard}>
         <Text style={styles.settingsInfoTitle}>Email atual</Text>
-        <Text style={styles.settingsInfoText}>{emailAtualConta || emailLogin || "Sem email cadastrado"}</Text>
+        <Text style={styles.settingsInfoText}>
+          {emailAtualConta || emailLogin || "Sem email cadastrado"}
+        </Text>
       </View>
       <SettingsTextField
         autoCapitalize="none"
@@ -252,12 +288,20 @@ export function SettingsPaymentsSheetContent() {
         <Text style={styles.settingsInfoTitle}>Últimos lançamentos</Text>
         <View style={styles.settingsMiniList}>
           <View style={styles.settingsMiniListItem}>
-            <Text style={styles.settingsMiniListTitle}>Plano Pro • Fevereiro</Text>
-            <Text style={styles.settingsMiniListMeta}>Pago em 05/03 • Visa final 4242</Text>
+            <Text style={styles.settingsMiniListTitle}>
+              Plano Pro • Fevereiro
+            </Text>
+            <Text style={styles.settingsMiniListMeta}>
+              Pago em 05/03 • Visa final 4242
+            </Text>
           </View>
           <View style={styles.settingsMiniListItem}>
-            <Text style={styles.settingsMiniListTitle}>Plano Pro • Janeiro</Text>
-            <Text style={styles.settingsMiniListMeta}>Pago em 05/02 • Visa final 4242</Text>
+            <Text style={styles.settingsMiniListTitle}>
+              Plano Pro • Janeiro
+            </Text>
+            <Text style={styles.settingsMiniListMeta}>
+              Pago em 05/02 • Visa final 4242
+            </Text>
           </View>
         </View>
       </View>
@@ -265,7 +309,9 @@ export function SettingsPaymentsSheetContent() {
   );
 }
 
-export function SettingsIntegrationsSheetContent<T extends ExternalIntegrationCardModel>({
+export function SettingsIntegrationsSheetContent<
+  T extends ExternalIntegrationCardModel,
+>({
   integracoesConectadasTotal,
   integracoesDisponiveisTotal,
   integracoesExternas,
@@ -287,10 +333,12 @@ export function SettingsIntegrationsSheetContent<T extends ExternalIntegrationCa
       <View style={styles.settingsInfoCard}>
         <Text style={styles.settingsInfoTitle}>Resumo das integrações</Text>
         <Text style={styles.settingsInfoText}>
-          {integracoesConectadasTotal} de {integracoesDisponiveisTotal} conectada(s)
+          {integracoesConectadasTotal} de {integracoesDisponiveisTotal}{" "}
+          conectada(s)
         </Text>
         <Text style={styles.settingsInfoSubtle}>
-          Conecte o serviço e use "Sincronizar agora" para validar o fluxo local.
+          Conecte o serviço e use "Sincronizar agora" para validar o fluxo
+          local.
         </Text>
       </View>
       <View style={styles.settingsMiniList}>

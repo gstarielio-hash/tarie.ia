@@ -35,7 +35,10 @@ interface SettingsExperienceAiSectionProps {
   onSetTemperaturaIa: (value: number) => void;
 }
 
-function nextOptionValue<T extends string>(current: T, options: readonly T[]): T {
+function nextOptionValue<T extends string>(
+  current: T,
+  options: readonly T[],
+): T {
   const currentIndex = options.indexOf(current);
   if (currentIndex === -1) {
     return options[0];
@@ -74,13 +77,21 @@ export function SettingsExperienceAiSection({
       />
       <SettingsPressRow
         icon="message-text-outline"
-        onPress={() => onSetEstiloResposta(nextOptionValue(estiloResposta, RESPONSE_STYLE_OPTIONS))}
+        onPress={() =>
+          onSetEstiloResposta(
+            nextOptionValue(estiloResposta, RESPONSE_STYLE_OPTIONS),
+          )
+        }
         title="Estilo de resposta"
         value={estiloResposta}
       />
       <SettingsPressRow
         icon="translate"
-        onPress={() => onSetIdiomaResposta(nextOptionValue(idiomaResposta, RESPONSE_LANGUAGE_OPTIONS))}
+        onPress={() =>
+          onSetIdiomaResposta(
+            nextOptionValue(idiomaResposta, RESPONSE_LANGUAGE_OPTIONS),
+          )
+        }
         title="Idioma da resposta"
         value={idiomaResposta}
       />

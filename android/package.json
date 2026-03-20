@@ -22,6 +22,12 @@
     "maestro:settings": "node ../scripts/run_mobile_maestro_smoke.cjs --flow android/maestro/settings-smoke.yaml",
     "maestro:chat": "node ../scripts/run_mobile_maestro_smoke.cjs --flow android/maestro/chat-smoke.yaml",
     "maestro:suite": "node ../scripts/run_mobile_maestro_suite.cjs",
+    "lint": "eslint App.tsx src scripts --ext .ts,.tsx,.cjs",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "jest --config ./jest.config.cjs",
+    "test:watch": "npm run test -- --watch",
+    "format": "prettier --write \"App.tsx\" \"README.md\" \"app.json\" \"eas.json\" \"eslint.config.mjs\" \"jest.config.cjs\" \"jest.setup.ts\" \"package.json\" \"tsconfig.json\" \"maestro/**/*.yaml\" \"scripts/**/*.cjs\" \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"App.tsx\" \"README.md\" \"app.json\" \"eas.json\" \"eslint.config.mjs\" \"jest.config.cjs\" \"jest.setup.ts\" \"package.json\" \"tsconfig.json\" \"maestro/**/*.yaml\" \"scripts/**/*.cjs\" \"src/**/*.{ts,tsx}\"",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },
@@ -45,13 +51,18 @@
     "react-native": "0.83.2"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^29.5.14",
     "@types/react": "~19.2.2",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
     "eas-cli": "^18.4.0",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
+    "jest": "^29.7.0",
+    "jest-expo": "^55.0.11",
     "prettier": "^3.8.1",
+    "react-test-renderer": "^19.2.0",
     "typescript": "~5.9.2"
   },
   "private": true

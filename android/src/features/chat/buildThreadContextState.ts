@@ -1,6 +1,8 @@
 type BuildThreadContextStateInput = Record<string, any>;
 
-export function buildThreadContextState(input: BuildThreadContextStateInput): Record<string, any> {
+export function buildThreadContextState(
+  input: BuildThreadContextStateInput,
+): Record<string, any> {
   const {
     conversaAtiva,
     filtrarThreadContextChips,
@@ -16,11 +18,19 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
   } = input;
 
   const statusVisualLaudo = mapearStatusLaudoVisual(
-    conversaAtiva?.laudoCard?.status_card || conversaAtiva?.statusCard || "aberto",
+    conversaAtiva?.laudoCard?.status_card ||
+      conversaAtiva?.statusCard ||
+      "aberto",
   );
   const laudoContextTitle = vendoMesa
-    ? conversaAtiva?.laudoCard?.titulo || (conversaAtiva?.laudoId ? `Laudo #${conversaAtiva.laudoId}` : "Mesa avaliadora")
-    : conversaAtiva?.laudoCard?.titulo || (conversaAtiva?.laudoId ? `Laudo #${conversaAtiva.laudoId}` : "Nova inspeção");
+    ? conversaAtiva?.laudoCard?.titulo ||
+      (conversaAtiva?.laudoId
+        ? `Laudo #${conversaAtiva.laudoId}`
+        : "Mesa avaliadora")
+    : conversaAtiva?.laudoCard?.titulo ||
+      (conversaAtiva?.laudoId
+        ? `Laudo #${conversaAtiva.laudoId}`
+        : "Nova inspeção");
   const laudoContextDescription = vendoMesa
     ? !mesaDisponivel
       ? "A mesa fica disponível após o primeiro laudo."
@@ -36,18 +46,47 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
       : "Envie a primeira mensagem para abrir a inspeção.";
   const threadSpotlight = vendoMesa
     ? !mesaDisponivel
-      ? { label: "Sem laudo", tone: "muted" as const, icon: "clipboard-clock-outline" as const }
+      ? {
+          label: "Sem laudo",
+          tone: "muted" as const,
+          icon: "clipboard-clock-outline" as const,
+        }
       : mesaTemMensagens
         ? conversaAtiva?.permiteEdicao
-          ? { label: "Mesa ativa", tone: "accent" as const, icon: "message-reply-text-outline" as const }
-          : { label: "Modo leitura", tone: "muted" as const, icon: "lock-outline" as const }
-        : { label: "Sem retorno", tone: "muted" as const, icon: "clock-outline" as const }
+          ? {
+              label: "Mesa ativa",
+              tone: "accent" as const,
+              icon: "message-reply-text-outline" as const,
+            }
+          : {
+              label: "Modo leitura",
+              tone: "muted" as const,
+              icon: "lock-outline" as const,
+            }
+        : {
+            label: "Sem retorno",
+            tone: "muted" as const,
+            icon: "clock-outline" as const,
+          }
     : conversaAtiva?.laudoId
       ? conversaAtiva?.permiteReabrir
-        ? { label: "Modo leitura", tone: "muted" as const, icon: "lock-outline" as const }
-        : { label: "Laudo ativo", tone: "success" as const, icon: "check-decagram-outline" as const }
-      : { label: "Nova inspeção", tone: "success" as const, icon: "plus-circle-outline" as const };
-  const mostrarContextoThread = vendoMesa || Boolean(conversaAtiva?.laudoId) || Boolean(resumoFilaOffline);
+        ? {
+            label: "Modo leitura",
+            tone: "muted" as const,
+            icon: "lock-outline" as const,
+          }
+        : {
+            label: "Laudo ativo",
+            tone: "success" as const,
+            icon: "check-decagram-outline" as const,
+          }
+      : {
+          label: "Nova inspeção",
+          tone: "success" as const,
+          icon: "plus-circle-outline" as const,
+        };
+  const mostrarContextoThread =
+    vendoMesa || Boolean(conversaAtiva?.laudoId) || Boolean(resumoFilaOffline);
   const mesaContextChips = [
     mesaDisponivel
       ? {
@@ -68,9 +107,15 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
     mesaDisponivel && !notificacoesMesaLaudoAtual && mesaTemMensagens
       ? {
           key: "modo",
-          label: conversaAtiva?.permiteEdicao ? "Resposta liberada" : "Modo leitura",
-          tone: conversaAtiva?.permiteEdicao ? ("success" as const) : ("muted" as const),
-          icon: conversaAtiva?.permiteEdicao ? ("reply-outline" as const) : ("lock-outline" as const),
+          label: conversaAtiva?.permiteEdicao
+            ? "Resposta liberada"
+            : "Modo leitura",
+          tone: conversaAtiva?.permiteEdicao
+            ? ("success" as const)
+            : ("muted" as const),
+          icon: conversaAtiva?.permiteEdicao
+            ? ("reply-outline" as const)
+            : ("lock-outline" as const),
         }
       : null,
   ];
@@ -100,8 +145,12 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
       ? {
           key: "offline",
           label: resumoFilaOffline,
-          tone: statusApi === "offline" ? "danger" as const : "muted" as const,
-          icon: statusApi === "offline" ? "cloud-off-outline" as const : "cloud-upload-outline" as const,
+          tone:
+            statusApi === "offline" ? ("danger" as const) : ("muted" as const),
+          icon:
+            statusApi === "offline"
+              ? ("cloud-off-outline" as const)
+              : ("cloud-upload-outline" as const),
         }
       : null,
     conversaAtiva?.laudoId
@@ -113,7 +162,9 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
         }
       : null,
   ];
-  const chipsContextoThread = filtrarThreadContextChips(vendoMesa ? mesaContextChips : chatContextChips).slice(0, 2);
+  const chipsContextoThread = filtrarThreadContextChips(
+    vendoMesa ? mesaContextChips : chatContextChips,
+  ).slice(0, 2);
   const threadInsights = conversaAtiva?.laudoCard
     ? vendoMesa
       ? [
@@ -121,17 +172,25 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
             key: "status",
             label: "Status",
             value: conversaAtiva.laudoCard.status_card_label,
-            detail: conversaAtiva.permiteEdicao ? "Resposta liberada no app" : "Acompanhamento em modo leitura",
+            detail: conversaAtiva.permiteEdicao
+              ? "Resposta liberada no app"
+              : "Acompanhamento em modo leitura",
             tone: statusVisualLaudo.tone,
             icon: statusVisualLaudo.icon,
           },
           {
             key: mesaTemMensagens ? "retornos" : "template",
             label: mesaTemMensagens ? "Mesa" : "Fluxo",
-            value: mesaTemMensagens ? `${mensagensMesa.length} retorno${mensagensMesa.length === 1 ? "" : "s"}` : tipoTemplateAtivoLabel,
-            detail: mesaTemMensagens ? "Retornos técnicos separados do chat." : "A mesa será usada quando houver retorno técnico.",
+            value: mesaTemMensagens
+              ? `${mensagensMesa.length} retorno${mensagensMesa.length === 1 ? "" : "s"}`
+              : tipoTemplateAtivoLabel,
+            detail: mesaTemMensagens
+              ? "Retornos técnicos separados do chat."
+              : "A mesa será usada quando houver retorno técnico.",
             tone: mesaTemMensagens ? ("muted" as const) : ("muted" as const),
-            icon: mesaTemMensagens ? ("message-reply-text-outline" as const) : ("shape-outline" as const),
+            icon: mesaTemMensagens
+              ? ("message-reply-text-outline" as const)
+              : ("shape-outline" as const),
           },
         ]
       : [
@@ -139,15 +198,24 @@ export function buildThreadContextState(input: BuildThreadContextStateInput): Re
             key: "status",
             label: "Status",
             value: conversaAtiva.laudoCard.status_card_label,
-            detail: conversaAtiva.permiteReabrir ? "Reabra quando precisar complementar." : "Fluxo ativo do inspetor.",
+            detail: conversaAtiva.permiteReabrir
+              ? "Reabra quando precisar complementar."
+              : "Fluxo ativo do inspetor.",
             tone: statusVisualLaudo.tone,
             icon: statusVisualLaudo.icon,
           },
           {
             key: "ultima",
             label: "Última atividade",
-            value: conversaAtiva.laudoCard.hora_br || conversaAtiva.laudoCard.data_br,
-            detail: [conversaAtiva.laudoCard.data_br, conversaAtiva.laudoCard.tipo_template].filter(Boolean).join(" • "),
+            value:
+              conversaAtiva.laudoCard.hora_br ||
+              conversaAtiva.laudoCard.data_br,
+            detail: [
+              conversaAtiva.laudoCard.data_br,
+              conversaAtiva.laudoCard.tipo_template,
+            ]
+              .filter(Boolean)
+              .join(" • "),
             tone: "muted" as const,
             icon: "calendar-clock-outline" as const,
           },

@@ -1,6 +1,11 @@
 import type { SettingsSectionKey } from "./settingsNavigationMeta";
 
-type SettingsSectionGroup = "prioridades" | "acesso" | "experiencia" | "seguranca" | "sistema";
+type SettingsSectionGroup =
+  | "prioridades"
+  | "acesso"
+  | "experiencia"
+  | "seguranca"
+  | "sistema";
 type SettingsDrawerFilter = "todos" | SettingsSectionGroup;
 
 interface SettingsSectionCatalogEntry {
@@ -69,12 +74,16 @@ function normalizarTextoBusca(value: string): string {
 export function buildSettingsSectionVisibility(
   input: BuildSettingsSectionVisibilityInput,
 ): BuildSettingsSectionVisibilityResult {
-  const buscaConfiguracoesNormalizada = normalizarTextoBusca(input.buscaConfiguracoes);
+  const buscaConfiguracoesNormalizada = normalizarTextoBusca(
+    input.buscaConfiguracoes,
+  );
   const catalogoSecoesConfiguracao: readonly SettingsSectionCatalogEntry[] = [
     {
       key: "prioridades",
       group: "prioridades",
-      terms: ["acoes prioritarias permissoes criticas atualizacoes dispositivo"],
+      terms: [
+        "acoes prioritarias permissoes criticas atualizacoes dispositivo",
+      ],
     },
     {
       key: "conta",
@@ -100,62 +109,88 @@ export function buildSettingsSectionVisibility(
     {
       key: "notificacoes",
       group: "experiencia",
-      terms: [`notificacoes push respostas som vibracao emails ${input.somNotificacao}`],
+      terms: [
+        `notificacoes push respostas som vibracao emails ${input.somNotificacao}`,
+      ],
     },
     {
       key: "protecaoDispositivo",
       group: "seguranca",
-      terms: [`protecao no dispositivo biometria bloqueio local multitarefa ${input.lockTimeout}`],
+      terms: [
+        `protecao no dispositivo biometria bloqueio local multitarefa ${input.lockTimeout}`,
+      ],
     },
     {
       key: "dadosConversas",
       group: "seguranca",
-      terms: [`dados e conversas historico exportar apagar retencao backup sincronizacao ${input.resumoDadosConversas}`],
+      terms: [
+        `dados e conversas historico exportar apagar retencao backup sincronizacao ${input.resumoDadosConversas}`,
+      ],
     },
     {
       key: "permissoes",
       group: "seguranca",
-      terms: [`permissoes microfone camera arquivos notificacoes ${input.resumoPermissoes}`],
+      terms: [
+        `permissoes microfone camera arquivos notificacoes ${input.resumoPermissoes}`,
+      ],
     },
     {
       key: "segurancaArquivos",
       group: "seguranca",
-      terms: ["seguranca de arquivos upload pdf imagem docx urls assinadas validacao tamanho"],
+      terms: [
+        "seguranca de arquivos upload pdf imagem docx urls assinadas validacao tamanho",
+      ],
     },
     {
       key: "privacidadeNotificacoes",
       group: "seguranca",
-      terms: [`privacidade em notificacoes previa tela bloqueada nova mensagem ${input.resumoPrivacidadeNotificacoes}`],
+      terms: [
+        `privacidade em notificacoes previa tela bloqueada nova mensagem ${input.resumoPrivacidadeNotificacoes}`,
+      ],
     },
     {
       key: "recursosAvancados",
       group: "sistema",
-      terms: ["fala voz transcricao leitura assistida microfone acessibilidade"],
+      terms: [
+        "fala voz transcricao leitura assistida microfone acessibilidade",
+      ],
     },
     {
       key: "sistema",
       group: "sistema",
-      terms: [`sistema idioma regiao bateria versao atualizacoes atividade fila offline ${input.appVersionLabel} ${input.appBuildChannel}`],
+      terms: [
+        `sistema idioma regiao bateria versao atualizacoes atividade fila offline ${input.appVersionLabel} ${input.appBuildChannel}`,
+      ],
     },
     {
       key: "suporte",
       group: "sistema",
-      terms: [`suporte ajuda feedback bug licencas termos privacidade sobre diagnostico whatsapp atualizacoes ${input.resumoFilaSuporteLocal}`],
+      terms: [
+        `suporte ajuda feedback bug licencas termos privacidade sobre diagnostico whatsapp atualizacoes ${input.resumoFilaSuporteLocal}`,
+      ],
     },
   ];
 
-  const secoesConfiguracaoVisiveis = catalogoSecoesConfiguracao.filter((section) => {
-    if (input.filtroConfiguracoes !== "todos" && input.filtroConfiguracoes !== section.group) {
-      return false;
-    }
-    if (!buscaConfiguracoesNormalizada) {
-      return true;
-    }
-    const alvo = normalizarTextoBusca(section.terms.join(" "));
-    return alvo.includes(buscaConfiguracoesNormalizada);
-  });
-  const secoesConfiguracaoVisiveisSet = new Set(secoesConfiguracaoVisiveis.map((item) => item.key));
-  const mostrarSecaoConfiguracao = (key: SettingsSectionKey) => secoesConfiguracaoVisiveisSet.has(key);
+  const secoesConfiguracaoVisiveis = catalogoSecoesConfiguracao.filter(
+    (section) => {
+      if (
+        input.filtroConfiguracoes !== "todos" &&
+        input.filtroConfiguracoes !== section.group
+      ) {
+        return false;
+      }
+      if (!buscaConfiguracoesNormalizada) {
+        return true;
+      }
+      const alvo = normalizarTextoBusca(section.terms.join(" "));
+      return alvo.includes(buscaConfiguracoesNormalizada);
+    },
+  );
+  const secoesConfiguracaoVisiveisSet = new Set(
+    secoesConfiguracaoVisiveis.map((item) => item.key),
+  );
+  const mostrarSecaoConfiguracao = (key: SettingsSectionKey) =>
+    secoesConfiguracaoVisiveisSet.has(key);
   const mostrarGrupoContaAcesso = mostrarSecaoConfiguracao("conta");
   const mostrarGrupoExperiencia =
     mostrarSecaoConfiguracao("preferenciasIa") ||
@@ -172,16 +207,25 @@ export function buildSettingsSectionVisibility(
     mostrarSecaoConfiguracao("sistema") ||
     mostrarSecaoConfiguracao("suporte");
   const totalSecoesConfiguracaoVisiveis = secoesConfiguracaoVisiveis.length;
-  const totalSecoesContaAcesso = secoesConfiguracaoVisiveis.filter((item) => item.group === "acesso").length;
-  const totalSecoesExperiencia = secoesConfiguracaoVisiveis.filter((item) => item.group === "experiencia").length;
-  const totalSecoesSeguranca = secoesConfiguracaoVisiveis.filter((item) => item.group === "seguranca").length;
-  const totalSecoesSistema = secoesConfiguracaoVisiveis.filter((item) => item.group === "sistema").length;
+  const totalSecoesContaAcesso = secoesConfiguracaoVisiveis.filter(
+    (item) => item.group === "acesso",
+  ).length;
+  const totalSecoesExperiencia = secoesConfiguracaoVisiveis.filter(
+    (item) => item.group === "experiencia",
+  ).length;
+  const totalSecoesSeguranca = secoesConfiguracaoVisiveis.filter(
+    (item) => item.group === "seguranca",
+  ).length;
+  const totalSecoesSistema = secoesConfiguracaoVisiveis.filter(
+    (item) => item.group === "sistema",
+  ).length;
   const totalPrioridadesAbertas = input.permissoesNegadasTotal > 0 ? 1 : 0;
-  const resumoBuscaConfiguracoes = !buscaConfiguracoesNormalizada && input.filtroConfiguracoes === "todos"
-    ? ""
-    : totalSecoesConfiguracaoVisiveis
-      ? `${totalSecoesConfiguracaoVisiveis} bloco${totalSecoesConfiguracaoVisiveis > 1 ? "s" : ""} correspondente${totalSecoesConfiguracaoVisiveis > 1 ? "s" : ""}`
-      : "Nenhum bloco encontrado";
+  const resumoBuscaConfiguracoes =
+    !buscaConfiguracoesNormalizada && input.filtroConfiguracoes === "todos"
+      ? ""
+      : totalSecoesConfiguracaoVisiveis
+        ? `${totalSecoesConfiguracaoVisiveis} bloco${totalSecoesConfiguracaoVisiveis > 1 ? "s" : ""} correspondente${totalSecoesConfiguracaoVisiveis > 1 ? "s" : ""}`
+        : "Nenhum bloco encontrado";
 
   return {
     buscaConfiguracoesNormalizada,

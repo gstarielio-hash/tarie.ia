@@ -25,11 +25,15 @@ export type SettingsFontScale = (typeof FONT_SIZE_OPTIONS)[number];
 export type SettingsAccentColor = (typeof ACCENT_OPTIONS)[number];
 export type SettingsAiModel = (typeof AI_MODEL_OPTIONS)[number];
 export type SettingsResponseStyle = (typeof RESPONSE_STYLE_OPTIONS)[number];
-export type SettingsResponseLanguage = (typeof RESPONSE_LANGUAGE_OPTIONS)[number];
-export type SettingsConversationTone = (typeof CONVERSATION_TONE_OPTIONS)[number];
+export type SettingsResponseLanguage =
+  (typeof RESPONSE_LANGUAGE_OPTIONS)[number];
+export type SettingsConversationTone =
+  (typeof CONVERSATION_TONE_OPTIONS)[number];
 export type SettingsSpeechLanguage = (typeof SPEECH_LANGUAGE_OPTIONS)[number];
-export type SettingsNotificationSound = (typeof NOTIFICATION_SOUND_OPTIONS)[number];
-export type SettingsMediaCompression = (typeof MEDIA_COMPRESSION_OPTIONS)[number];
+export type SettingsNotificationSound =
+  (typeof NOTIFICATION_SOUND_OPTIONS)[number];
+export type SettingsMediaCompression =
+  (typeof MEDIA_COMPRESSION_OPTIONS)[number];
 export type SettingsRegion = (typeof REGION_OPTIONS)[number];
 export type SettingsBatteryMode = (typeof BATTERY_OPTIONS)[number];
 export type SettingsAppLanguage = (typeof APP_LANGUAGE_OPTIONS)[number];

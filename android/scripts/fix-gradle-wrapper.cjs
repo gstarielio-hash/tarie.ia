@@ -1,10 +1,17 @@
 const { existsSync, readFileSync, writeFileSync } = require("fs");
 const path = require("path");
 
-const TARGET_DISTRIBUTION = "https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip";
+const TARGET_DISTRIBUTION =
+  "https\\://services.gradle.org/distributions/gradle-8.14.3-bin.zip";
 
 const files = [
-  path.join(process.cwd(), "android", "gradle", "wrapper", "gradle-wrapper.properties"),
+  path.join(
+    process.cwd(),
+    "android",
+    "gradle",
+    "wrapper",
+    "gradle-wrapper.properties",
+  ),
   path.join(process.cwd(), "android", "gradle.properties"),
 ];
 

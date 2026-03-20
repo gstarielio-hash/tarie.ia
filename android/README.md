@@ -2,6 +2,11 @@
 
 Base mobile separada do produto para o app do inspetor, construída com React Native + Expo.
 
+## Documentação
+
+- Auditoria de settings: [docs/mobile-settings-audit.md](./docs/mobile-settings-audit.md)
+- Plano de refatoração do app shell: [docs/inspector-mobile-refactor-plan.md](./docs/inspector-mobile-refactor-plan.md)
+
 ## Rodar localmente
 
 ```bash
@@ -31,6 +36,12 @@ npm run maestro:history
 npm run maestro:settings
 npm run maestro:chat
 npm run maestro:suite
+npm run lint
+npm run lint:fix
+npm run test
+npm run test:watch
+npm run format
+npm run format:check
 npm run ios
 npm run web
 npm run typecheck
@@ -161,3 +172,20 @@ Cobertura atual:
 - [history-smoke.yaml](./maestro/history-smoke.yaml): drawer de histórico, filtros e retomada de conversa
 - [settings-smoke.yaml](./maestro/settings-smoke.yaml): overview da engrenagem, navegação por seções e páginas internas
 - [chat-smoke.yaml](./maestro/chat-smoke.yaml): composer, envio e troca de abas do fluxo principal
+
+## Qualidade local
+
+Ferramentas novas para reduzir regressão no app:
+
+```bash
+cd android
+npm run lint
+npm run typecheck
+npm run test -- --runInBand
+npm run format:check
+```
+
+Cobertura inicial de Jest:
+
+- migração e normalização do schema de settings
+- mapeamento de preferências de IA para o fluxo do chat

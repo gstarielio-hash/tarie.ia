@@ -1,4 +1,7 @@
-import { carregarLaudosMobile, carregarMensagensMesaMobile } from "../../config/api";
+import {
+  carregarLaudosMobile,
+  carregarMensagensMesaMobile,
+} from "../../config/api";
 import { registrarEventoObservabilidade } from "../../config/observability";
 import type { MobileLaudoCard, MobileMesaMessage } from "../../types/mobile";
 
@@ -82,7 +85,10 @@ export async function runMonitorActivityFlow<TNotification>({
       const assinatura = assinaturaStatusLaudo(item);
       snapshotNovo[item.id] = assinatura;
 
-      if (snapshotAnterior[item.id] && snapshotAnterior[item.id] !== assinatura) {
+      if (
+        snapshotAnterior[item.id] &&
+        snapshotAnterior[item.id] !== assinatura
+      ) {
         novasNotificacoes.push(criarNotificacaoStatusLaudo(item));
       }
     }
@@ -105,7 +111,9 @@ export async function runMonitorActivityFlow<TNotification>({
         })),
       );
       const cacheMesaAtualizado: Record<string, MobileMesaMessage[]> = {};
-      const titulosLaudos = new Map(proximosLaudos.map((item) => [item.id, item.titulo]));
+      const titulosLaudos = new Map(
+        proximosLaudos.map((item) => [item.id, item.titulo]),
+      );
 
       for (const resultado of resultadosMesa) {
         if (resultado.status !== "fulfilled") {
@@ -120,7 +128,8 @@ export async function runMonitorActivityFlow<TNotification>({
           titulosLaudos.get(laudoId) ||
           (conversaLaudoId === laudoId ? conversaLaudoTitulo || "" : "") ||
           `Laudo #${laudoId}`;
-        const mesaPossuiaSnapshot = Object.keys(snapshotMesaAnterior).length > 0;
+        const mesaPossuiaSnapshot =
+          Object.keys(snapshotMesaAnterior).length > 0;
 
         for (const item of itensMesa) {
           const assinatura = assinaturaMensagemMesa(item);
@@ -134,7 +143,9 @@ export async function runMonitorActivityFlow<TNotification>({
           if (!assinaturaAntiga) {
             const veioDaMesa = item.remetente_id !== sessionUserId;
             if (veioDaMesa) {
-              novasNotificacoes.push(criarNotificacaoMesa("mesa_nova", item, tituloLaudo));
+              novasNotificacoes.push(
+                criarNotificacaoMesa("mesa_nova", item, tituloLaudo),
+              );
             }
             continue;
           }
@@ -142,9 +153,13 @@ export async function runMonitorActivityFlow<TNotification>({
           const estavaResolvida = assinaturaAntiga.split("|")[1] || "";
           const estaResolvida = item.resolvida_em || "";
           if (!estavaResolvida && estaResolvida) {
-            novasNotificacoes.push(criarNotificacaoMesa("mesa_resolvida", item, tituloLaudo));
+            novasNotificacoes.push(
+              criarNotificacaoMesa("mesa_resolvida", item, tituloLaudo),
+            );
           } else if (estavaResolvida && !estaResolvida) {
-            novasNotificacoes.push(criarNotificacaoMesa("mesa_reaberta", item, tituloLaudo));
+            novasNotificacoes.push(
+              criarNotificacaoMesa("mesa_reaberta", item, tituloLaudo),
+            );
           }
         }
 
@@ -187,7 +202,9 @@ export async function runMonitorActivityFlow<TNotification>({
     }
 
     const message =
-      error instanceof Error ? error.message : "Não foi possível monitorar a atividade do inspetor.";
+      error instanceof Error
+        ? error.message
+        : "Não foi possível monitorar a atividade do inspetor.";
     onSetErroConversaIfEmpty(message);
     void registrarEventoObservabilidade({
       kind: "activity_monitor",

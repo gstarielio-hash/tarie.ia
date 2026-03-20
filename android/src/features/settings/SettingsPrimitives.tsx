@@ -1,6 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { createContext, useContext, type ReactNode } from "react";
-import { Alert, Pressable, Switch, Text, TextInput, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  Alert,
+  Pressable,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import { colors } from "../../theme/tokens";
 import { styles } from "../InspectorMobileApp.styles";
@@ -17,7 +26,11 @@ export function SettingsSectionLayoutProvider({
   children: ReactNode;
   hideHeader: boolean;
 }) {
-  return <SettingsSectionLayoutContext.Provider value={hideHeader}>{children}</SettingsSectionLayoutContext.Provider>;
+  return (
+    <SettingsSectionLayoutContext.Provider value={hideHeader}>
+      {children}
+    </SettingsSectionLayoutContext.Provider>
+  );
 }
 
 function SettingsInfoIcon({
@@ -82,7 +95,11 @@ export function SettingsSection({
             />
           ) : (
             <View style={styles.settingsSectionIcon}>
-              <MaterialCommunityIcons name={icon} size={18} color={SETTINGS_ICON_COLOR} />
+              <MaterialCommunityIcons
+                name={icon}
+                size={18}
+                color={SETTINGS_ICON_COLOR}
+              />
             </View>
           )}
           <View style={styles.settingsSectionCopy}>
@@ -139,19 +156,47 @@ export function SettingsPressRow({
           icon={icon}
           iconColor={danger ? colors.danger : SETTINGS_ICON_COLOR}
           iconSize={18}
-          style={[styles.settingsRowIcon, danger ? styles.settingsRowIconDanger : null]}
+          style={[
+            styles.settingsRowIcon,
+            danger ? styles.settingsRowIconDanger : null,
+          ]}
           title={title}
         />
       ) : (
-        <View style={[styles.settingsRowIcon, danger ? styles.settingsRowIconDanger : null]}>
-          <MaterialCommunityIcons name={icon} size={18} color={danger ? colors.danger : SETTINGS_ICON_COLOR} />
+        <View
+          style={[
+            styles.settingsRowIcon,
+            danger ? styles.settingsRowIconDanger : null,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={icon}
+            size={18}
+            color={danger ? colors.danger : SETTINGS_ICON_COLOR}
+          />
         </View>
       )}
       <View style={styles.settingsRowCopy}>
-        <Text style={[styles.settingsRowTitle, danger ? styles.settingsRowTitleDanger : null]}>{title}</Text>
+        <Text
+          style={[
+            styles.settingsRowTitle,
+            danger ? styles.settingsRowTitleDanger : null,
+          ]}
+        >
+          {title}
+        </Text>
       </View>
       <View style={styles.settingsRowMeta}>
-        {value ? <Text style={[styles.settingsRowValue, danger ? { color: colors.danger } : null]}>{value}</Text> : null}
+        {value ? (
+          <Text
+            style={[
+              styles.settingsRowValue,
+              danger ? { color: colors.danger } : null,
+            ]}
+          >
+            {value}
+          </Text>
+        ) : null}
         {onPress ? (
           <MaterialCommunityIcons
             name="chevron-right"
@@ -192,7 +237,11 @@ export function SettingsSwitchRow({
         />
       ) : (
         <View style={styles.settingsRowIcon}>
-          <MaterialCommunityIcons name={icon} size={18} color={SETTINGS_ICON_COLOR} />
+          <MaterialCommunityIcons
+            name={icon}
+            size={18}
+            color={SETTINGS_ICON_COLOR}
+          />
         </View>
       )}
       <View style={styles.settingsRowCopy}>
@@ -240,7 +289,11 @@ export function SettingsSegmentedRow<T extends string>({
           />
         ) : (
           <View style={styles.settingsRowIcon}>
-            <MaterialCommunityIcons name={icon} size={18} color={SETTINGS_ICON_COLOR} />
+            <MaterialCommunityIcons
+              name={icon}
+              size={18}
+              color={SETTINGS_ICON_COLOR}
+            />
           </View>
         )}
         <View style={styles.settingsRowCopy}>
@@ -254,9 +307,17 @@ export function SettingsSegmentedRow<T extends string>({
             <Pressable
               key={`${title}-${option}`}
               onPress={() => onChange(option)}
-              style={[styles.settingsSegmentPill, active ? styles.settingsSegmentPillActive : null]}
+              style={[
+                styles.settingsSegmentPill,
+                active ? styles.settingsSegmentPillActive : null,
+              ]}
             >
-              <Text style={[styles.settingsSegmentText, active ? styles.settingsSegmentTextActive : null]}>
+              <Text
+                style={[
+                  styles.settingsSegmentText,
+                  active ? styles.settingsSegmentTextActive : null,
+                ]}
+              >
                 {option}
               </Text>
             </Pressable>
@@ -302,7 +363,11 @@ export function SettingsScaleRow({
           />
         ) : (
           <View style={styles.settingsRowIcon}>
-            <MaterialCommunityIcons name={icon} size={18} color={SETTINGS_ICON_COLOR} />
+            <MaterialCommunityIcons
+              name={icon}
+              size={18}
+              color={SETTINGS_ICON_COLOR}
+            />
           </View>
         )}
         <View style={styles.settingsRowCopy}>
@@ -318,9 +383,17 @@ export function SettingsScaleRow({
             <Pressable
               key={`${title}-${step}`}
               onPress={() => onChange(step)}
-              style={[styles.settingsScaleStep, active ? styles.settingsScaleStepActive : null]}
+              style={[
+                styles.settingsScaleStep,
+                active ? styles.settingsScaleStepActive : null,
+              ]}
             >
-              <View style={[styles.settingsScaleDot, selected ? styles.settingsScaleDotActive : null]} />
+              <View
+                style={[
+                  styles.settingsScaleDot,
+                  selected ? styles.settingsScaleDotActive : null,
+                ]}
+              />
             </Pressable>
           );
         })}
@@ -360,7 +433,11 @@ export function SettingsTextField({
     <View style={styles.settingsFieldBlock} testID={testID}>
       <View style={styles.settingsFieldLabelRow}>
         <View style={styles.settingsRowIcon}>
-          <MaterialCommunityIcons name={icon} size={18} color={SETTINGS_ICON_COLOR} />
+          <MaterialCommunityIcons
+            name={icon}
+            size={18}
+            color={SETTINGS_ICON_COLOR}
+          />
         </View>
         <Text style={styles.settingsRowTitle}>{title}</Text>
       </View>
@@ -478,10 +555,17 @@ export function SettingsOverviewCard({
       <View style={styles.settingsOverviewCopy}>
         <View style={styles.settingsOverviewHeading}>
           <Text style={styles.settingsOverviewTitle}>{title}</Text>
-          <SettingsStatusPill label={badge} tone={tone === "muted" ? "accent" : tone} />
+          <SettingsStatusPill
+            label={badge}
+            tone={tone === "muted" ? "accent" : tone}
+          />
         </View>
       </View>
-      <MaterialCommunityIcons color={colors.textSecondary} name="chevron-right" size={18} />
+      <MaterialCommunityIcons
+        color={colors.textSecondary}
+        name="chevron-right"
+        size={18}
+      />
     </Pressable>
   );
 }
@@ -532,7 +616,9 @@ export function SettingsPrintRow({
             styles.settingsPrintRowIconShell,
             darkMode ? styles.settingsPrintRowIconShellDark : null,
             danger ? styles.settingsPrintRowIconShellDanger : null,
-            danger && darkMode ? styles.settingsPrintRowIconShellDangerDark : null,
+            danger && darkMode
+              ? styles.settingsPrintRowIconShellDangerDark
+              : null,
           ]}
           title={title}
         />
@@ -542,10 +628,16 @@ export function SettingsPrintRow({
             styles.settingsPrintRowIconShell,
             darkMode ? styles.settingsPrintRowIconShellDark : null,
             danger ? styles.settingsPrintRowIconShellDanger : null,
-            danger && darkMode ? styles.settingsPrintRowIconShellDangerDark : null,
+            danger && darkMode
+              ? styles.settingsPrintRowIconShellDangerDark
+              : null,
           ]}
         >
-          <MaterialCommunityIcons color={danger ? colors.danger : SETTINGS_ICON_COLOR} name={icon} size={20} />
+          <MaterialCommunityIcons
+            color={danger ? colors.danger : SETTINGS_ICON_COLOR}
+            name={icon}
+            size={20}
+          />
         </View>
       )}
       <View style={styles.settingsPrintRowCopy}>
@@ -559,14 +651,21 @@ export function SettingsPrintRow({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={[styles.settingsPrintRowSubtitle, darkMode ? styles.settingsPrintRowSubtitleDark : null]}>
+          <Text
+            style={[
+              styles.settingsPrintRowSubtitle,
+              darkMode ? styles.settingsPrintRowSubtitleDark : null,
+            ]}
+          >
             {subtitle}
           </Text>
         ) : null}
       </View>
       {trailingIcon ? (
         <MaterialCommunityIcons
-          color={danger ? colors.danger : darkMode ? "#AFC0D2" : colors.textSecondary}
+          color={
+            danger ? colors.danger : darkMode ? "#AFC0D2" : colors.textSecondary
+          }
           name={trailingIcon}
           size={20}
         />
