@@ -163,7 +163,7 @@ async def api_cancelar_relatorio(
             )
 
         banco.delete(laudo)
-        banco.commit()
+        banco.flush()
 
     request.session.pop("laudo_ativo_id", None)
     request.session["estado_relatorio"] = "sem_relatorio"
@@ -290,7 +290,7 @@ async def rota_pin_laudo(
     laudo.pinado = dados.pinado
     laudo.pinado_em = agora_utc() if dados.pinado else None
     laudo.atualizado_em = agora_utc()
-    banco.commit()
+    banco.flush()
 
     return resposta_json_ok(
         {
@@ -324,7 +324,7 @@ async def rota_deletar_laudo(
         request.session["estado_relatorio"] = "sem_relatorio"
 
     banco.delete(laudo)
-    banco.commit()
+    banco.flush()
 
     return resposta_json_ok({"ok": True})
 

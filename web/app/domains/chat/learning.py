@@ -147,7 +147,6 @@ async def registrar_aprendizado_visual_inspetor(
     )
     banco.add(item)
     banco.flush()
-    banco.commit()
     banco.refresh(item)
 
     return JSONResponse(

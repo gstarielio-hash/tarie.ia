@@ -19,8 +19,16 @@ from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.settings import get_settings
-from app.shared.database import Empresa, Laudo, NivelAcesso, PlanoEmpresa, Usuario
+from app.core.settings import env_str, get_settings
+from app.shared.database import (
+    Empresa,
+    Laudo,
+    NivelAcesso,
+    PlanoEmpresa,
+    Usuario,
+    commit_ou_rollback_integridade,
+    flush_ou_rollback_integridade,
+)
 from app.shared.security import (
     criar_hash_senha,
     encerrar_todas_sessoes_usuario,
@@ -30,6 +38,10 @@ from app.shared.security import (
 logger = logging.getLogger("tariel.saas")
 
 _MODO_DEV = not get_settings().em_producao
+_BACKEND_NOTIFICACAO_BOAS_VINDAS = env_str(
+    "ADMIN_WELCOME_NOTIFICATION_BACKEND",
+    "log" if _MODO_DEV else "noop",
+).strip().lower()
 
 # =========================================================
 # NORMALIZAÇÃO / CONTRATO COMERCIAL
@@ -167,15 +179,6 @@ def _case_prioridade_plano():
     )
 
 
-def _commit_ou_rollback(db: Session, mensagem_erro: str) -> None:
-    try:
-        db.commit()
-    except IntegrityError as erro:
-        db.rollback()
-        logger.warning("%s | integrity_error=%s", mensagem_erro, erro)
-        raise ValueError(mensagem_erro) from erro
-
-
 def _obter_limite_usuarios_empresa(db: Session, empresa: Empresa) -> int | None:
     limites = empresa.obter_limites(db)
     return limites.usuarios_max
@@ -223,7 +226,7 @@ def registrar_novo_cliente(
     cidade_estado: str = "",
     nome_responsavel: str = "",
     observacoes: str = "",
-) -> tuple[Empresa, str]:
+) -> tuple[Empresa, str, str | None]:
     nome_norm = _normalizar_texto_curto(nome, campo="Nome da empresa", max_len=200)
     cnpj_norm = _normalizar_cnpj(cnpj)
     email_norm = _normalizar_email(email_admin)
@@ -271,16 +274,19 @@ def registrar_novo_cliente(
     )
     db.add(usuario_admin)
 
-    _commit_ou_rollback(
+    commit_ou_rollback_integridade(
         db,
-        "Falha de integridade ao concluir o cadastro. Verifique CNPJ e e-mail.",
+        logger_operacao=logger,
+        mensagem_erro="Falha de integridade ao concluir o cadastro. Verifique CNPJ e e-mail.",
     )
 
     db.refresh(nova_empresa)
 
+    aviso_boas_vindas: str | None = None
     try:
-        _disparar_email_boas_vindas(email_norm, nome_norm, senha_plana)
-    except Exception as erro:
+        aviso_boas_vindas = _disparar_email_boas_vindas(email_norm, nome_norm, senha_plana)
+    except RuntimeError as erro:
+        aviso_boas_vindas = str(erro).strip() or None
         logger.error(
             "Falha ao enviar e-mail de boas-vindas | empresa=%s email=%s erro=%s",
             nome_norm,
@@ -289,7 +295,7 @@ def registrar_novo_cliente(
             exc_info=True,
         )
 
-    return nova_empresa, senha_plana
+    return nova_empresa, senha_plana, aviso_boas_vindas
 
 
 # =========================================================
@@ -416,7 +422,11 @@ def alternar_bloqueio(db: Session, empresa_id: int) -> bool:
     empresa.bloqueado_em = _agora_utc() if novo_estado else None
     empresa.motivo_bloqueio = empresa.motivo_bloqueio if novo_estado else None
 
-    _commit_ou_rollback(db, "Não foi possível alterar o bloqueio da empresa.")
+    flush_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível alterar o bloqueio da empresa.",
+    )
     return bool(empresa.status_bloqueio)
 
 
@@ -426,7 +436,11 @@ def alterar_plano(db: Session, empresa_id: int, novo_plano: str) -> None:
     empresa = _buscar_empresa(db, empresa_id)
 
     empresa.plano_ativo = plano_norm
-    _commit_ou_rollback(db, "Não foi possível alterar o plano da empresa.")
+    flush_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível alterar o plano da empresa.",
+    )
 
 
 def resetar_senha_inspetor(db: Session, usuario_id: int) -> str:
@@ -441,7 +455,11 @@ def resetar_senha_inspetor(db: Session, usuario_id: int) -> str:
     usuario.status_bloqueio = False
     usuario.senha_temporaria_ativa = True
 
-    _commit_ou_rollback(db, "Não foi possível resetar a senha do usuário.")
+    commit_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível resetar a senha do usuário.",
+    )
     sessoes_encerradas = encerrar_todas_sessoes_usuario(int(usuario.id))
     if sessoes_encerradas:
         logger.info(
@@ -464,7 +482,11 @@ def atualizar_crea_revisor(db: Session, empresa_id: int, usuario_id: int, crea: 
         raise ValueError("Somente usuários revisores aceitam cadastro de CREA.")
 
     usuario.crea = _normalizar_crea(crea)
-    _commit_ou_rollback(db, "Não foi possível atualizar o CREA do revisor.")
+    flush_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível atualizar o CREA do revisor.",
+    )
     return usuario
 
 
@@ -513,7 +535,11 @@ def criar_usuario_empresa(
     )
     db.add(novo)
 
-    _commit_ou_rollback(db, "Não foi possível adicionar o usuário da empresa.")
+    flush_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível adicionar o usuário da empresa.",
+    )
     logger.info(
         "Usuário da empresa criado | empresa_id=%s | usuario_id=%s | nivel=%s",
         empresa_id,
@@ -535,7 +561,11 @@ def alternar_bloqueio_usuario_empresa(db: Session, empresa_id: int, usuario_id: 
         usuario.status_bloqueio = True
         usuario.bloqueado_ate = None
 
-    _commit_ou_rollback(db, "Não foi possível alterar o bloqueio do usuário.")
+    commit_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível alterar o bloqueio do usuário.",
+    )
     encerrar_todas_sessoes_usuario(int(usuario.id))
     return usuario
 
@@ -570,7 +600,11 @@ def atualizar_usuario_empresa(
             raise ValueError("Somente revisores aceitam cadastro de CREA.")
         usuario.crea = _normalizar_crea(crea)
 
-    _commit_ou_rollback(db, "Não foi possível atualizar o usuário da empresa.")
+    flush_ou_rollback_integridade(
+        db,
+        logger_operacao=logger,
+        mensagem_erro="Não foi possível atualizar o usuário da empresa.",
+    )
     return usuario
 
 
@@ -579,25 +613,40 @@ def atualizar_usuario_empresa(
 # =========================================================
 
 
-def _disparar_email_boas_vindas(email: str, empresa: str, senha: str) -> None:
+def _aviso_notificacao_boas_vindas() -> str:
+    return "Entrega automática de boas-vindas não configurada. Compartilhe a credencial por canal seguro."
+
+
+def _disparar_email_boas_vindas(email: str, empresa: str, senha: str) -> str | None:
     """
-    STUB.
-    Em desenvolvimento, registra o conteúdo completo no log.
-    Em produção, registra apenas que o envio deveria ocorrer.
+    Backend operacional mínimo para onboarding:
+    - `log`: registra metadados redigidos e devolve aviso para o operador.
+    - `noop`: não tenta enviar, mas devolve aviso explícito para o operador.
+    - `strict`: falha explicitamente para não mascarar ausência de entrega.
     """
-    if _MODO_DEV:
+    if _BACKEND_NOTIFICACAO_BOAS_VINDAS == "log":
         logger.info(
             "\n=========================================\n"
-            "[MODO DEV] E-MAIL DE BOAS-VINDAS INTERCEPTADO\n"
+            "[BACKEND LOG] BOAS-VINDAS INTERCEPTADO\n"
             f"Empresa: {empresa}\n"
             f"E-mail:  {email}\n"
-            f"Senha:   {senha}\n"
+            "Credencial temporaria: [REDACTED]\n"
+            "Acao:    compartilhe a credencial por canal seguro.\n"
             "=========================================\n"
         )
-        return
+        return _aviso_notificacao_boas_vindas()
 
-    logger.info(
-        "Stub de envio de boas-vindas acionado | empresa=%s email=%s",
-        empresa,
-        email,
+    if _BACKEND_NOTIFICACAO_BOAS_VINDAS == "noop":
+        logger.info(
+            "Entrega automatica de boas-vindas desativada | empresa=%s | email=%s",
+            empresa,
+            email,
+        )
+        return _aviso_notificacao_boas_vindas()
+
+    if _BACKEND_NOTIFICACAO_BOAS_VINDAS == "strict":
+        raise RuntimeError(_aviso_notificacao_boas_vindas())
+
+    raise RuntimeError(
+        "Backend de boas-vindas inválido. Use ADMIN_WELCOME_NOTIFICATION_BACKEND=log|noop|strict."
     )

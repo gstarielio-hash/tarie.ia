@@ -112,7 +112,6 @@ async def validar_aprendizado_visual_revisor(
         else StatusAprendizadoIa.REJEITADO_MESA.value
     )
     banco.flush()
-    banco.commit()
     banco.refresh(item)
 
     return JSONResponse(

@@ -1,4 +1,5 @@
 import {
+  carregarFeedMesaMobile,
   carregarLaudosMobile,
   carregarMensagensMesaMobile,
 } from "../../config/api";
@@ -33,6 +34,7 @@ interface RunMonitorActivityFlowParams<TNotification> {
   chaveCacheLaudo: (laudoId: number | null) => string;
   statusSnapshotRef: { current: Record<number, string> };
   mesaSnapshotRef: { current: Record<number, Record<number, string>> };
+  mesaFeedCursorRef: { current: string };
   onSetMonitorandoAtividade: (value: boolean) => void;
   onSetLaudosDisponiveis: (itens: MobileLaudoCard[]) => void;
   onSetCacheLaudos: (itens: MobileLaudoCard[]) => void;
@@ -61,6 +63,7 @@ export async function runMonitorActivityFlow<TNotification>({
   chaveCacheLaudo,
   statusSnapshotRef,
   mesaSnapshotRef,
+  mesaFeedCursorRef,
   onSetMonitorandoAtividade,
   onSetLaudosDisponiveis,
   onSetCacheLaudos,
@@ -108,8 +111,39 @@ export async function runMonitorActivityFlow<TNotification>({
     });
 
     if (laudosMonitoradosMesa.length) {
+      const feedMesa = await carregarFeedMesaMobile(accessToken, {
+        laudoIds: laudosMonitoradosMesa,
+        cursorAtualizadoEm: mesaFeedCursorRef.current || null,
+      });
+      if (feedMesa.cursor_atual) {
+        mesaFeedCursorRef.current = feedMesa.cursor_atual;
+      }
+      const laudosAlterados = new Set(
+        (feedMesa.itens || []).map((item) => item.laudo_id),
+      );
+      const laudosParaConsultar = laudosMonitoradosMesa.filter(
+        (laudoId) =>
+          laudosAlterados.has(laudoId) ||
+          !mesaSnapshotRef.current[laudoId] ||
+          !Object.keys(mesaSnapshotRef.current[laudoId] || {}).length,
+      );
+
+      if (!laudosParaConsultar.length) {
+        registrarNotificacoes(novasNotificacoes);
+        onSetStatusApi("online");
+        void registrarEventoObservabilidade({
+          kind: "activity_monitor",
+          name: "activity_cycle",
+          ok: true,
+          durationMs: Date.now() - monitoramentoIniciadoEm,
+          count: 0,
+          detail: `feed_${laudosMonitoradosMesa.length}`,
+        });
+        return;
+      }
+
       const resultadosMesa = await Promise.allSettled(
-        laudosMonitoradosMesa.map(async (laudoId) => ({
+        laudosParaConsultar.map(async (laudoId) => ({
           laudoId,
           payload: await carregarMensagensMesaMobile(accessToken, laudoId),
         })),

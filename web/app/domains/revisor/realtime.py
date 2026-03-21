@@ -154,6 +154,50 @@ class RedisRevisorRealtimeTransport(RevisorRealtimeTransport):
     def _canal_empresa(self, *, empresa_id: int) -> str:
         return f"{self._channel_prefix}:empresa:{empresa_id}"
 
+    def _carregar_payload_redis(self, *, canal: str, dados_brutos: Any) -> dict[str, Any] | None:
+        if isinstance(dados_brutos, bytes):
+            try:
+                dados_texto = dados_brutos.decode("utf-8")
+            except UnicodeDecodeError:
+                logger.warning("Payload redis inválido no realtime do revisor | channel=%s", canal)
+                return None
+        elif isinstance(dados_brutos, str):
+            dados_texto = dados_brutos
+        else:
+            logger.warning("Payload redis inesperado no realtime do revisor | channel=%s", canal)
+            return None
+
+        try:
+            payload = json.loads(dados_texto)
+        except json.JSONDecodeError:
+            logger.warning("JSON redis inválido no realtime do revisor | channel=%s", canal)
+            return None
+
+        if not isinstance(payload, dict):
+            logger.warning("Mensagem redis descartada por payload não-dict | channel=%s", canal)
+            return None
+
+        return payload
+
+    def _resolver_destino_canal(self, canal: str) -> tuple[str, int, int | None] | None:
+        partes = canal.split(":")
+        if len(partes) < 3:
+            logger.warning("Canal redis inválido no realtime do revisor | channel=%s", canal)
+            return None
+
+        try:
+            if partes[-3] == "user" and len(partes) >= 4:
+                return ("user", int(partes[-2]), int(partes[-1]))
+
+            if partes[-2] == "empresa":
+                return ("empresa", int(partes[-1]), None)
+        except (TypeError, ValueError):
+            logger.warning("Identificadores inválidos no canal redis do realtime | channel=%s", canal)
+            return None
+
+        logger.warning("Canal redis desconhecido no realtime do revisor | channel=%s", canal)
+        return None
+
     async def startup(self) -> None:
         if self._started:
             return
@@ -254,14 +298,16 @@ class RedisRevisorRealtimeTransport(RevisorRealtimeTransport):
         if not canal or dados_brutos is None:
             return
 
-        payload = json.loads(dados_brutos if isinstance(dados_brutos, str) else dados_brutos.decode("utf-8"))
-        partes = canal.split(":")
-        if len(partes) < 3:
+        payload = self._carregar_payload_redis(canal=canal, dados_brutos=dados_brutos)
+        if payload is None:
             return
 
-        if partes[-3] == "user" and len(partes) >= 4:
-            empresa_id = int(partes[-2])
-            user_id = int(partes[-1])
+        destino = self._resolver_destino_canal(canal)
+        if destino is None:
+            return
+
+        tipo_destino, empresa_id, user_id = destino
+        if tipo_destino == "user" and user_id is not None:
             await self._require_manager().send_to_user(
                 empresa_id=empresa_id,
                 user_id=user_id,
@@ -269,8 +315,7 @@ class RedisRevisorRealtimeTransport(RevisorRealtimeTransport):
             )
             return
 
-        if partes[-2] == "empresa":
-            empresa_id = int(partes[-1])
+        if tipo_destino == "empresa":
             await self._require_manager().broadcast_empresa(
                 empresa_id=empresa_id,
                 mensagem=payload,

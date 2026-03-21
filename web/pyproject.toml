@@ -13,6 +13,7 @@ select = ["E", "F"]
 
 [tool.mypy]
 python_version = "3.14"
+check_untyped_defs = true
 ignore_missing_imports = true
 follow_imports = "skip"
 warn_unused_configs = true
@@ -22,13 +23,8 @@ exclude = [
     '^\.venv/',
 ]
 files = [
+    "app",
     "main.py",
-    "app/domains/admin/routes.py",
-    "app/domains/chat/routes.py",
-    "app/domains/revisor/routes.py",
-    "app/domains/admin/services.py",
-    "app/shared/security.py",
-    "app/shared/database.py",
     "nucleo/cliente_ia.py",
     "nucleo/gerador_laudos.py",
 ]

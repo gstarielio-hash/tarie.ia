@@ -24,7 +24,10 @@
         textoBadgePendencia,
         classificarOperacaoLaudo,
         definirReferenciaMensagemAtiva,
-        showStatus
+        showStatus,
+        ehAbortError,
+        obterContextoLaudoAtivo,
+        contextoLaudoAindaValido
     } = NS;
 
 const renderMessageBubble = (msg, pendente = false) => {
@@ -249,9 +252,16 @@ const renderMessageBubble = (msg, pendente = false) => {
     };
 
     const carregarHistoricoMensagens = async ({ appendAntigas = false } = {}) => {
-        if (!state.laudoAtivoId) return;
-        if (state.carregandoHistoricoAntigo) return;
+        const contexto = obterContextoLaudoAtivo();
+        if (!contexto.laudoId) return;
+        if (appendAntigas && state.carregandoHistoricoAntigo) return;
         if (appendAntigas && !state.historicoTemMais) return;
+
+        if (state.historicoAbortController) {
+            state.historicoAbortController.abort();
+        }
+        const controller = new AbortController();
+        state.historicoAbortController = controller;
 
         state.carregandoHistoricoAntigo = true;
         renderTimeline({ rolarParaFim: false });
@@ -266,8 +276,9 @@ const renderMessageBubble = (msg, pendente = false) => {
                 params.set("cursor", String(state.historicoCursorProximo));
             }
 
-            const res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/mensagens?${params.toString()}`, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
+            const res = await fetch(`/revisao/api/laudo/${contexto.laudoId}/mensagens?${params.toString()}`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                signal: controller.signal
             });
 
             if (!res.ok) {
@@ -275,6 +286,9 @@ const renderMessageBubble = (msg, pendente = false) => {
             }
 
             const pagina = normalizarRespostaHistorico(await res.json());
+            if (controller.signal.aborted || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
 
             if (appendAntigas) {
                 state.historicoMensagens = [...pagina.itens, ...state.historicoMensagens];
@@ -284,7 +298,6 @@ const renderMessageBubble = (msg, pendente = false) => {
 
             state.historicoCursorProximo = pagina.cursor_proximo;
             state.historicoTemMais = !!pagina.tem_mais;
-            state.carregandoHistoricoAntigo = false;
 
             renderTimeline({ rolarParaFim: !appendAntigas });
 
@@ -296,10 +309,19 @@ const renderMessageBubble = (msg, pendente = false) => {
                 );
             }
         } catch (erro) {
-            state.carregandoHistoricoAntigo = false;
+            if (ehAbortError(erro)) {
+                return;
+            }
             showStatus("Erro ao carregar histórico.", "error");
             console.error("[Tariel] Falha ao carregar histórico paginado:", erro);
-            renderTimeline({ rolarParaFim: false });
+            if (contextoLaudoAindaValido(contexto)) {
+                renderTimeline({ rolarParaFim: false });
+            }
+        } finally {
+            if (state.historicoAbortController === controller) {
+                state.historicoAbortController = null;
+            }
+            state.carregandoHistoricoAntigo = false;
         }
     };
 

@@ -3,35 +3,21 @@
 # Responsabilidade:
 # - engine SQLAlchemy
 # - session factory
-# - models centrais do ecossistema
-# - seeds e migração versionada via Alembic
+# - agregacao dos models centrais do ecossistema
+# - contrato transacional da Session
+# - seeds e migracao versionada via Alembic
 # ==========================================
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from pathlib import Path
 from typing import Any, Generator
 
 from fastapi import HTTPException
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    CheckConstraint,
-    Column,
-    DateTime,
-    Enum as SAEnum,
-    ForeignKey,
-    Index,
-    Integer,
-    Numeric,
-    String,
-    Text,
-    UniqueConstraint,
-)
-from sqlalchemy.orm import DeclarativeBase, Session, relationship, validates
+from sqlalchemy import event
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import ORMExecuteState, Session
 
 from app.core.settings import env_bool, get_settings
 from app.shared.db.contracts import (
@@ -45,8 +31,24 @@ from app.shared.db.contracts import (
     StatusRevisao,
     TipoMensagem,
     VereditoAprendizadoIa,
-    _TIPOS_MENSAGEM_VALIDOS,
-    _valores_enum,
+)
+from app.shared.db.models_auth import (
+    AprendizadoVisualIa,
+    Empresa,
+    LimitePlano,
+    PreferenciaMobileUsuario,
+    RegistroAuditoriaEmpresa,
+    SessaoAtiva,
+    Usuario,
+)
+from app.shared.db.models_base import Base, MixinAuditoria, agora_utc
+from app.shared.db.models_laudo import (
+    AnexoMesa,
+    CitacaoLaudo,
+    Laudo,
+    LaudoRevisao,
+    MensagemLaudo,
+    TemplateLaudo,
 )
 from app.shared.db.runtime import (
     SessaoLocal,
@@ -54,10 +56,13 @@ from app.shared.db.runtime import (
     _normalizar_url_banco as _normalizar_url_banco_runtime,
     motor_banco as motor_banco_runtime,
 )
+
 logger = logging.getLogger("tariel.banco_dados")
+_INFO_CHAVE_MUTACOES_PENDENTES = "tariel_mutacoes_pendentes"
+
 
 # =========================================================
-# CONFIGURAÇÃO DE AMBIENTE / ENGINE
+# CONFIGURACAO DE AMBIENTE / ENGINE
 # =========================================================
 
 _DIR_PROJETO = Path(__file__).resolve().parents[2]
@@ -66,12 +71,7 @@ _ALEMBIC_DIR = _DIR_PROJETO / "alembic"
 
 _settings = get_settings()
 _SEED_DEV_BOOTSTRAP = env_bool("SEED_DEV_BOOTSTRAP", False)
-
 _EM_PRODUCAO = _settings.em_producao
-
-
-def agora_utc() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _normalizar_url_banco(valor: str) -> str:
@@ -83,940 +83,45 @@ motor_banco = motor_banco_runtime
 
 
 # =========================================================
-# BASE / MIXINS
+# CONTRATO TRANSACIONAL DA SESSION
 # =========================================================
 
 
-class MixinAuditoria:
-    criado_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-        comment="Timestamp UTC de criação",
-    )
-    atualizado_em = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        onupdate=agora_utc,
-        comment="Timestamp UTC da última atualização",
-    )
+@event.listens_for(Session, "before_flush")
+def _marcar_sessao_com_mutacoes(_session: Session, _flush_context: Any, _instances: Any) -> None:
+    _session.info[_INFO_CHAVE_MUTACOES_PENDENTES] = True
 
 
-class Base(DeclarativeBase):
-    pass
+@event.listens_for(Session, "do_orm_execute")
+def _marcar_sessao_em_bulk_orm(orm_execute_state: ORMExecuteState) -> None:
+    if orm_execute_state.is_insert or orm_execute_state.is_update or orm_execute_state.is_delete:
+        orm_execute_state.session.info[_INFO_CHAVE_MUTACOES_PENDENTES] = True
 
 
-# =========================================================
-# MODELO: LIMITEPLANO
-# =========================================================
+@event.listens_for(Session, "after_bulk_update")
+def _marcar_sessao_apos_bulk_update(update_context: Any) -> None:
+    update_context.session.info[_INFO_CHAVE_MUTACOES_PENDENTES] = True
 
 
-class LimitePlano(Base):
-    __tablename__ = "limites_plano"
-    __table_args__ = (
-        CheckConstraint(
-            f"plano IN ({', '.join(repr(p.value) for p in PlanoEmpresa)})",
-            name="ck_limite_plano_valido",
-        ),
-        CheckConstraint(
-            "laudos_mes IS NULL OR laudos_mes >= 0",
-            name="ck_limite_laudos_mes_nao_negativo",
-        ),
-        CheckConstraint(
-            "usuarios_max IS NULL OR usuarios_max >= 0",
-            name="ck_limite_usuarios_max_nao_negativo",
-        ),
-        CheckConstraint(
-            "integracoes_max IS NULL OR integracoes_max >= 0",
-            name="ck_limite_integracoes_max_nao_negativo",
-        ),
-        CheckConstraint(
-            "retencao_dias IS NULL OR retencao_dias >= 0",
-            name="ck_limite_retencao_dias_nao_negativo",
-        ),
-    )
+@event.listens_for(Session, "after_bulk_delete")
+def _marcar_sessao_apos_bulk_delete(delete_context: Any) -> None:
+    delete_context.session.info[_INFO_CHAVE_MUTACOES_PENDENTES] = True
 
-    plano = Column(String(20), primary_key=True)
-    laudos_mes = Column(Integer, nullable=True)
-    usuarios_max = Column(Integer, nullable=True)
-    upload_doc = Column(Boolean, nullable=False, default=False)
-    deep_research = Column(Boolean, nullable=False, default=False)
-    integracoes_max = Column(Integer, nullable=True)
-    retencao_dias = Column(Integer, nullable=True)
 
-    @validates("plano")
-    def _validar_plano(self, _key: str, valor: Any) -> str:
-        return PlanoEmpresa.normalizar(valor)
+@event.listens_for(Session, "after_commit")
+def _limpar_marcador_mutacoes_apos_commit(session: Session) -> None:
+    session.info.pop(_INFO_CHAVE_MUTACOES_PENDENTES, None)
 
-    def __repr__(self) -> str:
-        return f"<LimitePlano plano={self.plano!r} laudos_mes={self.laudos_mes}>"
 
-    def laudos_ilimitados(self) -> bool:
-        return self.laudos_mes is None
+@event.listens_for(Session, "after_rollback")
+def _limpar_marcador_mutacoes_apos_rollback(session: Session) -> None:
+    session.info.pop(_INFO_CHAVE_MUTACOES_PENDENTES, None)
 
-    def usuarios_ilimitados(self) -> bool:
-        return self.usuarios_max is None
 
-
-# =========================================================
-# MODELO: EMPRESA
-# =========================================================
-
-
-class Empresa(MixinAuditoria, Base):
-    __tablename__ = "empresas"
-    __table_args__ = (
-        CheckConstraint(
-            f"plano_ativo IN ({', '.join(repr(p.value) for p in PlanoEmpresa)})",
-            name="ck_empresa_plano_valido",
-        ),
-        CheckConstraint(
-            "custo_gerado_reais >= 0",
-            name="ck_empresa_custo_nao_negativo",
-        ),
-        CheckConstraint(
-            "mensagens_processadas >= 0",
-            name="ck_empresa_msgs_nao_negativo",
-        ),
-        CheckConstraint(
-            "LENGTH(REPLACE(REPLACE(REPLACE(cnpj, '.', ''), '/', ''), '-', '')) = 14",
-            name="ck_empresa_cnpj_tamanho",
-        ),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    nome_fantasia = Column(String(200), nullable=False, index=True)
-    cnpj = Column(String(18), nullable=False, unique=True, index=True)
-    plano_ativo = Column(String(20), nullable=False, default=PlanoEmpresa.INICIAL.value)
-    custo_gerado_reais = Column(
-        Numeric(12, 4),
-        nullable=False,
-        default=Decimal("0.0000"),
-    )
-    mensagens_processadas = Column(Integer, nullable=False, default=0)
-    status_bloqueio = Column(Boolean, nullable=False, default=False)
-    bloqueado_em = Column(DateTime(timezone=True), nullable=True)
-    motivo_bloqueio = Column(String(300), nullable=True)
-    segmento = Column(String(100), nullable=True)
-    cidade_estado = Column(String(100), nullable=True)
-    nome_responsavel = Column(String(150), nullable=True)
-    observacoes = Column(Text, nullable=True)
-
-    usuarios = relationship(
-        "Usuario",
-        back_populates="empresa",
-        cascade="all, delete-orphan",
-    )
-    laudos = relationship(
-        "Laudo",
-        back_populates="empresa",
-        passive_deletes=True,
-    )
-    templates_laudo = relationship(
-        "TemplateLaudo",
-        back_populates="empresa",
-        passive_deletes=True,
-    )
-    auditoria_registros = relationship(
-        "RegistroAuditoriaEmpresa",
-        back_populates="empresa",
-        passive_deletes=True,
-    )
-    aprendizados_visuais_ia = relationship(
-        "AprendizadoVisualIa",
-        back_populates="empresa",
-        passive_deletes=True,
-    )
-
-    @validates("plano_ativo")
-    def _validar_plano_ativo(self, _key: str, valor: Any) -> str:
-        return PlanoEmpresa.normalizar(valor)
-
-    def __repr__(self) -> str:
-        return f"<Empresa id={self.id} nome={self.nome_fantasia!r} plano={self.plano_ativo}>"
-
-    @property
-    def plano_normalizado(self) -> str:
-        return PlanoEmpresa.normalizar(self.plano_ativo)
-
-    @property
-    def esta_bloqueada(self) -> bool:
-        return bool(self.status_bloqueio)
-
-    def obter_limites(self, banco: Session) -> LimitePlano | LimitePlanoFallback:
-        plano_normalizado = PlanoEmpresa.normalizar(self.plano_ativo)
-        limite = banco.get(LimitePlano, plano_normalizado)
-        if limite:
-            return limite
-
-        logger.warning(
-            "LimitePlano não encontrado para plano=%r. Usando fallback.",
-            plano_normalizado,
-        )
-        padrao = LIMITES_PADRAO.get(
-            plano_normalizado,
-            LIMITES_PADRAO[PlanoEmpresa.INICIAL.value],
-        )
-        return LimitePlanoFallback(
-            plano=plano_normalizado,
-            laudos_mes=padrao["laudos_mes"],
-            usuarios_max=padrao["usuarios_max"],
-            upload_doc=padrao["upload_doc"],
-            deep_research=padrao["deep_research"],
-            integracoes_max=padrao["integracoes_max"],
-            retencao_dias=padrao["retencao_dias"],
-        )
-
-
-# =========================================================
-# MODELO: USUARIO
-# =========================================================
-
-
-class Usuario(MixinAuditoria, Base):
-    __tablename__ = "usuarios"
-    __table_args__ = (
-        CheckConstraint(
-            (f"nivel_acesso IN ({int(NivelAcesso.INSPETOR)}, {int(NivelAcesso.REVISOR)}, {int(NivelAcesso.ADMIN_CLIENTE)}, {int(NivelAcesso.DIRETORIA)})"),
-            name="ck_usuario_nivel_acesso_valido",
-        ),
-        CheckConstraint(
-            "tentativas_login >= 0",
-            name="ck_usuario_tentativas_nao_negativo",
-        ),
-        Index("ix_usuario_empresa_email", "empresa_id", "email"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    empresa_id = Column(
-        Integer,
-        ForeignKey("empresas.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    nome_completo = Column(String(150), nullable=False)
-    email = Column(String(254), nullable=False, unique=True, index=True)
-    telefone = Column(String(30), nullable=True)
-    foto_perfil_url = Column(String(512), nullable=True)
-    crea = Column(String(40), nullable=True)
-    senha_hash = Column(String(256), nullable=False)
-    nivel_acesso = Column(Integer, nullable=False, default=int(NivelAcesso.INSPETOR))
-    ativo = Column(Boolean, nullable=False, default=True)
-    tentativas_login = Column(Integer, nullable=False, default=0)
-    bloqueado_ate = Column(DateTime(timezone=True), nullable=True)
-    ultimo_login = Column(DateTime(timezone=True), nullable=True)
-    ultimo_login_ip = Column(String(45), nullable=True)
-    status_bloqueio = Column(Boolean, nullable=False, default=False)
-    senha_temporaria_ativa = Column(Boolean, nullable=False, default=False)
-
-    empresa = relationship("Empresa", back_populates="usuarios")
-    laudos = relationship(
-        "Laudo",
-        foreign_keys="Laudo.usuario_id",
-        back_populates="usuario",
-    )
-    templates_laudo_criados = relationship(
-        "TemplateLaudo",
-        foreign_keys="TemplateLaudo.criado_por_id",
-        back_populates="criado_por",
-    )
-    preferencias_mobile = relationship(
-        "PreferenciaMobileUsuario",
-        uselist=False,
-        back_populates="usuario",
-        cascade="all, delete-orphan",
-    )
-    aprendizados_visuais_criados = relationship(
-        "AprendizadoVisualIa",
-        foreign_keys="AprendizadoVisualIa.criado_por_id",
-        back_populates="criado_por",
-    )
-    aprendizados_visuais_validados = relationship(
-        "AprendizadoVisualIa",
-        foreign_keys="AprendizadoVisualIa.validado_por_id",
-        back_populates="validado_por",
-    )
-
-    @validates("nivel_acesso")
-    def _validar_nivel_acesso(self, _key: str, valor: Any) -> int:
-        return NivelAcesso.normalizar(valor)
-
-    def __repr__(self) -> str:
-        return f"<Usuario id={self.id} email={self.email!r} nivel={self.nivel_acesso}>"
-
-    @property
-    def nome(self) -> str:
-        return self.nome_completo or f"Usuário #{self.id}"
-
-    @property
-    def eh_inspetor(self) -> bool:
-        return int(self.nivel_acesso) == int(NivelAcesso.INSPETOR)
-
-    @property
-    def eh_revisor(self) -> bool:
-        return int(self.nivel_acesso) == int(NivelAcesso.REVISOR)
-
-    @property
-    def eh_admin_cliente(self) -> bool:
-        return int(self.nivel_acesso) == int(NivelAcesso.ADMIN_CLIENTE)
-
-    @property
-    def eh_revisor_ou_superior(self) -> bool:
-        return int(self.nivel_acesso) in {
-            int(NivelAcesso.REVISOR),
-            int(NivelAcesso.DIRETORIA),
-        }
-
-    @property
-    def eh_diretoria(self) -> bool:
-        return int(self.nivel_acesso) == int(NivelAcesso.DIRETORIA)
-
-    def esta_bloqueado(self) -> bool:
-        if self.bloqueado_ate is None:
-            return False
-        return agora_utc() < self.bloqueado_ate
-
-    def registrar_login_sucesso(self, ip: str | None = None) -> None:
-        self.tentativas_login = 0
-        self.bloqueado_ate = None
-        self.status_bloqueio = False
-        self.ultimo_login = agora_utc()
-        self.ultimo_login_ip = (ip or "")[:45] or None
-
-    def incrementar_tentativa_falha(self, max_tentativas: int = 5) -> bool:
-        self.tentativas_login += 1
-        if self.tentativas_login >= max_tentativas:
-            self.bloqueado_ate = agora_utc() + timedelta(minutes=15)
-            self.status_bloqueio = True
-            return True
-        return False
-
-
-# =========================================================
-# MODELO: PREFERENCIAMOBILEUSUARIO
-# =========================================================
-
-
-class PreferenciaMobileUsuario(MixinAuditoria, Base):
-    __tablename__ = "preferencias_mobile_usuarios"
-    __table_args__ = (
-        UniqueConstraint("usuario_id", name="uq_preferencias_mobile_usuario"),
-        Index("ix_preferencias_mobile_usuario", "usuario_id"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    notificacoes_json = Column(JSON, nullable=False, default=dict)
-    privacidade_json = Column(JSON, nullable=False, default=dict)
-    permissoes_json = Column(JSON, nullable=False, default=dict)
-    experiencia_ia_json = Column(JSON, nullable=False, default=dict)
-
-    usuario = relationship("Usuario", back_populates="preferencias_mobile")
-
-    def __repr__(self) -> str:
-        return f"<PreferenciaMobileUsuario id={self.id} usuario_id={self.usuario_id}>"
-
-
-# =========================================================
-# MODELO: APRENDIZADOVISUALIA
-# =========================================================
-
-
-class AprendizadoVisualIa(MixinAuditoria, Base):
-    __tablename__ = "aprendizados_visuais_ia"
-    __table_args__ = (
-        Index("ix_aprendizado_visual_empresa_status", "empresa_id", "status", "validado_em"),
-        Index("ix_aprendizado_visual_laudo_criado", "laudo_id", "criado_em"),
-        Index("ix_aprendizado_visual_setor_status", "empresa_id", "setor_industrial", "status"),
-        Index("ix_aprendizado_visual_ref_msg", "mensagem_referencia_id"),
-        Index("ix_aprendizado_visual_sha", "imagem_sha256"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    empresa_id = Column(
-        Integer,
-        ForeignKey("empresas.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    laudo_id = Column(
-        Integer,
-        ForeignKey("laudos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    mensagem_referencia_id = Column(
-        Integer,
-        ForeignKey("mensagens_laudo.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    criado_por_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    validado_por_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    setor_industrial = Column(String(100), nullable=False, default="geral")
-    resumo = Column(String(240), nullable=False)
-    descricao_contexto = Column(Text, nullable=True)
-    correcao_inspetor = Column(Text, nullable=False)
-    parecer_mesa = Column(Text, nullable=True)
-    sintese_consolidada = Column(Text, nullable=True)
-    pontos_chave_json = Column(JSON, nullable=False, default=list)
-    referencias_norma_json = Column(JSON, nullable=False, default=list)
-    marcacoes_json = Column(JSON, nullable=False, default=list)
-    status = Column(
-        SAEnum(StatusAprendizadoIa, values_callable=_valores_enum, native_enum=False),
-        nullable=False,
-        default=StatusAprendizadoIa.RASCUNHO_INSPETOR.value,
-    )
-    veredito_inspetor = Column(
-        SAEnum(VereditoAprendizadoIa, values_callable=_valores_enum, native_enum=False),
-        nullable=False,
-        default=VereditoAprendizadoIa.DUVIDA.value,
-    )
-    veredito_mesa = Column(
-        SAEnum(VereditoAprendizadoIa, values_callable=_valores_enum, native_enum=False),
-        nullable=True,
-    )
-    imagem_url = Column(String(600), nullable=True)
-    imagem_nome_original = Column(String(160), nullable=True)
-    imagem_mime_type = Column(String(120), nullable=True)
-    imagem_sha256 = Column(String(64), nullable=True)
-    caminho_arquivo = Column(String(600), nullable=True)
-    validado_em = Column(DateTime(timezone=True), nullable=True)
-
-    empresa = relationship("Empresa", back_populates="aprendizados_visuais_ia")
-    laudo = relationship("Laudo", back_populates="aprendizados_visuais_ia")
-    mensagem_referencia = relationship("MensagemLaudo", foreign_keys=[mensagem_referencia_id])
-    criado_por = relationship("Usuario", foreign_keys=[criado_por_id], back_populates="aprendizados_visuais_criados")
-    validado_por = relationship("Usuario", foreign_keys=[validado_por_id], back_populates="aprendizados_visuais_validados")
-
-    @validates("status")
-    def _validar_status(self, _key: str, valor: Any) -> str:
-        return StatusAprendizadoIa.normalizar(valor)
-
-    @validates("veredito_inspetor")
-    def _validar_veredito_inspetor(self, _key: str, valor: Any) -> str:
-        return VereditoAprendizadoIa.normalizar(valor)
-
-    @validates("veredito_mesa")
-    def _validar_veredito_mesa(self, _key: str, valor: Any) -> str | None:
-        if valor in (None, ""):
-            return None
-        return VereditoAprendizadoIa.normalizar(valor)
-
-    def __repr__(self) -> str:
-        return f"<AprendizadoVisualIa id={self.id} laudo_id={self.laudo_id} status={self.status!r}>"
-
-
-# =========================================================
-# MODELO: REGISTROAUDITORIAEMPRESA
-# =========================================================
-
-
-class RegistroAuditoriaEmpresa(MixinAuditoria, Base):
-    __tablename__ = "auditoria_empresas"
-    __table_args__ = (
-        Index("ix_auditoria_empresa_criada", "empresa_id", "criado_em"),
-        Index("ix_auditoria_empresa_portal", "empresa_id", "portal"),
-        Index("ix_auditoria_ator_criada", "ator_usuario_id", "criado_em"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    empresa_id = Column(
-        Integer,
-        ForeignKey("empresas.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    ator_usuario_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    alvo_usuario_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    portal = Column(String(30), nullable=False, default="cliente")
-    acao = Column(String(80), nullable=False)
-    resumo = Column(String(220), nullable=False)
-    detalhe = Column(Text, nullable=True)
-    payload_json = Column(JSON, nullable=True)
-
-    empresa = relationship("Empresa", back_populates="auditoria_registros")
-    ator_usuario = relationship("Usuario", foreign_keys=[ator_usuario_id])
-    alvo_usuario = relationship("Usuario", foreign_keys=[alvo_usuario_id])
-
-    def __repr__(self) -> str:
-        return f"<RegistroAuditoriaEmpresa id={self.id} empresa_id={self.empresa_id} acao={self.acao!r} portal={self.portal!r}>"
-
-
-# =========================================================
-# MODELO: SESSAOATIVA
-# =========================================================
-
-
-class SessaoAtiva(Base):
-    __tablename__ = "sessoes_ativas"
-    __table_args__ = (
-        Index("ix_sessao_usuario_criada", "usuario_id", "criada_em"),
-        Index("ix_sessao_expira", "expira_em"),
-    )
-
-    token = Column(String(180), primary_key=True)
-    usuario_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    criada_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-    )
-    expira_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-    )
-    ultima_atividade_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-    )
-    lembrar = Column(Boolean, nullable=False, default=False)
-    ip_hash = Column(String(64), nullable=True)
-    user_agent_hash = Column(String(64), nullable=True)
-
-    def __repr__(self) -> str:
-        return f"<SessaoAtiva usuario_id={self.usuario_id} expira_em={self.expira_em}>"
-
-
-# =========================================================
-# MODELO: LAUDO
-# =========================================================
-
-
-class Laudo(MixinAuditoria, Base):
-    __tablename__ = "laudos"
-    __table_args__ = (
-        CheckConstraint(
-            "custo_api_reais >= 0",
-            name="ck_laudo_custo_nao_negativo",
-        ),
-        Index("ix_laudo_empresa_criado", "empresa_id", "criado_em"),
-        Index("ix_laudo_empresa_pinado", "empresa_id", "pinado"),
-        Index("ix_laudo_empresa_deep", "empresa_id", "is_deep_research"),
-        Index("ix_laudo_usuario_id", "usuario_id"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    empresa_id = Column(
-        Integer,
-        ForeignKey("empresas.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    usuario_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    setor_industrial = Column(String(100), nullable=False)
-    tipo_template = Column(String(50), nullable=False, default="padrao")
-    status_conformidade = Column(
-        SAEnum(StatusLaudo, values_callable=_valores_enum, native_enum=False),
-        nullable=False,
-        default=StatusLaudo.PENDENTE.value,
-    )
-    status_revisao = Column(
-        SAEnum(StatusRevisao, values_callable=_valores_enum, native_enum=False),
-        nullable=False,
-        default=StatusRevisao.RASCUNHO.value,
-    )
-    revisado_por = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    motivo_rejeicao = Column(Text, nullable=True)
-    encerrado_pelo_inspetor_em = Column(DateTime(timezone=True), nullable=True)
-    reabertura_pendente_em = Column(DateTime(timezone=True), nullable=True)
-    reaberto_em = Column(DateTime(timezone=True), nullable=True)
-    dados_formulario = Column(JSON, nullable=True)
-    parecer_ia = Column(Text, nullable=True)
-    confianca_ia_json = Column(JSON, nullable=True)
-    codigo_hash = Column(String(32), nullable=False, unique=True, index=True)
-    custo_api_reais = Column(
-        Numeric(12, 4),
-        nullable=False,
-        default=Decimal("0.0000"),
-    )
-    nome_arquivo_pdf = Column(String(100), nullable=True)
-    primeira_mensagem = Column(String(80), nullable=True)
-    pinado = Column(Boolean, nullable=False, default=False)
-    pinado_em = Column(DateTime(timezone=True), nullable=True)
-    modo_resposta = Column(
-        SAEnum(ModoResposta, values_callable=_valores_enum, native_enum=False),
-        nullable=False,
-        default=ModoResposta.DETALHADO.value,
-    )
-    is_deep_research = Column(Boolean, nullable=False, default=False)
-
-    empresa = relationship("Empresa", back_populates="laudos")
-    usuario = relationship(
-        "Usuario",
-        foreign_keys=[usuario_id],
-        back_populates="laudos",
-    )
-    revisor = relationship("Usuario", foreign_keys=[revisado_por])
-    citacoes = relationship(
-        "CitacaoLaudo",
-        back_populates="laudo",
-        cascade="all, delete-orphan",
-        order_by="CitacaoLaudo.ordem",
-    )
-    revisoes = relationship(
-        "LaudoRevisao",
-        back_populates="laudo",
-        cascade="all, delete-orphan",
-        order_by="LaudoRevisao.numero_versao",
-    )
-    mensagens = relationship(
-        "MensagemLaudo",
-        back_populates="laudo",
-        cascade="all, delete-orphan",
-        order_by="MensagemLaudo.criado_em",
-    )
-    anexos_mesa = relationship(
-        "AnexoMesa",
-        back_populates="laudo",
-        cascade="all, delete-orphan",
-        order_by="AnexoMesa.criado_em",
-    )
-    aprendizados_visuais_ia = relationship(
-        "AprendizadoVisualIa",
-        back_populates="laudo",
-        cascade="all, delete-orphan",
-        order_by="AprendizadoVisualIa.criado_em",
-    )
-
-    @validates("status_conformidade")
-    def _validar_status_conformidade(self, _key: str, valor: Any) -> str:
-        return StatusLaudo.normalizar(valor)
-
-    @validates("status_revisao")
-    def _validar_status_revisao(self, _key: str, valor: Any) -> str:
-        return StatusRevisao.normalizar(valor)
-
-    @validates("modo_resposta")
-    def _validar_modo_resposta(self, _key: str, valor: Any) -> str:
-        return ModoResposta.normalizar(valor)
-
-    def __repr__(self) -> str:
-        return f"<Laudo id={self.id} template={self.tipo_template} status={self.status_revisao}>"
-
-    @property
-    def esta_em_rascunho(self) -> bool:
-        return self.status_revisao == StatusRevisao.RASCUNHO.value
-
-    @property
-    def esta_aguardando_revisao(self) -> bool:
-        return self.status_revisao == StatusRevisao.AGUARDANDO.value
-
-    def pinar(self) -> bool:
-        self.pinado = not self.pinado
-        self.pinado_em = agora_utc() if self.pinado else None
-        return self.pinado
-
-
-# =========================================================
-# MODELO: TEMPLATELAUDO
-# =========================================================
-
-
-class TemplateLaudo(MixinAuditoria, Base):
-    __tablename__ = "templates_laudo"
-    __table_args__ = (
-        CheckConstraint("versao >= 1", name="ck_template_laudo_versao_positiva"),
-        CheckConstraint(
-            "modo_editor IN ('legado_pdf', 'editor_rico')",
-            name="ck_template_laudo_modo_editor",
-        ),
-        CheckConstraint(
-            "status_template IN ('rascunho', 'em_teste', 'ativo', 'legado', 'arquivado')",
-            name="ck_template_laudo_status_template",
-        ),
-        UniqueConstraint(
-            "empresa_id",
-            "codigo_template",
-            "versao",
-            name="uq_template_laudo_empresa_codigo_versao",
-        ),
-        Index("ix_template_laudo_empresa_codigo", "empresa_id", "codigo_template"),
-        Index("ix_template_laudo_empresa_ativo", "empresa_id", "ativo"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    empresa_id = Column(
-        Integer,
-        ForeignKey("empresas.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    criado_por_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
-    nome = Column(String(180), nullable=False)
-    codigo_template = Column(String(80), nullable=False)
-    versao = Column(Integer, nullable=False, default=1)
-    ativo = Column(Boolean, nullable=False, default=True)
-    base_recomendada_fixa = Column(Boolean, nullable=False, default=False)
-    modo_editor = Column(String(20), nullable=False, default="legado_pdf")
-    status_template = Column(String(20), nullable=False, default="rascunho")
-    arquivo_pdf_base = Column(String(500), nullable=False)
-    mapeamento_campos_json = Column(JSON, nullable=True)
-    documento_editor_json = Column(JSON, nullable=True)
-    assets_json = Column(JSON, nullable=True)
-    estilo_json = Column(JSON, nullable=True)
-    observacoes = Column(Text, nullable=True)
-
-    empresa = relationship("Empresa", back_populates="templates_laudo")
-    criado_por = relationship(
-        "Usuario",
-        foreign_keys=[criado_por_id],
-        back_populates="templates_laudo_criados",
-    )
-
-    def __repr__(self) -> str:
-        return f"<TemplateLaudo id={self.id} empresa_id={self.empresa_id} codigo={self.codigo_template!r} versao={self.versao} ativo={self.ativo}>"
-
-
-# =========================================================
-# MODELO: CITACAOLAUDO
-# =========================================================
-
-
-class CitacaoLaudo(MixinAuditoria, Base):
-    __tablename__ = "citacoes_laudo"
-    __table_args__ = (
-        CheckConstraint("ordem >= 0", name="ck_citacao_ordem_nao_negativo"),
-        Index("ix_citacao_laudo_id", "laudo_id"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    laudo_id = Column(
-        Integer,
-        ForeignKey("laudos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    referencia = Column(String(300), nullable=False)
-    trecho = Column(Text, nullable=True)
-    url = Column(String(500), nullable=True)
-    ordem = Column(Integer, nullable=False, default=0)
-
-    laudo = relationship("Laudo", back_populates="citacoes")
-
-    def __repr__(self) -> str:
-        return f"<CitacaoLaudo id={self.id} laudo_id={self.laudo_id} ordem={self.ordem}>"
-
-
-# =========================================================
-# MODELO: LAUDOREVISAO
-# =========================================================
-
-
-class LaudoRevisao(Base):
-    __tablename__ = "laudo_revisoes"
-    __table_args__ = (
-        CheckConstraint("numero_versao >= 1", name="ck_laudo_revisao_numero_positivo"),
-        UniqueConstraint("laudo_id", "numero_versao", name="uq_laudo_revisao_laudo_versao"),
-        Index("ix_laudo_revisao_laudo_versao", "laudo_id", "numero_versao"),
-        Index("ix_laudo_revisao_criado", "laudo_id", "criado_em"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    laudo_id = Column(
-        Integer,
-        ForeignKey("laudos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    numero_versao = Column(Integer, nullable=False)
-    origem = Column(String(20), nullable=False, default="ia")
-    resumo = Column(String(240), nullable=True)
-    conteudo = Column(Text, nullable=False)
-    confianca_geral = Column(String(16), nullable=True)
-    confianca_json = Column(JSON, nullable=True)
-    criado_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-    )
-
-    laudo = relationship("Laudo", back_populates="revisoes")
-
-    def __repr__(self) -> str:
-        return f"<LaudoRevisao id={self.id} laudo_id={self.laudo_id} versao={self.numero_versao} origem={self.origem!r}>"
-
-
-# =========================================================
-# MODELO: MENSAGEMLAUDO
-# =========================================================
-
-
-class MensagemLaudo(Base):
-    __tablename__ = "mensagens_laudo"
-    __table_args__ = (
-        CheckConstraint(
-            f"tipo IN ({_TIPOS_MENSAGEM_VALIDOS})",
-            name="ck_mensagem_tipo_valido",
-        ),
-        CheckConstraint(
-            "custo_api_reais >= 0",
-            name="ck_mensagem_custo_nao_negativo",
-        ),
-        Index("ix_mensagem_laudo_criado", "laudo_id", "criado_em"),
-        Index("ix_mensagem_remetente", "remetente_id"),
-        Index("ix_mensagem_resolvida_por", "resolvida_por_id"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    laudo_id = Column(
-        Integer,
-        ForeignKey("laudos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    remetente_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    tipo = Column(String(20), nullable=False)
-    conteudo = Column(Text, nullable=False)
-    lida = Column(Boolean, nullable=False, default=False)
-    resolvida_por_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    resolvida_em = Column(
-        DateTime(timezone=True),
-        nullable=True,
-    )
-    custo_api_reais = Column(
-        Numeric(12, 4),
-        nullable=False,
-        default=Decimal("0.0000"),
-    )
-    criado_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-    )
-
-    laudo = relationship("Laudo", back_populates="mensagens")
-    remetente = relationship("Usuario", foreign_keys=[remetente_id])
-    resolvida_por = relationship("Usuario", foreign_keys=[resolvida_por_id])
-    anexos_mesa = relationship(
-        "AnexoMesa",
-        back_populates="mensagem",
-        cascade="all, delete-orphan",
-        order_by="AnexoMesa.criado_em",
-    )
-
-    @validates("tipo")
-    def _validar_tipo(self, _key: str, valor: Any) -> str:
-        return TipoMensagem.normalizar(valor)
-
-    def __repr__(self) -> str:
-        return f"<MensagemLaudo id={self.id} tipo={self.tipo!r} laudo_id={self.laudo_id}>"
-
-    @property
-    def is_whisper(self) -> bool:
-        return self.tipo in (
-            TipoMensagem.HUMANO_INSP.value,
-            TipoMensagem.HUMANO_ENG.value,
-        )
-
-    def marcar_como_lida(self) -> None:
-        self.lida = True
-
-
-class AnexoMesa(Base):
-    __tablename__ = "anexos_mesa"
-    __table_args__ = (
-        CheckConstraint(
-            "categoria IN ('imagem', 'documento')",
-            name="ck_anexo_mesa_categoria_valida",
-        ),
-        CheckConstraint(
-            "tamanho_bytes >= 0",
-            name="ck_anexo_mesa_tamanho_nao_negativo",
-        ),
-        Index("ix_anexo_mesa_laudo_criado", "laudo_id", "criado_em"),
-        Index("ix_anexo_mesa_mensagem", "mensagem_id"),
-        Index("ix_anexo_mesa_enviado_por", "enviado_por_id"),
-    )
-
-    id = Column(Integer, primary_key=True, index=True)
-    laudo_id = Column(
-        Integer,
-        ForeignKey("laudos.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    mensagem_id = Column(
-        Integer,
-        ForeignKey("mensagens_laudo.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    enviado_por_id = Column(
-        Integer,
-        ForeignKey("usuarios.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    nome_original = Column(String(160), nullable=False)
-    nome_arquivo = Column(String(220), nullable=False)
-    mime_type = Column(String(120), nullable=False)
-    categoria = Column(String(20), nullable=False)
-    tamanho_bytes = Column(Integer, nullable=False, default=0)
-    caminho_arquivo = Column(String(600), nullable=False)
-    criado_em = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=agora_utc,
-    )
-
-    laudo = relationship("Laudo", back_populates="anexos_mesa")
-    mensagem = relationship("MensagemLaudo", back_populates="anexos_mesa")
-    enviado_por = relationship("Usuario", foreign_keys=[enviado_por_id])
-
-    def __repr__(self) -> str:
-        return f"<AnexoMesa id={self.id} mensagem_id={self.mensagem_id} categoria={self.categoria!r}>"
+def sessao_tem_mutacoes_pendentes(banco: Session) -> bool:
+    if bool(banco.new or banco.dirty or banco.deleted):
+        return True
+    return bool(banco.info.get(_INFO_CHAVE_MUTACOES_PENDENTES))
 
 
 # =========================================================
@@ -1028,20 +133,63 @@ def obter_banco() -> Generator[Session, None, None]:
     banco: Session = SessaoLocal()
     try:
         yield banco
-        banco.commit()
+        if sessao_tem_mutacoes_pendentes(banco):
+            banco.commit()
     except HTTPException:
         banco.rollback()
         raise
     except Exception:
         banco.rollback()
-        logger.error("Erro na sessão do banco. Rollback executado.", exc_info=True)
+        logger.error("Erro na sessao do banco. Rollback executado.", exc_info=True)
         raise
     finally:
         banco.close()
 
 
+def commit_ou_rollback_operacional(
+    banco: Session,
+    *,
+    logger_operacao: logging.Logger,
+    mensagem_erro: str,
+) -> None:
+    try:
+        banco.commit()
+    except Exception:
+        banco.rollback()
+        logger_operacao.error(mensagem_erro, exc_info=True)
+        raise
+
+
+def commit_ou_rollback_integridade(
+    banco: Session,
+    *,
+    logger_operacao: logging.Logger,
+    mensagem_erro: str,
+) -> None:
+    try:
+        banco.commit()
+    except IntegrityError as erro:
+        banco.rollback()
+        logger_operacao.warning("%s | integrity_error=%s", mensagem_erro, erro)
+        raise ValueError(mensagem_erro) from erro
+
+
+def flush_ou_rollback_integridade(
+    banco: Session,
+    *,
+    logger_operacao: logging.Logger,
+    mensagem_erro: str,
+) -> None:
+    try:
+        banco.flush()
+    except IntegrityError as erro:
+        banco.rollback()
+        logger_operacao.warning("%s | integrity_error=%s", mensagem_erro, erro)
+        raise ValueError(mensagem_erro) from erro
+
+
 # =========================================================
-# INICIALIZAÇÃO / SEED / MIGRAÇÃO
+# INICIALIZACAO / SEED / MIGRACAO
 # =========================================================
 
 
@@ -1073,3 +221,51 @@ def seed_limites_plano() -> None:
     from app.shared.db.bootstrap import seed_limites_plano as seed_limites_plano_impl
 
     seed_limites_plano_impl()
+
+
+__all__ = [
+    "AnexoMesa",
+    "AprendizadoVisualIa",
+    "Base",
+    "CitacaoLaudo",
+    "Empresa",
+    "LIMITES_PADRAO",
+    "Laudo",
+    "LaudoRevisao",
+    "LimitePlano",
+    "LimitePlanoFallback",
+    "MensagemLaudo",
+    "MixinAuditoria",
+    "ModoResposta",
+    "NivelAcesso",
+    "PlanoEmpresa",
+    "PreferenciaMobileUsuario",
+    "RegistroAuditoriaEmpresa",
+    "SessaoAtiva",
+    "SessaoLocal",
+    "StatusAprendizadoIa",
+    "StatusLaudo",
+    "StatusRevisao",
+    "TemplateLaudo",
+    "TipoMensagem",
+    "URL_BANCO",
+    "Usuario",
+    "VereditoAprendizadoIa",
+    "_ALEMBIC_DIR",
+    "_ALEMBIC_INI",
+    "_EM_PRODUCAO",
+    "_SEED_DEV_BOOTSTRAP",
+    "_aplicar_migracoes_versionadas",
+    "_bootstrap_admin_inicial_producao",
+    "_normalizar_url_banco",
+    "_seed_dev",
+    "agora_utc",
+    "commit_ou_rollback_integridade",
+    "commit_ou_rollback_operacional",
+    "flush_ou_rollback_integridade",
+    "inicializar_banco",
+    "motor_banco",
+    "obter_banco",
+    "seed_limites_plano",
+    "sessao_tem_mutacoes_pendentes",
+]

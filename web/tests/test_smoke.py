@@ -27,10 +27,12 @@ def test_readiness_retorna_banco_ok() -> None:
 
     assert resposta.status_code == 200
     corpo = resposta.json()
+    realtime_esperado = main.describe_revisor_realtime()
     assert corpo["status"] == "ok"
     assert corpo["banco"] == "ok"
-    assert corpo["revisor_realtime_backend"] == "memory"
-    assert corpo["revisor_realtime_distributed"] is False
+    assert corpo["rate_limit_storage"] == ("redis_configurado" if main.REDIS_URL else "memory")
+    assert corpo["revisor_realtime_backend"] == realtime_esperado["backend"]
+    assert corpo["revisor_realtime_distributed"] == realtime_esperado["distributed"]
 
 
 def test_raiz_redireciona_para_login_sem_sessao() -> None:
@@ -73,6 +75,7 @@ def test_chat_usa_assets_modulares_e_service_worker_compartilhado() -> None:
     base_html = (raiz / "templates" / "base.html").read_text(encoding="utf-8")
     index_html = (raiz / "templates" / "index.html").read_text(encoding="utf-8")
     main_py = (raiz / "main.py").read_text(encoding="utf-8")
+    http_setup_py = (raiz / "app" / "core" / "http_setup_support.py").read_text(encoding="utf-8")
     worker_compartilhado = (raiz / "static" / "js" / "shared" / "trabalhador_servico.js").read_text(encoding="utf-8")
 
     assert "/static/css/shared/global.css?v={{ v_app }}" in base_html
@@ -91,7 +94,8 @@ def test_chat_usa_assets_modulares_e_service_worker_compartilhado() -> None:
     assert "/static/js/ui.js" not in index_html
     assert "/static/js/hardware.js" not in index_html
 
-    assert 'DIR_STATIC / "js" / "shared" / "trabalhador_servico.js"' in main_py
+    assert "registrar_rotas_operacionais(" in main_py
+    assert 'dir_static / "js" / "shared" / "trabalhador_servico.js"' in http_setup_py
     assert "/static/js/shared/api.js" in worker_compartilhado
     assert "/static/js/shared/ui.js" in worker_compartilhado
     assert "/static/js/shared/hardware.js" in worker_compartilhado
@@ -162,6 +166,16 @@ def test_template_revisor_aponta_websocket_com_prefixo_revisao() -> None:
     assert 'id="btn-anexo-resposta"' in painel_revisor_html
     assert 'id="input-anexo-resposta"' in painel_revisor_html
     assert 'id="preview-resposta-anexo"' in painel_revisor_html
+
+
+def test_ci_principal_roda_smoke_e2e_da_mesa_web() -> None:
+    projeto = Path(__file__).resolve().parents[2]
+    ci_yaml = (projeto / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+
+    assert "web-e2e-mesa:" in ci_yaml
+    assert "Install Playwright browsers" in ci_yaml
+    assert "test_e2e_admin_cliente_mesa_ignora_resposta_atrasada_ao_trocar_de_laudo" in ci_yaml
+    assert "test_e2e_revisor_mesa_ignora_respostas_atrasadas_ao_trocar_de_laudo" in ci_yaml
 
 
 def test_database_url_render_usa_driver_psycopg() -> None:
@@ -599,6 +613,7 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     clientes_admin = (raiz / "templates" / "clientes.html").read_text(encoding="utf-8")
     detalhe_cliente = (raiz / "templates" / "cliente_detalhe.html").read_text(encoding="utf-8")
     novo_cliente = (raiz / "templates" / "novo_cliente.html").read_text(encoding="utf-8")
+    dashboard_cliente = (raiz / "app" / "domains" / "cliente" / "dashboard.py").read_text(encoding="utf-8")
     routes_cliente = (raiz / "app" / "domains" / "cliente" / "routes.py").read_text(encoding="utf-8")
     portal_bridge_cliente = (raiz / "app" / "domains" / "cliente" / "portal_bridge.py").read_text(encoding="utf-8")
     routes_admin = (raiz / "app" / "domains" / "admin" / "routes.py").read_text(encoding="utf-8")
@@ -614,7 +629,7 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     assert "Admins-Cliente (" in detalhe_cliente
     assert "inspetores_e_revisores" in detalhe_cliente
     assert "Provisionar empresa assinante" in novo_cliente
-    assert '"Admin-CEO"' in routes_cliente
+    assert '"Admin-CEO"' in dashboard_cliente
     assert "from app.domains.cliente.portal_bridge import (" in routes_cliente
     assert "from app.domains.chat.chat import " not in routes_cliente
     assert "from app.domains.revisor.routes import " not in routes_cliente

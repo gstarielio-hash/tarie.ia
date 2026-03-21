@@ -148,6 +148,7 @@ $env:RUN_E2E="1"; python -m pytest tests/e2e/test_portais_playwright.py -q -k "m
 - `README.md`: setup local e pipeline.
 - `app/ARCHITECTURE.md`: visao geral da arquitetura modular.
 - `app/domains/chat/ARCHITECTURE.md`: mapa interno do dominio `chat`.
+- `docs/plano_execucao_backend.md`: plano executavel do backend com status, backlog e validacao.
 - `docs/checklist_qualidade.md`: gate de qualidade real por template.
 - `docs/regras_de_encerramento.md`: bloqueio de finalizacao e reabertura.
 - `docs/mesa_avaliadora.md`: fluxo operacional da mesa.
@@ -155,4 +156,4 @@ $env:RUN_E2E="1"; python -m pytest tests/e2e/test_portais_playwright.py -q -k "m
 
 ## Nota sobre legado
 
-Nao volte a usar wrappers antigos removidos da raiz. A fonte de verdade atual esta em `app/domains/*`, `app/shared/*`, `templates/*`, `static/js/*` e `static/css/*`.
+Nao volte a usar wrappers antigos removidos da raiz. A fonte de verdade atual esta em `app/domains/*`, `app/shared/*`, `templates/*`, `static/js/*` e `static/css/*`. Os wrappers legados de modulo ficam bloqueados por padrao e so devem ser reabilitados em migracao controlada com `TARIEL_ALLOW_LEGACY_IMPORTS=1`.

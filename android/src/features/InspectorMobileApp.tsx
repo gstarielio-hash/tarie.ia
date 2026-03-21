@@ -322,6 +322,11 @@ async function lerFilaOfflineLocal(): Promise<OfflinePendingMessage[]> {
             typeof registro.referenceMessageId === "number"
               ? registro.referenceMessageId
               : null,
+          clientMessageId:
+            typeof registro.clientMessageId === "string" &&
+            registro.clientMessageId.trim()
+              ? registro.clientMessageId.trim()
+              : null,
           attempts:
             typeof registro.attempts === "number"
               ? Math.max(0, registro.attempts)
@@ -613,6 +618,7 @@ function criarItemFilaOffline(params: {
   title: string;
   attachment?: ComposerAttachment | null;
   referenceMessageId?: number | null;
+  clientMessageId?: string | null;
   aiMode?: MobileChatMode;
   aiSummary?: string;
   aiMessagePrefix?: string;
@@ -626,6 +632,7 @@ function criarItemFilaOffline(params: {
     title: params.title.trim() || "Mensagem pendente",
     attachment: duplicarComposerAttachment(params.attachment || null),
     referenceMessageId: Number(params.referenceMessageId || 0) || null,
+    clientMessageId: String(params.clientMessageId || "").trim() || null,
     attempts: 0,
     lastAttemptAt: "",
     lastError: "",

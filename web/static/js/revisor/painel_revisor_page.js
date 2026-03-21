@@ -42,25 +42,38 @@
         abrirResumoPacoteMesa,
         baixarPacoteMesaJson,
         baixarPacoteMesaPdf,
-        renderizarModalRelatorio
+        renderizarModalRelatorio,
+        ehAbortError,
+        registrarTrocaLaudoAtivo,
+        contextoLaudoAindaValido
     } = NS;
 
 const inicializarWebSocket = () => {
         clearTimeout(state.wsReconnectTimer);
 
-        if (state.socketWhisper && state.socketWhisper.readyState === WebSocket.OPEN) {
+        if (
+            state.socketWhisper
+            && (
+                state.socketWhisper.readyState === WebSocket.OPEN
+                || state.socketWhisper.readyState === WebSocket.CONNECTING
+            )
+        ) {
             return;
         }
 
         const protocolo = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocolo}//${window.location.host}/revisao/ws/whispers`;
-        state.socketWhisper = new WebSocket(wsUrl);
+        const socket = new WebSocket(wsUrl);
+        state.wsFechamentoManual = false;
+        state.socketWhisper = socket;
 
-        state.socketWhisper.addEventListener("open", () => {
+        socket.addEventListener("open", () => {
+            if (state.socketWhisper !== socket) return;
             console.info("[Tariel] Canal de whispers conectado.");
         });
 
-        state.socketWhisper.addEventListener("message", (evento) => {
+        socket.addEventListener("message", (evento) => {
+            if (state.socketWhisper !== socket) return;
             try {
                 const dados = JSON.parse(evento.data);
                 if (!dados?.laudo_id) return;
@@ -97,33 +110,54 @@ const inicializarWebSocket = () => {
             }
         });
 
-        state.socketWhisper.addEventListener("close", () => {
+        socket.addEventListener("close", () => {
+            if (state.socketWhisper === socket) {
+                state.socketWhisper = null;
+            }
+            if (state.wsFechamentoManual) {
+                return;
+            }
             console.info("[Tariel] WebSocket fechado; tentando reconectar...");
             state.wsReconnectTimer = setTimeout(inicializarWebSocket, 5000);
         });
 
-        state.socketWhisper.addEventListener("error", () => {
-            state.socketWhisper?.close();
+        socket.addEventListener("error", () => {
+            if (state.socketWhisper !== socket) return;
+            if (socket.readyState < WebSocket.CLOSING) {
+                socket.close();
+            }
         });
     };
 
     const finalizarWebSocket = () => {
         clearTimeout(state.wsReconnectTimer);
-        if (state.socketWhisper) {
-            state.socketWhisper.close();
-            state.socketWhisper = null;
+        state.wsFechamentoManual = true;
+        const socket = state.socketWhisper;
+        state.socketWhisper = null;
+        if (socket && socket.readyState < WebSocket.CLOSING) {
+            socket.close();
         }
     };
 
     const carregarLaudo = async (id) => {
-        state.laudoAtivoId = id;
+        const laudoId = Number(id || 0);
+        if (!Number.isFinite(laudoId) || laudoId <= 0) return;
+
+        if (state.laudoLoadController) {
+            state.laudoLoadController.abort();
+        }
+        const controller = new AbortController();
+        state.laudoLoadController = controller;
+
+        const contexto = registrarTrocaLaudoAtivo(laudoId);
         limparReferenciaMensagemAtiva();
-        setActiveItem(id);
+        setActiveItem(laudoId);
         setViewLoading();
 
         try {
-            const res = await fetch(`/revisao/api/laudo/${id}/completo`, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
+            const res = await fetch(`/revisao/api/laudo/${laudoId}/completo`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                signal: controller.signal
             });
 
             if (!res.ok) {
@@ -131,8 +165,11 @@ const inicializarWebSocket = () => {
             }
 
             const dados = await res.json();
+            if (controller.signal.aborted || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
+
             state.jsonEstruturadoAtivo = dados.dados_formulario || null;
-            state.pacoteMesaAtivo = null;
             state.aprendizadosVisuais = Array.isArray(dados.aprendizados_visuais) ? [...dados.aprendizados_visuais] : [];
             state.historicoMensagens = [];
             state.historicoCursorProximo = null;
@@ -147,24 +184,35 @@ const inicializarWebSocket = () => {
             els.viewMeta.textContent = `Protocolo: ${String(dados.tipo_template || "").toUpperCase()} | Criado: ${dados.criado_em}`;
 
             renderActionButtons(dados);
-            atualizarIndicadoresListaLaudo(id, { aprendizadosPendentes });
+            atualizarIndicadoresListaLaudo(laudoId, { aprendizadosPendentes });
             renderizarPainelAprendizadosVisuais(state.aprendizadosVisuais);
             await Promise.all([
                 carregarHistoricoMensagens({ appendAntigas: false }),
                 carregarPainelMesaOperacional({ forcar: true })
             ]);
-            await marcarWhispersComoLidosLaudo(id, { silencioso: true });
+            if (controller.signal.aborted || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
+            await marcarWhispersComoLidosLaudo(laudoId, { silencioso: true });
             els.inputResposta.focus();
         } catch (erro) {
+            if (ehAbortError(erro) || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             els.timeline.innerHTML = `<div class="timeline-status erro">Erro ao carregar laudo.</div>`;
             console.error("[Tariel] Falha ao carregar laudo:", erro);
+        } finally {
+            if (state.laudoLoadController === controller) {
+                state.laudoLoadController = null;
+            }
         }
     };
 
     const enviarMensagemEngenheiro = async () => {
         const texto = els.inputResposta.value.trim();
         const anexoPendente = state.respostaAnexoPendente?.arquivo || null;
-        if ((!texto && !anexoPendente) || !state.laudoAtivoId || state.pendingSend) return;
+        const laudoId = Number(state.laudoAtivoId || 0) || null;
+        if ((!texto && !anexoPendente) || !laudoId || state.pendingSend) return;
         const referenciaMensagemId = Number(state.referenciaMensagemAtiva?.id) || null;
         const detalheEnvio = String(
             texto || state.respostaAnexoPendente?.nome || "Anexo enviado"
@@ -210,7 +258,7 @@ const inicializarWebSocket = () => {
                     form.set("referencia_mensagem_id", String(referenciaMensagemId));
                 }
 
-                res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/responder-anexo`, {
+                res = await fetch(`/revisao/api/laudo/${laudoId}/responder-anexo`, {
                     method: "POST",
                     headers: {
                         "X-CSRF-Token": tokenCsrf,
@@ -219,7 +267,7 @@ const inicializarWebSocket = () => {
                     body: form
                 });
             } else {
-                res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/responder`, {
+                res = await fetch(`/revisao/api/laudo/${laudoId}/responder`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -237,14 +285,18 @@ const inicializarWebSocket = () => {
                 throw new Error(`Falha HTTP ${res.status}`);
             }
 
-            await carregarLaudo(state.laudoAtivoId);
-            limparReferenciaMensagemAtiva();
-            limparAnexoResposta();
+            if (Number(state.laudoAtivoId || 0) === laudoId) {
+                await carregarLaudo(laudoId);
+                limparReferenciaMensagemAtiva();
+                limparAnexoResposta();
+            }
             showStatus("Mensagem enviada para o inspetor.", "send");
         } catch (erro) {
             showStatus("Erro ao enviar mensagem.", "error");
             console.error("[Tariel] Falha ao responder:", erro);
-            await carregarLaudo(state.laudoAtivoId);
+            if (Number(state.laudoAtivoId || 0) === laudoId) {
+                await carregarLaudo(laudoId);
+            }
         } finally {
             state.pendingSend = false;
             els.btnEnviarMsg.disabled = false;
@@ -258,7 +310,8 @@ const inicializarWebSocket = () => {
 
     const confirmarDevolucao = async () => {
         const motivo = els.inputMotivo.value.trim();
-        if (!motivo || !state.laudoAtivoId) {
+        const laudoId = Number(state.laudoAtivoId || 0) || null;
+        if (!motivo || !laudoId) {
             els.inputMotivo.classList.add("erro");
             els.inputMotivo.focus();
             return;
@@ -273,7 +326,7 @@ const inicializarWebSocket = () => {
             fd.append("acao", "rejeitar");
             fd.append("motivo", motivo);
 
-            const res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/avaliar`, {
+            const res = await fetch(`/revisao/api/laudo/${laudoId}/avaliar`, {
                 method: "POST",
                 body: fd
             });

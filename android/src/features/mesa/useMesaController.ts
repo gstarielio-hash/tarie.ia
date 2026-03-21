@@ -15,7 +15,10 @@ import type {
   MobileMesaSendResponse,
 } from "../../types/mobile";
 import { gateHeavyTransfer } from "../chat/network";
-import { sendMesaMessageFlow } from "../chat/messageSendFlows";
+import {
+  criarClientMessageIdMesa,
+  sendMesaMessageFlow,
+} from "../chat/messageSendFlows";
 import type {
   ActiveThread,
   ChatState,
@@ -73,6 +76,7 @@ interface UseMesaControllerParams<
     title: string;
     attachment: ComposerAttachment | null;
     referenceMessageId: number | null;
+    clientMessageId?: string | null;
   }) => TOfflineItem;
   atualizarResumoLaudoAtual: (
     estadoAtual: ChatState | null,
@@ -88,6 +92,13 @@ function resumirTextoMesa(texto: string, fallback: string): string {
     return fallback;
   }
   return valor.length > 120 ? `${valor.slice(0, 117)}...` : valor;
+}
+
+function contarPendenciasAbertasMesa(mensagens: MobileMesaMessage[]): number {
+  return mensagens.filter(
+    (item) =>
+      item.tipo === "humano_eng" && !String(item.resolvida_em || "").trim(),
+  ).length;
 }
 
 export function useMesaController<
@@ -143,15 +154,58 @@ export function useMesaController<
     current.setErrorMesa("");
 
     try {
-      const payload = await carregarMensagensMesaMobile(accessToken, laudoId);
-      current.setMessagesMesa(payload.itens || []);
+      const ultimoIdAtual =
+        silencioso && current.laudoMesaCarregado === laudoId
+          ? Number(current.messagesMesa.at(-1)?.id || 0)
+          : 0;
+      const usarDelta = ultimoIdAtual > 0;
+      let payload = await carregarMensagensMesaMobile(
+        accessToken,
+        laudoId,
+        usarDelta ? { aposId: ultimoIdAtual } : undefined,
+      );
+      let mensagensAtualizadas = payload.itens || [];
+
+      if (usarDelta) {
+        const resumoAtual = payload.resumo;
+        const pendenciasAtuais = contarPendenciasAbertasMesa(
+          current.messagesMesa,
+        );
+        const requerRefreshCompleto = Boolean(
+          payload.tem_mais ||
+          (resumoAtual &&
+            typeof resumoAtual.ultima_mensagem_id === "number" &&
+            resumoAtual.ultima_mensagem_id < ultimoIdAtual) ||
+          (!mensagensAtualizadas.length &&
+            resumoAtual &&
+            resumoAtual.pendencias_abertas !== pendenciasAtuais),
+        );
+
+        if (requerRefreshCompleto) {
+          payload = await carregarMensagensMesaMobile(accessToken, laudoId);
+          mensagensAtualizadas = payload.itens || [];
+        } else {
+          const mapa = new Map<number, MobileMesaMessage>();
+          for (const item of current.messagesMesa) {
+            mapa.set(item.id, item);
+          }
+          for (const item of mensagensAtualizadas) {
+            mapa.set(item.id, item);
+          }
+          mensagensAtualizadas = Array.from(mapa.values()).sort(
+            (a, b) => a.id - b.id,
+          );
+        }
+      }
+
+      current.setMessagesMesa(mensagensAtualizadas);
       current.setLaudoMesaCarregado(laudoId);
       current.setUsandoCacheOffline(false);
       current.setCacheLeitura((estadoAtual) => ({
         ...estadoAtual,
         mesaPorLaudo: {
           ...estadoAtual.mesaPorLaudo,
-          [current.chaveCacheLaudo(laudoId)]: payload.itens || [],
+          [current.chaveCacheLaudo(laudoId)]: mensagensAtualizadas,
         },
         updatedAt: new Date().toISOString(),
       }));
@@ -193,6 +247,7 @@ export function useMesaController<
     const referenciaMensagemId =
       Number(current.activeReference?.id || 0) || null;
     const snapshotMesa = current.messagesMesa;
+    const clientMessageId = criarClientMessageIdMesa();
     const gateAnexo = await gateHeavyTransfer({
       wifiOnlySync: current.wifiOnlySync,
       requiresHeavyTransfer: Boolean(current.attachmentDraft),
@@ -209,6 +264,7 @@ export function useMesaController<
           title: conversation.laudoCard?.titulo || "Mesa avaliadora",
           attachment: current.attachmentDraft,
           referenceMessageId: referenciaMensagemId,
+          clientMessageId,
         }),
       ]);
       current.setMessageMesa("");
@@ -225,6 +281,7 @@ export function useMesaController<
       mensagemMesa: current.messageMesa,
       anexoAtual: current.attachmentDraft,
       referenciaMensagemId,
+      clientMessageId,
       conversa: {
         laudoId: conversation.laudoId,
         permiteEdicao: conversation.permiteEdicao,

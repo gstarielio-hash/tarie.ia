@@ -24,7 +24,10 @@
         downloadJson,
         obterPacoteMesaLaudo,
         atualizarIndicadoresListaLaudo,
-        openModal
+        openModal,
+        ehAbortError,
+        obterContextoLaudoAtivo,
+        contextoLaudoAindaValido
     } = NS;
 
 const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder = false } = {}) => {
@@ -240,7 +243,8 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
     };
 
     const atualizarPendenciaMesaOperacional = async (mensagemId, lida) => {
-        const laudoId = Number(state.laudoAtivoId || 0);
+        const contexto = obterContextoLaudoAtivo();
+        const laudoId = Number(contexto.laudoId || 0);
         const msgId = Number(mensagemId || 0);
         if (!Number.isFinite(laudoId) || laudoId <= 0 || !Number.isFinite(msgId) || msgId <= 0) {
             return;
@@ -261,6 +265,9 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
             }
 
             const payload = await res.json();
+            if (!contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             atualizarIndicadoresListaLaudo(laudoId, {
                 pendenciasAbertas: Number(payload?.pendencias_abertas || 0) || 0
             });
@@ -276,7 +283,8 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
     };
 
     const carregarPainelMesaOperacional = async ({ forcar = false } = {}) => {
-        if (!els.mesaOperacaoPainel || !els.mesaOperacaoConteudo || !state.laudoAtivoId) return;
+        const contexto = obterContextoLaudoAtivo();
+        if (!els.mesaOperacaoPainel || !els.mesaOperacaoConteudo || !contexto.laudoId) return;
 
         els.mesaOperacaoPainel.hidden = false;
         els.mesaOperacaoConteudo.innerHTML = `
@@ -290,8 +298,14 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
 
         try {
             const pacote = await obterPacoteMesaLaudo({ forcar });
+            if (!contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             renderizarPainelMesaOperacional(pacote);
         } catch (erro) {
+            if (ehAbortError(erro) || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             els.mesaOperacaoConteudo.innerHTML = `
                 <div class="mesa-operacao-topo">
                     <div>
@@ -386,20 +400,28 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
     };
 
     const abrirResumoPacoteMesa = async () => {
-        if (!state.laudoAtivoId) return;
+        const contexto = obterContextoLaudoAtivo();
+        if (!contexto.laudoId) return;
         try {
             showStatus("Carregando pacote técnico...", "sync");
             const pacote = await obterPacoteMesaLaudo({ forcar: true });
+            if (!contextoLaudoAindaValido(contexto) || !pacote) {
+                return;
+            }
             renderizarModalPacote(pacote);
             openModal(els.modalPacote, els.btnFecharPacote);
         } catch (erro) {
+            if (ehAbortError(erro) || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             showStatus("Erro ao carregar pacote técnico.", "error");
             console.error("[Tariel] Falha ao carregar pacote técnico:", erro);
         }
     };
 
     const baixarPacoteMesaJson = async () => {
-        if (!state.laudoAtivoId) return;
+        const contexto = obterContextoLaudoAtivo();
+        if (!contexto.laudoId) return;
         try {
             const pacote = await obterPacoteMesaLaudo({ forcar: false });
             if (!pacote) return;
@@ -407,14 +429,18 @@ const renderizarItemOperacaoMesa = (item, { tipo = "aberta", permitirResponder =
             downloadJson(`pacote_mesa_${hashCurto}.json`, pacote);
             showStatus("Pacote JSON baixado.", "download_done");
         } catch (erro) {
+            if (ehAbortError(erro) || !contextoLaudoAindaValido(contexto)) {
+                return;
+            }
             showStatus("Erro ao baixar pacote JSON.", "error");
             console.error("[Tariel] Falha ao baixar pacote JSON:", erro);
         }
     };
 
     const baixarPacoteMesaPdf = () => {
-        if (!state.laudoAtivoId) return;
-        const url = `/revisao/api/laudo/${state.laudoAtivoId}/pacote/exportar-pdf`;
+        const contexto = obterContextoLaudoAtivo();
+        if (!contexto.laudoId) return;
+        const url = `/revisao/api/laudo/${contexto.laudoId}/pacote/exportar-pdf`;
         const link = document.createElement("a");
         link.href = url;
         link.target = "_blank";

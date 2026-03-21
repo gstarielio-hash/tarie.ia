@@ -354,31 +354,31 @@ def registrar_aprendizado_visual_automatico_chat(
         banco.flush()
         return item
 
-    item = obter_rascunho_aprendizado_visual_chat(
+    rascunho: AprendizadoVisualIa | None = obter_rascunho_aprendizado_visual_chat(
         banco,
         empresa_id=empresa_id,
         laudo_id=laudo_id,
         criado_por_id=criado_por_id,
         referencia_mensagem_id=referencia_mensagem_id,
     )
-    if not item:
+    if not rascunho:
         return None
 
-    texto_existente = str(item.correcao_inspetor or "").strip()
+    texto_existente = str(rascunho.correcao_inspetor or "").strip()
     if not texto_existente or texto_existente == CORRECAO_CHAT_AUTOMATICA_PADRAO:
-        item.correcao_inspetor = texto_chat
+        rascunho.correcao_inspetor = texto_chat
     elif _normalizar_texto_detector(texto_chat) not in _normalizar_texto_detector(texto_existente):
-        item.correcao_inspetor = f"{texto_existente}\n\nComplemento do inspetor no chat: {texto_chat}"[:4000]
+        rascunho.correcao_inspetor = f"{texto_existente}\n\nComplemento do inspetor no chat: {texto_chat}"[:4000]
     if veredito_chat:
-        item.veredito_inspetor = veredito_chat
-    if not item.resumo or item.resumo == "Evidência visual capturada do chat":
-        item.resumo = _resumir_texto_chat(texto_chat)
-    descricao_contexto = str(item.descricao_contexto or "")
+        rascunho.veredito_inspetor = veredito_chat
+    if not rascunho.resumo or rascunho.resumo == "Evidência visual capturada do chat":
+        rascunho.resumo = _resumir_texto_chat(texto_chat)
+    descricao_contexto = str(rascunho.descricao_contexto or "")
     if texto_chat and _normalizar_texto_detector(texto_chat) not in _normalizar_texto_detector(descricao_contexto):
-        item.descricao_contexto = f"{descricao_contexto} Complemento do inspetor no chat: {texto_chat}".strip()[:4000]
-    banco.add(item)
+        rascunho.descricao_contexto = f"{descricao_contexto} Complemento do inspetor no chat: {texto_chat}".strip()[:4000]
+    banco.add(rascunho)
     banco.flush()
-    return item
+    return rascunho
 
 
 def _extrair_termos_busca(texto: str) -> set[str]:

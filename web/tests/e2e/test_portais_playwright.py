@@ -227,6 +227,18 @@ def _mockar_resposta_chat_json(page: Page, *, texto_resposta: str) -> None:
     page.route("**/app/api/chat*", _handler)
 
 
+def _atrasar_requisicoes(page: Page, *, padroes: list[str], atraso_ms: int = 700) -> None:
+    atraso_s = max(int(atraso_ms), 0) / 1000.0
+
+    def _handler(route) -> None:
+        if atraso_s > 0:
+            time.sleep(atraso_s)
+        route.continue_()
+
+    for padrao in padroes:
+        page.route(padrao, _handler)
+
+
 def _assert_sem_overflow_horizontal(page: Page, *, tolerancia_px: int = 2) -> None:
     metricas = page.evaluate(
         """() => {
@@ -1183,6 +1195,96 @@ def test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona(
         contexto_cliente.close()
 
 
+def test_e2e_admin_cliente_mesa_ignora_resposta_atrasada_ao_trocar_de_laudo(
+    browser: Browser,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    contexto_cliente = browser.new_context()
+
+    try:
+        page_cliente = contexto_cliente.new_page()
+        _fazer_login(
+            page_cliente,
+            base_url=live_server_url,
+            portal="cliente",
+            email=credenciais_seed["admin_cliente"]["email"],
+            senha=credenciais_seed["admin_cliente"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/cliente/painel/?$",
+        )
+
+        laudo_a = _api_fetch(
+            page_cliente,
+            path="/cliente/api/chat/laudos",
+            method="POST",
+            form_body={"tipo_template": "padrao"},
+        )
+        laudo_b = _api_fetch(
+            page_cliente,
+            path="/cliente/api/chat/laudos",
+            method="POST",
+            form_body={"tipo_template": "padrao"},
+        )
+        assert laudo_a["status"] == 200
+        assert laudo_b["status"] == 200
+
+        laudo_a_id = int(laudo_a["body"]["laudo_id"])
+        laudo_b_id = int(laudo_b["body"]["laudo_id"])
+        sufixo = uuid.uuid4().hex[:8]
+        texto_a = f"Portal mesa corrida A {sufixo}"
+        texto_b = f"Portal mesa corrida B {sufixo}"
+
+        envio_a = _api_fetch(
+            page_cliente,
+            path="/cliente/api/chat/mensagem",
+            method="POST",
+            json_body={
+                "laudo_id": laudo_a_id,
+                "mensagem": f"@mesa {texto_a}",
+                "historico": [],
+                "setor": "geral",
+                "modo": "detalhado",
+            },
+        )
+        envio_b = _api_fetch(
+            page_cliente,
+            path="/cliente/api/chat/mensagem",
+            method="POST",
+            json_body={
+                "laudo_id": laudo_b_id,
+                "mensagem": f"@mesa {texto_b}",
+                "historico": [],
+                "setor": "geral",
+                "modo": "detalhado",
+            },
+        )
+        assert envio_a["status"] == 200
+        assert envio_b["status"] == 200
+
+        page_cliente.reload(wait_until="domcontentloaded")
+        page_cliente.locator("#tab-mesa").click()
+        page_cliente.wait_for_function(
+            "() => !!document.querySelector('#lista-mesa-laudos [data-mesa]')",
+            timeout=10000,
+        )
+
+        _atrasar_requisicoes(
+            page_cliente,
+            padroes=[f"**/cliente/api/mesa/laudos/{laudo_a_id}/*"],
+            atraso_ms=900,
+        )
+
+        page_cliente.locator(f"#lista-mesa-laudos [data-mesa='{laudo_a_id}']").click()
+        page_cliente.wait_for_timeout(80)
+        page_cliente.locator(f"#lista-mesa-laudos [data-mesa='{laudo_b_id}']").click()
+
+        expect(page_cliente.locator("#mesa-mensagens")).to_contain_text(texto_b, timeout=10000)
+        page_cliente.wait_for_timeout(1200)
+        expect(page_cliente.locator("#mesa-mensagens")).not_to_contain_text(texto_a)
+    finally:
+        contexto_cliente.close()
+
+
 def test_e2e_admin_cliente_isola_empresas_no_portal_unificado(
     browser: Browser,
     live_server_url: str,
@@ -1715,6 +1817,82 @@ def test_e2e_revisor_exibe_painel_operacional_da_mesa(
         item_resolvido.locator('[data-mesa-action="alternar-pendencia"]').click()
         item_reaberto = painel_operacao.locator(".mesa-operacao-item.aberta", has_text=texto_resposta).first
         expect(item_reaberto).to_be_visible(timeout=10000)
+    finally:
+        contexto_inspetor.close()
+        contexto_revisor.close()
+
+
+def test_e2e_revisor_mesa_ignora_respostas_atrasadas_ao_trocar_de_laudo(
+    browser: Browser,
+    live_server_url: str,
+    credenciais_seed: dict[str, dict[str, str]],
+) -> None:
+    contexto_inspetor = browser.new_context()
+    contexto_revisor = browser.new_context()
+
+    try:
+        page_inspetor = contexto_inspetor.new_page()
+        _fazer_login(
+            page_inspetor,
+            base_url=live_server_url,
+            portal="app",
+            email=credenciais_seed["inspetor"]["email"],
+            senha=credenciais_seed["inspetor"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/app/?$",
+        )
+
+        laudo_a_id = _iniciar_inspecao_via_api(page_inspetor, tipo_template="padrao")
+        laudo_b_id = _iniciar_inspecao_via_api(page_inspetor, tipo_template="padrao")
+        sufixo = uuid.uuid4().hex[:8]
+        texto_a = f"Revisor corrida A {sufixo}"
+        texto_b = f"Revisor corrida B {sufixo}"
+
+        envio_a = _api_fetch(
+            page_inspetor,
+            path=f"/app/api/laudo/{laudo_a_id}/mesa/mensagem",
+            method="POST",
+            json_body={"texto": texto_a},
+        )
+        envio_b = _api_fetch(
+            page_inspetor,
+            path=f"/app/api/laudo/{laudo_b_id}/mesa/mensagem",
+            method="POST",
+            json_body={"texto": texto_b},
+        )
+        assert envio_a["status"] == 201
+        assert envio_b["status"] == 201
+
+        page_revisor = contexto_revisor.new_page()
+        _fazer_login(
+            page_revisor,
+            base_url=live_server_url,
+            portal="revisao",
+            email=credenciais_seed["revisor"]["email"],
+            senha=credenciais_seed["revisor"]["senha"],
+            rota_sucesso_regex=rf"{re.escape(live_server_url)}/revisao/painel/?$",
+        )
+
+        _atrasar_requisicoes(
+            page_revisor,
+            padroes=[
+                f"**/revisao/api/laudo/{laudo_a_id}/mensagens*",
+                f"**/revisao/api/laudo/{laudo_a_id}/pacote*",
+            ],
+            atraso_ms=900,
+        )
+
+        item_a = page_revisor.locator(f'.js-item-laudo[data-id="{laudo_a_id}"]').first
+        item_b = page_revisor.locator(f'.js-item-laudo[data-id="{laudo_b_id}"]').first
+        expect(item_a).to_be_visible(timeout=10000)
+        expect(item_b).to_be_visible(timeout=10000)
+
+        item_a.click()
+        page_revisor.wait_for_timeout(80)
+        item_b.click()
+
+        expect(page_revisor.locator("#view-timeline")).to_contain_text(texto_b, timeout=10000)
+        page_revisor.wait_for_timeout(1200)
+        expect(page_revisor.locator("#view-timeline")).not_to_contain_text(texto_a)
     finally:
         contexto_inspetor.close()
         contexto_revisor.close()
