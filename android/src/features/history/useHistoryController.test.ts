@@ -1,6 +1,13 @@
 import type { MobileLaudoCard } from "../../types/mobile";
 import { useHistoryController } from "./useHistoryController";
 
+interface TestHistoryCache {
+  laudos: MobileLaudoCard[];
+  conversasPorLaudo: Record<string, unknown>;
+  mesaPorLaudo: Record<string, unknown>;
+  updatedAt: string;
+}
+
 function criarCard(overrides: Partial<MobileLaudoCard> = {}): MobileLaudoCard {
   return {
     id: 10,
@@ -26,14 +33,19 @@ function criarParams(
     Parameters<
       typeof useHistoryController<
         string,
-        any,
+        TestHistoryCache,
         string,
         { laudoId: number | null }
       >
     >[0]
   > = {},
 ): Parameters<
-  typeof useHistoryController<string, any, string, { laudoId: number | null }>
+  typeof useHistoryController<
+    string,
+    TestHistoryCache,
+    string,
+    { laudoId: number | null }
+  >
 >[0] {
   return {
     keyboardHeight: 0,

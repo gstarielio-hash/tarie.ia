@@ -7,6 +7,13 @@ import {
 } from "../schema/options";
 import type { AppSettings } from "../schema/types";
 
+function isOptionMember<TOption extends string>(
+  value: string,
+  options: readonly TOption[],
+): value is TOption {
+  return options.includes(value as TOption);
+}
+
 function firstName(fullName: string): string {
   return (
     String(fullName || "")
@@ -80,18 +87,18 @@ export function mergeCriticalSnapshotIntoSettings(
   settings: AppSettings,
   snapshot: CriticalSettingsSnapshot,
 ): AppSettings {
+  const soundPresetCandidate = snapshot.notificacoes.somNotificacao;
   const soundPreset: AppSettings["notifications"]["soundPreset"] =
-    NOTIFICATION_SOUND_OPTIONS.includes(
-      snapshot.notificacoes.somNotificacao as any,
-    )
-      ? (snapshot.notificacoes
-          .somNotificacao as AppSettings["notifications"]["soundPreset"])
+    isOptionMember(soundPresetCandidate, NOTIFICATION_SOUND_OPTIONS)
+      ? soundPresetCandidate
       : settings.notifications.soundPreset;
-  const retention: AppSettings["dataControls"]["retention"] =
-    DATA_RETENTION_OPTIONS.includes(snapshot.privacidade.retencaoDados as any)
-      ? (snapshot.privacidade
-          .retencaoDados as AppSettings["dataControls"]["retention"])
-      : settings.dataControls.retention;
+  const retentionCandidate = snapshot.privacidade.retencaoDados;
+  const retention: AppSettings["dataControls"]["retention"] = isOptionMember(
+    retentionCandidate,
+    DATA_RETENTION_OPTIONS,
+  )
+    ? retentionCandidate
+    : settings.dataControls.retention;
   const soundEnabled = soundPreset !== "Silencioso";
   return {
     ...settings,
