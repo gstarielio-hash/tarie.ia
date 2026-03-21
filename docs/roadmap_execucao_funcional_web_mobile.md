@@ -85,7 +85,8 @@ Obrigação operacional:
 
 - `web/` já possui esteira sólida com `ruff`, `pytest` crítico e workflow em `.github/workflows/ci.yml`
 - `android/` já possui `eslint`, `typecheck`, `jest`, `prettier`, hooks locais e CI básica
-- o app mobile foi modularizado, mas ainda tem tipagem frouxa e composition root grande
+- a Fase 1.1 de tipagem forte do mobile foi concluída em 2026-03-20, incluindo bootstrap, builders centrais, `settings` helpers e drawer builders
+- o app mobile continua com composition root grande e ainda precisa quebrar `api.ts` por domínio
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
 ## Macroetapas
@@ -144,6 +145,18 @@ Critério de aceite:
 - zero `Record<string, any>` nos builders centrais
 - zero `as any` em `InspectorAuthenticatedLayout.tsx`
 - `typecheck` verde sem afrouxar regra
+
+Status em 2026-03-20:
+
+- concluído
+- commits de referência:
+  - `e20a158` `refactor: type mobile bootstrap cache and session contracts`
+  - `9202731` `refactor: type mobile authenticated layout and session modals`
+  - `e93463b` `refactor: type mobile inspector derived state builders`
+  - `0678776` `refactor: type mobile activity refresh and login helpers`
+  - `80c3382` `refactor: type mobile settings confirm and export flows`
+  - `681a927` `refactor: type mobile settings local preference helpers`
+  - `73b7e1e` `refactor: type mobile settings drawer builders`
 
 ### 1.2 Quebrar o cliente de API do mobile por domínio
 
