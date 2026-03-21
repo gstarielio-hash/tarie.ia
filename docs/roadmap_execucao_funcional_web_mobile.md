@@ -86,7 +86,8 @@ Obrigação operacional:
 - `web/` já possui esteira sólida com `ruff`, `pytest` crítico e workflow em `.github/workflows/ci.yml`
 - `android/` já possui `eslint`, `typecheck`, `jest`, `prettier`, hooks locais e CI básica
 - a Fase 1.1 de tipagem forte do mobile foi concluída em 2026-03-20, incluindo bootstrap, builders centrais, `settings` helpers e drawer builders
-- o app mobile continua com composition root grande e ainda precisa quebrar `api.ts` por domínio
+- a Fase 1.2 também foi concluída em 2026-03-20, com `api.ts` reduzido a fachada e módulos separados por domínio
+- o app mobile continua com composition root grande e o próximo foco técnico é cobertura de costura mais forte
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
 ## Macroetapas
@@ -182,6 +183,13 @@ Critério de aceite:
 - `api.ts` deixa de ser monolito
 - chamadas por domínio ficam localizáveis
 - contratos do mobile com backend ficam mais claros
+
+Status em 2026-03-20:
+
+- concluído
+- commits de referência:
+  - `6f1a50b` `refactor: split mobile api client by domain`
+  - `0568ec1` `test: cover mobile api url and sse helpers`
 
 ### 1.3 Fechar cobertura de costura mobile
 
