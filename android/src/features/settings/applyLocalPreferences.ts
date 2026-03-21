@@ -17,9 +17,184 @@ import {
   THEME_OPTIONS,
   TWO_FACTOR_METHOD_OPTIONS,
 } from "../InspectorMobileApp.constants";
+import type { AppSettings } from "../../settings/schema/types";
+import type { ComposerAttachment } from "../chat/types";
+import type {
+  ConnectedProvider,
+  ExternalIntegration,
+  SecurityEventItem,
+  SessionDevice,
+  SupportQueueItem,
+} from "./useSettingsPresentation";
+import type { OptionValidator, ValueSetter } from "./settingsBuilderTypes";
 
 type ApplyLocalPreferencesInput = Record<string, unknown>;
-type ApplyLocalPreferencesDeps = Record<string, any>;
+interface ApplyLocalPreferencesDeps {
+  ehOpcaoValida: OptionValidator;
+  formatarStatusReautenticacao: (value: string) => string;
+  normalizarEventoSeguranca: (value: unknown) => SecurityEventItem | null;
+  normalizarIntegracaoExterna: (value: unknown) => ExternalIntegration | null;
+  normalizarItemSuporte: (value: unknown) => SupportQueueItem | null;
+  normalizarProviderConectado: (value: unknown) => ConnectedProvider | null;
+  normalizarSessaoAtiva: (value: unknown) => SessionDevice | null;
+  reautenticacaoAindaValida: (value: string) => boolean;
+  reconciliarIntegracoesExternas: (
+    items: ExternalIntegration[],
+  ) => ExternalIntegration[];
+  setAnimacoesAtivas: ValueSetter<
+    AppSettings["appearance"]["animationsEnabled"]
+  >;
+  setAprendizadoIa: ValueSetter<AppSettings["ai"]["learningOptIn"]>;
+  setArquivosPermitidos: ValueSetter<
+    AppSettings["security"]["filesPermission"]
+  >;
+  setBackupAutomatico: ValueSetter<
+    AppSettings["dataControls"]["deviceBackupEnabled"]
+  >;
+  setBiometriaPermitida: ValueSetter<
+    AppSettings["security"]["biometricsPermission"]
+  >;
+  setBugAttachmentDraft: ValueSetter<ComposerAttachment | null>;
+  setCameraPermitida: ValueSetter<AppSettings["security"]["cameraPermission"]>;
+  setCartaoAtual: ValueSetter<(typeof PAYMENT_CARD_OPTIONS)[number]>;
+  setCodigosRecuperacao: ValueSetter<string[]>;
+  setCompartilharMelhoriaIa: ValueSetter<boolean>;
+  setCorDestaque: ValueSetter<AppSettings["appearance"]["accentColor"]>;
+  setDensidadeInterface: ValueSetter<AppSettings["appearance"]["density"]>;
+  setDeviceBiometricsEnabled: ValueSetter<
+    AppSettings["security"]["deviceBiometricsEnabled"]
+  >;
+  setEconomiaDados: ValueSetter<AppSettings["system"]["dataSaver"]>;
+  setEmailAtualConta: ValueSetter<AppSettings["account"]["email"]>;
+  setEmailsAtivos: ValueSetter<AppSettings["notifications"]["emailEnabled"]>;
+  setEntradaPorVoz: ValueSetter<AppSettings["speech"]["autoTranscribe"]>;
+  setEstiloResposta: ValueSetter<AppSettings["ai"]["responseStyle"]>;
+  setEventosSeguranca: ValueSetter<SecurityEventItem[]>;
+  setFilaSuporteLocal: ValueSetter<SupportQueueItem[]>;
+  setFixarConversas: ValueSetter<boolean>;
+  setHideInMultitask: ValueSetter<AppSettings["security"]["hideInMultitask"]>;
+  setHistoricoOcultoIds: ValueSetter<number[]>;
+  setIdiomaApp: ValueSetter<AppSettings["system"]["language"]>;
+  setIdiomaResposta: ValueSetter<AppSettings["ai"]["responseLanguage"]>;
+  setIntegracoesExternas: ValueSetter<ExternalIntegration[]>;
+  setLaudosFixadosIds: ValueSetter<number[]>;
+  setLockTimeout: ValueSetter<AppSettings["security"]["lockTimeout"]>;
+  setMemoriaIa: ValueSetter<AppSettings["ai"]["memoryEnabled"]>;
+  setMicrofonePermitido: ValueSetter<
+    AppSettings["security"]["microphonePermission"]
+  >;
+  setModeloIa: ValueSetter<AppSettings["ai"]["model"]>;
+  setMostrarConteudoNotificacao: ValueSetter<
+    AppSettings["notifications"]["showMessageContent"]
+  >;
+  setMostrarSomenteNovaMensagem: ValueSetter<
+    AppSettings["notifications"]["onlyShowNewMessage"]
+  >;
+  setNomeAutomaticoConversas: ValueSetter<boolean>;
+  setNotificaPush: ValueSetter<AppSettings["notifications"]["pushEnabled"]>;
+  setNotificaRespostas: ValueSetter<
+    AppSettings["notifications"]["responseAlertsEnabled"]
+  >;
+  setNotificacoesPermitidas: ValueSetter<
+    AppSettings["security"]["notificationsPermission"]
+  >;
+  setNovaSenhaDraft: ValueSetter<string>;
+  setOcultarConteudoBloqueado: ValueSetter<
+    AppSettings["notifications"]["hideContentOnLockScreen"]
+  >;
+  setPerfilExibicao: ValueSetter<AppSettings["account"]["displayName"]>;
+  setPerfilFotoHint: ValueSetter<AppSettings["account"]["photoHint"]>;
+  setPerfilFotoUri: ValueSetter<AppSettings["account"]["photoUri"]>;
+  setPerfilNome: ValueSetter<AppSettings["account"]["fullName"]>;
+  setPlanoAtual: ValueSetter<(typeof PLAN_OPTIONS)[number]>;
+  setProvedoresConectados: ValueSetter<ConnectedProvider[]>;
+  setReautenticacaoExpiraEm: ValueSetter<string>;
+  setReautenticacaoStatus: ValueSetter<string>;
+  setRecoveryCodesEnabled: ValueSetter<boolean>;
+  setRegiaoApp: ValueSetter<AppSettings["system"]["region"]>;
+  setRequireAuthOnOpen: ValueSetter<
+    AppSettings["security"]["requireAuthOnOpen"]
+  >;
+  setRespostaPorVoz: ValueSetter<AppSettings["speech"]["autoReadResponses"]>;
+  setRetencaoDados: ValueSetter<AppSettings["dataControls"]["retention"]>;
+  setSalvaHistoricoConversas: ValueSetter<
+    AppSettings["dataControls"]["chatHistoryEnabled"]
+  >;
+  setSessoesAtivas: ValueSetter<SessionDevice[]>;
+  setSincronizacaoDispositivos: ValueSetter<
+    AppSettings["dataControls"]["crossDeviceSyncEnabled"]
+  >;
+  setSomNotificacao: ValueSetter<AppSettings["notifications"]["soundPreset"]>;
+  setStatusAtualizacaoApp: ValueSetter<string>;
+  setTamanhoFonte: ValueSetter<AppSettings["appearance"]["fontScale"]>;
+  setTemperaturaIa: ValueSetter<AppSettings["ai"]["temperature"]>;
+  setTemaApp: ValueSetter<AppSettings["appearance"]["theme"]>;
+  setTomConversa: ValueSetter<AppSettings["ai"]["tone"]>;
+  setTwoFactorEnabled: ValueSetter<boolean>;
+  setTwoFactorMethod: ValueSetter<(typeof TWO_FACTOR_METHOD_OPTIONS)[number]>;
+  setUltimaVerificacaoAtualizacao: ValueSetter<string>;
+  setUploadArquivosAtivo: ValueSetter<AppSettings["attachments"]["enabled"]>;
+  setUsoBateria: ValueSetter<AppSettings["system"]["batteryMode"]>;
+  setVibracaoAtiva: ValueSetter<
+    AppSettings["notifications"]["vibrationEnabled"]
+  >;
+}
+
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value != null;
+}
+
+function normalizarBugAttachmentDraft(
+  value: unknown,
+): ComposerAttachment | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const attachment = value as Partial<ComposerAttachment>;
+  if (
+    attachment.kind === "image" &&
+    typeof attachment.label === "string" &&
+    typeof attachment.resumo === "string" &&
+    typeof attachment.dadosImagem === "string" &&
+    typeof attachment.previewUri === "string" &&
+    typeof attachment.fileUri === "string" &&
+    typeof attachment.mimeType === "string"
+  ) {
+    return {
+      kind: "image",
+      label: attachment.label,
+      resumo: attachment.resumo,
+      dadosImagem: attachment.dadosImagem,
+      previewUri: attachment.previewUri,
+      fileUri: attachment.fileUri,
+      mimeType: attachment.mimeType,
+    };
+  }
+  if (
+    attachment.kind === "document" &&
+    typeof attachment.label === "string" &&
+    typeof attachment.resumo === "string" &&
+    typeof attachment.textoDocumento === "string" &&
+    typeof attachment.nomeDocumento === "string" &&
+    typeof attachment.chars === "number" &&
+    typeof attachment.truncado === "boolean" &&
+    typeof attachment.fileUri === "string" &&
+    typeof attachment.mimeType === "string"
+  ) {
+    return {
+      kind: "document",
+      label: attachment.label,
+      resumo: attachment.resumo,
+      textoDocumento: attachment.textoDocumento,
+      nomeDocumento: attachment.nomeDocumento,
+      chars: attachment.chars,
+      truncado: attachment.truncado,
+      fileUri: attachment.fileUri,
+      mimeType: attachment.mimeType,
+    };
+  }
+  return null;
+}
 
 export function applyLocalPreferencesFromStorage(
   preferencias: ApplyLocalPreferencesInput,
@@ -232,7 +407,7 @@ export function applyLocalPreferencesFromStorage(
   if (Array.isArray(preferencias.provedoresConectados)) {
     const provedores = preferencias.provedoresConectados
       .map((item) => normalizarProviderConectado(item))
-      .filter(Boolean);
+      .filter(isPresent);
     if (provedores.length) {
       setProvedoresConectados(provedores);
     }
@@ -240,13 +415,13 @@ export function applyLocalPreferencesFromStorage(
   if (Array.isArray(preferencias.integracoesExternas)) {
     const integracoes = preferencias.integracoesExternas
       .map((item) => normalizarIntegracaoExterna(item))
-      .filter(Boolean);
+      .filter(isPresent);
     setIntegracoesExternas(reconciliarIntegracoesExternas(integracoes));
   }
   if (Array.isArray(preferencias.sessoesAtivas)) {
     const sessoes = preferencias.sessoesAtivas
       .map((item) => normalizarSessaoAtiva(item))
-      .filter(Boolean);
+      .filter(isPresent);
     if (sessoes.length) {
       setSessoesAtivas(sessoes);
     }
@@ -308,7 +483,7 @@ export function applyLocalPreferencesFromStorage(
   if (Array.isArray(preferencias.eventosSeguranca)) {
     const eventos = preferencias.eventosSeguranca
       .map((item) => normalizarEventoSeguranca(item))
-      .filter(Boolean);
+      .filter(isPresent);
     if (eventos.length) {
       setEventosSeguranca(eventos);
     }
@@ -341,7 +516,7 @@ export function applyLocalPreferencesFromStorage(
     setFilaSuporteLocal(
       preferencias.filaSuporteLocal
         .map((item) => normalizarItemSuporte(item))
-        .filter(Boolean),
+        .filter(isPresent),
     );
   }
   if (typeof preferencias.ultimaVerificacaoAtualizacao === "string") {
@@ -357,6 +532,8 @@ export function applyLocalPreferencesFromStorage(
     setNovaSenhaDraft(preferencias.novaSenhaDraft);
   }
   if ("bugAttachmentDraft" in preferencias) {
-    setBugAttachmentDraft(preferencias.bugAttachmentDraft ?? null);
+    setBugAttachmentDraft(
+      normalizarBugAttachmentDraft(preferencias.bugAttachmentDraft),
+    );
   }
 }

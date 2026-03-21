@@ -1,72 +1,116 @@
+import type { AppSettings } from "../../settings/schema/types";
 import { clearPersistedAccountData } from "../session/sessionStorage";
-
-type Setter = (...args: any[]) => void;
+import type { ValueSetter } from "./settingsBuilderTypes";
 
 interface BuildAccountDeletionActionParams {
   fecharConfiguracoes: () => void;
   handleLogout: () => Promise<void> | void;
   onResetSettingsPresentationAfterAccountDeletion: () => void;
-  onSetAppLoading: Setter;
-  onSetAprendizadoIa: Setter;
-  onSetAnimacoesAtivas: Setter;
-  onSetArquivosPermitidos: Setter;
-  onSetAutoUploadAttachments: Setter;
-  onSetBackupAutomatico: Setter;
-  onSetBiometriaPermitida: Setter;
-  onSetCameraPermitida: Setter;
-  onSetChatCategoryEnabled: Setter;
-  onSetCompartilharMelhoriaIa: Setter;
-  onSetCorDestaque: Setter;
-  onSetCriticalAlertsEnabled: Setter;
-  onSetDensidadeInterface: Setter;
-  onSetDeviceBiometricsEnabled: Setter;
-  onSetEconomiaDados: Setter;
-  onSetEmail: Setter;
-  onSetEmailAtualConta: Setter;
-  onSetEmailsAtivos: Setter;
-  onSetEntradaPorVoz: Setter;
-  onSetEstiloResposta: Setter;
-  onSetFixarConversas: Setter;
-  onSetHideInMultitask: Setter;
-  onSetHistoricoOcultoIds: Setter;
-  onSetIdiomaApp: Setter;
-  onSetIdiomaResposta: Setter;
-  onSetLaudosFixadosIds: Setter;
-  onSetLockTimeout: Setter;
-  onSetMediaCompression: Setter;
-  onSetMemoriaIa: Setter;
-  onSetMesaCategoryEnabled: Setter;
-  onSetMicrofonePermitido: Setter;
-  onSetModeloIa: Setter;
-  onSetMostrarConteudoNotificacao: Setter;
-  onSetMostrarSomenteNovaMensagem: Setter;
-  onSetNomeAutomaticoConversas: Setter;
-  onSetNotificaPush: Setter;
-  onSetNotificaRespostas: Setter;
-  onSetNotificacoesPermitidas: Setter;
-  onSetOcultarConteudoBloqueado: Setter;
-  onSetPerfilExibicao: Setter;
-  onSetPerfilFotoHint: Setter;
-  onSetPerfilFotoUri: Setter;
-  onSetPerfilNome: Setter;
-  onSetPreferredVoiceId: Setter;
-  onSetRegiaoApp: Setter;
-  onSetRequireAuthOnOpen: Setter;
-  onSetRespostaPorVoz: Setter;
-  onSetRetencaoDados: Setter;
-  onSetSalvarHistoricoConversas: Setter;
-  onSetSincronizacaoDispositivos: Setter;
-  onSetSomNotificacao: Setter;
-  onSetSpeechRate: Setter;
-  onSetSystemCategoryEnabled: Setter;
-  onSetTamanhoFonte: Setter;
-  onSetTemperaturaIa: Setter;
-  onSetTemaApp: Setter;
-  onSetTomConversa: Setter;
-  onSetUploadArquivosAtivo: Setter;
-  onSetUsoBateria: Setter;
-  onSetVibracaoAtiva: Setter;
-  onSetVoiceLanguage: Setter;
+  onSetAppLoading: ValueSetter<boolean>;
+  onSetAprendizadoIa: ValueSetter<AppSettings["ai"]["learningOptIn"]>;
+  onSetAnimacoesAtivas: ValueSetter<
+    AppSettings["appearance"]["animationsEnabled"]
+  >;
+  onSetArquivosPermitidos: ValueSetter<
+    AppSettings["security"]["filesPermission"]
+  >;
+  onSetAutoUploadAttachments: ValueSetter<
+    AppSettings["dataControls"]["autoUploadAttachments"]
+  >;
+  onSetBackupAutomatico: ValueSetter<
+    AppSettings["dataControls"]["deviceBackupEnabled"]
+  >;
+  onSetBiometriaPermitida: ValueSetter<
+    AppSettings["security"]["biometricsPermission"]
+  >;
+  onSetCameraPermitida: ValueSetter<
+    AppSettings["security"]["cameraPermission"]
+  >;
+  onSetChatCategoryEnabled: ValueSetter<
+    AppSettings["notifications"]["chatCategoryEnabled"]
+  >;
+  onSetCompartilharMelhoriaIa: ValueSetter<boolean>;
+  onSetCorDestaque: ValueSetter<AppSettings["appearance"]["accentColor"]>;
+  onSetCriticalAlertsEnabled: ValueSetter<
+    AppSettings["notifications"]["criticalAlertsEnabled"]
+  >;
+  onSetDensidadeInterface: ValueSetter<AppSettings["appearance"]["density"]>;
+  onSetDeviceBiometricsEnabled: ValueSetter<
+    AppSettings["security"]["deviceBiometricsEnabled"]
+  >;
+  onSetEconomiaDados: ValueSetter<AppSettings["system"]["dataSaver"]>;
+  onSetEmail: ValueSetter<string>;
+  onSetEmailAtualConta: ValueSetter<AppSettings["account"]["email"]>;
+  onSetEmailsAtivos: ValueSetter<AppSettings["notifications"]["emailEnabled"]>;
+  onSetEntradaPorVoz: ValueSetter<AppSettings["speech"]["autoTranscribe"]>;
+  onSetEstiloResposta: ValueSetter<AppSettings["ai"]["responseStyle"]>;
+  onSetFixarConversas: ValueSetter<boolean>;
+  onSetHideInMultitask: ValueSetter<AppSettings["security"]["hideInMultitask"]>;
+  onSetHistoricoOcultoIds: ValueSetter<number[]>;
+  onSetIdiomaApp: ValueSetter<AppSettings["system"]["language"]>;
+  onSetIdiomaResposta: ValueSetter<AppSettings["ai"]["responseLanguage"]>;
+  onSetLaudosFixadosIds: ValueSetter<number[]>;
+  onSetLockTimeout: ValueSetter<AppSettings["security"]["lockTimeout"]>;
+  onSetMediaCompression: ValueSetter<
+    AppSettings["dataControls"]["mediaCompression"]
+  >;
+  onSetMemoriaIa: ValueSetter<AppSettings["ai"]["memoryEnabled"]>;
+  onSetMesaCategoryEnabled: ValueSetter<
+    AppSettings["notifications"]["mesaCategoryEnabled"]
+  >;
+  onSetMicrofonePermitido: ValueSetter<
+    AppSettings["security"]["microphonePermission"]
+  >;
+  onSetModeloIa: ValueSetter<AppSettings["ai"]["model"]>;
+  onSetMostrarConteudoNotificacao: ValueSetter<
+    AppSettings["notifications"]["showMessageContent"]
+  >;
+  onSetMostrarSomenteNovaMensagem: ValueSetter<
+    AppSettings["notifications"]["onlyShowNewMessage"]
+  >;
+  onSetNomeAutomaticoConversas: ValueSetter<boolean>;
+  onSetNotificaPush: ValueSetter<AppSettings["notifications"]["pushEnabled"]>;
+  onSetNotificaRespostas: ValueSetter<
+    AppSettings["notifications"]["responseAlertsEnabled"]
+  >;
+  onSetNotificacoesPermitidas: ValueSetter<
+    AppSettings["security"]["notificationsPermission"]
+  >;
+  onSetOcultarConteudoBloqueado: ValueSetter<
+    AppSettings["notifications"]["hideContentOnLockScreen"]
+  >;
+  onSetPerfilExibicao: ValueSetter<AppSettings["account"]["displayName"]>;
+  onSetPerfilFotoHint: ValueSetter<AppSettings["account"]["photoHint"]>;
+  onSetPerfilFotoUri: ValueSetter<AppSettings["account"]["photoUri"]>;
+  onSetPerfilNome: ValueSetter<AppSettings["account"]["fullName"]>;
+  onSetPreferredVoiceId: ValueSetter<AppSettings["speech"]["voiceId"]>;
+  onSetRegiaoApp: ValueSetter<AppSettings["system"]["region"]>;
+  onSetRequireAuthOnOpen: ValueSetter<
+    AppSettings["security"]["requireAuthOnOpen"]
+  >;
+  onSetRespostaPorVoz: ValueSetter<AppSettings["speech"]["autoReadResponses"]>;
+  onSetRetencaoDados: ValueSetter<AppSettings["dataControls"]["retention"]>;
+  onSetSalvarHistoricoConversas: ValueSetter<
+    AppSettings["dataControls"]["chatHistoryEnabled"]
+  >;
+  onSetSincronizacaoDispositivos: ValueSetter<
+    AppSettings["dataControls"]["crossDeviceSyncEnabled"]
+  >;
+  onSetSomNotificacao: ValueSetter<AppSettings["notifications"]["soundPreset"]>;
+  onSetSpeechRate: ValueSetter<AppSettings["speech"]["speechRate"]>;
+  onSetSystemCategoryEnabled: ValueSetter<
+    AppSettings["notifications"]["systemCategoryEnabled"]
+  >;
+  onSetTamanhoFonte: ValueSetter<AppSettings["appearance"]["fontScale"]>;
+  onSetTemperaturaIa: ValueSetter<AppSettings["ai"]["temperature"]>;
+  onSetTemaApp: ValueSetter<AppSettings["appearance"]["theme"]>;
+  onSetTomConversa: ValueSetter<AppSettings["ai"]["tone"]>;
+  onSetUploadArquivosAtivo: ValueSetter<AppSettings["attachments"]["enabled"]>;
+  onSetUsoBateria: ValueSetter<AppSettings["system"]["batteryMode"]>;
+  onSetVibracaoAtiva: ValueSetter<
+    AppSettings["notifications"]["vibrationEnabled"]
+  >;
+  onSetVoiceLanguage: ValueSetter<AppSettings["speech"]["voiceLanguage"]>;
   onShowAlert: (title: string, message?: string) => void;
 }
 
