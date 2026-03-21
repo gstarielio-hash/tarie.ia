@@ -23,21 +23,9 @@ from app.domains.admin.services import (
     filtro_usuarios_gerenciaveis_cliente,
     resetar_senha_usuario_empresa,
 )
-from app.domains.chat.chat import obter_mensagens_laudo, rota_chat, rota_upload_doc
-from app.domains.chat.laudo import (
-    RESPOSTA_GATE_QUALIDADE_REPROVADO,
-    RESPOSTA_LAUDO_NAO_ENCONTRADO,
-    api_finalizar_relatorio,
-    api_iniciar_relatorio,
-    api_obter_gate_qualidade_laudo,
-    api_reabrir_laudo,
-    api_status_relatorio,
-)
 from app.domains.chat.laudo_state_helpers import serializar_card_laudo
 from app.domains.chat.limits_helpers import contar_laudos_mes
 from app.domains.chat.normalization import TIPOS_TEMPLATE_VALIDOS
-from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
-from app.domains.chat.schemas import DadosChat
 from app.domains.cliente.auditoria import (
     listar_auditoria_empresa,
     registrar_auditoria_empresa,
@@ -49,19 +37,31 @@ from app.domains.cliente.common import (
     garantir_csrf_cliente,
     validar_csrf_cliente,
 )
-from app.domains.revisor.routes import (
+from app.domains.cliente.portal_bridge import (
+    DadosChat,
     DadosPendenciaMesa,
     DadosRespostaChat,
+    InteiroOpcionalNullish,
+    RESPOSTA_GATE_QUALIDADE_REPROVADO,
+    RESPOSTA_LAUDO_NAO_ENCONTRADO,
     RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
-    avaliar_laudo,
-    baixar_anexo_mesa_revisor,
-    marcar_whispers_lidos,
-    obter_historico_chat_revisor,
-    obter_laudo_completo,
-    obter_pacote_mesa_laudo,
-    responder_chat_campo,
-    responder_chat_campo_com_anexo,
-    atualizar_pendencia_mesa_revisor,
+    api_finalizar_relatorio_cliente,
+    api_iniciar_relatorio_cliente,
+    api_obter_gate_qualidade_laudo_cliente,
+    api_reabrir_laudo_cliente,
+    api_status_relatorio_cliente,
+    atualizar_pendencia_mesa_cliente,
+    avaliar_laudo_cliente,
+    baixar_anexo_mesa_cliente,
+    marcar_whispers_lidos_cliente,
+    obter_historico_chat_revisor_cliente,
+    obter_laudo_completo_cliente,
+    obter_mensagens_laudo_cliente,
+    obter_pacote_mesa_laudo_cliente,
+    responder_chat_campo_cliente,
+    responder_chat_campo_com_anexo_cliente,
+    rota_chat_cliente,
+    rota_upload_doc_cliente,
 )
 from app.shared.database import (
     Empresa,
@@ -1754,7 +1754,7 @@ async def api_chat_status_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await api_status_relatorio(request=request, usuario=usuario, banco=banco)
+    return await api_status_relatorio_cliente(request=request, usuario=usuario, banco=banco)
 
 
 @roteador_cliente.get("/api/chat/laudos")
@@ -1773,10 +1773,9 @@ async def api_chat_criar_laudo_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await api_iniciar_relatorio(
+    resposta = await api_iniciar_relatorio_cliente(
         request=request,
         tipo_template=tipo_template,
-        tipotemplate=None,
         usuario=usuario,
         banco=banco,
     )
@@ -1805,7 +1804,7 @@ async def api_chat_mensagens_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    payload = await obter_mensagens_laudo(
+    payload = await obter_mensagens_laudo_cliente(
         laudo_id=laudo_id,
         request=request,
         cursor=cursor,
@@ -1833,7 +1832,7 @@ async def api_chat_upload_doc_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await rota_upload_doc(
+    return await rota_upload_doc_cliente(
         request=request,
         arquivo=arquivo,
         usuario=usuario,
@@ -1849,7 +1848,7 @@ async def api_chat_enviar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await rota_chat(
+    resposta = await rota_chat_cliente(
         dados=dados,
         request=request,
         usuario=usuario,
@@ -1882,7 +1881,7 @@ async def api_chat_gate_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await api_obter_gate_qualidade_laudo(
+    return await api_obter_gate_qualidade_laudo_cliente(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
@@ -1905,7 +1904,7 @@ async def api_chat_finalizar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await api_finalizar_relatorio(
+    resposta = await api_finalizar_relatorio_cliente(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
@@ -1934,7 +1933,7 @@ async def api_chat_reabrir_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await api_reabrir_laudo(
+    resposta = await api_reabrir_laudo_cliente(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
@@ -1968,7 +1967,7 @@ async def api_mesa_mensagens_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    payload = await obter_historico_chat_revisor(
+    payload = await obter_historico_chat_revisor_cliente(
         laudo_id=laudo_id,
         cursor=cursor,
         limite=limite,
@@ -1987,7 +1986,7 @@ async def api_mesa_completo_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    resposta = await obter_laudo_completo(
+    resposta = await obter_laudo_completo_cliente(
         laudo_id=laudo_id,
         incluir_historico=incluir_historico,
         cursor=cursor,
@@ -2012,7 +2011,7 @@ async def api_mesa_pacote_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    resposta = await obter_pacote_mesa_laudo(
+    resposta = await obter_pacote_mesa_laudo_cliente(
         laudo_id=laudo_id,
         request=request,
         limite_whispers=limite_whispers,
@@ -2040,7 +2039,7 @@ async def api_mesa_responder_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await responder_chat_campo(
+    resposta = await responder_chat_campo_cliente(
         laudo_id=laudo_id,
         dados=dados,
         request=request,
@@ -2073,7 +2072,7 @@ async def api_mesa_responder_anexo_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await responder_chat_campo_com_anexo(
+    resposta = await responder_chat_campo_com_anexo_cliente(
         laudo_id=laudo_id,
         request=request,
         arquivo=arquivo,
@@ -2111,7 +2110,7 @@ async def api_mesa_pendencia_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await atualizar_pendencia_mesa_revisor(
+    resposta = await atualizar_pendencia_mesa_cliente(
         laudo_id=laudo_id,
         mensagem_id=mensagem_id,
         dados=dados,
@@ -2148,7 +2147,7 @@ async def api_mesa_avaliar_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    resposta = await avaliar_laudo(
+    resposta = await avaliar_laudo_cliente(
         laudo_id=laudo_id,
         request=request,
         acao=dados.acao,
@@ -2186,7 +2185,7 @@ async def api_mesa_marcar_whispers_lidos_cliente(
     banco: Session = Depends(obter_banco),
 ):
     garantir_csrf_cliente(request)
-    return await marcar_whispers_lidos(
+    return await marcar_whispers_lidos_cliente(
         laudo_id=laudo_id,
         request=request,
         usuario=usuario,
@@ -2204,7 +2203,7 @@ async def api_mesa_baixar_anexo_cliente(
     usuario: Usuario = Depends(exigir_admin_cliente),
     banco: Session = Depends(obter_banco),
 ):
-    return await baixar_anexo_mesa_revisor(
+    return await baixar_anexo_mesa_cliente(
         laudo_id=laudo_id,
         anexo_id=anexo_id,
         usuario=usuario,

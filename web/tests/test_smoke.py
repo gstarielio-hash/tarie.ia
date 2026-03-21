@@ -600,6 +600,7 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     detalhe_cliente = (raiz / "templates" / "cliente_detalhe.html").read_text(encoding="utf-8")
     novo_cliente = (raiz / "templates" / "novo_cliente.html").read_text(encoding="utf-8")
     routes_cliente = (raiz / "app" / "domains" / "cliente" / "routes.py").read_text(encoding="utf-8")
+    portal_bridge_cliente = (raiz / "app" / "domains" / "cliente" / "portal_bridge.py").read_text(encoding="utf-8")
     routes_admin = (raiz / "app" / "domains" / "admin" / "routes.py").read_text(encoding="utf-8")
     security = (raiz / "app" / "shared" / "security.py").read_text(encoding="utf-8")
 
@@ -614,6 +615,10 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     assert "inspetores_e_revisores" in detalhe_cliente
     assert "Provisionar empresa assinante" in novo_cliente
     assert '"Admin-CEO"' in routes_cliente
+    assert "from app.domains.cliente.portal_bridge import (" in routes_cliente
+    assert "from app.domains.chat.chat import " not in routes_cliente
+    assert "from app.domains.revisor.routes import " not in routes_cliente
+    assert "Contrato explícito de integrações do portal cliente" in portal_bridge_cliente
     assert "Área restrita ao Admin-CEO" in routes_admin
     assert "Acesso restrito ao portal admin-cliente." in security
     assert "Acesso restrito ao portal Admin-CEO." in security
