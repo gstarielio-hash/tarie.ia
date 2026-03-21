@@ -91,6 +91,7 @@ Obrigação operacional:
 - a Fase 2.1 do web começou em 2026-03-20 com guard compartilhado de tenant em `web/app/shared/tenant_access.py`, reaproveitado por `chat`, `revisor` e `cliente`
 - a Fase 2.2 do web avançou em 2026-03-20 com `web/app/domains/cliente/portal_bridge.py` consumindo `web/app/domains/chat/laudo_service.py` em vez de handlers HTTP de `chat.laudo`
 - a Fase 2.2 do web também isolou leitura de mensagens e upload documental em `web/app/domains/chat/chat_service.py`, reduzindo a dependência da bridge do cliente sobre `chat/chat.py`
+- a Fase 2.3 do web começou em 2026-03-20 com o runtime de engine e sessão extraído para `web/app/shared/db/runtime.py`, reduzindo o peso estrutural de `web/app/shared/database.py`
 - o app mobile continua com composition root grande, mas o próximo foco técnico principal passa a ser o backend web para SaaS
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
@@ -330,6 +331,20 @@ Critério de aceite:
 
 - camada de persistência fica navegável
 - modelagem deixa de depender de um arquivo monolítico
+
+Status em 2026-03-20:
+
+- em andamento
+- concluído nesta fatia:
+  - criação de `web/app/shared/db/runtime.py` para engine SQLAlchemy, URL normalizada e `SessaoLocal`
+  - criação de `web/app/shared/db/__init__.py` para reexportar o runtime compartilhado
+  - `web/app/shared/database.py` deixou de concentrar criação de engine, sessão e configuração específica de SQLite
+  - compatibilidade pública mantida para `_normalizar_url_banco`, `URL_BANCO`, `motor_banco` e `SessaoLocal`
+- commit de referência:
+  - `a016821` `refactor: extract shared db runtime from database module`
+- próximo corte:
+  - extrair enums e contratos de plano/status para `web/app/shared/db/`
+  - mover bootstrap e seed para módulo próprio sem quebrar imports existentes
 
 ## Fase 3. Contrato único entre backend, web e mobile
 
