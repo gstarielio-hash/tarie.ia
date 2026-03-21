@@ -381,14 +381,25 @@ def niveis_permitidos_portal(portal: str | None) -> frozenset[int]:
     return _NIVEIS_PERMITIDOS_POR_PORTAL.get(portal_normalizado, frozenset())
 
 
-def usuario_tem_acesso_portal(usuario: Usuario | None, portal: str | None) -> bool:
+def usuario_tem_niveis_permitidos(
+    usuario: Usuario | None,
+    niveis_permitidos: set[int] | frozenset[int],
+) -> bool:
     if usuario is None:
         return False
     try:
         nivel_int = int(usuario.nivel_acesso)
     except (TypeError, ValueError):
         return False
-    return nivel_int in niveis_permitidos_portal(portal)
+    return nivel_int in {int(nivel) for nivel in niveis_permitidos}
+
+
+def usuario_tem_nivel(usuario: Usuario | None, nivel: int) -> bool:
+    return usuario_tem_niveis_permitidos(usuario, {int(nivel)})
+
+
+def usuario_tem_acesso_portal(usuario: Usuario | None, portal: str | None) -> bool:
+    return usuario_tem_niveis_permitidos(usuario, niveis_permitidos_portal(portal))
 
 
 def obter_dados_sessao_portal(
@@ -978,7 +989,7 @@ def _exigir_niveis_permitidos(
     *,
     contexto_log: str,
 ) -> Usuario:
-    if int(usuario.nivel_acesso) not in {int(nivel) for nivel in niveis_permitidos}:
+    if not usuario_tem_niveis_permitidos(usuario, niveis_permitidos):
         logger.warning(
             "Acesso negado [%s] | usuario_id=%s | nivel_atual=%s | niveis_permitidos=%s",
             contexto_log,

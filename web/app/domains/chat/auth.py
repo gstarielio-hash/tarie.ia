@@ -18,7 +18,6 @@ from sqlalchemy.orm import Session
 from app.core.settings import env_str
 from app.domains.chat.auth_helpers import (
     CHAVE_TROCA_SENHA_LEMBRAR,
-    NIVEIS_PERMITIDOS_APP,
     _iniciar_fluxo_troca_senha,
     _limpar_fluxo_troca_senha,
     _render_troca_senha,
@@ -50,7 +49,6 @@ from app.domains.chat.session_helpers import (
 from app.domains.chat.normalization import normalizar_email
 from app.shared.database import (
     Laudo,
-    NivelAcesso,
     PlanoEmpresa,
     PreferenciaMobileUsuario,
     Usuario,
@@ -69,6 +67,7 @@ from app.shared.security import (
     token_esta_ativo,
     exigir_inspetor,
     usuario_tem_bloqueio_ativo,
+    usuario_tem_acesso_portal,
     verificar_senha,
     verificar_senha_com_upgrade,
 )
@@ -529,7 +528,7 @@ async def processar_login_app(
             status_code=401,
         )
 
-    if usuario.nivel_acesso not in NIVEIS_PERMITIDOS_APP:
+    if not usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR):
         return templates.TemplateResponse(
             request,
             "login_app.html",
@@ -599,7 +598,7 @@ async def api_login_mobile_inspetor(
     if not usuario or not senha_valida:
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
-    if int(usuario.nivel_acesso) not in NIVEIS_PERMITIDOS_APP:
+    if not usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR):
         raise HTTPException(status_code=403, detail="Acesso permitido apenas para Inspetores.")
 
     if usuario.senha_temporaria_ativa:
@@ -719,7 +718,7 @@ async def pagina_inicial(
     if not usuario:
         return RedirectResponse(url="/app/login", status_code=303)
 
-    if usuario.nivel_acesso != NivelAcesso.INSPETOR.value:
+    if not usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR):
         return redirecionar_por_nivel(usuario)
 
     estado_relatorio = estado_relatorio_sanitizado(request, banco, usuario)
@@ -780,7 +779,7 @@ async def pagina_planos(
     if not usuario:
         return RedirectResponse(url="/app/login", status_code=303)
 
-    if usuario.nivel_acesso != NivelAcesso.INSPETOR.value:
+    if not usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR):
         return redirecionar_por_nivel(usuario)
 
     limites = montar_limites_para_template(banco)

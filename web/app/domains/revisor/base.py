@@ -33,6 +33,7 @@ from app.shared.security import (
     limpar_sessao_portal,
     usuario_tem_acesso_portal,
     usuario_tem_bloqueio_ativo,
+    usuario_tem_nivel,
 )
 from nucleo.inspetor.referencias_mensagem import extrair_referencia_do_texto
 
@@ -286,7 +287,7 @@ def _validar_destinatario_whisper(
     if not destinatario or destinatario.empresa_id != empresa_id:
         raise HTTPException(status_code=404, detail="Destinatário inválido.")
 
-    if destinatario.nivel_acesso != int(NivelAcesso.INSPETOR):
+    if not usuario_tem_nivel(destinatario, int(NivelAcesso.INSPETOR)):
         raise HTTPException(status_code=400, detail="Destinatário deve ser um inspetor.")
 
     if laudo.usuario_id and destinatario.id != laudo.usuario_id:

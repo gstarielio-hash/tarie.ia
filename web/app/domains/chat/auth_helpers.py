@@ -12,9 +12,13 @@ from sqlalchemy.orm import Session
 
 from app.domains.chat.session_helpers import CHAVE_CSRF_INSPETOR, contexto_base
 from app.shared.database import NivelAcesso, Usuario
-from app.shared.security import PORTAL_INSPETOR, limpar_sessao_portal, usuario_tem_bloqueio_ativo
+from app.shared.security import (
+    PORTAL_INSPETOR,
+    limpar_sessao_portal,
+    usuario_tem_acesso_portal,
+    usuario_tem_bloqueio_ativo,
+)
 
-NIVEIS_PERMITIDOS_APP = frozenset({NivelAcesso.INSPETOR.value})
 PORTAL_TROCA_SENHA_INSPETOR = "inspetor"
 CHAVE_TROCA_SENHA_UID = "troca_senha_uid"
 CHAVE_TROCA_SENHA_PORTAL = "troca_senha_portal"
@@ -73,7 +77,7 @@ def _usuario_pendente_troca_senha(request: Request, banco: Session) -> Optional[
         _limpar_fluxo_troca_senha(request)
         return None
 
-    if usuario.nivel_acesso not in NIVEIS_PERMITIDOS_APP:
+    if not usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR):
         _limpar_fluxo_troca_senha(request)
         return None
 
@@ -123,7 +127,6 @@ def _render_troca_senha(
 
 
 __all__ = [
-    "NIVEIS_PERMITIDOS_APP",
     "PORTAL_TROCA_SENHA_INSPETOR",
     "CHAVE_TROCA_SENHA_UID",
     "CHAVE_TROCA_SENHA_PORTAL",

@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.shared.database import Base, Empresa, Laudo, NivelAcesso, StatusRevisao, Usuario
-from app.shared.security import criar_hash_senha
+from app.shared.security import (
+    PORTAL_CLIENTE,
+    PORTAL_INSPETOR,
+    criar_hash_senha,
+    usuario_tem_acesso_portal,
+    usuario_tem_nivel,
+)
 from app.shared.tenant_access import (
     obter_empresa_id_usuario,
     obter_empresa_usuario,
@@ -114,6 +120,21 @@ def test_obter_empresa_usuario_carrega_empresa_vinculada(sessao_teste: Session) 
 
     assert int(empresa_carregada.id) == int(empresa.id)
     assert empresa_carregada.nome_fantasia == "Empresa Tenant"
+
+
+def test_helpers_de_papel_reaproveitam_semantica_centralizada() -> None:
+    usuario = Usuario(
+        empresa_id=1,
+        nome_completo="Cliente Operacional",
+        email="cliente@empresa.test",
+        senha_hash=criar_hash_senha("Senha@Teste123"),
+        nivel_acesso=int(NivelAcesso.ADMIN_CLIENTE),
+        ativo=True,
+    )
+
+    assert usuario_tem_nivel(usuario, int(NivelAcesso.ADMIN_CLIENTE)) is True
+    assert usuario_tem_acesso_portal(usuario, PORTAL_CLIENTE) is True
+    assert usuario_tem_acesso_portal(usuario, PORTAL_INSPETOR) is False
 
 
 def test_obter_laudo_empresa_usuario_bloqueia_acesso_cruzado(sessao_teste: Session) -> None:
