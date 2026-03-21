@@ -619,6 +619,7 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     assert "from app.domains.chat.chat import " not in routes_cliente
     assert "from app.domains.revisor.routes import " not in routes_cliente
     assert "Contrato explícito de integrações do portal cliente" in portal_bridge_cliente
+    assert "from app.domains.revisor.routes import " not in portal_bridge_cliente
     assert "Área restrita ao Admin-CEO" in routes_admin
     assert "Acesso restrito ao portal admin-cliente." in security
     assert "Acesso restrito ao portal Admin-CEO." in security

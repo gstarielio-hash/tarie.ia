@@ -18,10 +18,12 @@ from app.domains.chat.laudo import (
 )
 from app.domains.chat.request_parsing_helpers import InteiroOpcionalNullish
 from app.domains.chat.schemas import DadosChat
-from app.domains.revisor.routes import (
+from app.domains.revisor.base import (
     DadosPendenciaMesa,
     DadosRespostaChat,
     RESPOSTA_LAUDO_NAO_ENCONTRADO_REVISOR,
+)
+from app.domains.revisor.mesa_api import (
     atualizar_pendencia_mesa_revisor,
     avaliar_laudo,
     baixar_anexo_mesa_revisor,
