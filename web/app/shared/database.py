@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import enum
 import logging
-import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -19,7 +18,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Generator
 
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from sqlalchemy import (
     JSON,
@@ -35,26 +33,25 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    create_engine,
-    event,
     inspect,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker, validates
-from sqlalchemy.pool import NullPool, StaticPool
+from sqlalchemy.orm import DeclarativeBase, Session, relationship, validates
 
-from app.core.settings import env_bool, env_int, env_str, get_settings
-
-load_dotenv()
+from app.core.settings import env_bool, env_str, get_settings
+from app.shared.db.runtime import (
+    SessaoLocal,
+    URL_BANCO,
+    _normalizar_url_banco as _normalizar_url_banco_runtime,
+    motor_banco,
+)
 logger = logging.getLogger("tariel.banco_dados")
 
 # =========================================================
 # CONFIGURAÇÃO DE AMBIENTE / ENGINE
 # =========================================================
 
-_DIR_BASE = os.path.dirname(os.path.abspath(__file__))
 _DIR_PROJETO = Path(__file__).resolve().parents[2]
-_URL_PADRAO = f"sqlite:///{_DIR_PROJETO / 'tariel_admin.db'}"
 _ALEMBIC_INI = _DIR_PROJETO / "alembic.ini"
 _ALEMBIC_DIR = _DIR_PROJETO / "alembic"
 
@@ -70,22 +67,7 @@ def agora_utc() -> datetime:
 
 
 def _normalizar_url_banco(valor: str) -> str:
-    texto = str(valor or "").strip()
-    if not texto:
-        return _URL_PADRAO
-
-    if texto.startswith("postgres://"):
-        return "postgresql+psycopg://" + texto.removeprefix("postgres://")
-
-    if texto.startswith("postgresql://") and not re.match(r"^postgresql\+[a-z0-9_]+://", texto):
-        return "postgresql+psycopg://" + texto.removeprefix("postgresql://")
-
-    return texto
-
-
-URL_BANCO = _normalizar_url_banco(env_str("DATABASE_URL", _URL_PADRAO))
-_EH_SQLITE = URL_BANCO.startswith("sqlite")
-_EH_SQLITE_MEMORIA = _EH_SQLITE and (URL_BANCO in {"sqlite://", "sqlite:///:memory:"} or ":memory:" in URL_BANCO or "mode=memory" in URL_BANCO)
+    return _normalizar_url_banco_runtime(valor)
 
 
 def _normalizar_texto_chave(valor: Any) -> str:
@@ -105,51 +87,6 @@ def _normalizar_texto_chave(valor: Any) -> str:
         .replace("ç", "c")
     )
     return re.sub(r"[\s\-_\\/]+", "_", texto)
-
-
-def _criar_engine():
-    kwargs: dict[str, Any] = {
-        "pool_pre_ping": True,
-        "future": True,
-    }
-
-    if _EH_SQLITE:
-        kwargs["connect_args"] = {"check_same_thread": False}
-        kwargs["poolclass"] = StaticPool if _EH_SQLITE_MEMORIA else NullPool
-    else:
-        kwargs["pool_size"] = env_int("DB_POOL_SIZE", 10)
-        kwargs["max_overflow"] = env_int("DB_MAX_OVERFLOW", 20)
-        kwargs["pool_timeout"] = env_int("DB_POOL_TIMEOUT", 30)
-        kwargs["pool_recycle"] = env_int("DB_POOL_RECYCLE", 3600)
-
-    engine = create_engine(URL_BANCO, **kwargs)
-
-    if _EH_SQLITE:
-
-        @event.listens_for(engine, "connect")
-        def _configurar_sqlite(conn, _record):
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA foreign_keys=ON")
-            cursor.execute("PRAGMA busy_timeout=5000")
-
-            if not _EH_SQLITE_MEMORIA:
-                cursor.execute("PRAGMA journal_mode=WAL")
-                cursor.execute("PRAGMA synchronous=NORMAL")
-
-            cursor.close()
-
-    return engine
-
-
-motor_banco = _criar_engine()
-SessaoLocal = sessionmaker(
-    bind=motor_banco,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-    class_=Session,
-)
-
 # =========================================================
 # ENUMS E NORMALIZAÇÃO DE CONTRATOS
 # =========================================================
