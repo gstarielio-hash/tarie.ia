@@ -257,9 +257,12 @@ Status em 2026-03-20:
   - reaproveitamento do guard por `web/app/domains/chat/laudo_access_helpers.py`
   - reaproveitamento do guard por `web/app/domains/revisor/common.py`
   - uso do guard para empresa do usuário em `web/app/domains/cliente/routes.py`
+  - checks compartilhados de papel/portal em `web/app/shared/security.py`
+  - remoção da duplicação de `NIVEIS_PERMITIDOS_APP` no portal inspetor
   - cobertura crítica em `web/tests/test_tenant_access.py`
 - commit de referência:
   - `50f598d` `refactor: centralize web tenant access guards`
+  - `edafa9f` `refactor: centralize web role checks in security helpers`
 - próximo corte:
   - extrair autorização por ação/papel em cima de `security.py`
   - reduzir o reaproveitamento direto de rotas HTTP entre `cliente`, `chat` e `revisor`
