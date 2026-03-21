@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from decimal import Decimal, InvalidOperation
 from typing import Any, Optional
 
@@ -11,13 +12,21 @@ from fastapi import Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import delete
 
-import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.app_context import logger
 from app.domains.chat.chat_runtime import LIMITE_PARECER, TIMEOUT_KEEPALIVE_SSE_SEGUNDOS
 from app.domains.chat.core_helpers import agora_utc, evento_sse
 from app.domains.chat.notifications import inspetor_notif_manager
 from app.domains.chat.revisao_helpers import _registrar_revisao_laudo
-from app.shared.database import CitacaoLaudo, Empresa, Laudo, MensagemLaudo, TipoMensagem, Usuario, commit_ou_rollback_operacional
+from app.shared.database import (
+    CitacaoLaudo,
+    Empresa,
+    Laudo,
+    MensagemLaudo,
+    SessaoLocal as SessaoLocalPadrao,
+    TipoMensagem,
+    Usuario,
+    commit_ou_rollback_operacional,
+)
 from app.shared.security import exigir_inspetor
 from nucleo.inspetor.confianca_ia import analisar_confianca_resposta_ia, normalizar_payload_confianca_ia
 
@@ -38,6 +47,13 @@ def _normalizar_custo_reais(metadados: Optional[dict[str, Any]]) -> Decimal:
         return Decimal(str(metadados.get("custo_reais", "0")))
     except (InvalidOperation, TypeError, ValueError):
         return Decimal("0")
+
+
+def _resolver_sessao_local():
+    modulo_rotas = sys.modules.get("app.domains.chat.routes")
+    if modulo_rotas is None:
+        return SessaoLocalPadrao
+    return getattr(modulo_rotas, "SessaoLocal", SessaoLocalPadrao)
 
 
 async def sse_notificacoes_inspetor(
@@ -133,7 +149,8 @@ async def salvar_mensagem_ia(
     if not (texto_final or "").strip():
         return
 
-    with rotas_inspetor.SessaoLocal() as banco:
+    sessao_local = _resolver_sessao_local()
+    with sessao_local() as banco:
         try:
             custo_reais = _normalizar_custo_reais(metadados)
 

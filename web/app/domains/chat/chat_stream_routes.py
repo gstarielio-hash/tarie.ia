@@ -13,7 +13,6 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.routing import APIRouter
 from sqlalchemy.orm import Session
 
-import app.domains.chat.routes as rotas_inspetor
 from app.domains.chat.auth_helpers import usuario_nome
 from app.domains.chat.app_context import logger
 from app.domains.chat.chat_runtime import (
@@ -28,6 +27,7 @@ from app.domains.chat.chat_runtime_support import salvar_mensagem_ia
 from app.domains.chat.commands_helpers import montar_resposta_comando_rapido, registrar_comando_rapido_historico
 from app.domains.chat.core_helpers import agora_utc, evento_sse, obter_preview_primeira_mensagem
 from app.domains.chat.gate_helpers import garantir_gate_qualidade_laudo
+from app.domains.chat.ia_runtime import obter_cliente_ia_ativo
 from app.domains.chat.laudo_access_helpers import obter_laudo_do_inspetor
 from app.domains.chat.laudo_state_helpers import (
     laudo_permite_edicao_inspetor,
@@ -343,7 +343,7 @@ async def rota_chat(
 
             texto_resposta = "✅ **Relatório CBM-GO estruturado gerado!** As tabelas foram preenchidas."
             try:
-                cliente_ia_ativo = rotas_inspetor.obter_cliente_ia_ativo()
+                cliente_ia_ativo = obter_cliente_ia_ativo()
                 dados_json = await cliente_ia_ativo.gerar_json_estruturado(
                     schema_pydantic=RelatorioCBMGO,
                     historico=historico_dict,
@@ -396,7 +396,7 @@ async def rota_chat(
         )
 
     eh_deep = dados.modo == MODO_DEEP
-    cliente_ia_ativo = rotas_inspetor.obter_cliente_ia_ativo()
+    cliente_ia_ativo = obter_cliente_ia_ativo()
 
     async def gerador_async():
         loop = asyncio.get_running_loop()

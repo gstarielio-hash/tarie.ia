@@ -34,14 +34,22 @@ def upgrade() -> None:
                 ),
             )
 
+    coluna_ativo = colunas.get("ativo")
+    tipo_ativo = coluna_ativo.get("type") if coluna_ativo else None
+    condicao_ativo = "ativo IS TRUE"
+    if tipo_ativo is not None and not isinstance(tipo_ativo, sa.Boolean):
+        condicao_ativo = "ativo = 1"
+
     op.execute(
-        """
-        UPDATE templates_laudo
-           SET status_template = CASE
-               WHEN ativo = 1 THEN 'ativo'
-               ELSE 'rascunho'
-           END
-        """
+        sa.text(
+            f"""
+            UPDATE templates_laudo
+               SET status_template = CASE
+                   WHEN {condicao_ativo} THEN 'ativo'
+                   ELSE 'rascunho'
+               END
+            """
+        )
     )
 
     inspetor = sa.inspect(bind)
