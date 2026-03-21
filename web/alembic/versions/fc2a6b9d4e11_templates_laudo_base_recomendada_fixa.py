@@ -34,12 +34,20 @@ def upgrade() -> None:
                 ),
             )
 
+    coluna_base = colunas.get("base_recomendada_fixa")
+    tipo_base = coluna_base.get("type") if coluna_base else None
+    valor_falso = "false"
+    if tipo_base is not None and not isinstance(tipo_base, sa.Boolean):
+        valor_falso = "0"
+
     op.execute(
-        """
-        UPDATE templates_laudo
-           SET base_recomendada_fixa = 0
-         WHERE base_recomendada_fixa IS NULL
-        """
+        sa.text(
+            f"""
+            UPDATE templates_laudo
+               SET base_recomendada_fixa = {valor_falso}
+             WHERE base_recomendada_fixa IS NULL
+            """
+        )
     )
 
     inspetor = sa.inspect(bind)
