@@ -7,11 +7,10 @@ import {
   buildInspectorSecuritySectionProps,
   buildInspectorSupportAndSystemSectionProps,
 } from "./buildInspectorSettingsDrawerSections";
-
-type BuildInspectorSettingsDrawerPanelPropsInput = Record<string, any>;
+import type { InspectorSettingsDrawerPanelBuilderInput } from "./settingsDrawerBuilderTypes";
 
 export function buildInspectorSettingsDrawerPanelProps(
-  input: BuildInspectorSettingsDrawerPanelPropsInput,
+  input: InspectorSettingsDrawerPanelBuilderInput,
 ): ReturnType<typeof buildSettingsDrawerPanelProps> {
   const experienceSectionProps = buildInspectorExperienceSectionProps(input);
   const overviewSectionProps = buildInspectorOverviewSectionProps(input);

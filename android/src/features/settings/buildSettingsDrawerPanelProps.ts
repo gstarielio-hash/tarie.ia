@@ -5,14 +5,14 @@ import {
   APP_VERSION_LABEL,
 } from "../InspectorMobileApp.constants";
 import { SettingsDrawerPanel } from "./SettingsDrawerPanel";
+import type { SettingsDrawerPanelBuilderInput } from "./settingsDrawerBuilderTypes";
 
 type SettingsDrawerPanelComponentProps = ComponentProps<
   typeof SettingsDrawerPanel
 >;
-type SettingsDrawerLooseInput = Record<string, any>;
 
 export function buildSettingsDrawerPanelProps(
-  input: SettingsDrawerLooseInput,
+  input: SettingsDrawerPanelBuilderInput,
 ): SettingsDrawerPanelComponentProps {
   const {
     accountSectionContentProps,

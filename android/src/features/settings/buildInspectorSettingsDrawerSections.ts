@@ -1,8 +1,17 @@
-type InspectorSettingsSectionInput = Record<string, any>;
+import type { SettingsDrawerPanelProps } from "./SettingsDrawerPanel";
+import type {
+  InspectorSettingsAccountSectionInput,
+  InspectorSettingsAdvancedResourcesSectionInput,
+  InspectorSettingsExperienceSectionInput,
+  InspectorSettingsOverviewSectionInput,
+  InspectorSettingsSecuritySectionInput,
+  InspectorSettingsSupportAndSystemSectionInput,
+  SettingsDrawerPanelBuilderInput,
+} from "./settingsDrawerBuilderTypes";
 
 export function buildInspectorAccountSectionContentProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsAccountSectionInput,
+): SettingsDrawerPanelProps["accountSectionContentProps"] {
   return (
     input.accountSectionContentProps || {
       contaEmailLabel: input.contaEmailLabel,
@@ -24,8 +33,8 @@ export function buildInspectorAccountSectionContentProps(
 }
 
 export function buildInspectorAdvancedResourcesSectionProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsAdvancedResourcesSectionInput,
+): SettingsDrawerPanelProps["advancedResourcesSectionProps"] {
   return (
     input.advancedResourcesSectionProps || {
       speechEnabled: input.speechEnabled,
@@ -53,8 +62,13 @@ export function buildInspectorAdvancedResourcesSectionProps(
 }
 
 export function buildInspectorExperienceSectionProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsExperienceSectionInput,
+): Pick<
+  SettingsDrawerPanelProps,
+  | "experienceAiSectionProps"
+  | "experienceAppearanceSectionProps"
+  | "experienceNotificationsSectionProps"
+> {
   return {
     experienceAiSectionProps: {
       aprendizadoIa: input.aprendizadoIa,
@@ -111,8 +125,13 @@ export function buildInspectorExperienceSectionProps(
 }
 
 export function buildInspectorOverviewSectionProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsOverviewSectionInput,
+): Pick<
+  SettingsDrawerPanelProps,
+  | "overviewContentProps"
+  | "priorityActionsContentProps"
+  | "sectionMenuContentProps"
+> {
   return {
     overviewContentProps: {
       contaEmailLabel: input.contaEmailLabel,
@@ -146,8 +165,21 @@ export function buildInspectorOverviewSectionProps(
 }
 
 export function buildInspectorSecuritySectionProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsSecuritySectionInput,
+): Pick<
+  SettingsDrawerPanelProps,
+  | "securityActivitySectionProps"
+  | "securityConnectedAccountsSectionProps"
+  | "securityDataConversationsSectionProps"
+  | "securityDeleteAccountSectionProps"
+  | "securityDeviceProtectionSectionProps"
+  | "securityFileUploadSectionProps"
+  | "securityIdentityVerificationSectionProps"
+  | "securityNotificationPrivacySectionProps"
+  | "securityPermissionsSectionProps"
+  | "securitySessionsSectionProps"
+  | "securityTwoFactorSectionProps"
+> {
   return {
     securityActivitySectionProps: {
       eventosSegurancaFiltrados: input.eventosSegurancaFiltrados,
@@ -291,8 +323,11 @@ export function buildInspectorSecuritySectionProps(
 }
 
 export function buildInspectorSupportAndSystemSectionProps(
-  input: InspectorSettingsSectionInput,
-) {
+  input: InspectorSettingsSupportAndSystemSectionInput,
+): Pick<
+  SettingsDrawerPanelBuilderInput,
+  "supportSectionProps" | "systemSectionProps"
+> {
   return {
     supportSectionProps: {
       onCanalSuporte:
