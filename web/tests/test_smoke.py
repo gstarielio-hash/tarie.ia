@@ -619,6 +619,9 @@ def test_nomenclatura_admin_ceo_e_admin_cliente_fica_clara_nos_portais() -> None
     assert "from app.domains.chat.chat import " not in routes_cliente
     assert "from app.domains.revisor.routes import " not in routes_cliente
     assert "Contrato explícito de integrações do portal cliente" in portal_bridge_cliente
+    assert "from app.domains.chat.chat import rota_chat" in portal_bridge_cliente
+    assert "obter_mensagens_laudo, rota_chat, rota_upload_doc" not in portal_bridge_cliente
+    assert "from app.domains.chat.chat_service import (" in portal_bridge_cliente
     assert "from app.domains.chat.laudo import " not in portal_bridge_cliente
     assert "from app.domains.chat.laudo_service import (" in portal_bridge_cliente
     assert "from app.domains.revisor.routes import " not in portal_bridge_cliente

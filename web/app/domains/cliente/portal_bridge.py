@@ -6,7 +6,11 @@ from fastapi import Request, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.domains.chat.chat import obter_mensagens_laudo, rota_chat, rota_upload_doc
+from app.domains.chat.chat import rota_chat
+from app.domains.chat.chat_service import (
+    obter_mensagens_laudo_payload,
+    processar_upload_documento,
+)
 from app.domains.chat.laudo_service import (
     RESPOSTA_GATE_QUALIDADE_REPROVADO,
     RESPOSTA_LAUDO_NAO_ENCONTRADO,
@@ -72,10 +76,10 @@ async def obter_mensagens_laudo_cliente(
     usuario: Usuario,
     banco: Session,
 ) -> dict[str, object]:
-    return await obter_mensagens_laudo(
+    return await obter_mensagens_laudo_payload(
         laudo_id=laudo_id,
         request=request,
-        cursor=cursor,
+        cursor=int(cursor) if cursor is not None else None,
         limite=limite,
         usuario=usuario,
         banco=banco,
@@ -89,12 +93,12 @@ async def rota_upload_doc_cliente(
     usuario: Usuario,
     banco: Session,
 ) -> JSONResponse:
-    return await rota_upload_doc(
-        request=request,
+    payload, status_code = await processar_upload_documento(
         arquivo=arquivo,
         usuario=usuario,
         banco=banco,
     )
+    return JSONResponse(payload, status_code=status_code)
 
 
 async def rota_chat_cliente(
