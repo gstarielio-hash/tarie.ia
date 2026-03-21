@@ -343,12 +343,15 @@ Status em 2026-03-20:
   - criação de `web/app/shared/db/contracts.py` para enums, contratos de plano/status e utilitários de enum
   - `web/app/shared/database.py` deixou de concentrar `NivelAcesso`, `PlanoEmpresa`, `Status*`, `TipoMensagem`, `LIMITES_PADRAO` e `LimitePlanoFallback`
   - `web/app/shared/db/__init__.py` passou a expor os contratos compartilhados da camada de persistência
+  - criação de `web/app/shared/db/bootstrap.py` para migração versionada, seed de limites, seed DEV e bootstrap inicial de produção
+  - `web/app/shared/database.py` passou a manter apenas wrappers compatíveis para `inicializar_banco`, `_seed_dev`, `_bootstrap_admin_inicial_producao` e `seed_limites_plano`
 - commit de referência:
   - `a016821` `refactor: extract shared db runtime from database module`
   - `c681c1d` `refactor: extract shared db contracts from database module`
+  - `10b6ff1` `refactor: extract shared db bootstrap flows`
 - próximo corte:
-  - extrair enums e contratos de plano/status para `web/app/shared/db/`
-  - mover bootstrap e seed para módulo próprio sem quebrar imports existentes
+  - mover modelos para módulos em `web/app/shared/db/models/`
+  - reduzir o acoplamento restante de `database.py` ao virar fachada de compatibilidade
 
 ## Fase 3. Contrato único entre backend, web e mobile
 
