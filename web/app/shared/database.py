@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -31,12 +30,10 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    inspect,
-    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Session, relationship, validates
 
-from app.core.settings import env_bool, env_str, get_settings
+from app.core.settings import env_bool, get_settings
 from app.shared.db.contracts import (
     LIMITES_PADRAO,
     LimitePlanoFallback,
@@ -53,9 +50,9 @@ from app.shared.db.contracts import (
 )
 from app.shared.db.runtime import (
     SessaoLocal,
-    URL_BANCO,
+    URL_BANCO as URL_BANCO_RUNTIME,
     _normalizar_url_banco as _normalizar_url_banco_runtime,
-    motor_banco,
+    motor_banco as motor_banco_runtime,
 )
 logger = logging.getLogger("tariel.banco_dados")
 
@@ -68,7 +65,6 @@ _ALEMBIC_INI = _DIR_PROJETO / "alembic.ini"
 _ALEMBIC_DIR = _DIR_PROJETO / "alembic"
 
 _settings = get_settings()
-_AMBIENTE = _settings.ambiente
 _SEED_DEV_BOOTSTRAP = env_bool("SEED_DEV_BOOTSTRAP", False)
 
 _EM_PRODUCAO = _settings.em_producao
@@ -80,6 +76,10 @@ def agora_utc() -> datetime:
 
 def _normalizar_url_banco(valor: str) -> str:
     return _normalizar_url_banco_runtime(valor)
+
+
+URL_BANCO = URL_BANCO_RUNTIME
+motor_banco = motor_banco_runtime
 
 
 # =========================================================
@@ -1046,230 +1046,30 @@ def obter_banco() -> Generator[Session, None, None]:
 
 
 def _aplicar_migracoes_versionadas() -> None:
-    try:
-        from alembic import command
-        from alembic.config import Config as AlembicConfig
-    except (ModuleNotFoundError, ImportError) as erro:
-        raise RuntimeError("Falha ao importar Alembic. Execute 'pip install -r requirements.txt' no .venv ativo.") from erro
+    from app.shared.db.bootstrap import _aplicar_migracoes_versionadas as _aplicar_migracoes_versionadas_impl
 
-    if not _ALEMBIC_INI.exists() or not _ALEMBIC_DIR.exists():
-        raise RuntimeError("Estrutura do Alembic não encontrada. Esperado: alembic.ini e pasta alembic/.")
-
-    config = AlembicConfig(str(_ALEMBIC_INI))
-    config.set_main_option("script_location", _ALEMBIC_DIR.as_posix())
-    config.set_main_option("sqlalchemy.url", URL_BANCO)
-
-    with motor_banco.begin() as conn:
-        inspetor = inspect(conn)
-        tabelas_existentes = set(inspetor.get_table_names())
-        tabelas_esperadas = set(Base.metadata.tables.keys())
-        sem_versionamento = "alembic_version" not in tabelas_existentes
-        versao_vazia = False
-
-        if not sem_versionamento:
-            versao_vazia = conn.execute(text("SELECT COUNT(1) FROM alembic_version")).scalar_one() == 0
-
-        tabelas_sem_versionamento = tabelas_existentes - {"alembic_version"}
-        schema_legado_pronto = tabelas_esperadas.issubset(tabelas_sem_versionamento)
-
-        config.attributes["connection"] = conn
-        if schema_legado_pronto and (sem_versionamento or versao_vazia):
-            logger.warning("Schema legado detectado sem versionamento Alembic. Aplicando stamp no head.")
-            command.stamp(config, "head")
-        else:
-            command.upgrade(config, "head")
+    _aplicar_migracoes_versionadas_impl()
 
 
 def inicializar_banco() -> None:
-    try:
-        _aplicar_migracoes_versionadas()
-        seed_limites_plano()
-        _bootstrap_admin_inicial_producao()
+    from app.shared.db.bootstrap import inicializar_banco as inicializar_banco_impl
 
-        if not _EM_PRODUCAO and _SEED_DEV_BOOTSTRAP:
-            _seed_dev()
-        elif not _EM_PRODUCAO:
-            logger.info("Seed DEV desabilitado (SEED_DEV_BOOTSTRAP=0). Nenhum usuário/senha de seed foi criado.")
-
-        with motor_banco.connect() as conn:
-            conn.execute(text("SELECT 1"))
-
-        logger.info("Banco de dados inicializado com sucesso.")
-    except Exception:
-        logger.critical("Falha ao inicializar o banco.", exc_info=True)
-        raise
+    inicializar_banco_impl()
 
 
 def _seed_dev() -> None:
-    from sqlalchemy import select
-    from app.shared.security import criar_hash_senha
+    from app.shared.db.bootstrap import _seed_dev as _seed_dev_impl
 
-    senha_padrao_seed = env_str("SEED_DEV_SENHA_PADRAO", "Dev@123456")
-    senha_admin = env_str("SEED_ADMIN_SENHA", senha_padrao_seed)
-    senha_admin_cliente = env_str("SEED_CLIENTE_SENHA", senha_padrao_seed)
-    senha_inspetor = env_str("SEED_INSPETOR_SENHA", senha_padrao_seed)
-    senha_revisor = env_str("SEED_REVISOR_SENHA", senha_padrao_seed)
-
-    if senha_padrao_seed == "Dev@123456":
-        logger.warning("Seed DEV usando senha padrão compartilhada. Não use isso fora de desenvolvimento.")
-
-    with SessaoLocal() as banco:
-        empresa = banco.scalar(select(Empresa).where(Empresa.cnpj == "00000000000000"))
-        if not empresa:
-            empresa = Empresa(
-                nome_fantasia="Empresa Demo (DEV)",
-                cnpj="00000000000000",
-                plano_ativo=PlanoEmpresa.ILIMITADO.value,
-            )
-            banco.add(empresa)
-            banco.flush()
-
-        empresa_admin = banco.scalar(select(Empresa).where(Empresa.cnpj == "99999999999999"))
-        if not empresa_admin:
-            empresa_admin = Empresa(
-                nome_fantasia="Tariel.ia Interno (DEV)",
-                cnpj="99999999999999",
-                plano_ativo=PlanoEmpresa.ILIMITADO.value,
-            )
-            banco.add(empresa_admin)
-            banco.flush()
-
-        usuarios_seed = [
-            (
-                empresa_admin.id,
-                "admin@tariel.ia",
-                "Diretoria Dev",
-                int(NivelAcesso.DIRETORIA),
-                senha_admin,
-            ),
-            (
-                empresa.id,
-                "admin-cliente@tariel.ia",
-                "Admin-Cliente Dev",
-                int(NivelAcesso.ADMIN_CLIENTE),
-                senha_admin_cliente,
-            ),
-            (
-                empresa.id,
-                "inspetor@tariel.ia",
-                "Inspetor Dev",
-                int(NivelAcesso.INSPETOR),
-                senha_inspetor,
-            ),
-            (
-                empresa.id,
-                "revisor@tariel.ia",
-                "Engenheiro Revisor (Dev)",
-                int(NivelAcesso.REVISOR),
-                senha_revisor,
-            ),
-        ]
-
-        for empresa_destino_id, email, nome, nivel, senha in usuarios_seed:
-            usuario = banco.scalar(select(Usuario).where(Usuario.email == email))
-            if usuario:
-                usuario.empresa_id = empresa_destino_id
-                usuario.nome_completo = nome
-                usuario.nivel_acesso = nivel
-                usuario.senha_hash = criar_hash_senha(senha)
-                usuario.ativo = True
-                usuario.tentativas_login = 0
-                usuario.bloqueado_ate = None
-                continue
-
-            banco.add(
-                Usuario(
-                    empresa_id=empresa_destino_id,
-                    nome_completo=nome,
-                    email=email,
-                    senha_hash=criar_hash_senha(senha),
-                    nivel_acesso=nivel,
-                )
-            )
-
-        banco.commit()
-        logger.info("Seed DEV garantido com sucesso.")
+    _seed_dev_impl()
 
 
 def _bootstrap_admin_inicial_producao() -> None:
-    if not _EM_PRODUCAO:
-        return
+    from app.shared.db.bootstrap import _bootstrap_admin_inicial_producao as _bootstrap_admin_inicial_producao_impl
 
-    email_admin = env_str("BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
-    senha_admin = env_str("BOOTSTRAP_ADMIN_PASSWORD", "").strip()
-    nome_admin = env_str("BOOTSTRAP_ADMIN_NOME", "Administrador Tariel.ia").strip() or "Administrador Tariel.ia"
-    nome_empresa = env_str("BOOTSTRAP_EMPRESA_NOME", "Tariel.ia").strip() or "Tariel.ia"
-    cnpj_empresa = re.sub(r"\D+", "", env_str("BOOTSTRAP_EMPRESA_CNPJ", "11111111111111"))
-
-    if not email_admin or not senha_admin:
-        logger.info("Bootstrap inicial de produção ignorado: configure BOOTSTRAP_ADMIN_EMAIL e BOOTSTRAP_ADMIN_PASSWORD para criar o primeiro acesso.")
-        return
-
-    if len(cnpj_empresa) != 14:
-        logger.warning("BOOTSTRAP_EMPRESA_CNPJ inválido. Usando placeholder 11111111111111.")
-        cnpj_empresa = "11111111111111"
-
-    from sqlalchemy import func, select
-    from app.shared.security import criar_hash_senha
-
-    with SessaoLocal() as banco:
-        empresa = banco.scalar(select(Empresa).where(Empresa.cnpj == cnpj_empresa))
-        if not empresa:
-            empresa = Empresa(
-                nome_fantasia=nome_empresa,
-                cnpj=cnpj_empresa,
-                plano_ativo=PlanoEmpresa.ILIMITADO.value,
-            )
-            banco.add(empresa)
-            banco.flush()
-
-        usuario = banco.scalar(select(Usuario).where(Usuario.email == email_admin))
-        if usuario:
-            usuario.empresa_id = int(empresa.id)
-            usuario.nome_completo = nome_admin
-            usuario.senha_hash = criar_hash_senha(senha_admin)
-            usuario.nivel_acesso = int(NivelAcesso.DIRETORIA)
-            usuario.ativo = True
-            usuario.tentativas_login = 0
-            usuario.bloqueado_ate = None
-            usuario.status_bloqueio = False
-            usuario.senha_temporaria_ativa = False
-        else:
-            total_usuarios = int(banco.scalar(select(func.count()).select_from(Usuario)) or 0)
-            if total_usuarios > 0:
-                logger.info(
-                    "Bootstrap inicial de produção criando Admin-CEO %s mesmo com outros usuários já cadastrados.",
-                    email_admin,
-                )
-
-            banco.add(
-                Usuario(
-                    empresa_id=int(empresa.id),
-                    nome_completo=nome_admin,
-                    email=email_admin,
-                    senha_hash=criar_hash_senha(senha_admin),
-                    nivel_acesso=int(NivelAcesso.DIRETORIA),
-                    ativo=True,
-                    senha_temporaria_ativa=False,
-                )
-            )
-        banco.commit()
-        logger.info("Bootstrap inicial de produção concluído para %s.", email_admin)
+    _bootstrap_admin_inicial_producao_impl()
 
 
 def seed_limites_plano() -> None:
-    with SessaoLocal() as banco:
-        for plano_valor, limites in LIMITES_PADRAO.items():
-            registro = banco.get(LimitePlano, plano_valor)
-            if not registro:
-                registro = LimitePlano(plano=plano_valor)
-                banco.add(registro)
+    from app.shared.db.bootstrap import seed_limites_plano as seed_limites_plano_impl
 
-            for campo, valor in limites.items():
-                setattr(registro, campo, valor)
-
-        try:
-            banco.commit()
-        except Exception:
-            banco.rollback()
-            raise
+    seed_limites_plano_impl()
