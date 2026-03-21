@@ -340,8 +340,12 @@ Status em 2026-03-20:
   - criação de `web/app/shared/db/__init__.py` para reexportar o runtime compartilhado
   - `web/app/shared/database.py` deixou de concentrar criação de engine, sessão e configuração específica de SQLite
   - compatibilidade pública mantida para `_normalizar_url_banco`, `URL_BANCO`, `motor_banco` e `SessaoLocal`
+  - criação de `web/app/shared/db/contracts.py` para enums, contratos de plano/status e utilitários de enum
+  - `web/app/shared/database.py` deixou de concentrar `NivelAcesso`, `PlanoEmpresa`, `Status*`, `TipoMensagem`, `LIMITES_PADRAO` e `LimitePlanoFallback`
+  - `web/app/shared/db/__init__.py` passou a expor os contratos compartilhados da camada de persistência
 - commit de referência:
   - `a016821` `refactor: extract shared db runtime from database module`
+  - `c681c1d` `refactor: extract shared db contracts from database module`
 - próximo corte:
   - extrair enums e contratos de plano/status para `web/app/shared/db/`
   - mover bootstrap e seed para módulo próprio sem quebrar imports existentes
