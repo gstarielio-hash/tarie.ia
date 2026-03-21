@@ -88,6 +88,7 @@ Obrigação operacional:
 - a Fase 1.1 de tipagem forte do mobile foi concluída em 2026-03-20, incluindo bootstrap, builders centrais, `settings` helpers e drawer builders
 - a Fase 1.2 também foi concluída em 2026-03-20, com `api.ts` reduzido a fachada e módulos separados por domínio
 - a Fase 1.3 foi concluída em 2026-03-20 com cobertura automatizada mínima para sessão, histórico, fila offline, settings sensível e helpers da API mobile
+- a Fase 2.1 do web começou em 2026-03-20 com guard compartilhado de tenant em `web/app/shared/tenant_access.py`, reaproveitado por `chat`, `revisor` e `cliente`
 - o app mobile continua com composition root grande, mas o próximo foco técnico principal passa a ser o backend web para SaaS
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
@@ -247,6 +248,21 @@ Critério de aceite:
 
 - ações críticas têm validação clara de papel e empresa
 - regras de permissão deixam de ficar escondidas em router
+
+Status em 2026-03-20:
+
+- em andamento
+- concluído nesta fatia:
+  - validação compartilhada de empresa/laudo em `web/app/shared/tenant_access.py`
+  - reaproveitamento do guard por `web/app/domains/chat/laudo_access_helpers.py`
+  - reaproveitamento do guard por `web/app/domains/revisor/common.py`
+  - uso do guard para empresa do usuário em `web/app/domains/cliente/routes.py`
+  - cobertura crítica em `web/tests/test_tenant_access.py`
+- commit de referência:
+  - `50f598d` `refactor: centralize web tenant access guards`
+- próximo corte:
+  - extrair autorização por ação/papel em cima de `security.py`
+  - reduzir o reaproveitamento direto de rotas HTTP entre `cliente`, `chat` e `revisor`
 
 ### 2.2 Reduzir acoplamento entre portais
 
