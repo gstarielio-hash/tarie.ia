@@ -3,10 +3,11 @@ from __future__ import annotations
 import secrets
 from typing import Any
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from sqlalchemy.orm import Session
 
 from app.shared.database import Laudo
+from app.shared.tenant_access import obter_laudo_empresa
 
 CHAVE_CSRF_REVISOR = "csrf_token_revisor"
 
@@ -32,7 +33,4 @@ def _validar_csrf(request: Request, token_form: str = "") -> bool:
 
 
 def _obter_laudo_empresa(banco: Session, laudo_id: int, empresa_id: int) -> Laudo:
-    laudo = banco.get(Laudo, laudo_id)
-    if not laudo or laudo.empresa_id != empresa_id:
-        raise HTTPException(status_code=404, detail="Laudo não encontrado.")
-    return laudo
+    return obter_laudo_empresa(banco, laudo_id, empresa_id)

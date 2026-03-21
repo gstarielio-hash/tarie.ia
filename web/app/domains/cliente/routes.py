@@ -90,6 +90,7 @@ from app.shared.security import (
     verificar_senha,
     verificar_senha_com_upgrade,
 )
+from app.shared.tenant_access import obter_empresa_usuario
 
 logger = logging.getLogger("tariel.cliente")
 
@@ -892,10 +893,7 @@ def _render_troca_senha(request: Request, *, erro: str = "", status_code: int = 
 
 
 def _empresa_usuario(banco: Session, usuario: Usuario) -> Empresa:
-    empresa = banco.get(Empresa, int(usuario.empresa_id))
-    if not empresa:
-        raise HTTPException(status_code=404, detail="Empresa não encontrada.")
-    return empresa
+    return obter_empresa_usuario(banco, usuario)
 
 
 def _serializar_usuario_cliente(usuario: Usuario) -> dict[str, Any]:

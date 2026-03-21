@@ -16,6 +16,7 @@ web-lint: ## Roda ruff no workspace web
 
 web-test: ## Roda a suíte crítica do workspace web
 	cd web && PYTHONPATH=. $(WEB_PYTHON_IN_WEB) -m pytest -q tests/test_smoke.py tests/test_regras_rotas_criticas.py tests/test_inspetor_comandos_dominio.py tests/test_inspetor_confianca_dominio.py
+	cd web && PYTHONPATH=. $(WEB_PYTHON_IN_WEB) -m pytest -q tests/test_tenant_access.py
 
 web-ci: web-lint web-test ## Executa os checks principais do web
 
