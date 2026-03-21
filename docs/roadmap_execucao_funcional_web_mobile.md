@@ -89,6 +89,7 @@ Obrigação operacional:
 - a Fase 1.2 também foi concluída em 2026-03-20, com `api.ts` reduzido a fachada e módulos separados por domínio
 - a Fase 1.3 foi concluída em 2026-03-20 com cobertura automatizada mínima para sessão, histórico, fila offline, settings sensível e helpers da API mobile
 - a Fase 2.1 do web começou em 2026-03-20 com guard compartilhado de tenant em `web/app/shared/tenant_access.py`, reaproveitado por `chat`, `revisor` e `cliente`
+- a Fase 2.2 do web avançou em 2026-03-20 com `web/app/domains/cliente/portal_bridge.py` consumindo `web/app/domains/chat/laudo_service.py` em vez de handlers HTTP de `chat.laudo`
 - o app mobile continua com composition root grande, mas o próximo foco técnico principal passa a ser o backend web para SaaS
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
@@ -292,12 +293,16 @@ Status em 2026-03-20:
   - criação da façade explícita `web/app/domains/cliente/portal_bridge.py`
   - `web/app/domains/cliente/routes.py` deixou de importar handlers de `chat` e `revisor` diretamente
   - `web/tests/test_smoke.py` ganhou trava arquitetural para manter esse boundary
+  - extração do ciclo de laudo para `web/app/domains/chat/laudo_service.py`
+  - `web/app/domains/chat/laudo.py` passou a adaptar apenas CSRF/HTTP para o serviço neutro
+  - `web/app/domains/cliente/portal_bridge.py` deixou de depender dos handlers HTTP de `chat.laudo`
 - commit de referência:
   - `2f76328` `refactor: isolate cliente portal cross-domain bridge`
   - `8f93edd` `refactor: point cliente bridge to core revisor modules`
+  - `9dac5ee` `refactor: extract laudo cycle service for cliente bridge`
 - próximo corte:
-  - extrair serviço neutro para operações de chat do portal cliente
-  - extrair serviço neutro para operações de mesa do portal cliente
+  - extrair serviço neutro para `obter_mensagens_laudo`, `rota_upload_doc` e `rota_chat` do portal cliente
+  - reduzir a dependência restante de `web/app/domains/cliente/portal_bridge.py` em `web/app/domains/chat/chat.py`
 
 ### 2.3 Desmembrar camada de banco e modelos
 
