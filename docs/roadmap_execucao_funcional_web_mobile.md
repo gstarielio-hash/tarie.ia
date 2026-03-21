@@ -87,7 +87,8 @@ Obrigação operacional:
 - `android/` já possui `eslint`, `typecheck`, `jest`, `prettier`, hooks locais e CI básica
 - a Fase 1.1 de tipagem forte do mobile foi concluída em 2026-03-20, incluindo bootstrap, builders centrais, `settings` helpers e drawer builders
 - a Fase 1.2 também foi concluída em 2026-03-20, com `api.ts` reduzido a fachada e módulos separados por domínio
-- o app mobile continua com composition root grande e o próximo foco técnico é cobertura de costura mais forte
+- a Fase 1.3 foi concluída em 2026-03-20 com cobertura automatizada mínima para sessão, histórico, fila offline, settings sensível e helpers da API mobile
+- o app mobile continua com composition root grande, mas o próximo foco técnico principal passa a ser o backend web para SaaS
 - o backend web está funcional, porém ainda concentra muita regra em routers e na camada de banco/modelos
 
 ## Macroetapas
@@ -207,6 +208,14 @@ Critério de aceite:
 
 - fluxo crítico do mobile tem cobertura mínima automatizada
 - regressão de costura não depende só de teste manual
+
+Status em 2026-03-20:
+
+- concluído
+- referências principais:
+  - `0f36161` `test: cover mobile session and offline queue flows`
+  - `0568ec1` `test: cover mobile api url and sse helpers`
+  - suíte mobile total: `22 suites`, `71 testes`, tudo verde em `make mobile-ci`
 
 ## Fase 2. Hardenizar backend web para SaaS
 
