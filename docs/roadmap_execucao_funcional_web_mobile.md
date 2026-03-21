@@ -294,6 +294,7 @@ Status em 2026-03-20:
   - `web/tests/test_smoke.py` ganhou trava arquitetural para manter esse boundary
 - commit de referência:
   - `2f76328` `refactor: isolate cliente portal cross-domain bridge`
+  - `8f93edd` `refactor: point cliente bridge to core revisor modules`
 - próximo corte:
   - extrair serviço neutro para operações de chat do portal cliente
   - extrair serviço neutro para operações de mesa do portal cliente
