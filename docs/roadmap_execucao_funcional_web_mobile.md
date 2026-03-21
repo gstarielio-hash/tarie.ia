@@ -285,6 +285,19 @@ Critério de aceite:
 - routers deixam de orquestrar domínio alheio
 - serviços compartilhados ficam reutilizáveis sem acoplamento de portal
 
+Status em 2026-03-20:
+
+- em andamento
+- concluído nesta fatia:
+  - criação da façade explícita `web/app/domains/cliente/portal_bridge.py`
+  - `web/app/domains/cliente/routes.py` deixou de importar handlers de `chat` e `revisor` diretamente
+  - `web/tests/test_smoke.py` ganhou trava arquitetural para manter esse boundary
+- commit de referência:
+  - `2f76328` `refactor: isolate cliente portal cross-domain bridge`
+- próximo corte:
+  - extrair serviço neutro para operações de chat do portal cliente
+  - extrair serviço neutro para operações de mesa do portal cliente
+
 ### 2.3 Desmembrar camada de banco e modelos
 
 Problema atual:
