@@ -657,6 +657,7 @@
     async function api(url, options = {}) {
         const opts = {
             method: "GET",
+            cache: "no-store",
             credentials: "same-origin",
             ...options,
             headers: {
