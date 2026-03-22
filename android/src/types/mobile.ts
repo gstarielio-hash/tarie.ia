@@ -167,23 +167,65 @@ export interface MobileMesaMessage {
   texto: string;
   remetente_id: number | null;
   data: string;
+  criado_em_iso?: string;
   lida: boolean;
   resolvida_em: string;
   resolvida_em_label: string;
   resolvida_por_nome: string;
+  entrega_status?: string;
+  client_message_id?: string | null;
   referencia_mensagem_id?: number | null;
   anexos?: MobileAttachment[];
+}
+
+export interface MobileMesaResumo {
+  atualizado_em: string;
+  total_mensagens: number;
+  mensagens_nao_lidas: number;
+  pendencias_abertas: number;
+  pendencias_resolvidas: number;
+  ultima_mensagem_id: number | null;
+  ultima_mensagem_em: string;
+  ultima_mensagem_preview: string;
+  ultima_mensagem_tipo: string;
+  ultima_mensagem_remetente_id: number | null;
+  ultima_mensagem_client_message_id?: string | null;
+}
+
+export interface MobileMesaSyncMeta {
+  modo: "full" | "delta" | string;
+  apos_id: number | null;
+  cursor_ultimo_id: number | null;
 }
 
 export interface MobileMesaMensagensResponse extends MobileLaudoStatusResponse {
   itens: MobileMesaMessage[];
   cursor_proximo: number | null;
+  cursor_ultimo_id?: number | null;
   tem_mais: boolean;
+  resumo?: MobileMesaResumo;
+  sync?: MobileMesaSyncMeta;
 }
 
 export interface MobileMesaSendResponse extends MobileLaudoStatusResponse {
   laudo_id: number;
   mensagem: MobileMesaMessage;
+  resumo?: MobileMesaResumo;
+  request_id?: string;
+  idempotent_replay?: boolean;
+}
+
+export interface MobileMesaResumoResponse extends MobileLaudoStatusResponse {
+  laudo_id: number;
+  resumo: MobileMesaResumo;
+}
+
+export interface MobileMesaFeedItem extends MobileMesaResumoResponse {}
+
+export interface MobileMesaFeedResponse {
+  cursor_atual: string;
+  laudo_ids: number[];
+  itens: MobileMesaFeedItem[];
 }
 
 export interface MobileChatSendResult {

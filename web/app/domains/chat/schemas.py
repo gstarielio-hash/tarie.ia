@@ -55,6 +55,7 @@ class DadosChat(BaseModel):
 class DadosMesaMensagem(BaseModel):
     texto: str = Field(..., min_length=1, max_length=LIMITE_MSG_CHARS)
     referencia_mensagem_id: int | None = Field(default=None, ge=1)
+    client_message_id: str | None = Field(default=None, min_length=8, max_length=64)
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="ignore")
 

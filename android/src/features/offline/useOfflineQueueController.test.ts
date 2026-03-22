@@ -1,6 +1,9 @@
 import { act, renderHook } from "@testing-library/react-native";
 
-import { enviarMensagemChatMobile } from "../../config/api";
+import {
+  enviarMensagemChatMobile,
+  enviarMensagemMesaMobile,
+} from "../../config/api";
 import { registrarEventoObservabilidade } from "../../config/observability";
 import type { ChatState, OfflinePendingMessage } from "../chat/types";
 import { canSyncOnCurrentNetwork } from "../chat/network";
@@ -261,6 +264,37 @@ describe("useOfflineQueueController", () => {
         kind: "offline_queue",
         ok: true,
       }),
+    );
+  });
+
+  it("reenvia pendencia da mesa preservando clientMessageId", async () => {
+    (canSyncOnCurrentNetwork as jest.Mock).mockResolvedValue(true);
+    (enviarMensagemMesaMobile as jest.Mock).mockResolvedValue({
+      laudo_id: 21,
+      mensagem: { id: 77 },
+    });
+
+    const item = criarPendencia({
+      channel: "mesa",
+      clientMessageId: "mesa:offline:1",
+    });
+    const params = criarParams({
+      activeThread: "mesa",
+      offlineQueue: [item],
+    });
+
+    const { result } = renderHook(() => useOfflineQueueController(params));
+
+    await act(async () => {
+      await result.current.actions.sincronizarItemFilaOffline(item);
+    });
+
+    expect(enviarMensagemMesaMobile).toHaveBeenCalledWith(
+      "token-123",
+      21,
+      "Mensagem pendente",
+      null,
+      "mesa:offline:1",
     );
   });
 });

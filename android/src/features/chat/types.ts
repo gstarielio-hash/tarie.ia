@@ -66,6 +66,7 @@ export interface OfflinePendingMessage {
   title: string;
   attachment: ComposerAttachment | null;
   referenceMessageId: number | null;
+  clientMessageId?: string | null;
   attempts: number;
   lastAttemptAt: string;
   lastError: string;

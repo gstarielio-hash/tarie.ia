@@ -22,6 +22,18 @@ _MAX_BLOCOS_DIFF = 120
 _REGEX_PLACEHOLDER = re.compile(r"\{\{\s*([a-zA-Z0-9_.:\-]{1,120})\s*\}\}")
 
 
+def _mapa(payload: Any) -> dict[str, Any]:
+    if isinstance(payload, dict):
+        return payload
+    return {}
+
+
+def _lista_dicts(payload: Any) -> list[dict[str, Any]]:
+    if not isinstance(payload, list):
+        return []
+    return [item for item in payload if isinstance(item, dict)]
+
+
 def _contar_folhas(payload: Any) -> int:
     if isinstance(payload, dict):
         if not payload:
@@ -35,11 +47,9 @@ def _contar_folhas(payload: Any) -> int:
 def _texto_inline_nodes(nodes: list[dict[str, Any]] | None) -> str:
     partes: list[str] = []
     for node in nodes or []:
-        if not isinstance(node, dict):
-            continue
         tipo = str(node.get("type") or "").strip()
-        attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
-        filhos = node.get("content") if isinstance(node.get("content"), list) else []
+        attrs = _mapa(node.get("attrs"))
+        filhos = _lista_dicts(node.get("content"))
         if tipo == "text":
             partes.append(str(node.get("text") or ""))
             continue
@@ -98,11 +108,9 @@ def _coletar_placeholders_inline(nodes: list[dict[str, Any]] | None) -> list[str
             encontrados.append(bruto)
 
     for node in nodes or []:
-        if not isinstance(node, dict):
-            continue
         tipo = str(node.get("type") or "").strip()
-        attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
-        filhos = node.get("content") if isinstance(node.get("content"), list) else []
+        attrs = _mapa(node.get("attrs"))
+        filhos = _lista_dicts(node.get("content"))
         if tipo == "text":
             for placeholder in _placeholders_em_texto(node.get("text")):
                 registrar(placeholder)
@@ -121,11 +129,9 @@ def _coletar_placeholders_inline(nodes: list[dict[str, Any]] | None) -> list[str
 def _coletar_linhas_doc(nodes: list[dict[str, Any]] | None, *, prefixo_lista: str = "- ") -> list[str]:
     linhas: list[str] = []
     for node in nodes or []:
-        if not isinstance(node, dict):
-            continue
         tipo = str(node.get("type") or "").strip()
-        attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
-        filhos = node.get("content") if isinstance(node.get("content"), list) else []
+        attrs = _mapa(node.get("attrs"))
+        filhos = _lista_dicts(node.get("content"))
 
         if tipo == "heading":
             nivel = max(1, min(4, int(attrs.get("level") or 1)))
@@ -163,9 +169,7 @@ def _coletar_linhas_doc(nodes: list[dict[str, Any]] | None, *, prefixo_lista: st
         if tipo == "tableRow":
             celulas: list[str] = []
             for filho in filhos:
-                if not isinstance(filho, dict):
-                    continue
-                conteudo = filho.get("content") if isinstance(filho.get("content"), list) else []
+                conteudo = _lista_dicts(filho.get("content"))
                 texto = _texto_inline_nodes(conteudo)
                 if texto:
                     celulas.append(texto)
@@ -186,8 +190,8 @@ def _extrair_linhas_documento_editor(payload: Any) -> list[str]:
         doc_payload = normalizar_documento_editor(payload if isinstance(payload, dict) else None)
     except ValueError:
         return []
-    doc = doc_payload.get("doc") if isinstance(doc_payload.get("doc"), dict) else {}
-    conteudo = doc.get("content") if isinstance(doc.get("content"), list) else []
+    doc = _mapa(doc_payload.get("doc"))
+    conteudo = _lista_dicts(doc.get("content"))
     return _coletar_linhas_doc(conteudo)
 
 
@@ -257,8 +261,8 @@ def _montar_bloco(
 
 def _resumir_bloco_documento(node: dict[str, Any]) -> dict[str, Any] | None:
     tipo = str(node.get("type") or "").strip()
-    attrs = node.get("attrs") if isinstance(node.get("attrs"), dict) else {}
-    filhos = node.get("content") if isinstance(node.get("content"), list) else []
+    attrs = _mapa(node.get("attrs"))
+    filhos = _lista_dicts(node.get("content"))
     placeholders = _coletar_placeholders_inline(filhos)
 
     if tipo == "heading":
@@ -306,7 +310,7 @@ def _resumir_bloco_documento(node: dict[str, Any]) -> dict[str, Any] | None:
         total_linhas = len(linhas_tabela)
         total_colunas = 0
         for linha in linhas_tabela:
-            celulas = linha.get("content") if isinstance(linha.get("content"), list) else []
+            celulas = _lista_dicts(linha.get("content"))
             total_colunas = max(total_colunas, len([item for item in celulas if isinstance(item, dict)]))
         return _montar_bloco(
             tipo="table",
@@ -338,12 +342,10 @@ def _extrair_blocos_documento_editor(payload: Any) -> list[dict[str, Any]]:
         doc_payload = normalizar_documento_editor(payload if isinstance(payload, dict) else None)
     except ValueError:
         return []
-    doc = doc_payload.get("doc") if isinstance(doc_payload.get("doc"), dict) else {}
-    conteudo = doc.get("content") if isinstance(doc.get("content"), list) else []
+    doc = _mapa(doc_payload.get("doc"))
+    conteudo = _lista_dicts(doc.get("content"))
     blocos: list[dict[str, Any]] = []
     for node in conteudo:
-        if not isinstance(node, dict):
-            continue
         bloco = _resumir_bloco_documento(node)
         if bloco:
             blocos.append(bloco)
@@ -396,7 +398,7 @@ def extrair_blocos_template(item: TemplateLaudo) -> list[dict[str, Any]]:
 
 
 def _assinatura_bloco(bloco: dict[str, Any]) -> str:
-    metricas = bloco.get("metricas") if isinstance(bloco.get("metricas"), dict) else {}
+    metricas = _mapa(bloco.get("metricas"))
     partes = [
         str(bloco.get("tipo") or ""),
         str(bloco.get("estrutura") or ""),
@@ -662,7 +664,7 @@ def gerar_diff_templates(base: TemplateLaudo, comparado: TemplateLaudo) -> dict[
             "linhas_removidas": total_remocoes,
             "linhas_contexto": total_contexto,
             "linhas_ocultas": total_ignoradas,
-            "campos_alterados": sum(1 for item in comparacao_campos if bool(item.get("mudou"))),
+            "campos_alterados": sum(1 for item in comparacao_campos if isinstance(item, dict) and bool(item.get("mudou"))),
         },
         "comparacao_campos": comparacao_campos,
         "diff_linhas": diff_linhas,

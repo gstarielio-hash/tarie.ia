@@ -114,7 +114,7 @@ async def marcar_pendencias_laudo_como_lidas(
             synchronize_session=False,
         )
     )
-    banco.commit()
+    banco.flush()
 
     return resposta_json_ok({"ok": True, "laudo_id": laudo_id, "marcadas": int(marcadas)})
 
@@ -153,7 +153,7 @@ async def atualizar_pendencia_laudo(
         mensagem.resolvida_por_id = None
         mensagem.resolvida_em = None
 
-    banco.commit()
+    banco.flush()
     banco.refresh(mensagem)
 
     resolvedor_nome = ""

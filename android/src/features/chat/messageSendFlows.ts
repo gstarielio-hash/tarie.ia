@@ -97,6 +97,7 @@ interface SendMesaMessageFlowParams<TOfflineItem> {
   mensagemMesa: string;
   anexoAtual: ComposerAttachment | null;
   referenciaMensagemId: number | null;
+  clientMessageId?: string | null;
   conversa: MesaConversationSnapshot;
   mensagensMesa: MobileMesaMessage[];
   sessionAccessToken: string;
@@ -112,6 +113,7 @@ interface SendMesaMessageFlowParams<TOfflineItem> {
     title: string;
     attachment: ComposerAttachment | null;
     referenceMessageId: number | null;
+    clientMessageId?: string | null;
   }) => TOfflineItem;
   atualizarResumoLaudoAtual: (resposta: MobileMesaSendResponse) => void;
   onSetMensagemMesa: (value: string) => void;
@@ -127,6 +129,10 @@ interface SendMesaMessageFlowParams<TOfflineItem> {
   onRestoreDraft: (texto: string, anexo: ComposerAttachment | null) => void;
   onLimparReferenciaMesaAtiva: () => void;
   onSetLaudoMesaCarregado: (laudoId: number) => void;
+}
+
+export function criarClientMessageIdMesa(): string {
+  return `mesa:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export async function sendInspectorMessageFlow<TOfflineItem>({
@@ -277,6 +283,7 @@ export async function sendMesaMessageFlow<TOfflineItem>({
   mensagemMesa,
   anexoAtual,
   referenciaMensagemId,
+  clientMessageId,
   conversa,
   mensagensMesa,
   sessionAccessToken,
@@ -300,6 +307,9 @@ export async function sendMesaMessageFlow<TOfflineItem>({
   onSetLaudoMesaCarregado,
 }: SendMesaMessageFlowParams<TOfflineItem>) {
   const texto = mensagemMesa.trim();
+  const clientMessageIdAtivo = String(
+    clientMessageId || criarClientMessageIdMesa(),
+  ).trim();
 
   if ((!texto && !anexoAtual) || !conversa.laudoId || !conversa.permiteEdicao) {
     return;
@@ -313,10 +323,13 @@ export async function sendMesaMessageFlow<TOfflineItem>({
     texto: textoExibicao,
     remetente_id: sessionUserId,
     data: "Agora",
+    criado_em_iso: new Date().toISOString(),
     lida: true,
     resolvida_em: "",
     resolvida_em_label: "",
     resolvida_por_nome: "",
+    entrega_status: "queued",
+    client_message_id: clientMessageIdAtivo,
     referencia_mensagem_id: referenciaMensagemId || undefined,
     anexos: anexoAtual
       ? [{ label: anexoAtual.label, categoria: anexoAtual.kind }]
@@ -340,19 +353,24 @@ export async function sendMesaMessageFlow<TOfflineItem>({
           mimeType: anexoAtual.mimeType,
           texto,
           referenciaMensagemId,
+          clientMessageId: clientMessageIdAtivo,
         })
       : await enviarMensagemMesaMobile(
           sessionAccessToken,
           conversa.laudoId,
           texto,
           referenciaMensagemId,
+          clientMessageIdAtivo,
         );
 
     onSetMensagensMesa((estadoAtual) => {
       const semOtimista = estadoAtual.filter(
-        (item) => item.id !== mensagemOtimista.id,
+        (item) =>
+          item.id !== mensagemOtimista.id &&
+          item.id !== resposta.mensagem.id &&
+          item.client_message_id !== resposta.mensagem.client_message_id,
       );
-      return [...semOtimista, resposta.mensagem];
+      return [...semOtimista, resposta.mensagem].sort((a, b) => a.id - b.id);
     });
 
     atualizarResumoLaudoAtual(resposta);
@@ -378,6 +396,7 @@ export async function sendMesaMessageFlow<TOfflineItem>({
         title: conversa.laudoCard?.titulo || `Laudo #${conversa.laudoId}`,
         attachment: anexoAtual,
         referenceMessageId: referenciaMensagemId,
+        clientMessageId: clientMessageIdAtivo,
       });
       onQueueOfflineItem(itemFila);
       void registrarEventoObservabilidade({

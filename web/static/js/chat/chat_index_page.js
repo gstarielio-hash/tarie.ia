@@ -102,6 +102,7 @@
         totalPendenciasFiltradas: 0,
         totalPendenciasExibidas: 0,
         temMaisPendencias: false,
+        pendenciasAbortController: null,
         fonteSSE: null,
         timerBanner: null,
         timerReconexaoSSE: null,
@@ -113,6 +114,7 @@
         mesaWidgetMensagens: [],
         mesaWidgetCursor: null,
         mesaWidgetTemMais: false,
+        mesaWidgetAbortController: null,
         mesaWidgetReferenciaAtiva: null,
         mesaWidgetAnexoPendente: null,
         mesaWidgetNaoLidas: 0,
@@ -421,16 +423,36 @@
         estado.timerFecharMesaWidget = null;
     }
 
-    function fecharSSE() {
-        if (!estado.fonteSSE) return;
+    function ehAbortError(erro) {
+        return erro?.name === "AbortError" || erro?.code === DOMException.ABORT_ERR;
+    }
+
+    function cancelarCarregamentoPendenciasMesa() {
+        if (!estado.pendenciasAbortController) return;
+        estado.pendenciasAbortController.abort();
+        estado.pendenciasAbortController = null;
+        estado.carregandoPendencias = false;
+    }
+
+    function cancelarCarregamentoMensagensMesaWidget() {
+        if (!estado.mesaWidgetAbortController) return;
+        estado.mesaWidgetAbortController.abort();
+        estado.mesaWidgetAbortController = null;
+        estado.mesaWidgetCarregando = false;
+    }
+
+    function fecharSSE(fonte = estado.fonteSSE) {
+        if (!fonte) return;
 
         try {
-            estado.fonteSSE.close();
+            fonte.close();
         } catch (_) {
             // silêncio intencional
         }
 
-        estado.fonteSSE = null;
+        if (estado.fonteSSE === fonte) {
+            estado.fonteSSE = null;
+        }
     }
 
     function definirBotaoIniciarCarregando(ativo) {
@@ -984,10 +1006,13 @@
         el.mesaWidgetLista.scrollTop = el.mesaWidgetLista.scrollHeight;
     }
 
-    async function carregarMensagensMesaWidget({ append = false, silencioso = false } = {}) {
-        const laudoId = obterLaudoAtivo();
-        if (!laudoId || estado.mesaWidgetCarregando) return;
+    async function carregarMensagensMesaWidget({ laudoId = null, append = false, silencioso = false } = {}) {
+        const alvoLaudoId = Number(laudoId || obterLaudoAtivo() || 0) || null;
+        if (!alvoLaudoId) return;
 
+        cancelarCarregamentoMensagensMesaWidget();
+        const controller = new AbortController();
+        estado.mesaWidgetAbortController = controller;
         estado.mesaWidgetCarregando = true;
         if (el.mesaWidgetCarregarMais) {
             el.mesaWidgetCarregarMais.disabled = true;
@@ -1000,12 +1025,13 @@
                 params.set("cursor", String(estado.mesaWidgetCursor));
             }
 
-            const resposta = await fetch(`/app/api/laudo/${laudoId}/mesa/mensagens?${params.toString()}`, {
+            const resposta = await fetch(`/app/api/laudo/${alvoLaudoId}/mesa/mensagens?${params.toString()}`, {
                 credentials: "same-origin",
                 headers: {
                     "Accept": "application/json",
                     "X-Requested-With": "XMLHttpRequest",
                 },
+                signal: controller.signal,
             });
 
             if (!resposta.ok) {
@@ -1018,6 +1044,10 @@
             const normalizados = itens
                 .map(normalizarMensagemMesa)
                 .filter(Boolean);
+
+            if (controller.signal.aborted || alvoLaudoId !== obterLaudoAtivo()) {
+                return;
+            }
 
             emitirSincronizacaoLaudo(payload, { selecionar: false });
 
@@ -1037,13 +1067,19 @@
             renderizarListaMesaWidget();
             renderizarResumoOperacionalMesa();
         } catch (erro) {
+            if (ehAbortError(erro)) {
+                return;
+            }
             if (!silencioso) {
                 mostrarToast("Não foi possível carregar o chat da mesa.", "aviso", 2400);
             }
         } finally {
-            estado.mesaWidgetCarregando = false;
+            if (estado.mesaWidgetAbortController === controller) {
+                estado.mesaWidgetAbortController = null;
+            }
+            estado.mesaWidgetCarregando = !!estado.mesaWidgetAbortController;
             if (el.mesaWidgetCarregarMais) {
-                el.mesaWidgetCarregarMais.disabled = false;
+                el.mesaWidgetCarregarMais.disabled = estado.mesaWidgetCarregando;
             }
         }
     }
@@ -1126,7 +1162,9 @@
             limparReferenciaMesaWidget();
             limparAnexoMesaWidget();
 
-            await carregarMensagensMesaWidget({ silencioso: true });
+            if (obterLaudoAtivo() === laudoId) {
+                await carregarMensagensMesaWidget({ laudoId, silencioso: true });
+            }
         } catch (erro) {
             const detalhe = String(erro?.message || "").trim();
             mostrarToast(
@@ -1217,7 +1255,7 @@
             } catch (_) {}
         }
 
-        await carregarMensagensMesaWidget({ silencioso: true });
+        await carregarMensagensMesaWidget({ laudoId: laudoEvento, silencioso: true });
     }
 
     function atualizarStatusMesa(status = "pronta", detalhe = "") {
@@ -1691,6 +1729,7 @@
     }
 
     function limparPainelPendencias() {
+        cancelarCarregamentoPendenciasMesa();
         estado.laudoPendenciasAtual = null;
         estado.qtdPendenciasAbertas = 0;
         estado.filtroPendencias = "abertas";
@@ -1845,7 +1884,9 @@
             return null;
         }
 
-        if (estado.carregandoPendencias) return null;
+        cancelarCarregamentoPendenciasMesa();
+        const controller = new AbortController();
+        estado.pendenciasAbortController = controller;
         estado.carregandoPendencias = true;
         atualizarControlesPaginacaoPendencias();
 
@@ -1863,6 +1904,7 @@
                 method: "GET",
                 credentials: "same-origin",
                 headers: obterHeadersComCSRF(),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -1870,6 +1912,9 @@
             }
 
             const dados = await response.json();
+            if (controller.signal.aborted || alvo !== obterLaudoAtivoIdSeguro()) {
+                return null;
+            }
             estado.laudoPendenciasAtual = alvo;
             estado.filtroPendencias = normalizarFiltroPendencias(dados?.filtro || filtroAplicado);
             estado.paginaPendenciasAtual = Number(dados?.pagina || paginaSolicitada) || 1;
@@ -1895,6 +1940,9 @@
 
             return dados;
         } catch (erro) {
+            if (ehAbortError(erro)) {
+                return null;
+            }
             if (!silencioso) {
                 mostrarToast(
                     append
@@ -1906,7 +1954,10 @@
             }
             return null;
         } finally {
-            estado.carregandoPendencias = false;
+            if (estado.pendenciasAbortController === controller) {
+                estado.pendenciasAbortController = null;
+            }
+            estado.carregandoPendencias = !!estado.pendenciasAbortController;
             atualizarControlesPaginacaoPendencias();
         }
     }
@@ -2602,14 +2653,17 @@
             estado.tentativasReconexaoSSE > 0 ? "reconectando" : "conectado"
         );
 
-        estado.fonteSSE = new EventSource(ROTA_SSE_NOTIFICACOES);
+        const fonte = new EventSource(ROTA_SSE_NOTIFICACOES);
+        estado.fonteSSE = fonte;
 
-        estado.fonteSSE.onopen = () => {
+        fonte.onopen = () => {
+            if (estado.fonteSSE !== fonte) return;
             estado.tentativasReconexaoSSE = 0;
             atualizarConexaoMesaWidget("conectado");
         };
 
-        estado.fonteSSE.onmessage = (event) => {
+        fonte.onmessage = (event) => {
+            if (estado.fonteSSE !== fonte) return;
             try {
                 const dados = JSON.parse(event.data);
 
@@ -2644,8 +2698,9 @@
             }
         };
 
-        estado.fonteSSE.onerror = () => {
-            fecharSSE();
+        fonte.onerror = () => {
+            if (estado.fonteSSE !== fonte) return;
+            fecharSSE(fonte);
             limparTimerReconexaoSSE();
 
             estado.tentativasReconexaoSSE += 1;
@@ -2900,6 +2955,7 @@
                 obterTipoTemplateDoPayload(event?.detail || {})
             );
             carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+            cancelarCarregamentoMensagensMesaWidget();
             estado.mesaWidgetMensagens = [];
             estado.mesaWidgetCursor = null;
             estado.mesaWidgetTemMais = false;
@@ -2907,7 +2963,7 @@
             limparAnexoMesaWidget();
             atualizarBadgeMesaWidget();
             if (estado.mesaWidgetAberto) {
-                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+                carregarMensagensMesaWidget({ laudoId, silencioso: true }).catch(() => {});
             }
         };
 
@@ -2917,12 +2973,13 @@
             exibirInterfaceInspecaoAtiva(obterTipoTemplateDoPayload(event?.detail || {}));
             carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
             if (estado.mesaWidgetAberto) {
-                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+                carregarMensagensMesaWidget({ laudoId, silencioso: true }).catch(() => {});
             }
         };
 
         const onRelatorioCancelado = () => {
             fecharModalGateQualidade();
+            cancelarCarregamentoMensagensMesaWidget();
             resetarInterfaceInspecao();
             estado.mesaWidgetMensagens = [];
             estado.mesaWidgetCursor = null;
@@ -2959,13 +3016,14 @@
             const laudoId = Number(event?.detail?.laudoId ?? event?.detail?.laudo_id ?? 0) || null;
             if (!laudoId) return;
             carregarPendenciasMesa({ laudoId, silencioso: true }).catch(() => {});
+            cancelarCarregamentoMensagensMesaWidget();
             estado.mesaWidgetMensagens = [];
             estado.mesaWidgetCursor = null;
             estado.mesaWidgetTemMais = false;
             estado.mesaWidgetNaoLidas = 0;
             atualizarBadgeMesaWidget();
             if (estado.mesaWidgetAberto) {
-                carregarMensagensMesaWidget({ silencioso: true }).catch(() => {});
+                carregarMensagensMesaWidget({ laudoId, silencioso: true }).catch(() => {});
             }
         };
 
@@ -3013,6 +3071,8 @@
             limparTimerReconexaoSSE();
             limparTimerFecharMesaWidget();
             limparTimerBanner();
+            cancelarCarregamentoPendenciasMesa();
+            cancelarCarregamentoMensagensMesaWidget();
             atualizarConexaoMesaWidget("offline");
         });
 
@@ -3079,4 +3139,3 @@
         boot();
     }
 })();
-

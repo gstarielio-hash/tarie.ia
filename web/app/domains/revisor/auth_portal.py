@@ -20,7 +20,7 @@ from app.domains.revisor.base import (
     roteador_revisor,
 )
 from app.domains.revisor.common import _validar_csrf
-from app.shared.database import Usuario, obter_banco
+from app.shared.database import Usuario, commit_ou_rollback_operacional, obter_banco
 from app.shared.security import (
     PORTAL_REVISOR,
     criar_hash_senha,
@@ -95,7 +95,11 @@ async def processar_troca_senha_revisor(
     usuario.senha_temporaria_ativa = False
     if hasattr(usuario, "registrar_login_sucesso"):
         usuario.registrar_login_sucesso(ip=request.client.host if request.client else None)
-    banco.commit()
+    commit_ou_rollback_operacional(
+        banco,
+        logger_operacao=logger,
+        mensagem_erro="Falha ao confirmar troca obrigatoria de senha do revisor.",
+    )
 
     _limpar_fluxo_troca_senha(request)
 
@@ -150,7 +154,7 @@ async def processar_login_revisor(
     if not usuario or not senha_valida:
         if usuario and hasattr(usuario, "incrementar_tentativa_falha"):
             usuario.incrementar_tentativa_falha()
-            banco.commit()
+            banco.flush()
 
         return _render_login_revisor(
             request,
@@ -186,6 +190,21 @@ async def processar_login_revisor(
     if hash_atualizado:
         usuario.senha_hash = hash_atualizado
 
+    if hasattr(usuario, "registrar_login_sucesso"):
+        try:
+            usuario.registrar_login_sucesso(ip=request.client.host if request.client else None)
+        except Exception:
+            logger.warning(
+                "Falha ao registrar sucesso de login revisor | usuario_id=%s",
+                usuario.id,
+                exc_info=True,
+            )
+
+    commit_ou_rollback_operacional(
+        banco,
+        logger_operacao=logger,
+        mensagem_erro="Falha ao confirmar login do revisor.",
+    )
     token = criar_sessao(usuario.id, lembrar=lembrar)
     definir_sessao_portal(
         request.session,
@@ -198,17 +217,6 @@ async def processar_login_revisor(
     )
     request.session[CHAVE_CSRF_REVISOR] = secrets.token_urlsafe(32)
 
-    if hasattr(usuario, "registrar_login_sucesso"):
-        try:
-            usuario.registrar_login_sucesso(ip=request.client.host if request.client else None)
-        except Exception:
-            logger.warning(
-                "Falha ao registrar sucesso de login revisor | usuario_id=%s",
-                usuario.id,
-                exc_info=True,
-            )
-
-    banco.commit()
     logger.info("Login revisor | usuario_id=%s | email=%s", usuario.id, email_normalizado)
     return RedirectResponse(url="/revisao/painel", status_code=status.HTTP_303_SEE_OTHER)
 

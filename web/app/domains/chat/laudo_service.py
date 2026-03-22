@@ -141,7 +141,7 @@ async def iniciar_relatorio_resposta(
     )
 
     banco.add(laudo)
-    banco.commit()
+    banco.flush()
     banco.refresh(laudo)
 
     aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
@@ -217,7 +217,7 @@ async def finalizar_relatorio_resposta(
     laudo.encerrado_pelo_inspetor_em = agora_utc()
     laudo.reabertura_pendente_em = None
     laudo.atualizado_em = agora_utc()
-    banco.commit()
+    banco.flush()
     contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 
     logger.info("Relatório finalizado | usuario_id=%s | laudo_id=%s", usuario.id, laudo_id)
@@ -267,7 +267,7 @@ async def reabrir_laudo_resposta(
     laudo.reaberto_em = agora_utc()
     laudo.reabertura_pendente_em = None
     laudo.atualizado_em = agora_utc()
-    banco.commit()
+    banco.flush()
 
     contexto = aplicar_contexto_laudo_selecionado(request, banco, laudo, usuario)
 

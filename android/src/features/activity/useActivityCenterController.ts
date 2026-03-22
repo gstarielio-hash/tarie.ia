@@ -100,6 +100,7 @@ export function useActivityCenterController<
   const [monitorandoAtividade, setMonitorandoAtividade] = useState(false);
   const statusSnapshotRef = useRef<Record<number, string>>({});
   const mesaSnapshotRef = useRef<Record<number, Record<number, string>>>({});
+  const mesaFeedCursorRef = useRef("");
 
   function marcarCentralAtividadeComoLida() {
     paramsRef.current.setNotifications((estadoAtual) =>
@@ -277,6 +278,7 @@ export function useActivityCenterController<
       chaveCacheLaudo: current.chaveCacheLaudo,
       statusSnapshotRef,
       mesaSnapshotRef,
+      mesaFeedCursorRef,
       onSetMonitorandoAtividade: setMonitorandoAtividade,
       onSetLaudosDisponiveis: current.onSetLaudosDisponiveis,
       onSetCacheLaudos: current.onSetCacheLaudos,
@@ -316,6 +318,7 @@ export function useActivityCenterController<
     setMonitorandoAtividade(false);
     statusSnapshotRef.current = {};
     mesaSnapshotRef.current = {};
+    mesaFeedCursorRef.current = "";
   }, [params.session]);
 
   useEffect(() => {

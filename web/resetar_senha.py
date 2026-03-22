@@ -1,27 +1,21 @@
-# resetar_senha.py
-from banco_dados import SessaoLocal, Usuario
-from seguranca import criar_hash_senha
+"""Wrapper legado para o CLI oficial `scripts/resetar_senha.py`."""
 
-banco = SessaoLocal()
+from __future__ import annotations
 
-# Lista todos os usuários cadastrados
-usuarios = banco.query(Usuario).all()
-print("\nUsuários encontrados:")
-for u in usuarios:
-    print(f"  ID: {u.id} | Email: {u.email} | Nível: {u.nivel_acesso} | Empresa ID: {u.empresa_id}")
+from pathlib import Path
+import sys
 
-# Redefine a senha do primeiro usuário de nível 99 (Diretoria)
-admin = banco.query(Usuario).filter(Usuario.nivel_acesso == 99).first()
+DIR_PROJETO = Path(__file__).resolve().parent
+if str(DIR_PROJETO) not in sys.path:
+    sys.path.insert(0, str(DIR_PROJETO))
 
-if admin:
-    nova_senha = "Admin@2026"
-    admin.senha_hash = criar_hash_senha(nova_senha)
-    banco.commit()
-    print("\n✅ Senha redefinida!")
-    print(f"   Email: {admin.email}")
-    print(f"   Nova senha: {nova_senha}")
-else:
-    print("\n⚠️ Nenhum usuário de Diretoria encontrado.")
-    print("   Rode o criar_admin.py para criar um.")
+from scripts.resetar_senha import main  # noqa: E402
 
-banco.close()
+
+if __name__ == "__main__":
+    print(
+        "Aviso: `resetar_senha.py` na raiz esta deprecated. "
+        "Use `python3 scripts/resetar_senha.py`.",
+        file=sys.stderr,
+    )
+    raise SystemExit(main())

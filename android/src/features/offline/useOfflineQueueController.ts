@@ -36,6 +36,7 @@ interface OfflineItemLike {
   title: string;
   attachment: ComposerAttachment | null;
   referenceMessageId: number | null;
+  clientMessageId?: string | null;
   attempts: number;
   lastAttemptAt: string;
   lastError: string;
@@ -155,6 +156,7 @@ export function useOfflineQueueController<
       if (!item.laudoId) {
         return laudoSequencial;
       }
+      const clientMessageId = item.clientMessageId || `mesa-offline:${item.id}`;
 
       if (item.attachment) {
         await enviarAnexoMesaMobile(accessToken, item.laudoId, {
@@ -166,6 +168,7 @@ export function useOfflineQueueController<
           mimeType: item.attachment.mimeType,
           texto: item.text,
           referenciaMensagemId: item.referenceMessageId,
+          clientMessageId,
         });
       } else {
         await enviarMensagemMesaMobile(
@@ -173,6 +176,7 @@ export function useOfflineQueueController<
           item.laudoId,
           item.text,
           item.referenceMessageId,
+          clientMessageId,
         );
       }
       return laudoSequencial;

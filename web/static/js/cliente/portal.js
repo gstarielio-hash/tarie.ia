@@ -34,6 +34,7 @@
             laudoId: null,
             mensagens: [],
             pacote: null,
+            loadController: null,
         },
     };
 
@@ -43,6 +44,16 @@
     function texto(valor) {
         if (valor == null) return "";
         return String(valor);
+    }
+
+    function ehAbortError(erro) {
+        return erro?.name === "AbortError" || erro?.code === DOMException.ABORT_ERR;
+    }
+
+    function cancelarCarregamentoMesa() {
+        if (!state.mesa.loadController) return;
+        state.mesa.loadController.abort();
+        state.mesa.loadController = null;
     }
 
     function escapeHtml(valor) {
@@ -646,6 +657,7 @@
     async function api(url, options = {}) {
         const opts = {
             method: "GET",
+            cache: "no-store",
             credentials: "same-origin",
             ...options,
             headers: {
@@ -846,6 +858,10 @@
         return (state.bootstrap?.mesa?.laudos || []).find((laudo) => Number(laudo.id) === Number(state.mesa.laudoId)) || null;
     }
 
+    function obterLaudoMesaPorId(laudoId) {
+        return (state.bootstrap?.mesa?.laudos || []).find((laudo) => Number(laudo.id) === Number(laudoId)) || null;
+    }
+
     function sincronizarSelecoes() {
         const idsChat = new Set((state.bootstrap?.chat?.laudos || []).map((item) => Number(item.id)));
         const idsMesa = new Set((state.bootstrap?.mesa?.laudos || []).map((item) => Number(item.id)));
@@ -872,6 +888,7 @@
             limparDocumentoChatPendente();
         }
         if (!state.mesa.laudoId) {
+            cancelarCarregamentoMesa();
             state.mesa.mensagens = [];
             state.mesa.pacote = null;
         }
@@ -2413,38 +2430,61 @@
         const id = Number(laudoId || 0);
         if (!Number.isFinite(id) || id <= 0) return;
 
+        cancelarCarregamentoMesa();
+        const controller = new AbortController();
+        state.mesa.loadController = controller;
         state.mesa.laudoId = id;
         persistirSelecao(STORAGE_MESA_KEY, id);
         renderMesaResumoGeral();
         renderMesaList();
         renderMesaContext();
-
-        const [mensagens, pacote] = await Promise.all([
-            api(`/cliente/api/mesa/laudos/${id}/mensagens`),
-            api(`/cliente/api/mesa/laudos/${id}/pacote`),
-        ]);
-
-        state.mesa.mensagens = mensagens.itens || [];
-        state.mesa.pacote = pacote || null;
+        state.mesa.mensagens = [];
+        state.mesa.pacote = null;
         renderMesaMensagens();
         renderMesaResumo();
 
-        const alvo = obterLaudoMesaSelecionado();
-        if (Number(alvo?.whispers_nao_lidos || 0) > 0) {
-            api(`/cliente/api/mesa/laudos/${id}/marcar-whispers-lidos`, { method: "POST" }).catch(() => null);
-            if (state.bootstrap?.mesa?.laudos) {
-                state.bootstrap.mesa.laudos = state.bootstrap.mesa.laudos.map((item) =>
-                    Number(item.id) === id ? { ...item, whispers_nao_lidos: 0 } : item
-                );
-                renderMesaResumoGeral();
-                renderMesaList();
-                renderMesaContext();
-                atualizarBadgesTabs();
-            }
-        }
+        try {
+            const [mensagens, pacote] = await Promise.all([
+                api(`/cliente/api/mesa/laudos/${id}/mensagens`, { signal: controller.signal }),
+                api(`/cliente/api/mesa/laudos/${id}/pacote`, { signal: controller.signal }),
+            ]);
 
-        if (!silencioso && state.ui.tab !== "mesa") {
-            feedback("Fila da mesa sincronizada.");
+            if (controller.signal.aborted || Number(state.mesa.laudoId || 0) !== id) {
+                return null;
+            }
+
+            state.mesa.mensagens = mensagens.itens || [];
+            state.mesa.pacote = pacote || null;
+            renderMesaMensagens();
+            renderMesaResumo();
+
+            const alvo = obterLaudoMesaPorId(id);
+            if (Number(alvo?.whispers_nao_lidos || 0) > 0) {
+                api(`/cliente/api/mesa/laudos/${id}/marcar-whispers-lidos`, { method: "POST" }).catch(() => null);
+                if (state.bootstrap?.mesa?.laudos) {
+                    state.bootstrap.mesa.laudos = state.bootstrap.mesa.laudos.map((item) =>
+                        Number(item.id) === id ? { ...item, whispers_nao_lidos: 0 } : item
+                    );
+                    renderMesaResumoGeral();
+                    renderMesaList();
+                    renderMesaContext();
+                    atualizarBadgesTabs();
+                }
+            }
+
+            if (!silencioso && state.ui.tab !== "mesa") {
+                feedback("Fila da mesa sincronizada.");
+            }
+            return { mensagens, pacote };
+        } catch (erro) {
+            if (ehAbortError(erro)) {
+                return null;
+            }
+            throw erro;
+        } finally {
+            if (state.mesa.loadController === controller) {
+                state.mesa.loadController = null;
+            }
         }
     }
 
@@ -2840,7 +2880,8 @@
 
         $("form-mesa-msg")?.addEventListener("submit", async (event) => {
             event.preventDefault();
-            if (!state.mesa.laudoId) {
+            const laudoId = Number(state.mesa.laudoId || 0) || null;
+            if (!laudoId) {
                 feedback("Selecione um laudo da mesa primeiro.", true);
                 return;
             }
@@ -2858,12 +2899,12 @@
                     const formData = new FormData();
                     formData.append("arquivo", arquivo);
                     formData.append("texto", resposta);
-                    await api(`/cliente/api/mesa/laudos/${state.mesa.laudoId}/responder-anexo`, {
+                    await api(`/cliente/api/mesa/laudos/${laudoId}/responder-anexo`, {
                         method: "POST",
                         body: formData,
                     });
                 } else {
-                    await api(`/cliente/api/mesa/laudos/${state.mesa.laudoId}/responder`, {
+                    await api(`/cliente/api/mesa/laudos/${laudoId}/responder`, {
                         method: "POST",
                         body: { texto: resposta },
                     });
@@ -2872,43 +2913,52 @@
                 $("mesa-resposta").value = "";
                 $("mesa-arquivo").value = "";
                 await bootstrapPortal();
-                await loadMesa(state.mesa.laudoId, { silencioso: true });
+                if (Number(state.mesa.laudoId || 0) === laudoId) {
+                    await loadMesa(laudoId, { silencioso: true });
+                }
                 feedback("Resposta registrada na mesa avaliadora.");
             }).catch((erro) => feedback(erro.message || "Falha ao responder a mesa.", true));
         });
 
         $("mesa-mensagens")?.addEventListener("click", async (event) => {
             const button = event.target.closest('[data-act="toggle-pendencia"]');
-            if (!button || !state.mesa.laudoId) return;
+            const laudoId = Number(state.mesa.laudoId || 0) || null;
+            if (!button || !laudoId) return;
 
             const resolvida = button.dataset.lida === "1";
             await withBusy(button, resolvida ? "Reabrindo..." : "Resolvendo...", async () => {
-                await api(`/cliente/api/mesa/laudos/${state.mesa.laudoId}/pendencias/${button.dataset.id}`, {
+                await api(`/cliente/api/mesa/laudos/${laudoId}/pendencias/${button.dataset.id}`, {
                     method: "PATCH",
                     body: { lida: !resolvida },
                 });
                 await bootstrapPortal();
-                await loadMesa(state.mesa.laudoId, { silencioso: true });
+                if (Number(state.mesa.laudoId || 0) === laudoId) {
+                    await loadMesa(laudoId, { silencioso: true });
+                }
                 feedback(resolvida ? "Pendencia reaberta." : "Pendencia marcada como resolvida.");
             }).catch((erro) => feedback(erro.message || "Falha ao atualizar pendencia.", true));
         });
 
         $("btn-mesa-aprovar")?.addEventListener("click", async (event) => {
-            if (!state.mesa.laudoId) return;
+            const laudoId = Number(state.mesa.laudoId || 0) || null;
+            if (!laudoId) return;
             const button = event.currentTarget;
             await withBusy(button, "Aprovando...", async () => {
-                await api(`/cliente/api/mesa/laudos/${state.mesa.laudoId}/avaliar`, {
+                await api(`/cliente/api/mesa/laudos/${laudoId}/avaliar`, {
                     method: "POST",
                     body: { acao: "aprovar", motivo: "" },
                 });
                 await bootstrapPortal();
-                await loadMesa(state.mesa.laudoId, { silencioso: true });
+                if (Number(state.mesa.laudoId || 0) === laudoId) {
+                    await loadMesa(laudoId, { silencioso: true });
+                }
                 feedback("Laudo aprovado pela mesa.");
             }).catch((erro) => feedback(erro.message || "Falha ao aprovar laudo.", true));
         });
 
         $("btn-mesa-rejeitar")?.addEventListener("click", async (event) => {
-            if (!state.mesa.laudoId) return;
+            const laudoId = Number(state.mesa.laudoId || 0) || null;
+            if (!laudoId) return;
 
             const motivo = $("mesa-motivo").value.trim();
             if (!motivo) {
@@ -2918,12 +2968,14 @@
 
             const button = event.currentTarget;
             await withBusy(button, "Devolvendo...", async () => {
-                await api(`/cliente/api/mesa/laudos/${state.mesa.laudoId}/avaliar`, {
+                await api(`/cliente/api/mesa/laudos/${laudoId}/avaliar`, {
                     method: "POST",
                     body: { acao: "rejeitar", motivo },
                 });
                 await bootstrapPortal();
-                await loadMesa(state.mesa.laudoId, { silencioso: true });
+                if (Number(state.mesa.laudoId || 0) === laudoId) {
+                    await loadMesa(laudoId, { silencioso: true });
+                }
                 feedback("Laudo devolvido para ajustes.");
             }).catch((erro) => feedback(erro.message || "Falha ao rejeitar laudo.", true));
         });

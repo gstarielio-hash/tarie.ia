@@ -58,10 +58,15 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
 
     const state = {
         laudoAtivoId: null,
+        laudoContextoVersao: 0,
+        laudoLoadController: null,
         jsonEstruturadoAtivo: null,
         pacoteMesaAtivo: null,
+        pacoteMesaLaudoId: null,
+        pacoteMesaAbortController: null,
         socketWhisper: null,
         wsReconnectTimer: null,
+        wsFechamentoManual: false,
         lastFocusedElement: null,
         pendingSend: false,
         referenciaMensagemAtiva: null,
@@ -70,6 +75,7 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         historicoCursorProximo: null,
         historicoTemMais: false,
         carregandoHistoricoAntigo: false,
+        historicoAbortController: null,
         aprendizadosVisuais: []
     };
 
@@ -243,6 +249,45 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
         }
     };
 
+    const ehAbortError = (erro) =>
+        erro?.name === "AbortError"
+        || erro?.code === DOMException.ABORT_ERR;
+
+    const obterContextoLaudoAtivo = () => ({
+        laudoId: Number(state.laudoAtivoId || 0) || null,
+        versao: Number(state.laudoContextoVersao || 0) || 0
+    });
+
+    const contextoLaudoAindaValido = (contexto) =>
+        Number(contexto?.laudoId || 0) > 0
+        && Number(state.laudoAtivoId || 0) === Number(contexto.laudoId || 0)
+        && Number(state.laudoContextoVersao || 0) === Number(contexto?.versao || 0);
+
+    const cancelarRequisicaoHistorico = () => {
+        if (state.historicoAbortController) {
+            state.historicoAbortController.abort();
+            state.historicoAbortController = null;
+        }
+        state.carregandoHistoricoAntigo = false;
+    };
+
+    const cancelarRequisicaoPacoteMesa = () => {
+        if (state.pacoteMesaAbortController) {
+            state.pacoteMesaAbortController.abort();
+            state.pacoteMesaAbortController = null;
+        }
+    };
+
+    const registrarTrocaLaudoAtivo = (laudoId) => {
+        state.laudoAtivoId = Number(laudoId || 0) || null;
+        state.laudoContextoVersao += 1;
+        state.pacoteMesaAtivo = null;
+        state.pacoteMesaLaudoId = null;
+        cancelarRequisicaoHistorico();
+        cancelarRequisicaoPacoteMesa();
+        return obterContextoLaudoAtivo();
+    };
+
     const downloadJson = (nomeArquivo, payload) => {
         const nomeSeguro = (nomeArquivo || "pacote_mesa_laudo.json")
             .replace(/[^\w.\-]/g, "_")
@@ -260,19 +305,38 @@ const tokenCsrf = document.getElementById("global-csrf")?.value || "";
     };
 
     const obterPacoteMesaLaudo = async ({ forcar = false } = {}) => {
-        if (!state.laudoAtivoId) return null;
-        if (!forcar && state.pacoteMesaAtivo) return state.pacoteMesaAtivo;
-
-        const res = await fetch(`/revisao/api/laudo/${state.laudoAtivoId}/pacote`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" }
-        });
-        if (!res.ok) {
-            throw new Error(`Falha HTTP ${res.status}`);
+        const contexto = obterContextoLaudoAtivo();
+        if (!contexto.laudoId) return null;
+        if (!forcar && state.pacoteMesaAtivo && state.pacoteMesaLaudoId === contexto.laudoId) {
+            return state.pacoteMesaAtivo;
         }
 
-        const pacote = await res.json();
-        state.pacoteMesaAtivo = pacote;
-        return pacote;
+        cancelarRequisicaoPacoteMesa();
+        const controller = new AbortController();
+        state.pacoteMesaAbortController = controller;
+
+        try {
+            const res = await fetch(`/revisao/api/laudo/${contexto.laudoId}/pacote`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                signal: controller.signal
+            });
+            if (!res.ok) {
+                throw new Error(`Falha HTTP ${res.status}`);
+            }
+
+            const pacote = await res.json();
+            if (controller.signal.aborted || !contextoLaudoAindaValido(contexto)) {
+                return null;
+            }
+
+            state.pacoteMesaAtivo = pacote;
+            state.pacoteMesaLaudoId = contexto.laudoId;
+            return pacote;
+        } finally {
+            if (state.pacoteMesaAbortController === controller) {
+                state.pacoteMesaAbortController = null;
+            }
+        }
     };
 
     const limparReferenciaMensagemAtiva = () => {
@@ -621,6 +685,12 @@ Object.assign(NS, {
     showStatus,
     resumoMensagem,
     formatarDataHora,
+    ehAbortError,
+    obterContextoLaudoAtivo,
+    contextoLaudoAindaValido,
+    cancelarRequisicaoHistorico,
+    cancelarRequisicaoPacoteMesa,
+    registrarTrocaLaudoAtivo,
     downloadJson,
     obterPacoteMesaLaudo,
     limparReferenciaMensagemAtiva,

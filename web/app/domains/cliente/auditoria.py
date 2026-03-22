@@ -39,7 +39,7 @@ def registrar_auditoria_empresa(
         atualizado_em=timestamp,
     )
     banco.add(registro)
-    banco.commit()
+    banco.flush()
     banco.refresh(registro)
     return registro
 

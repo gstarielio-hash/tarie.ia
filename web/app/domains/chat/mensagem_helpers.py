@@ -69,11 +69,15 @@ def serializar_mensagem_mesa(mensagem: MensagemLaudo) -> dict[str, Any]:
         "texto": texto_mensagem_mesa_visivel(mensagem.conteudo, anexos=getattr(mensagem, "anexos_mesa", None)),
         "remetente_id": mensagem.remetente_id,
         "data": formatar_data_br(mensagem.criado_em),
+        "criado_em_iso": mensagem.criado_em.isoformat() if mensagem.criado_em else "",
         "lida": bool(mensagem.lida),
         "resolvida_em": mensagem.resolvida_em.isoformat() if mensagem.resolvida_em else "",
         "resolvida_em_label": formatar_data_br(mensagem.resolvida_em, incluir_ano=True) if mensagem.resolvida_em else "",
         "resolvida_por_nome": nome_resolvedor_pendencia(mensagem),
+        "entrega_status": "persisted",
     }
+    if mensagem.client_message_id:
+        payload["client_message_id"] = str(mensagem.client_message_id)
     if referencia_mensagem_id:
         payload["referencia_mensagem_id"] = referencia_mensagem_id
     if anexos_payload:

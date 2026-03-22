@@ -26,7 +26,7 @@ Backlog mestre da etapa antiga (priorizado e com status):
 - `static/js/chat`, `static/js/admin`, `static/js/revisor`, `static/js/shared`: organização de scripts por domínio
 - `static/css/revisor`: estilos dedicados da biblioteca de templates da mesa avaliadora
 
-Observação: os wrappers legados da raiz foram removidos. Use apenas os módulos em `app/` (`app/domains/*` e `app/shared/*`).
+Observação: os wrappers legados de módulo na raiz estão desabilitados por padrão. Use apenas os módulos em `app/` (`app/domains/*` e `app/shared/*`). Se precisar de compatibilidade temporária durante migração controlada, habilite `TARIEL_ALLOW_LEGACY_IMPORTS=1` apenas no processo afetado.
 
 ## Setup local (do zero)
 
@@ -72,6 +72,18 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 # 3) Volte para 0 após criar os dados de dev
 SEED_DEV_BOOTSTRAP=0
 ```
+
+## Operação administrativa
+
+Scripts oficiais de operação ficam em `scripts/`:
+
+```bash
+python scripts/criar_admin.py --help
+python scripts/resetar_senha.py --help
+python scripts/listar_modelos_gemini.py
+```
+
+Os wrappers de CLI da raiz (`criar_admin.py`, `resetar_senha.py`, `senhanova.py`, `modelo.py`) foram mantidos apenas para compatibilidade temporária e exibem aviso de descontinuação. Os wrappers legados de módulo (`banco_dados.py`, `seguranca.py`, `rotas_admin.py`, `rotas_inspetor.py`, `servicos_saas.py`) ficam bloqueados por padrão.
 
 ## Realtime distribuído da mesa
 
@@ -133,7 +145,7 @@ python -m compileall -q .
 
 ### GitHub Actions
 
-- `ci.yml`: lint + guarda de arquitetura + suíte crítica de testes.
+- `ci.yml`: lint + guarda de arquitetura + `mypy` + suíte crítica de testes + job com Postgres/Redis.
 - `e2e-local-stress.yml` (manual): stress E2E intenso local (sequencial + paralelo) com Playwright.
 
 ## Testes E2E (Playwright)

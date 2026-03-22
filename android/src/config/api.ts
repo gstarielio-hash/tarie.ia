@@ -23,7 +23,9 @@ export {
   uploadDocumentoChatMobile,
 } from "./chatApi";
 export {
+  carregarFeedMesaMobile,
   carregarMensagensMesaMobile,
+  carregarResumoMesaMobile,
   enviarAnexoMesaMobile,
   enviarMensagemMesaMobile,
 } from "./mesaApi";

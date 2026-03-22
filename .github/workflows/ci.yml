@@ -11,6 +11,123 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      AMBIENTE: dev
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: web/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Ruff check
+        run: python -m ruff check .
+
+      - name: Architecture guard (chat)
+        run: python scripts/check_chat_architecture.py
+
+      - name: Mypy
+        run: python -m mypy
+
+      - name: Critical pytest suite
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_smoke.py \
+            tests/test_core_support.py \
+            tests/test_chat_runtime_support.py \
+            tests/test_cliente_route_support.py \
+            tests/test_transaction_contract.py \
+            tests/test_tenant_access.py \
+            tests/test_regras_rotas_criticas.py \
+            tests/test_admin_services.py \
+            tests/test_admin_client_routes.py \
+            tests/test_chat_notifications.py \
+            tests/test_inspetor_comandos_dominio.py \
+            tests/test_inspetor_confianca_dominio.py \
+            tests/test_revisor_ws.py
+
+  backend-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AMBIENTE: dev
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tariel_ci
+      REDIS_URL: redis://127.0.0.1:6379/0
+      REVISOR_REALTIME_BACKEND: redis
+      REVISOR_REALTIME_CHANNEL_PREFIX: tariel:revisor:ci
+    defaults:
+      run:
+        working-directory: web
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tariel_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tariel_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: web/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Alembic upgrade
+        run: python -m alembic upgrade head
+
+      - name: Backend stack smoke
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_smoke.py \
+            tests/test_chat_runtime_support.py \
+            tests/test_revisor_realtime.py \
+            tests/test_revisor_ws.py
+
+  web-e2e-mesa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      AMBIENTE: dev
+      RUN_E2E: "1"
     defaults:
       run:
         working-directory: web
@@ -31,20 +148,31 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Ruff check
-        run: python -m ruff check .
+      - name: Install Playwright browsers
+        run: python -m playwright install --with-deps chromium
 
-      - name: Architecture guard (chat)
-        run: python scripts/check_chat_architecture.py
-
-      - name: Critical pytest suite
+      - name: Mesa web E2E smoke
         run: |
           PYTHONPATH=. python -m pytest -q \
-            tests/test_smoke.py \
-            tests/test_tenant_access.py \
-            tests/test_regras_rotas_criticas.py \
-            tests/test_inspetor_comandos_dominio.py \
-            tests/test_inspetor_confianca_dominio.py
+            tests/e2e/test_portais_playwright.py::test_e2e_admin_provisiona_admin_cliente_e_portal_unificado_funciona \
+            tests/e2e/test_portais_playwright.py::test_e2e_admin_cliente_mesa_ignora_resposta_atrasada_ao_trocar_de_laudo \
+            tests/e2e/test_portais_playwright.py::test_e2e_revisor_ui_responde_e_inspetor_recebe \
+            tests/e2e/test_portais_playwright.py::test_e2e_revisor_exibe_painel_operacional_da_mesa \
+            tests/e2e/test_portais_playwright.py::test_e2e_revisor_mesa_ignora_respostas_atrasadas_ao_trocar_de_laudo \
+            --browser chromium \
+            --tracing retain-on-failure \
+            --video retain-on-failure \
+            --screenshot only-on-failure \
+            --output test-results/playwright-mesa \
+            -s
+
+      - name: Upload Playwright Mesa artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-mesa-results
+          path: web/test-results/playwright-mesa
+          if-no-files-found: ignore
 
   mobile-quality:
     runs-on: ubuntu-latest

@@ -1,11 +1,21 @@
-import os
-import google.generativeai as genai
-from dotenv import load_dotenv
+"""Wrapper legado para o CLI oficial `scripts/listar_modelos_gemini.py`."""
 
-load_dotenv()
-genai.configure(api_key=os.getenv("CHAVE_API_GEMINI"))
+from __future__ import annotations
 
-print("Modelos liberados para sua chave (que suportam geração):")
-for m in genai.list_models():
-    if "generateContent" in m.supported_generation_methods:
-        print(m.name)
+from pathlib import Path
+import sys
+
+DIR_PROJETO = Path(__file__).resolve().parent
+if str(DIR_PROJETO) not in sys.path:
+    sys.path.insert(0, str(DIR_PROJETO))
+
+from scripts.listar_modelos_gemini import main  # noqa: E402
+
+
+if __name__ == "__main__":
+    print(
+        "Aviso: `modelo.py` na raiz esta deprecated. "
+        "Use `python3 scripts/listar_modelos_gemini.py`.",
+        file=sys.stderr,
+    )
+    raise SystemExit(main())
